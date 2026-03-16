@@ -1,0 +1,5835 @@
+{
+  "generated": "2026-03-12",
+  "np466962": {
+    "total_items": 187,
+    "found": 187,
+    "not_found": 0,
+    "in_pedido_1134065": 37,
+    "need_pedido": 150,
+    "found_items": [
+      {
+        "articulo_prov": "62.0100001",
+        "descripcion_np": "ORGANIZADOR DE VIAJE UNICROSS 6 PIEZAS",
+        "cantidad": 12,
+        "precio_np": 9190.0,
+        "codigos_bd": [
+          360326
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.0100001 SURTIDO ORGANIZADOR DE VIAJE UNICROSS 6 PIEZAS"
+        ]
+      },
+      {
+        "articulo_prov": "62.2300004",
+        "descripcion_np": "MORRAL UNICROSS",
+        "cantidad": 12,
+        "precio_np": 6590.0,
+        "codigos_bd": [
+          360327
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.2300004 SURTIDO MORRAL UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.2300005",
+        "descripcion_np": "MORRAL UNICROSS",
+        "cantidad": 12,
+        "precio_np": 9990.0,
+        "codigos_bd": [
+          360328
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.2300005 SURTIDO MORRAL UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.2300008",
+        "descripcion_np": "MORRAL PORTANOTEBOOK UNICROSS",
+        "cantidad": 4,
+        "precio_np": 14990.0,
+        "codigos_bd": [
+          360329
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.2300008 SURTIDO MORRAL PORTANOTEBOOK UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.261041R",
+        "descripcion_np": "MOCHILA MATERO UNICROSS NEGRO 14.5\"",
+        "cantidad": 2,
+        "precio_np": 18690.0,
+        "codigos_bd": [
+          360330
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.261041R NEGRO MOCHILA MATERO UNICROSS 14.5\""
+        ]
+      },
+      {
+        "articulo_prov": "62.3100007",
+        "descripcion_np": "MOCHILA CRUZADA UNICROSS",
+        "cantidad": 4,
+        "precio_np": 8190.0,
+        "codigos_bd": [
+          360307
+        ],
+        "precio_fabrica_bd": [
+          8190
+        ],
+        "descripcion_bd": [
+          "62.3100007 MOCHILA CRUZADA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600002",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360331
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600002 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600003",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360332
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600003 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600004",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360333
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600004 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600006",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360334
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600006 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600007",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360335
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600007 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600011",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 6090.0,
+        "codigos_bd": [
+          360336
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600011 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600012",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 5990.0,
+        "codigos_bd": [
+          360337
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600012 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600015",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 6090.0,
+        "codigos_bd": [
+          360338
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600015 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600017",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 5690.0,
+        "codigos_bd": [
+          360339
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600017 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600019",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 5690.0,
+        "codigos_bd": [
+          360340
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600019 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.P5015",
+        "descripcion_np": "PARAGUAS CORTO MANUAL UNICROSS 21\"",
+        "cantidad": 12,
+        "precio_np": 6790.0,
+        "codigos_bd": [
+          311213
+        ],
+        "precio_fabrica_bd": [
+          3390
+        ],
+        "descripcion_bd": [
+          "62.P5015 PARAGUA CORTO MANUAL UNICROSS 21\""
+        ]
+      },
+      {
+        "articulo_prov": "62.P5017",
+        "descripcion_np": "PARAGUAS MANUAL UNICROSS 22\"",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          359661
+        ],
+        "precio_fabrica_bd": [
+          5790
+        ],
+        "descripcion_bd": [
+          "62.P5017 PARAGUAS MANUAL UNICROSS 22\""
+        ]
+      },
+      {
+        "articulo_prov": "62.T6045",
+        "descripcion_np": "GORRO UNICROSS",
+        "cantidad": 12,
+        "precio_np": 4690.0,
+        "codigos_bd": [
+          345037
+        ],
+        "precio_fabrica_bd": [
+          3390
+        ],
+        "descripcion_bd": [
+          "62.T6045 SURTIDOS GORRO LANA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6046",
+        "descripcion_np": "GORRO UNICROSS",
+        "cantidad": 12,
+        "precio_np": 4790.0,
+        "codigos_bd": [
+          344867
+        ],
+        "precio_fabrica_bd": [
+          3390
+        ],
+        "descripcion_bd": [
+          "62.T6046 SURTIDOS GORRO LANA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6050",
+        "descripcion_np": "GORRO UNICROSS",
+        "cantidad": 12,
+        "precio_np": 3390.0,
+        "codigos_bd": [
+          360341
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6050 SURTIDO GORRO UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6051",
+        "descripcion_np": "GORRO UNICROSS",
+        "cantidad": 12,
+        "precio_np": 3490.0,
+        "codigos_bd": [
+          360342
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6051 SURTIDO GORRO UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6106",
+        "descripcion_np": "BUFANDA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 8890.0,
+        "codigos_bd": [
+          360343
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6106 SURTIDO BUFANDA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6107",
+        "descripcion_np": "BUFANDA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360344
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6107 SURTIDO BUFANDA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6108",
+        "descripcion_np": "BUFANDA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360345
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6108 SURTIDO BUFANDA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6222",
+        "descripcion_np": "GUANTES P/ MOTO UNICROSS",
+        "cantidad": 24,
+        "precio_np": 11490.0,
+        "codigos_bd": [
+          246172
+        ],
+        "precio_fabrica_bd": [
+          8990
+        ],
+        "descripcion_bd": [
+          "62.T6222 SURTIDOS GUANTES MOTO UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6233",
+        "descripcion_np": "GUANTES UNICROSS",
+        "cantidad": 24,
+        "precio_np": 3490.0,
+        "codigos_bd": [
+          360346
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6233 SURTIDO GUANTES UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6241",
+        "descripcion_np": "GUANTES UNICROSS",
+        "cantidad": 24,
+        "precio_np": 3190.0,
+        "codigos_bd": [
+          290994
+        ],
+        "precio_fabrica_bd": [
+          2590
+        ],
+        "descripcion_bd": [
+          "62.T6241 SURTIDOS GUANTES LANA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6243",
+        "descripcion_np": "GUANTES UNICROSS",
+        "cantidad": 24,
+        "precio_np": 3590.0,
+        "codigos_bd": [
+          360347
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6243 SURTIDO GUANTES UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600001",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360348
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600001 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600002",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360349
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600002 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600003",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360350
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600003 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600004",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360351
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600004 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800003",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 20790.0,
+        "codigos_bd": [
+          360352
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800003 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800019",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 29690.0,
+        "codigos_bd": [
+          360353
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800019 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800020",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 29690.0,
+        "codigos_bd": [
+          360354
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800020 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800021",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 29690.0,
+        "codigos_bd": [
+          360355
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800021 SUELA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800031",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360356
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800031 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800032",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360357
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800032 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800049",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360308
+        ],
+        "precio_fabrica_bd": [
+          27790
+        ],
+        "descripcion_bd": [
+          "67.0800049 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800050",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360310
+        ],
+        "precio_fabrica_bd": [
+          27790
+        ],
+        "descripcion_bd": [
+          "67.0800050 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800064",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 26190.0,
+        "codigos_bd": [
+          360358
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800064 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800076",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 23590.0,
+        "codigos_bd": [
+          360359
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800076 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800077",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 23590.0,
+        "codigos_bd": [
+          360360
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800077 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800078",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 23590.0,
+        "codigos_bd": [
+          360361
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800078 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800082",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 26190.0,
+        "codigos_bd": [
+          360311
+        ],
+        "precio_fabrica_bd": [
+          26190
+        ],
+        "descripcion_bd": [
+          "67.0800082 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800083",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 26190.0,
+        "codigos_bd": [
+          360312
+        ],
+        "precio_fabrica_bd": [
+          26190
+        ],
+        "descripcion_bd": [
+          "67.0800083 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800094",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 6,
+        "precio_np": 20690.0,
+        "codigos_bd": [
+          360362
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800094 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800100",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 23490.0,
+        "codigos_bd": [
+          360313
+        ],
+        "precio_fabrica_bd": [
+          23490
+        ],
+        "descripcion_bd": [
+          "67.0800100 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800101",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 23490.0,
+        "codigos_bd": [
+          360314
+        ],
+        "precio_fabrica_bd": [
+          23490
+        ],
+        "descripcion_bd": [
+          "67.0800101 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800106",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 31990.0,
+        "codigos_bd": [
+          360363
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800106 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800115",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 32190.0,
+        "codigos_bd": [
+          360315
+        ],
+        "precio_fabrica_bd": [
+          32190
+        ],
+        "descripcion_bd": [
+          "67.0800115 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800116",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 32190.0,
+        "codigos_bd": [
+          360316
+        ],
+        "precio_fabrica_bd": [
+          32190
+        ],
+        "descripcion_bd": [
+          "67.0800116 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800117",
+        "descripcion_np": "CARTERA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 32190.0,
+        "codigos_bd": [
+          360317
+        ],
+        "precio_fabrica_bd": [
+          32190
+        ],
+        "descripcion_bd": [
+          "67.0800117 VERDE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800121",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 29890.0,
+        "codigos_bd": [
+          360364
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800121 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800122",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 29890.0,
+        "codigos_bd": [
+          360365
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800122 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800123",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 29890.0,
+        "codigos_bd": [
+          360366
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800123 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800124",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 28490.0,
+        "codigos_bd": [
+          360318
+        ],
+        "precio_fabrica_bd": [
+          28490
+        ],
+        "descripcion_bd": [
+          "67.0800124 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800125",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 28490.0,
+        "codigos_bd": [
+          360319
+        ],
+        "precio_fabrica_bd": [
+          28490
+        ],
+        "descripcion_bd": [
+          "67.0800125 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800127",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 29390.0,
+        "codigos_bd": [
+          360320
+        ],
+        "precio_fabrica_bd": [
+          29390
+        ],
+        "descripcion_bd": [
+          "67.0800127 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800129",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 29390.0,
+        "codigos_bd": [
+          360321
+        ],
+        "precio_fabrica_bd": [
+          29390
+        ],
+        "descripcion_bd": [
+          "67.0800129 SUELA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800133",
+        "descripcion_np": "CARTERA AMAYRA NEGRO",
+        "cantidad": 2,
+        "precio_np": 28590.0,
+        "codigos_bd": [
+          360367
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800133 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800139",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 27490.0,
+        "codigos_bd": [
+          360368
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800139 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800140",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 27490.0,
+        "codigos_bd": [
+          360369
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800140 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800141",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 27490.0,
+        "codigos_bd": [
+          360370
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800141 SUELA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800148",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360371
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800148 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800149",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360372
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800149 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800150",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360373
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800150 SUELA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800154",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360374
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800154 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800155",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360375
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800155 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800156",
+        "descripcion_np": "CARTERA AMAYRA CREMA",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360376
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800156 CREMA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800175",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 9490.0,
+        "codigos_bd": [
+          360377
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800175 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800177",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 9490.0,
+        "codigos_bd": [
+          360378
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800177 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800184",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 3,
+        "precio_np": 10990.0,
+        "codigos_bd": [
+          360379
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800184 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800185",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 4,
+        "precio_np": 10990.0,
+        "codigos_bd": [
+          360380
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800185 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800212",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 11490.0,
+        "codigos_bd": [
+          360381
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800212 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800237",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360382
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800237 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800238",
+        "descripcion_np": "CARTERA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360383
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800238 VERDE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800241",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360384
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800241 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800252",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 23690.0,
+        "codigos_bd": [
+          360385
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800252 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800254",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 23690.0,
+        "codigos_bd": [
+          360386
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800254 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500001",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360387
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500001 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500013",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360388
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500013 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500014",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360389
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500014 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500017",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360390
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500017 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500018",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360391
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500018 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500020",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360392
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500020 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500021",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360393
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500021 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500028",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360394
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500028 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500033",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360395
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500033 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500035",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5890.0,
+        "codigos_bd": [
+          360396
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500035 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500036",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5290.0,
+        "codigos_bd": [
+          360397
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500036 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500043",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7790.0,
+        "codigos_bd": [
+          360398
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500043 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500048",
+        "descripcion_np": "TARJETERO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 4990.0,
+        "codigos_bd": [
+          360399
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500048 SURTIDO TARJETERO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500051",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 6390.0,
+        "codigos_bd": [
+          360400
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500051 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500052",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360401
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500052 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500057",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360402
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500057 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500116",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 13190.0,
+        "codigos_bd": [
+          360403
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500116 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500117",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 14590.0,
+        "codigos_bd": [
+          360404
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500117 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500118",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 14590.0,
+        "codigos_bd": [
+          360405
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500118 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500119",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 12090.0,
+        "codigos_bd": [
+          360406
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500119 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500128",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 14390.0,
+        "codigos_bd": [
+          360407
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500128 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500131",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 15890.0,
+        "codigos_bd": [
+          360408
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500131 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500133",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 18390.0,
+        "codigos_bd": [
+          360409
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500133 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300013",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 27590.0,
+        "codigos_bd": [
+          360322
+        ],
+        "precio_fabrica_bd": [
+          27590
+        ],
+        "descripcion_bd": [
+          "67.5300013 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300014",
+        "descripcion_np": "MOCHILA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 27590.0,
+        "codigos_bd": [
+          360323
+        ],
+        "precio_fabrica_bd": [
+          27590
+        ],
+        "descripcion_bd": [
+          "67.5300014 VISON MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300015",
+        "descripcion_np": "MOCHILA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 27590.0,
+        "codigos_bd": [
+          360324
+        ],
+        "precio_fabrica_bd": [
+          27590
+        ],
+        "descripcion_bd": [
+          "67.5300015 CAMEL MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300025",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30290.0,
+        "codigos_bd": [
+          360410
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300025 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300026",
+        "descripcion_np": "MOCHILA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 30290.0,
+        "codigos_bd": [
+          360411
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300026 CAFE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300043",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 29290.0,
+        "codigos_bd": [
+          360325
+        ],
+        "precio_fabrica_bd": [
+          29290
+        ],
+        "descripcion_bd": [
+          "67.5300043 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300044",
+        "descripcion_np": "MOCHILA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 29290.0,
+        "codigos_bd": [
+          360412
+        ],
+        "precio_fabrica_bd": [
+          29290
+        ],
+        "descripcion_bd": [
+          "67.5300044 VISON MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300049",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 28590.0,
+        "codigos_bd": [
+          360413
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300049 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300050",
+        "descripcion_np": "MOCHILA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 28590.0,
+        "codigos_bd": [
+          360414
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300050 VISON MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300058",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30990.0,
+        "codigos_bd": [
+          360415
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300058 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300060",
+        "descripcion_np": "MOCHILA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 30990.0,
+        "codigos_bd": [
+          360416
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300060 SUELA MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300061",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30190.0,
+        "codigos_bd": [
+          360417
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300061 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300062",
+        "descripcion_np": "MOCHILA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 30190.0,
+        "codigos_bd": [
+          360418
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300062 CAFE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300064",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 35390.0,
+        "codigos_bd": [
+          360419
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300064 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300065",
+        "descripcion_np": "MOCHILA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 35390.0,
+        "codigos_bd": [
+          360420
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300065 CAMEL MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300066",
+        "descripcion_np": "MOCHILA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 35390.0,
+        "codigos_bd": [
+          360421
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300066 VERDE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300067",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30890.0,
+        "codigos_bd": [
+          360422
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300067 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300069",
+        "descripcion_np": "MOCHILA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 30890.0,
+        "codigos_bd": [
+          360423
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300069 VISON MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300097",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 22290.0,
+        "codigos_bd": [
+          360424
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300097 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300098",
+        "descripcion_np": "MOCHILA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 22290.0,
+        "codigos_bd": [
+          360425
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300098 VERDE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400001",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360426
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400001 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400004",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 8990.0,
+        "codigos_bd": [
+          360427
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400004 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400013",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 11790.0,
+        "codigos_bd": [
+          360428
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400013 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400015",
+        "descripcion_np": "MORRAL AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 11790.0,
+        "codigos_bd": [
+          360429
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400015 SUELA MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400034",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 6,
+        "precio_np": 8990.0,
+        "codigos_bd": [
+          360430
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400034 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400043",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360431
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400043 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400045",
+        "descripcion_np": "MORRAL AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360432
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400045 SUELA MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400004",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 6,
+        "precio_np": 17990.0,
+        "codigos_bd": [
+          360433
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400004 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400005",
+        "descripcion_np": "RIÑONERA AMAYRA TAUPE",
+        "cantidad": 2,
+        "precio_np": 17990.0,
+        "codigos_bd": [
+          360434
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400005 TAUPE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400007",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 19490.0,
+        "codigos_bd": [
+          360435
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400007 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400009",
+        "descripcion_np": "RIÑONERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 19490.0,
+        "codigos_bd": [
+          360436
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400009 CAMEL RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400010",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360437
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400010 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400011",
+        "descripcion_np": "RIÑONERA AMAYRA TAUPE",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360438
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400011 TAUPE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400012",
+        "descripcion_np": "RIÑONERA AMAYRA GREEN",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360439
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400012 VERDE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400028",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 21690.0,
+        "codigos_bd": [
+          360440
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400028 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400029",
+        "descripcion_np": "RIÑONERA AMAYRA CAFE",
+        "cantidad": 4,
+        "precio_np": 21690.0,
+        "codigos_bd": [
+          360441
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400029 CAFE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400030",
+        "descripcion_np": "RIÑONERA AMAYRA VERDE",
+        "cantidad": 4,
+        "precio_np": 21690.0,
+        "codigos_bd": [
+          360442
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400030 VERDE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7600001",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10090.0,
+        "codigos_bd": [
+          360443
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600001 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.7600003",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10090.0,
+        "codigos_bd": [
+          360444
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600003 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.7600004",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10090.0,
+        "codigos_bd": [
+          360445
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600004 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.7600005",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10590.0,
+        "codigos_bd": [
+          360446
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600005 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.8500023",
+        "descripcion_np": "PORTABOTELLA AMAYRA VISON",
+        "cantidad": 4,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360447
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500023 VISON PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500024",
+        "descripcion_np": "PORTABOTELLA AMAYRA VERDE",
+        "cantidad": 4,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360448
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500024 VERDE PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500025",
+        "descripcion_np": "PORTABOTELLA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360449
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500025 NEGRO PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500026",
+        "descripcion_np": "PORTABOTELLA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360450
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500026 VISON PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500050",
+        "descripcion_np": "PORTABOTELLA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 10490.0,
+        "codigos_bd": [
+          360451
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500050 NEGRO PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500051",
+        "descripcion_np": "PORTABOTELLA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 10490.0,
+        "codigos_bd": [
+          360452
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500051 VERDE PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.B989.1",
+        "descripcion_np": "BANDOLERA PORTA CELULAR AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360453
+        ],
+        "precio_fabrica_bd": [
+          7890
+        ],
+        "descripcion_bd": [
+          "67.B989.1 NEGRO BANDOLERA PORTA CELULAR AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.B989.2",
+        "descripcion_np": "BANDOLERA PORTA CELULAR AMAYRA CAMEL",
+        "cantidad": 4,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360454
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.B989.2 CAMEL BANDOLERA PORTA CELULAR AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.B991.1",
+        "descripcion_np": "BANDOLERA PORTA CELULAR AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 9790.0,
+        "codigos_bd": [
+          360455
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.B991.1 NEGRO BANDOLERA PORTA CELULAR AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C26311R",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 18590.0,
+        "codigos_bd": [
+          351228
+        ],
+        "precio_fabrica_bd": [
+          18100
+        ],
+        "descripcion_bd": [
+          "67.C26311R NEGRO CARTERA AMAYRA DET CADENA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2947.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 10890.0,
+        "codigos_bd": [
+          360456
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2947.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2948.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 9390.0,
+        "codigos_bd": [
+          360457
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2948.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2950.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360458
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2950.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2957.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360459
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2957.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2971.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360460
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2971.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2971.3",
+        "descripcion_np": "MORRAL AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360461
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2971.3 SUELA MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4015",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360462
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4015 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4016",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7190.0,
+        "codigos_bd": [
+          343690
+        ],
+        "precio_fabrica_bd": [
+          6790
+        ],
+        "descripcion_bd": [
+          "67.T4016 BUFANDA CUADRILLE AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4017",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360463
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4017 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4022",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 10890.0,
+        "codigos_bd": [
+          344298
+        ],
+        "precio_fabrica_bd": [
+          8490
+        ],
+        "descripcion_bd": [
+          "67.T4022 BUFANDA  LISA  AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4023",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 8590.0,
+        "codigos_bd": [
+          343729
+        ],
+        "precio_fabrica_bd": [
+          7390
+        ],
+        "descripcion_bd": [
+          "67.T4023 BUFANDA AMAYRA CUADRILLE DET FLECO"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4024",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 10190.0,
+        "codigos_bd": [
+          360464
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4024 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4025",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360465
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4025 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4026",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 9890.0,
+        "codigos_bd": [
+          360466
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4026 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4027",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 9890.0,
+        "codigos_bd": [
+          344299
+        ],
+        "precio_fabrica_bd": [
+          7690
+        ],
+        "descripcion_bd": [
+          "67.T4027 BUFANDA  CUADRILLE AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4028",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 9890.0,
+        "codigos_bd": [
+          360467
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4028 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4254",
+        "descripcion_np": "GORRO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5890.0,
+        "codigos_bd": [
+          360468
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4254 SURTIDO GORRO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4255",
+        "descripcion_np": "GORRO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5490.0,
+        "codigos_bd": [
+          344301
+        ],
+        "precio_fabrica_bd": [
+          3890
+        ],
+        "descripcion_bd": [
+          "67.T4255 SURTIDO GORRO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4260",
+        "descripcion_np": "GORRO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5490.0,
+        "codigos_bd": [
+          360469
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4260 SURTIDO GORRO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4263",
+        "descripcion_np": "GORRO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5490.0,
+        "codigos_bd": [
+          360470
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4263 SURTIDO GORRO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4330",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 3490.0,
+        "codigos_bd": [
+          344304
+        ],
+        "precio_fabrica_bd": [
+          2690
+        ],
+        "descripcion_bd": [
+          "67.T4330 SURTIDOS GUANTE AMAYRA COMB"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4332",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 3290.0,
+        "codigos_bd": [
+          360471
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4332 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4333",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 2790.0,
+        "codigos_bd": [
+          344305
+        ],
+        "precio_fabrica_bd": [
+          2190
+        ],
+        "descripcion_bd": [
+          "67.T4333 SURTIDOS GUANTE AMAYRA DET BORDADO"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4334",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 2790.0,
+        "codigos_bd": [
+          344306
+        ],
+        "precio_fabrica_bd": [
+          2190
+        ],
+        "descripcion_bd": [
+          "67.T4334 GUANTE AMAYRA DET BORDADO"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4336",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 4490.0,
+        "codigos_bd": [
+          360472
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4336 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4340",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 2190.0,
+        "codigos_bd": [
+          360473
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4340 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4344",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 3790.0,
+        "codigos_bd": [
+          360474
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4344 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "68.7600004",
+        "descripcion_np": "PARAGUAS AUTOMATICO INFLUENCER 21\"",
+        "cantidad": 12,
+        "precio_np": 9590.0,
+        "codigos_bd": [
+          360475
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "68.7600004 SURTIDO PARAGUAS AUTOMATICO INFLUENCER 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.C2959.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 6,
+        "precio_np": 9390.0,
+        "codigos_bd": [
+          358597
+        ],
+        "precio_fabrica_bd": [
+          8590
+        ],
+        "nota": "proveedor=NULL en BD, existe pero sin asignar"
+      },
+      {
+        "articulo_prov": "67.C2959.2",
+        "descripcion_np": "MORRAL AMAYRA SUELA",
+        "cantidad": 4,
+        "precio_np": 9390.0,
+        "codigos_bd": [
+          358598
+        ],
+        "precio_fabrica_bd": [
+          8590
+        ],
+        "nota": "proveedor=NULL en BD, existe pero sin asignar"
+      },
+      {
+        "articulo_prov": "67.C3217.1",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 20990.0,
+        "codigos_bd": [
+          351485
+        ],
+        "precio_fabrica_bd": [
+          20990
+        ],
+        "nota": "proveedor=NULL en BD, existe pero sin asignar"
+      },
+      {
+        "articulo_prov": "67.C3240.2",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 38390.0,
+        "codigos_bd": [
+          352842
+        ],
+        "precio_fabrica_bd": [
+          38390
+        ],
+        "nota": "proveedor=NULL en BD, existe pero sin asignar"
+      }
+    ],
+    "not_found_items": [],
+    "need_pedido_items": [
+      {
+        "articulo_prov": "62.0100001",
+        "descripcion_np": "ORGANIZADOR DE VIAJE UNICROSS 6 PIEZAS",
+        "cantidad": 12,
+        "precio_np": 9190.0,
+        "codigos_bd": [
+          360326
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.0100001 SURTIDO ORGANIZADOR DE VIAJE UNICROSS 6 PIEZAS"
+        ]
+      },
+      {
+        "articulo_prov": "62.2300004",
+        "descripcion_np": "MORRAL UNICROSS",
+        "cantidad": 12,
+        "precio_np": 6590.0,
+        "codigos_bd": [
+          360327
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.2300004 SURTIDO MORRAL UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.2300005",
+        "descripcion_np": "MORRAL UNICROSS",
+        "cantidad": 12,
+        "precio_np": 9990.0,
+        "codigos_bd": [
+          360328
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.2300005 SURTIDO MORRAL UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.2300008",
+        "descripcion_np": "MORRAL PORTANOTEBOOK UNICROSS",
+        "cantidad": 4,
+        "precio_np": 14990.0,
+        "codigos_bd": [
+          360329
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.2300008 SURTIDO MORRAL PORTANOTEBOOK UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.261041R",
+        "descripcion_np": "MOCHILA MATERO UNICROSS NEGRO 14.5\"",
+        "cantidad": 2,
+        "precio_np": 18690.0,
+        "codigos_bd": [
+          360330
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.261041R NEGRO MOCHILA MATERO UNICROSS 14.5\""
+        ]
+      },
+      {
+        "articulo_prov": "62.3600002",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360331
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600002 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600003",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360332
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600003 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600004",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360333
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600004 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600006",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360334
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600006 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600007",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360335
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600007 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600011",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 6090.0,
+        "codigos_bd": [
+          360336
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600011 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600012",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 5990.0,
+        "codigos_bd": [
+          360337
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600012 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600015",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 6090.0,
+        "codigos_bd": [
+          360338
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600015 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600017",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 5690.0,
+        "codigos_bd": [
+          360339
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600017 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.3600019",
+        "descripcion_np": "BILLETERA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 5690.0,
+        "codigos_bd": [
+          360340
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.3600019 SURTIDO BILLETERA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6050",
+        "descripcion_np": "GORRO UNICROSS",
+        "cantidad": 12,
+        "precio_np": 3390.0,
+        "codigos_bd": [
+          360341
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6050 SURTIDO GORRO UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6051",
+        "descripcion_np": "GORRO UNICROSS",
+        "cantidad": 12,
+        "precio_np": 3490.0,
+        "codigos_bd": [
+          360342
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6051 SURTIDO GORRO UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6106",
+        "descripcion_np": "BUFANDA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 8890.0,
+        "codigos_bd": [
+          360343
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6106 SURTIDO BUFANDA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6107",
+        "descripcion_np": "BUFANDA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360344
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6107 SURTIDO BUFANDA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6108",
+        "descripcion_np": "BUFANDA UNICROSS",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360345
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6108 SURTIDO BUFANDA UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6233",
+        "descripcion_np": "GUANTES UNICROSS",
+        "cantidad": 24,
+        "precio_np": 3490.0,
+        "codigos_bd": [
+          360346
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6233 SURTIDO GUANTES UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "62.T6243",
+        "descripcion_np": "GUANTES UNICROSS",
+        "cantidad": 24,
+        "precio_np": 3590.0,
+        "codigos_bd": [
+          360347
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "62.T6243 SURTIDO GUANTES UNICROSS"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600001",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360348
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600001 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600002",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360349
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600002 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600003",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360350
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600003 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "65.3600004",
+        "descripcion_np": "BILLETERA WILSON",
+        "cantidad": 12,
+        "precio_np": 7390.0,
+        "codigos_bd": [
+          360351
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "65.3600004 SURTIDO BILLETERA WILSON"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800003",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 20790.0,
+        "codigos_bd": [
+          360352
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800003 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800019",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 29690.0,
+        "codigos_bd": [
+          360353
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800019 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800020",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 29690.0,
+        "codigos_bd": [
+          360354
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800020 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800021",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 29690.0,
+        "codigos_bd": [
+          360355
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800021 SUELA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800031",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360356
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800031 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800032",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360357
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800032 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800064",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 26190.0,
+        "codigos_bd": [
+          360358
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800064 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800076",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 23590.0,
+        "codigos_bd": [
+          360359
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800076 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800077",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 23590.0,
+        "codigos_bd": [
+          360360
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800077 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800078",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 23590.0,
+        "codigos_bd": [
+          360361
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800078 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800094",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 6,
+        "precio_np": 20690.0,
+        "codigos_bd": [
+          360362
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800094 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800106",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 31990.0,
+        "codigos_bd": [
+          360363
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800106 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800121",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 29890.0,
+        "codigos_bd": [
+          360364
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800121 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800122",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 29890.0,
+        "codigos_bd": [
+          360365
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800122 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800123",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 29890.0,
+        "codigos_bd": [
+          360366
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800123 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800133",
+        "descripcion_np": "CARTERA AMAYRA NEGRO",
+        "cantidad": 2,
+        "precio_np": 28590.0,
+        "codigos_bd": [
+          360367
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800133 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800139",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 27490.0,
+        "codigos_bd": [
+          360368
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800139 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800140",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 27490.0,
+        "codigos_bd": [
+          360369
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800140 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800141",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 27490.0,
+        "codigos_bd": [
+          360370
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800141 SUELA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800148",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360371
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800148 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800149",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360372
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800149 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800150",
+        "descripcion_np": "CARTERA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 28190.0,
+        "codigos_bd": [
+          360373
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800150 SUELA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800154",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360374
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800154 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800155",
+        "descripcion_np": "CARTERA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360375
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800155 VISON CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800156",
+        "descripcion_np": "CARTERA AMAYRA CREMA",
+        "cantidad": 2,
+        "precio_np": 27790.0,
+        "codigos_bd": [
+          360376
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800156 CREMA CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800175",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 9490.0,
+        "codigos_bd": [
+          360377
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800175 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800177",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 9490.0,
+        "codigos_bd": [
+          360378
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800177 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800184",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 3,
+        "precio_np": 10990.0,
+        "codigos_bd": [
+          360379
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800184 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800185",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 4,
+        "precio_np": 10990.0,
+        "codigos_bd": [
+          360380
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800185 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800212",
+        "descripcion_np": "CARTERA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 11490.0,
+        "codigos_bd": [
+          360381
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800212 CAFE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800237",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360382
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800237 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800238",
+        "descripcion_np": "CARTERA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360383
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800238 VERDE CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800241",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360384
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800241 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800252",
+        "descripcion_np": "CARTERA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 23690.0,
+        "codigos_bd": [
+          360385
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800252 NEGRO CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.0800254",
+        "descripcion_np": "CARTERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 23690.0,
+        "codigos_bd": [
+          360386
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.0800254 CAMEL CARTERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500001",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360387
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500001 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500013",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360388
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500013 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500014",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360389
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500014 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500017",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360390
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500017 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500018",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360391
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500018 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500020",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360392
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500020 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500021",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360393
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500021 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500028",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360394
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500028 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500033",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360395
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500033 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500035",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5890.0,
+        "codigos_bd": [
+          360396
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500035 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500036",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5290.0,
+        "codigos_bd": [
+          360397
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500036 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500043",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7790.0,
+        "codigos_bd": [
+          360398
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500043 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500048",
+        "descripcion_np": "TARJETERO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 4990.0,
+        "codigos_bd": [
+          360399
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500048 SURTIDO TARJETERO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500051",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 6390.0,
+        "codigos_bd": [
+          360400
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500051 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500052",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360401
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500052 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500057",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7590.0,
+        "codigos_bd": [
+          360402
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500057 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500116",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 13190.0,
+        "codigos_bd": [
+          360403
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500116 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500117",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 14590.0,
+        "codigos_bd": [
+          360404
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500117 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500118",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 14590.0,
+        "codigos_bd": [
+          360405
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500118 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500119",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 12090.0,
+        "codigos_bd": [
+          360406
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500119 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500128",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 14390.0,
+        "codigos_bd": [
+          360407
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500128 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500131",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 15890.0,
+        "codigos_bd": [
+          360408
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500131 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.3500133",
+        "descripcion_np": "BILLETERA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 18390.0,
+        "codigos_bd": [
+          360409
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.3500133 SURTIDO BILLETERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300025",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30290.0,
+        "codigos_bd": [
+          360410
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300025 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300026",
+        "descripcion_np": "MOCHILA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 30290.0,
+        "codigos_bd": [
+          360411
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300026 CAFE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300044",
+        "descripcion_np": "MOCHILA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 29290.0,
+        "codigos_bd": [
+          360412
+        ],
+        "precio_fabrica_bd": [
+          29290
+        ],
+        "descripcion_bd": [
+          "67.5300044 VISON MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300049",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 28590.0,
+        "codigos_bd": [
+          360413
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300049 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300050",
+        "descripcion_np": "MOCHILA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 28590.0,
+        "codigos_bd": [
+          360414
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300050 VISON MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300058",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30990.0,
+        "codigos_bd": [
+          360415
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300058 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300060",
+        "descripcion_np": "MOCHILA AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 30990.0,
+        "codigos_bd": [
+          360416
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300060 SUELA MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300061",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30190.0,
+        "codigos_bd": [
+          360417
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300061 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300062",
+        "descripcion_np": "MOCHILA AMAYRA CAFE",
+        "cantidad": 2,
+        "precio_np": 30190.0,
+        "codigos_bd": [
+          360418
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300062 CAFE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300064",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 35390.0,
+        "codigos_bd": [
+          360419
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300064 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300065",
+        "descripcion_np": "MOCHILA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 35390.0,
+        "codigos_bd": [
+          360420
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300065 CAMEL MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300066",
+        "descripcion_np": "MOCHILA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 35390.0,
+        "codigos_bd": [
+          360421
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300066 VERDE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300067",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 30890.0,
+        "codigos_bd": [
+          360422
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300067 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300069",
+        "descripcion_np": "MOCHILA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 30890.0,
+        "codigos_bd": [
+          360423
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300069 VISON MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300097",
+        "descripcion_np": "MOCHILA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 22290.0,
+        "codigos_bd": [
+          360424
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300097 NEGRO MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5300098",
+        "descripcion_np": "MOCHILA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 22290.0,
+        "codigos_bd": [
+          360425
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5300098 VERDE MOCHILA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400001",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360426
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400001 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400004",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 8990.0,
+        "codigos_bd": [
+          360427
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400004 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400013",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 11790.0,
+        "codigos_bd": [
+          360428
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400013 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400015",
+        "descripcion_np": "MORRAL AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 11790.0,
+        "codigos_bd": [
+          360429
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400015 SUELA MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400034",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 6,
+        "precio_np": 8990.0,
+        "codigos_bd": [
+          360430
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400034 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400043",
+        "descripcion_np": "MORRAL AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360431
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400043 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.5400045",
+        "descripcion_np": "MORRAL AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360432
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.5400045 SUELA MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400004",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 6,
+        "precio_np": 17990.0,
+        "codigos_bd": [
+          360433
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400004 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400005",
+        "descripcion_np": "RIÑONERA AMAYRA TAUPE",
+        "cantidad": 2,
+        "precio_np": 17990.0,
+        "codigos_bd": [
+          360434
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400005 TAUPE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400007",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 19490.0,
+        "codigos_bd": [
+          360435
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400007 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400009",
+        "descripcion_np": "RIÑONERA AMAYRA CAMEL",
+        "cantidad": 2,
+        "precio_np": 19490.0,
+        "codigos_bd": [
+          360436
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400009 CAMEL RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400010",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360437
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400010 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400011",
+        "descripcion_np": "RIÑONERA AMAYRA TAUPE",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360438
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400011 TAUPE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400012",
+        "descripcion_np": "RIÑONERA AMAYRA GREEN",
+        "cantidad": 2,
+        "precio_np": 15990.0,
+        "codigos_bd": [
+          360439
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400012 VERDE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400028",
+        "descripcion_np": "RIÑONERA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 21690.0,
+        "codigos_bd": [
+          360440
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400028 NEGRO RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400029",
+        "descripcion_np": "RIÑONERA AMAYRA CAFE",
+        "cantidad": 4,
+        "precio_np": 21690.0,
+        "codigos_bd": [
+          360441
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400029 CAFE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7400030",
+        "descripcion_np": "RIÑONERA AMAYRA VERDE",
+        "cantidad": 4,
+        "precio_np": 21690.0,
+        "codigos_bd": [
+          360442
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7400030 VERDE RIÑONERA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.7600001",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10090.0,
+        "codigos_bd": [
+          360443
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600001 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.7600003",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10090.0,
+        "codigos_bd": [
+          360444
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600003 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.7600004",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10090.0,
+        "codigos_bd": [
+          360445
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600004 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.7600005",
+        "descripcion_np": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+        "cantidad": 12,
+        "precio_np": 10590.0,
+        "codigos_bd": [
+          360446
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.7600005 SURTIDO PARAGUAS AUTOMATICO AMAYRA 21\""
+        ]
+      },
+      {
+        "articulo_prov": "67.8500023",
+        "descripcion_np": "PORTABOTELLA AMAYRA VISON",
+        "cantidad": 4,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360447
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500023 VISON PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500024",
+        "descripcion_np": "PORTABOTELLA AMAYRA VERDE",
+        "cantidad": 4,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360448
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500024 VERDE PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500025",
+        "descripcion_np": "PORTABOTELLA AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360449
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500025 NEGRO PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500026",
+        "descripcion_np": "PORTABOTELLA AMAYRA VISON",
+        "cantidad": 2,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360450
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500026 VISON PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500050",
+        "descripcion_np": "PORTABOTELLA AMAYRA NEGRA",
+        "cantidad": 2,
+        "precio_np": 10490.0,
+        "codigos_bd": [
+          360451
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500050 NEGRO PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.8500051",
+        "descripcion_np": "PORTABOTELLA AMAYRA VERDE",
+        "cantidad": 2,
+        "precio_np": 10490.0,
+        "codigos_bd": [
+          360452
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.8500051 VERDE PORTABOTELLA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.B989.1",
+        "descripcion_np": "BANDOLERA PORTA CELULAR AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360453
+        ],
+        "precio_fabrica_bd": [
+          7890
+        ],
+        "descripcion_bd": [
+          "67.B989.1 NEGRO BANDOLERA PORTA CELULAR AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.B989.2",
+        "descripcion_np": "BANDOLERA PORTA CELULAR AMAYRA CAMEL",
+        "cantidad": 4,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360454
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.B989.2 CAMEL BANDOLERA PORTA CELULAR AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.B991.1",
+        "descripcion_np": "BANDOLERA PORTA CELULAR AMAYRA NEGRA",
+        "cantidad": 4,
+        "precio_np": 9790.0,
+        "codigos_bd": [
+          360455
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.B991.1 NEGRO BANDOLERA PORTA CELULAR AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2947.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 10890.0,
+        "codigos_bd": [
+          360456
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2947.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2948.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 9390.0,
+        "codigos_bd": [
+          360457
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2948.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2950.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360458
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2950.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2957.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 12190.0,
+        "codigos_bd": [
+          360459
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2957.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2971.1",
+        "descripcion_np": "MORRAL AMAYRA NEGRO",
+        "cantidad": 4,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360460
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2971.1 NEGRO MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.C2971.3",
+        "descripcion_np": "MORRAL AMAYRA SUELA",
+        "cantidad": 2,
+        "precio_np": 10790.0,
+        "codigos_bd": [
+          360461
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.C2971.3 SUELA MORRAL AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4015",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360462
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4015 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4017",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360463
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4017 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4024",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 10190.0,
+        "codigos_bd": [
+          360464
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4024 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4025",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 7890.0,
+        "codigos_bd": [
+          360465
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4025 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4026",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 9890.0,
+        "codigos_bd": [
+          360466
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4026 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4028",
+        "descripcion_np": "BUFANDA AMAYRA",
+        "cantidad": 12,
+        "precio_np": 9890.0,
+        "codigos_bd": [
+          360467
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4028 SURTIDO BUFANDA AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4254",
+        "descripcion_np": "GORRO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5890.0,
+        "codigos_bd": [
+          360468
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4254 SURTIDO GORRO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4260",
+        "descripcion_np": "GORRO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5490.0,
+        "codigos_bd": [
+          360469
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4260 SURTIDO GORRO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4263",
+        "descripcion_np": "GORRO AMAYRA",
+        "cantidad": 12,
+        "precio_np": 5490.0,
+        "codigos_bd": [
+          360470
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4263 SURTIDO GORRO AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4332",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 3290.0,
+        "codigos_bd": [
+          360471
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4332 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4336",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 4490.0,
+        "codigos_bd": [
+          360472
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4336 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4340",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 2190.0,
+        "codigos_bd": [
+          360473
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4340 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "67.T4344",
+        "descripcion_np": "GUANTES AMAYRA",
+        "cantidad": 12,
+        "precio_np": 3790.0,
+        "codigos_bd": [
+          360474
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "67.T4344 SURTIDO GUANTES AMAYRA"
+        ]
+      },
+      {
+        "articulo_prov": "68.7600004",
+        "descripcion_np": "PARAGUAS AUTOMATICO INFLUENCER 21\"",
+        "cantidad": 12,
+        "precio_np": 9590.0,
+        "codigos_bd": [
+          360475
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "68.7600004 SURTIDO PARAGUAS AUTOMATICO INFLUENCER 21\""
+        ]
+      }
+    ]
+  },
+  "np467731": {
+    "total_items": 51,
+    "found": 51,
+    "not_found": 0,
+    "found_items": [
+      {
+        "articulo_prov": "70.6700002",
+        "descripcion_np": "GUANTES DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360476
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700002 SURTIDO GUANTES DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.6700004",
+        "descripcion_np": "GORRO DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360477
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700004 SURTIDO GORRO DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.6700005",
+        "descripcion_np": "GUANTES DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360478
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700005 SURTIDO GUANTES DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.6700006",
+        "descripcion_np": "BUFANDA DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 8490.0,
+        "codigos_bd": [
+          360479
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700006 SURTIDO BUFANDA DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.6700008",
+        "descripcion_np": "GUANTES DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360480
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700008 SURTIDO GUANTES DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.6700011",
+        "descripcion_np": "GUANTES DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360481
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700011 SURTIDO GUANTES DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.6700019",
+        "descripcion_np": "GORRO DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360482
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700019 SURTIDO GORRO DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.6700021",
+        "descripcion_np": "BUFANDA DISNEY MINNIE",
+        "cantidad": 12,
+        "precio_np": 11090.0,
+        "codigos_bd": [
+          360483
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.6700021 SURTIDO BUFANDA DISNEY MINNIE"
+        ]
+      },
+      {
+        "articulo_prov": "70.7600001",
+        "descripcion_np": "PARAGUAS MANUAL DISNEY MINNIE 17\"",
+        "cantidad": 12,
+        "precio_np": 8590.0,
+        "codigos_bd": [
+          360484
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.7600001 SURTIDO PARAGUAS MANUAL DISNEY MINNIE 17\""
+        ]
+      },
+      {
+        "articulo_prov": "70.7600002",
+        "descripcion_np": "PARAGUAS MANUAL DISNEY MINNIE 17\"",
+        "cantidad": 12,
+        "precio_np": 8590.0,
+        "codigos_bd": [
+          360485
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.7600002 SURTIDO PARAGUAS MANUAL DISNEY MINNIE 17\""
+        ]
+      },
+      {
+        "articulo_prov": "70.7600006",
+        "descripcion_np": "PARAGUAS MANUAL DISNEY MINNIE 21\"",
+        "cantidad": 12,
+        "precio_np": 12490.0,
+        "codigos_bd": [
+          360486
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "70.7600006 SURTIDO PARAGUAS MANUAL DISNEY MINNIE 21\""
+        ]
+      },
+      {
+        "articulo_prov": "71.6700002",
+        "descripcion_np": "GUANTES DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360487
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700002 SURTIDO GUANTES DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700003",
+        "descripcion_np": "BUFANDA DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 8490.0,
+        "codigos_bd": [
+          360488
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700003 SURTIDO BUFANDA DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700004",
+        "descripcion_np": "GORRO DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360489
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700004 SURTIDO GORRO DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700005",
+        "descripcion_np": "GUANTES DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360490
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700005 SURTIDO GUANTES DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700006",
+        "descripcion_np": "BUFANDA DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 8490.0,
+        "codigos_bd": [
+          360491
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700006 SURTIDO BUFANDA DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700008",
+        "descripcion_np": "GUANTES DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360492
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700008 SURTIDO GUANTES DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700011",
+        "descripcion_np": "GUANTES DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360493
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700011 SURTIDO GUANTES DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700013",
+        "descripcion_np": "GORRO DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360494
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700013 SURTIDO GORRO DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700014",
+        "descripcion_np": "GUANTES DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360495
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700014 SURTIDO GUANTES DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700015",
+        "descripcion_np": "BUFANDA DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 9290.0,
+        "codigos_bd": [
+          360496
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700015 SURTIDO BUFANDA DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700016",
+        "descripcion_np": "GORRO DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360497
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700016 SURTIDO GORRO DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700017",
+        "descripcion_np": "GUANTES DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 2990.0,
+        "codigos_bd": [
+          360498
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700017 SURTIDO GUANTES DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.6700018",
+        "descripcion_np": "BUFANDA DISNEY MICKEY",
+        "cantidad": 12,
+        "precio_np": 11090.0,
+        "codigos_bd": [
+          360499
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.6700018 SURTIDO BUFANDA DISNEY MICKEY"
+        ]
+      },
+      {
+        "articulo_prov": "71.7600001",
+        "descripcion_np": "PARAGUAS MANUAL DISNEY MICKEY 17\"",
+        "cantidad": 12,
+        "precio_np": 8590.0,
+        "codigos_bd": [
+          360500
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.7600001 SURTIDO PARAGUAS MANUAL DISNEY MICKEY 17\""
+        ]
+      },
+      {
+        "articulo_prov": "71.7600002",
+        "descripcion_np": "PARAGUAS MANUAL DISNEY MICKEY 17\"",
+        "cantidad": 12,
+        "precio_np": 8590.0,
+        "codigos_bd": [
+          360501
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "71.7600002 SURTIDO PARAGUAS MANUAL DISNEY MICKEY 17\""
+        ]
+      },
+      {
+        "articulo_prov": "73.6700001",
+        "descripcion_np": "GORRO DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360502
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700001 SURTIDO GORRO DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700002",
+        "descripcion_np": "GUANTES DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360503
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700002 SURTIDO GUANTES DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700003",
+        "descripcion_np": "BUFANDA DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 8490.0,
+        "codigos_bd": [
+          360504
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700003 SURTIDO BUFANDA DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700005",
+        "descripcion_np": "GUANTES DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360505
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700005 SURTIDO GUANTES DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700007",
+        "descripcion_np": "GORRO DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360506
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700007 SURTIDO GORRO DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700008",
+        "descripcion_np": "GUANTES DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360507
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700008 SURTIDO GUANTES DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700009",
+        "descripcion_np": "BUFANDA DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 8490.0,
+        "codigos_bd": [
+          360508
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700009 SURTIDO BUFANDA DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700010",
+        "descripcion_np": "GORRO DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360509
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700010 SURTIDO GORRO DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700014",
+        "descripcion_np": "GUANTES DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360510
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700014 SURTIDO GUANTES DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700017",
+        "descripcion_np": "GUANTES DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 2990.0,
+        "codigos_bd": [
+          360511
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700017 SURTIDO GUANTES DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700018",
+        "descripcion_np": "BUFANDA DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 11090.0,
+        "codigos_bd": [
+          360512
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700018 SURTIDO BUFANDA DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700019",
+        "descripcion_np": "GORRO DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 5790.0,
+        "codigos_bd": [
+          360513
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700019 SURTIDO GORRO DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700020",
+        "descripcion_np": "GUANTES DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 2990.0,
+        "codigos_bd": [
+          360514
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700020 SURTIDO GUANTES DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.6700021",
+        "descripcion_np": "BUFANDA DISNEY STITCH",
+        "cantidad": 12,
+        "precio_np": 11090.0,
+        "codigos_bd": [
+          360515
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.6700021 SURTIDO BUFANDA DISNEY STITCH"
+        ]
+      },
+      {
+        "articulo_prov": "73.7600005",
+        "descripcion_np": "PARAGUAS MANUAL DISNEY STITCH 21\"",
+        "cantidad": 12,
+        "precio_np": 10190.0,
+        "codigos_bd": [
+          360516
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.7600005 SURTIDO PARAGUAS MANUAL DISNEY STITCH 21\""
+        ]
+      },
+      {
+        "articulo_prov": "73.7600006",
+        "descripcion_np": "PARAGUAS MANUAL DISNEY STITCH 21\"",
+        "cantidad": 12,
+        "precio_np": 11390.0,
+        "codigos_bd": [
+          360517
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "73.7600006 SURTIDO PARAGUAS MANUAL DISNEY STITCH 21\""
+        ]
+      },
+      {
+        "articulo_prov": "75.6700001",
+        "descripcion_np": "GORRO MARVEL SPIDERMAN",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360518
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "75.6700001 SURTIDO GORRO MARVEL SPIDERMAN"
+        ]
+      },
+      {
+        "articulo_prov": "75.6700002",
+        "descripcion_np": "GUANTES MARVEL SPIDERMAN",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360519
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "75.6700002 SURTIDO GUANTES MARVEL SPIDERMAN"
+        ]
+      },
+      {
+        "articulo_prov": "75.6700003",
+        "descripcion_np": "BUFANDA MARVEL SPIDERMAN",
+        "cantidad": 12,
+        "precio_np": 8490.0,
+        "codigos_bd": [
+          360520
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "75.6700003 SURTIDO BUFANDA MARVEL SPIDERMAN"
+        ]
+      },
+      {
+        "articulo_prov": "75.6700005",
+        "descripcion_np": "GUANTES MARVEL SPIDERMAN",
+        "cantidad": 12,
+        "precio_np": 3390.0,
+        "codigos_bd": [
+          360521
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "75.6700005 SURTIDO GUANTES MARVEL SPIDERMAN"
+        ]
+      },
+      {
+        "articulo_prov": "75.6700008",
+        "descripcion_np": "GUANTES MARVEL SPIDERMAN",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360522
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "75.6700008 SURTIDO GUANTES MARVEL SPIDERMAN"
+        ]
+      },
+      {
+        "articulo_prov": "75.6700010",
+        "descripcion_np": "GORRO MARVEL SPIDERMAN",
+        "cantidad": 12,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360523
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "75.6700010 SURTIDO GORRO MARVEL SPIDERMAN"
+        ]
+      },
+      {
+        "articulo_prov": "75.6700011",
+        "descripcion_np": "GORRO MARVEL SPIDERMAN",
+        "cantidad": 12,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360524
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "75.6700011 SURTIDO GORRO MARVEL SPIDERMAN"
+        ]
+      },
+      {
+        "articulo_prov": "76.6700001",
+        "descripcion_np": "GORRO MARVEL AVENGERS",
+        "cantidad": 24,
+        "precio_np": 6890.0,
+        "codigos_bd": [
+          360525
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "76.6700001 SURTIDO GORRO MARVEL AVENGERS"
+        ]
+      },
+      {
+        "articulo_prov": "76.6700002",
+        "descripcion_np": "GUANTES MARVEL AVENGERS",
+        "cantidad": 24,
+        "precio_np": 2890.0,
+        "codigos_bd": [
+          360526
+        ],
+        "precio_fabrica_bd": [
+          null
+        ],
+        "descripcion_bd": [
+          "76.6700002 SURTIDO GUANTES MARVEL AVENGERS"
+        ]
+      }
+    ],
+    "not_found_items": []
+  }
+}

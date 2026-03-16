@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>H4 - Mi Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .header .subtitle { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .kpi-card.highlight {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+            color: white;
+            grid-column: span 2;
+        }
+        .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.6; }
+        .kpi-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+        .kpi-card.highlight .kpi-value { font-size: 32px; }
+        .kpi-sub { font-size: 12px; opacity: 0.5; margin-top: 2px; }
+
+        /* Ranking badge */
+        .ranking-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .ranking-badge.top3 { background: #fff3e0; color: #e65100; }
+
+        /* Section */
+        .section {
+            padding: 0 16px 16px;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-top: 8px;
+        }
+
+        /* Ventas list */
+        .venta-item {
+            background: white;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .venta-dia { font-size: 14px; font-weight: 500; }
+        .venta-detalle { font-size: 12px; color: #666; }
+        .venta-monto { font-size: 16px; font-weight: 700; color: #0f3460; }
+        .venta-fee { font-size: 12px; color: #2e7d32; }
+
+        /* Catalogo button */
+        .catalogo-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #e65100 0%, #ff8f00 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(230,81,0,0.3);
+        }
+        .catalogo-btn:active { transform: scale(0.98); }
+
+        /* Producto card (catalogo) */
+        .producto-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .producto-info { padding: 14px; }
+        .producto-marca { font-size: 11px; text-transform: uppercase; color: #e65100; font-weight: 600; }
+        .producto-nombre { font-size: 16px; font-weight: 600; margin-top: 2px; }
+        .producto-precio { font-size: 14px; color: #666; margin-top: 4px; }
+        .producto-stock { font-size: 12px; color: #2e7d32; margin-top: 2px; }
+        .producto-fee { font-size: 13px; color: #0f3460; font-weight: 500; margin-top: 4px; }
+
+        .share-buttons { display: flex; gap: 8px; padding: 0 14px 14px; }
+        .share-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: white;
+        }
+        .share-btn.ig { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+        .share-btn.wa { background: #25D366; }
+        .share-btn:active { opacity: 0.8; }
+
+        /* Nav bottom */
+        .nav-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 12px;
+        }
+        .nav-item.active { color: #0f3460; }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+
+        /* Monotributo alert */
+        .mono-alert {
+            background: #fff3e0;
+            border-left: 4px solid #e65100;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .mono-alert.danger { background: #fce4ec; border-color: #c62828; }
+
+        /* Progress bar */
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .progress-fill.safe { background: #4caf50; }
+        .progress-fill.warn { background: #ff9800; }
+        .progress-fill.danger { background: #f44336; }
+
+        /* Loading */
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid #eee;
+                   border-top: 3px solid #0f3460; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 0; padding: 0 16px; margin-bottom: 4px; }
+        .tab {
+            flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 500;
+            border-bottom: 2px solid transparent; color: #999; cursor: pointer;
+        }
+        .tab.active { color: #0f3460; border-color: #0f3460; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Spacing for bottom nav */
+        .content { padding-bottom: 80px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="vendedor-nombre">Cargando...</h1>
+        <div class="subtitle" id="vendedor-info"></div>
+    </div>
+
+    <div class="content">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('inicio')">Inicio</div>
+            <div class="tab" onclick="switchTab('catalogo')">Catalogo</div>
+            <div class="tab" onclick="switchTab('ventas')">Ventas</div>
+            <div class="tab" onclick="switchTab('mono')">Monotributo</div>
+        </div>
+
+        <!-- TAB: Inicio -->
+        <div id="tab-inicio" class="tab-content active">
+            <div class="kpi-grid" id="kpis">
+                <div class="loading"><div class="spinner"></div><br>Cargando datos...</div>
+            </div>
+        </div>
+
+        <!-- TAB: Catalogo -->
+        <div id="tab-catalogo" class="tab-content">
+            <div class="section" id="catalogo-content">
+                <div class="loading"><div class="spinner"></div><br>Cargando catalogo...</div>
+            </div>
+        </div>
+
+        <!-- TAB: Ventas -->
+        <div id="tab-ventas" class="tab-content">
+            <div class="section" id="ventas-content">
+                <div class="loading"><div class="spinner"></div><br>Cargando ventas...</div>
+            </div>
+        </div>
+
+        <!-- TAB: Monotributo -->
+        <div id="tab-mono" class="tab-content">
+            <div class="section" id="mono-content">
+                <div class="loading"><div class="spinner"></div><br>Cargando proyeccion...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="nav-bottom">
+        <div class="nav-item active" onclick="switchTab('inicio')">
+            <span class="nav-icon">📊</span> Inicio
+        </div>
+        <div class="nav-item" onclick="switchTab('catalogo')">
+            <span class="nav-icon">🛍</span> Catalogo
+        </div>
+        <div class="nav-item" onclick="switchTab('ventas')">
+            <span class="nav-icon">💰</span> Ventas
+        </div>
+        <div class="nav-item" onclick="switchTab('mono')">
+            <span class="nav-icon">📋</span> Mono
+        </div>
+    </div>
+
+    <script>
+    const COD = '{{ codigo }}';
+    const API = '/api/v1/vendedor/' + COD;
+    const fmt = (n) => new Intl.NumberFormat('es-AR', {maximumFractionDigits: 0}).format(n);
+
+    function switchTab(name) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        // Highlight correct tab and nav
+        const tabs = document.querySelectorAll('.tab');
+        const navs = document.querySelectorAll('.nav-item');
+        const idx = {'inicio':0, 'catalogo':1, 'ventas':2, 'mono':3}[name] || 0;
+        tabs[idx].classList.add('active');
+        navs[idx].classList.add('active');
+        // Lazy load
+        if (name === 'catalogo' && !window._catalogoLoaded) loadCatalogo();
+        if (name === 'ventas' && !window._ventasLoaded) loadVentas();
+        if (name === 'mono' && !window._monoLoaded) loadMono();
+    }
+
+    // ── Dashboard ──────────────────────
+    async function loadDashboard() {
+        try {
+            const res = await fetch(API + '/dashboard');
+            const data = await res.json();
+            const k = data.kpis;
+            const f = data.fee;
+            const r = data.ranking;
+
+            document.getElementById('vendedor-nombre').textContent = data.vendedor.nombre;
+            document.getElementById('vendedor-info').textContent =
+                (data.vendedor.instagram ? '@' + data.vendedor.instagram + ' · ' : '') +
+                'Monotributo ' + data.vendedor.categoria_mono;
+
+            const rankClass = r.posicion <= 3 ? 'top3' : '';
+            document.getElementById('kpis').innerHTML = `
+                <div class="kpi-card highlight">
+                    <div class="kpi-label">Neto estimado del mes</div>
+                    <div class="kpi-value">$${fmt(f.neto_estimado)}</div>
+                    <div class="kpi-sub">Fee $${fmt(f.estimado_mes)} - Mono $${fmt(f.cuota_mono)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Venta hoy</div>
+                    <div class="kpi-value">$${fmt(k.venta_hoy)}</div>
+                    <div class="kpi-sub">${k.pares_hoy} pares</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Ranking</div>
+                    <div class="kpi-value">
+                        <span class="ranking-badge ${rankClass}">#${r.posicion} de ${r.total}</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Venta del mes</div>
+                    <div class="kpi-value">$${fmt(k.venta_mes)}</div>
+                    <div class="kpi-sub">${k.pares_mes} pares · ${k.tickets_mes} tickets</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Venta semana</div>
+                    <div class="kpi-value">$${fmt(k.venta_semana)}</div>
+                    <div class="kpi-sub">Margen ${k.margen_pct}%</div>
+                </div>
+            `;
+        } catch(e) {
+            document.getElementById('kpis').innerHTML =
+                '<div class="kpi-card" style="grid-column:span 2;text-align:center;color:#c62828;">Error cargando datos. Reintentando...</div>';
+            setTimeout(loadDashboard, 3000);
+        }
+    }
+
+    // ── Catalogo ──────────────────────
+    async function loadCatalogo() {
+        try {
+            const res = await fetch(API + '/catalogo');
+            const data = await res.json();
+            window._catalogoLoaded = true;
+
+            let html = '';
+            if (data.productos.length === 0) {
+                html = '<p style="text-align:center;color:#999;padding:40px;">No hay productos cargados en el catalogo todavia.</p>';
+            }
+            for (const p of data.productos) {
+                html += `
+                <div class="producto-card">
+                    <div class="producto-info">
+                        <div class="producto-marca">${p.marca}</div>
+                        <div class="producto-nombre">${p.titulo}</div>
+                        <div class="producto-precio">$${fmt(p.precio_rango.min)}${p.precio_rango.max > p.precio_rango.min ? ' - $' + fmt(p.precio_rango.max) : ''}</div>
+                        <div class="producto-stock">${p.talles_con_stock} talles disponibles</div>
+                        <div class="producto-fee">Tu fee: $${fmt(p.fee_estimado_por_par)} por par (${(p.fee_pct*100).toFixed(0)}%)</div>
+                    </div>
+                    <div class="share-buttons">
+                        <button class="share-btn ig" onclick="compartir('${p.sku_base}', 'ig')">Instagram</button>
+                        <button class="share-btn wa" onclick="compartir('${p.sku_base}', 'wa')">WhatsApp</button>
+                    </div>
+                </div>`;
+            }
+            document.getElementById('catalogo-content').innerHTML = html;
+        } catch(e) {
+            document.getElementById('catalogo-content').innerHTML = '<p style="color:#c62828;">Error cargando catalogo</p>';
+        }
+    }
+
+    function compartir(sku, canal) {
+        const link = '/api/v1/catalogo/stock/' + sku;
+        // Por ahora abrimos el link de atribucion
+        const url = 'https://h4calzados.com/p/' + sku + '?v=' + COD;
+        if (canal === 'wa') {
+            window.open('https://wa.me/?text=' + encodeURIComponent('Mira este producto! ' + url));
+        } else {
+            // Copiar al clipboard para Instagram
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link copiado. Pegalo en tu historia de Instagram.');
+            });
+        }
+    }
+
+    // ── Ventas ──────────────────────
+    async function loadVentas() {
+        try {
+            const res = await fetch(API + '/ventas?dias=30');
+            const data = await res.json();
+            window._ventasLoaded = true;
+
+            let html = '<div class="section-title">Ultimos 30 dias</div>';
+            for (const v of data.detalle) {
+                html += `
+                <div class="venta-item">
+                    <div>
+                        <div class="venta-dia">${v.dia}</div>
+                        <div class="venta-detalle">${v.pares} pares · ${v.tickets} tickets</div>
+                    </div>
+                    <div style="text-align:right">
+                        <div class="venta-monto">$${fmt(v.venta)}</div>
+                        <div class="venta-fee">Fee: $${fmt(v.fee_estimado)}</div>
+                    </div>
+                </div>`;
+            }
+            if (data.detalle.length === 0) html += '<p style="text-align:center;color:#999;padding:40px;">Sin ventas en el periodo</p>';
+            document.getElementById('ventas-content').innerHTML = html;
+        } catch(e) {
+            document.getElementById('ventas-content').innerHTML = '<p style="color:#c62828;">Error cargando ventas</p>';
+        }
+    }
+
+    // ── Monotributo ──────────────────────
+    async function loadMono() {
+        try {
+            const res = await fetch(API + '/proyeccion');
+            const data = await res.json();
+            window._monoLoaded = true;
+
+            const pct = data.pct_usado;
+            const barClass = pct > 90 ? 'danger' : pct > 75 ? 'warn' : 'safe';
+            let alertHtml = '';
+            if (data.alerta) {
+                const alertClass = pct > 90 ? 'danger' : '';
+                alertHtml = `<div class="mono-alert ${alertClass}">${data.alerta}</div>`;
+            }
+
+            document.getElementById('mono-content').innerHTML = `
+                ${alertHtml}
+                <div class="kpi-card" style="margin-bottom:12px">
+                    <div class="kpi-label">Categoria ${data.categoria_mono} — Tope anual</div>
+                    <div class="kpi-value">$${fmt(data.tope_anual)}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${barClass}" style="width:${Math.min(pct,100)}%"></div>
+                    </div>
+                    <div class="kpi-sub" style="margin-top:8px">
+                        Facturado: $${fmt(data.facturado_acumulado)} (${pct}%)
+                    </div>
+                </div>
+                <div class="kpi-grid" style="padding:0">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Proyeccion anual</div>
+                        <div class="kpi-value">$${fmt(data.proyeccion_anual)}</div>
+                        <div class="kpi-sub">${data.pct_proyectado}% del tope</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Disponible</div>
+                        <div class="kpi-value">$${fmt(data.disponible)}</div>
+                        <div class="kpi-sub">${data.meses_restantes} meses restantes</div>
+                    </div>
+                </div>
+            `;
+        } catch(e) {
+            document.getElementById('mono-content').innerHTML = '<p style="color:#c62828;">Error cargando proyeccion</p>';
+        }
+    }
+
+    // ── Init ──────────────────────
+    loadDashboard();
+    </script>
+</body>
+</html>

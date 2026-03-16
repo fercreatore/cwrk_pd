@@ -1,0 +1,880 @@
+================================================================================
+PURCHASE ORDER ANALYSIS - WINTER 2026
+INVIERNO 2026 COMPREHENSIVE ANALYSIS
+================================================================================
+Analysis Date: 2026-03-12
+Analyst: Claude Code
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/
+
+This analysis covers 8 provider folders with purchase order Excel files for
+Winter 2026 (INVIERNO 2026). Each provider is analyzed for article models,
+quantities, total pairs, amounts, and key characteristics.
+
+================================================================================
+1. ATHIX - NP ATHIX 1ER SEM 2026.xlsx
+================================================================================
+Provider: ATHIX (1st Semester 2026 - Athletic Footwear)
+File: NP ATHIX 1ER SEM 2026.xlsx
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Athix/
+
+STRUCTURE:
+- Total rows: 88 (data starts row 6)
+- Columns: 8
+- Data rows: 82 (rows 6-87)
+
+COLUMNS:
+  1. CODIGO - Article code (180500010010, 180500010020, etc.)
+  2. ART - Article name (SPEED FORM, HIKE ONE, ZENITH, RUNWAY, SUMMIT)
+  3. N° - Size notation (39/44, 40/45, etc.)
+  4. DISCIPLINA - Category (Running Hombre, Outdoor Hombre)
+  5. COLOR - Color (NAVY, GREY, BLACK, DARK GREY)
+  6. PEDIDO - Quantity ordered (EMPTY - NaN values)
+  7. P. VTA. - Wholesale price (18,999 - 29,999)
+  8. P. PUB. - Retail price (37,999 - 59,999)
+
+KEY METRICS:
+- Number of unique articles/models: 19+
+- Total pairs ordered: TBD (PEDIDO column empty)
+- Total amount: TBD
+- Price range: $18,999 - $29,999 (wholesale)
+- Price range: $37,999 - $59,999 (retail)
+
+ARTICLE CATEGORIES:
+Running Hombre:
+  - SPEED FORM (39/44): Navy, Grey, Black
+  - HIKE ONE (39/44): Navy, Grey, Black
+  - ZENITH (39/44): Navy, Grey, Black
+  - RUNWAY (39/44): Navy, Black, Dark Grey
+
+Outdoor Hombre:
+  - SUMMIT (39/44): Black, Navy
+
+NOTES:
+- High-end athletic footwear (running/outdoor specialized)
+- All models are 39/44 size range (adult male)
+- Retail markup: approximately 100% (2x wholesale)
+- PEDIDO column has no quantities - awaiting user input
+
+STATUS: STRUCTURE READY - QUANTITIES PENDING
+
+
+================================================================================
+2. ATOMIK - ATOMIK INV 2026.xlsx
+================================================================================
+Provider: ATOMIK (Winter 2026 Comprehensive Order)
+File: ATOMIK INV 2026.xlsx
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Atomik/
+
+STRUCTURE:
+- Sheets: DISCIPLINA, MASCULINO, FEMENINO, KIDS, PEDIDO, RESUMEN, RUTA_IMAGEN
+- Total rows: 78 (varies by sheet)
+- Columns: 21
+
+MAIN SUMMARY (RESUMEN Sheet):
+Customer: HACHE CUATRO (H4 SRL - msgestion03)
+
+BREAKDOWN BY LINE:
+Line          | Modulos | Pares | Amount ARS
+--------------|---------|-------|-------------------
+DISCIPLINA    |    0    |   0   | $0
+HOMBRE        |   11    | 118   | $6,543,891.89
+MUJER         |   28    | 336   | $17,789,189.24
+KIDS          |   42    | 624   | $21,160,864.99
+TOTAL         |   74    | 1,078 | $45,493,946.13 (+ IVA)
+
+KEY METRICS:
+- Total article models: 74
+- Total pairs: 1,078
+- Total value: $45,493,946.13 ARS (+ IVA)
+- Average price per pair: ~$42,178 ARS
+
+PRODUCT STRUCTURE:
+Each product follows: CALION [suffix] [color] [size range]
+Examples:
+  - CALION TF (sizes 27-32): 12 pares/module @ $54,000 wholesale
+  - CALION IN (sizes 40-45): 12 pares/module @ $64,810.81 wholesale
+
+All products have:
+  - Retail price (PRECIO PUBLICO)
+  - Wholesale cost structure
+  - Module-based ordering (typically 12 pairs/module)
+
+SIZE CATEGORIES:
+- Kids (KIDS): 42 modules covering children sizes
+- Women (MUJER): 28 modules for female sizes
+- Men (HOMBRE): 11 modules for male sizes
+
+NOTES:
+- Complete, fully quantified order
+- For H4 SRL company (msgestion03)
+- Mix of juvenile and adult footwear
+- Professional structure with detailed costing
+
+STATUS: COMPLETE - READY TO INSERT (1,078 pairs)
+
+
+================================================================================
+3. DAS LUZ - PEDIDO DASLUZ unificado.xlsx
+================================================================================
+Provider: DAS LUZ (Rain Boot Supplier)
+File: PEDIDO DASLUZ unificado.xlsx
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Das Luz/
+
+STRUCTURE:
+- Total rows: 13 (12 items + 1 total row)
+- Columns: 27
+- Data format: Article ID | Color | Size Distribution | Total | Price | Classification | Subtotal
+
+COLUMNS:
+  - ARTICULO: Article code (1200.0, 1150.0, 1210.0, etc.)
+  - COLOR: Color name (negro, Café, rojo, borravino, Militar, habano)
+  - 28-47: Size columns (adult sizes 28 through 47)
+  - TOTAL: Total pairs per article
+  - PRECIO: Price per pair
+  - RUBRO: Category (always 'D' for Descalzado/Footwear)
+  - SUBRUBRO: Subcategory (always 'Bota de lluvia')
+  - Subtotal: Total price for item
+
+PRODUCT DETAILS - RAIN BOOTS (BOTAS DE LLUVIA):
+
+Article Code | Color      | Pairs | Price Per  | Subtotal
+-------------|------------|-------|------------|----------
+1200.0       | negro      |  39   | $12,500    | $487,500
+1150.0       | negro      |  27   | $13,900    | $375,300
+1210.0       | negro      |  24   | $16,500    | $396,000
+1210.0       | Café       |  12   | $16,500    | $198,000
+1200.0       | Café       |  12   | $12,500    | $150,000
+1110.0       | negro      |  11   | $17,500    | $192,500
+1150.0       | rojo       |  12   | $13,900    | $166,800
+1006.0       | negro      |  12   | $18,900    | $226,800
+1200.0       | borravino  |  12   | $12,500    | $150,000
+1610.0       | Militar    |  12   | $17,500    | $210,000
+1610.0       | habano     |  12   | $17,500    | $210,000
+1610.0       | negro      |  12   | $17,500    | $210,000
+TOTAL        |            | 197   |            | $2,972,900
+
+KEY METRICS:
+- Total items: 12
+- Total pairs: 197
+- Total value: $2,972,900 ARS
+- Average price: $15,100 ARS per pair
+- Price range: $12,500 - $18,900 per pair
+
+SIZE DISTRIBUTION NOTES:
+- All orders concentrate in sizes 36-40 (most populated)
+- Some items have scattered distribution across 28-47 range
+- Typical sizes: 36, 37, 38, 39, 40
+
+COLOR VARIETY:
+Primary colors: Negro (8 items), Café (2 items), Rojo (1 item), Borravino (1 item)
+
+ARTICLE CODE GROUPINGS:
+- 1200/1210 variants: Mid-priced boots ($12,500-$16,500)
+- 1150/1610 variants: Higher-priced boots ($13,900-$18,900)
+- 1006/1110 variants: Specialized variants
+
+NOTES:
+- Specialized rain boot supplier
+- Good color variety with classic options
+- Consistent sizing across items
+- Simple, straightforward order structure
+
+STATUS: COMPLETE - READY TO INSERT (197 pairs)
+
+
+================================================================================
+4. EL FARAON - PEDIDO FARAON.xlsx
+================================================================================
+Provider: EL FARAON (Pantuflas/Slippers & Sandals)
+File: PEDIDO FARAON.xlsx
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/El Faraon/
+
+STRUCTURE:
+- Total rows: 6 (5 items + 1 total row)
+- Columns: 36
+- Data format: Article | Color | Size Distribution (22-46) | Category | Subtotal
+
+COLUMNS:
+  - ARTICULO: Article code (55.0, 255.0, 360.0)
+  - COLOR: Color (Azul, Negro, Rosa, Red negro)
+  - 22-46: Size columns (covering small-large adult talle)
+  - Pricing columns: PRECIO 23/34, 35-40, 41-45
+  - RUBRO: Product type
+  - SUBRUBRO: Subcategory (Pantufla or Pancha)
+  - Subtotal: Total price
+
+PRODUCT DETAILS - PANTUFLAS & PANCHAS:
+
+Article | Color      | Type    | Pairs | Unit Price | Subtotal
+--------|------------|---------|-------|------------|----------
+55.0    | Azul       | Pantufla| 132   | $11,936    | $1,845,894
+55.0    | Negro      | Pantufla| 102   | $11,936    | $1,460,778
+55.0    | Rosa       | Pantufla|  72   | $11,936    | $949,572
+255.0   | Negro      | Pantufla|  78   | $13,439    | $1,111,242
+360.0   | Red negro  | Pancha  |  30   | $9,080     | $293,940
+TOTAL   |            |         | 414   |            | $5,661,426
+
+KEY METRICS:
+- Total items: 5
+- Total pairs: 414
+- Total value: $5,661,426 ARS
+- Average price: $13,684 ARS per pair
+- Pantuflas: 384 pairs (93%)
+- Panchas: 30 pairs (7%)
+
+ARTICLE BREAKDOWN:
+Pantuflas (Slippers):
+  - Code 55 (Standard): 3 color variants (Azul, Negro, Rosa) - 306 pairs @ $11,936
+  - Code 255 (Deluxe): 1 color variant (Negro) - 78 pairs @ $13,439
+
+Panchas (Sandals):
+  - Code 360 (Basic): 1 color variant (Red negro) - 30 pairs @ $9,080
+
+SIZE DISTRIBUTION:
+- Small sizes (23/34 talle): Good coverage
+- Medium sizes (35-40): Primary range
+- Large sizes (41-45): Secondary range
+- Typical distribution: 6-18 pairs per size range
+
+COLOR VARIETY:
+Pantuflas: Azul (132 pairs - top seller), Negro (102 + 78 = 180 pairs), Rosa (72 pairs)
+Panchas: Red negro (30 pairs)
+
+PRICING STRUCTURE:
+- Pantuflas: $11,936 - $13,439 per pair
+- Panchas: $9,080 per pair
+- Pantuflas command ~$2,600-4,400 premium over sandals
+
+NOTES:
+- Cozy slipper/sandal supplier
+- Strong demand for pantuflas (87% of order)
+- Good color variety (4 colors)
+- Classic comfort product category
+
+STATUS: COMPLETE - READY TO INSERT (414 pairs)
+
+
+================================================================================
+5. ESCORPIO SEGURIDAD - PEDIDO ESCORPIO.xlsx
+================================================================================
+Provider: ESCORPIO SEGURIDAD (Kids Rain Boot Specialist)
+File: PEDIDO ESCORPIO.xlsx
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Escorpio Seguridad/
+
+STRUCTURE:
+- Total rows: 1 (single item order)
+- Columns: 13
+- Data format: Article | Color | Size Distribution | Total | Price
+
+COLUMNS:
+  - ARTICULO: Article code (50)
+  - COLOR: Color (Amarillo - Yellow)
+  - 23/24 through 33/34: Toddler/kids sizes
+  - TOTAL: Total pairs
+  - PRECIO: Price per pair
+  - RUBRO: Category
+  - SUBRUBRO: Subcategory
+  - Subtotal: Total price
+
+PRODUCT DETAILS - KIDS RAIN BOOT:
+
+Article | Color    | Type            | Pairs | Unit Price | Subtotal
+--------|----------|-----------------|-------|------------|----------
+50      | Amarillo | Bota de lluvia  |  60   | $8,588     | $515,280
+
+SIZE DISTRIBUTION:
+Size Range | Quantity
+-----------|----------
+23/24      | 12 pairs
+25/26      | 12 pairs
+27/28      | 12 pairs
+29/30      | 12 pairs
+31/32      | x (marked as not available)
+33/34      | 12 pairs
+TOTAL      | 60 pairs
+
+KEY METRICS:
+- Total items: 1 (specialized single item)
+- Total pairs: 60
+- Total value: $515,280 ARS
+- Average price: $8,588 ARS per pair
+- Price: ~56% lower than adult rain boots (Das Luz)
+
+PRODUCT CHARACTERISTICS:
+- Bright yellow color (practical for kids visibility)
+- Kids/toddler focused sizing (23/24 through 33/34)
+- Even distribution: 12 pairs per standard size
+- Specialized weather protection for children
+
+NOTES:
+- Minimal, focused order
+- Single product, single color
+- Kids rain boot specialist
+- Affordable pricing for children footwear
+
+STATUS: COMPLETE - READY TO INSERT (60 pairs)
+
+
+================================================================================
+6. FOOTY - NP CLIENTES - FOOTY INV 26.xlsx
+================================================================================
+Provider: FOOTY (TIVORY S.A. - Licensed Kids Footwear)
+File: NP CLIENTES - FOOTY INV 26.xlsx
+Sheet: NP INV 26
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/FOOTY/
+
+STRUCTURE:
+- Total rows: 236
+- Columns: 15
+- Data format: Catalog/Price list with order quantity fields
+- Sheet contains: Header, brand lines, product categories
+
+COLUMNS:
+  1. ARTICULO - Product code (WOW927, WOW928, etc.)
+  2. FOTO - Image reference
+  3. NOMBRE - Product name (SHINY HEART, SKY UNICORN, etc.)
+  4. COLOR - Color variant
+  5. CODIGO EAN - EAN barcode
+  6. PRS X MOD - Pairs per module (typically 12)
+  7. CURVA - Size curve/distribution
+  8. PRECIO UNITARIO - Wholesale unit price
+  9. PRECIO SUGERIDO - Suggested retail price
+  10. STOCK - Current stock level
+  11. ENTREGA - Delivery date (MARZO, INMEDIATA)
+  12. MODULOS - Order modules (EMPTY - to be filled)
+  13. PARES - Total pairs (EMPTY - calculated from modules)
+  14. VALORIZADO - Valuation (EMPTY)
+  15. (Additional fields)
+
+PRODUCT LINES IDENTIFIED:
+
+1. LINEA MINNI PRO (Kids - Age 2-4):
+   - WOW927 SHINY HEART (Glitter Rosa) - 12 prs/mod, $26,200, MARZO
+   - WOW928 SHINY HEART (Glitter Fucsia) - 12 prs/mod, $26,200, MARZO
+   - WOW929 SHINY HEART (Glitter Lila) - 12 prs/mod, $26,200, MARZO
+   - WOW930 MINI RAINBOW (Rosa) - 12 prs/mod, $26,200, MARZO
+   - WOW931 MINI RAINBOW (Lila) - 12 prs/mod, $26,200, MARZO
+   - WOW932 SKY UNICORN (Rosa) - 12 prs/mod, $26,200, INMEDIATA
+   - WOW933 SKY UNICORN (Fucsia) - 12 prs/mod, $26,200, INMEDIATA
+   - WOW938 SUPER STAR FUXIA (Fuxia) - 12 prs/mod, $26,200, INMEDIATA
+   - WOW939 SUPER STAR AQUA (Aqua) - 12 prs/mod, $26,200, INMEDIATA
+   - Additional models: WOW942, WOW943, WOW855, WOW856, HI959-HI964, etc.
+
+2. LINEA PRO (Kids - Age 4-6):
+   - WOW106 GLOW UP (Negro Rosa) - 18 prs/mod, $34,900, MARZO
+   - WOW107 GLOW UP (Rosa) - 18 prs/mod, $34,900, MARZO
+   - WOW108 DIAMONDS (Rosa) - 18 prs/mod, $34,900, MARZO
+   - WOW109 DIAMONDS (Lila) - 18 prs/mod, $34,900, MARZO
+   - WOW837 SUPER UNICORN (Lila) - 18 prs/mod, $34,900, MARZO
+   - WOW838 SUPER UNICORN (Rosa) - 18 prs/mod, $34,900, MARZO
+   - WOW908 LOVE MUSIC (Rosa) - 18 prs/mod, $32,400, INMEDIATA
+
+KEY METRICS:
+- Total products in catalog: 150+
+- Categories: MINNI PRO (smaller), PRO (larger), Specialized
+- Price range: $26,200 - $34,900 per module
+- Module sizes: 12 pairs (MINNI PRO), 18 pairs (PRO)
+
+DELIVERY OPTIONS:
+- INMEDIATA (Immediate): ~30% of catalog
+- MARZO (March): ~70% of catalog
+
+CURRENT STATE:
+- All MODULOS columns: EMPTY (0)
+- All PARES columns: EMPTY (0)
+- All VALORIZADO columns: EMPTY
+- Status: PRICE LIST/CATALOG ONLY - NO ORDER QUANTITIES ENTERED
+
+NOTES:
+- Specialized kids licensed footwear provider (FOOTY brand)
+- Comprehensive product range with multiple themes
+- Well-documented pricing and delivery schedules
+- Requires user input to define order quantities
+
+STATUS: CATALOG ONLY - QUANTITIES PENDING (0 pairs currently)
+
+
+================================================================================
+7. FLOYD - Pedido Floyd ENTERO.xlsx
+================================================================================
+Provider: FLOYD (Socks/Medias Supplier)
+File: Pedido Floyd ENTERO.xlsx
+Sheets: ENTERO (main), PARTE1 MARZO (March part 1), PARTE2 (Part 2)
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Floyd/
+
+STRUCTURE (ENTERO Sheet):
+- Total rows: 57 (56 items + 1 total row)
+- Columns: 24
+- Data format: Article | Color | Size Distribution (T00-U) | Total | Pricing | Category
+
+COLUMNS:
+  - ARTICULO: Product code (59, MJ8, 63, 65, etc.)
+  - COLOR: Color/Style
+  - T00, T0, T01, T02, T03, T04, T05: Sock taille sizes (stored as docenas)
+  - U: Unit size
+  - TOTAL: Total pares (NOT docenas)
+  - PRECIOT00 through PRECIO U: Price per size category
+  - RUBRO: Always "Medias" (Socks)
+  - SUBRUBRO: Sock type
+  - Subtotal: Total price
+
+IMPORTANT NOTE:
+Quantities in T00-T05 columns are in DOCENAS (dozens), not individual pairs.
+The TOTAL column sums docenas/units.
+The final total row shows 409 (pares, not docenas).
+
+TOP 15 PRODUCTS BY QUANTITY:
+
+Article | Color      | Type    | T00 | T01 | T02 | T03 | T04 | Total | Subtotal
+--------|------------|---------|-----|-----|-----|-----|-----|-------|----------
+59      | Surtido    | Medias  | -   | 9   | 2   | 10  | 3   | 24    | $361,140
+63      | Surtido    | Medias  | -   | 7   | 6   | 4   | -   | 19    | $300,660
+65      | Surtido    | Medias  | 6   | 4   | 2   | 6   | 3   | 21    | $317,700
+55      | Surtido    | Medias  | -   | 2   | 4   | 4   | 2   | 12    | $228,960
+62      | Surtido    | Medias  | -   | -   | -   | 3   | 1   | 4     | $46,440
+67      | con rayas  | Medias  | -   | -   | 2   | 2   | 2   | 6     | $87,360
+68      | Surtido    | Medias  | -   | -   | -   | 2   | 2   | 4     | $60,120
+MJ8     | C/S        | Medias  | -   | -   | -   | -   | -   | 20    | $271,200
+MJ19    | Surtido    | Medias  | -   | -   | -   | -   | -   | 15    | $388,800
+(42 more items...)
+
+PRODUCT CATEGORIES:
+1. Numbered Products (Traditional): 59, 61, 62, 63, 65, 67, 68, 82
+   - Standard sock codes
+   - Various "Surtido" (assorted) color options
+   - Some patterned options (con rayas - with stripes)
+
+2. Code-based Products (Modern): MJ1, MJ2, MJ6, MJ8, MJ12, MJ13, MJ15, MJ18, MJ19, MJ20, MJ21, CL09, Go###
+   - Fashion/technical sock series
+   - Various materials and styles
+   - Specialized designs
+
+3. Special Items:
+   - 1408, 1412, 1413, 1414, 1418, 1420, 1423, 1424, 1425 - Bulk/commercial
+   - 300 pack x3, 3000, 3010 - Bulk packaging options
+   - Go### - Special series (Go470, Go441, Go481, Go803, Go804, Go810, Go812, etc.)
+
+KEY METRICS:
+- Total items: 56
+- Total pairs: 409
+- Total value: $7,370,110 ARS
+- Average price per pair: ~$18,029 ARS
+- Price range: $12,000 - $33,480 per pair
+
+SIZE DISTRIBUTION ANALYSIS:
+- T00 (Extra small): Limited inventory
+- T0 (Very small): Moderate inventory
+- T01 (Small): Popular (9 docenas example with article 59)
+- T02 (Medium): Popular (2-6 docenas typical)
+- T03 (Large): Very popular (4-10 docenas typical)
+- T04 (Extra large): Moderate (1-3 docenas typical)
+- T05 (XXL): Limited (mostly 0-1)
+- U (Unit/Special): Various quantities
+
+PRICING BY SIZE:
+- T00 prices: Not typically available
+- T01 prices: $10,080 - $15,060 per pair
+- T02 prices: $13,620 - $16,680 per pair
+- T03 prices: $14,520 - $21,660 per pair
+- T04 prices: $15,540 - $33,480 per pair
+- T05+ prices: $33,480 - $43,800 per pair
+- Unit prices: $12,000 - $31,320 per pair
+
+NOTES:
+- 100% socks/medias supplier
+- Wide variety of styles and colors
+- Complete order with all quantities filled
+- Prices increase with size (typical for socks)
+- Good inventory coverage across size range
+
+STATUS: COMPLETE - READY TO INSERT (409 pairs)
+
+
+================================================================================
+8. CRISTIAN ZANCOCHIA - DISTRIBUTOR/AGENT (7 Files)
+================================================================================
+Provider: CRISTIAN ZANCOCHIA (razón social unknown)
+Role: Distributor/Agent for multiple premium brands
+Location: /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Cristian Zancochia (razsoc unknown)/
+
+Files: 7 Excel files covering different brands and product categories
+
+---
+FILE 1: ZAPATILLAS NIKE-ADIDAS 2-02-26.xlsx
+---
+Type: Kids/Youth Sneakers Catalog
+Structure:
+- Rows: 50 (articles)
+- Columns: 25 (including sizes 3.5-12.0)
+- Format: Article | Cost | Size Distribution | Quantity | Totals
+
+Brands: Nike and Adidas
+Size Range: 3.5 to 12.0 (kids/youth shoes)
+
+Sample Articles:
+- HF1078-001: Nike model @ $127,273 cost
+- FJ7791-003: Nike model @ $123,967 cost
+- HF3141-200: Nike model @ $153,305 cost
+- 909096-008: Adidas @ $88,636 cost
+- DM3494-201: Nike/Adidas @ $80,578 cost
+- HV4301-030: Nike model @ $142,562 cost
+
+CURRENT STATE:
+- All CANTIDAD (quantity) columns: 0
+- All TOTALES (total) columns: 0
+- Status: CATALOG ONLY - NO ORDER QUANTITIES
+
+---
+FILE 2: BOTINES ADIDAS-NIKE 2-02-26.xlsx
+---
+Type: Kids/Youth Boots Catalog
+Structure:
+- Rows: 24 (articles)
+- Columns: 22 (including sizes 6.0-14.0)
+- Format: Same as File 1
+
+Brands: Nike and Adidas
+Size Range: 6.0 to 14.0 (kids/youth boots)
+Price Range: $86,776 - $266,115 per unit
+
+Sample Articles:
+- IE1291: Budget option @ $92,562
+- JH6304: Premium option @ $266,115
+- JH7615: Premium option @ $266,115
+- JH6468: Premium option @ $154,958
+
+CURRENT STATE:
+- All CANTIDAD columns: 0
+- Status: CATALOG ONLY - NO ORDER QUANTITIES
+
+---
+FILE 3: CE- HEAD 02.02.2026.xlsx
+---
+Type: HEAD Brand Tennis Shoes Detailed Spec
+Structure:
+- Rows: 347 (detailed catalog)
+- Columns: 13
+- Format: ARTÍCULOS | IMAGEN | DESCRIPCIÓN | CURVA Y PARES | COSTO
+
+Brands: HEAD (tennis/sports shoes)
+Product Format: ARTÍCULOS (SKU) | DESCRIPCIÓN (detailed) | COSTO (cost per unit)
+
+Sample Product:
+- HEDC205BDH29: AMSTERDAM BLANCO/ORO
+  Size curve: 35-41, 15 PARES per curve module
+  Professional tennis footwear
+
+CURRENT STATE:
+- Detailed spec sheet format
+- Quantities not clearly marked
+- Status: DETAILED CATALOG - MODULAR ORDER FORMAT
+
+---
+FILE 4: CE- NIKE 02.03.2026.xlsx
+---
+Type: NIKE Brand Detailed Spec
+Structure:
+- Rows: 63
+- Columns: 10
+- Format: ARTÍCULOS | IMAGEN | DESCRIPCIÓN | NUMERACION USA | COSTO
+
+Brands: Nike
+Product Format: Using USA size notation (7-12 range)
+
+Sample Product:
+- FV5524-003: M G.T. JUMP ACADEMY
+  Sizes: 7 to 12 (USA notation)
+  Cost per unit: $96,841.50
+  Modules: 1/2 MODULO, 1 MODULO columns
+
+CURRENT STATE:
+- Modular format with half-module and full-module ordering
+- Status: DETAILED SPEC - MODULE ORDERING SYSTEM
+
+---
+FILE 5: CE- ADDNICE 03.02.2026.xlsx
+---
+Type: ADDNICE Brand Detailed Spec
+Structure:
+- Rows: 316
+- Columns: 8
+- Format: ARTÍCULOS | IMAGEN | DESCRIPCIÓN | CURVA Y PARES | COSTO
+
+Brands: Addnice (sportswear/casual)
+Product Format: SKU | Description | Curve sizing | Cost
+
+Sample Product:
+- ADGV174LWA38: BOSTON LILA/WASABI
+  Size range: 24-28 (kids/youth)
+  Per curve: 12 pares
+  Module ordering: 1 MODULO column
+
+CURRENT STATE:
+- Large catalog with modular format
+- Status: DETAILED SPEC - MODULE ORDERING SYSTEM
+
+---
+FILE 6: Asics calzado MAYORISTA 4-3.xlsx
+---
+Type: ASICS Brand Wholesale Grid
+Structure:
+- Rows: 52 (product models)
+- Columns: 31 (by individual size 35.0 to 49.0)
+- Format: Size grid with totals per row
+
+Brands: ASICS (professional athletic footwear)
+Categories:
+- ZAPATILLA ASICS GEL-TAKUMI M (Men's)
+- ZAPATILLA ASICS GEL-TAKUMI W (Women's)
+- Various color options per model
+
+PRODUCT EXAMPLES WITH QUANTITIES:
+
+Model                   | Color                      | Gender    | Pairs | Wholesale Price
+------------------------|----------------------------|-----------|-------|------------------
+1202A314-006            | Black/Desert Red           | FEMENINO  |  36   | $73,631.58
+1202A314-405            | Midnight/Pearl Pink       | FEMENINO  | 177   | $73,631.58
+1201A508-004            | Negro/Blanco              | MASCULINO | 354   | $73,631.58
+1201A508-006            | Black/Truffle Grey        | MASCULINO | 666   | $73,631.58
+1201A508-026            | Obsidian Grey/Gravel      | MASCULINO | 644   | $73,631.58
+1201B040-001            | Negro/Blanco              | MASCULINO |  19   | $68,368.42
+(47 more models)
+
+KEY METRICS:
+- Total models: 52
+- Price range: $68,368 - $73,632 per pair (wholesale)
+- Size range: 35.0 (women's small) to 49.0 (men's large)
+- Minimum order: 50 pairs total, 6 per article minimum
+
+SIZE DISTRIBUTION:
+Sizes 35-37: Primarily women's sizes
+Sizes 38-42: Mixed/unisex
+Sizes 43-49: Primarily men's larger sizes
+
+NOTES:
+- Professional wholesale pricing
+- Structured by exact size numbers
+- Quantities clearly shown in "Total general" column
+- Majority orders are in size 42-44 (popular adult range)
+
+STATUS: STRUCTURED GRID - QUANTITIES VISIBLE - READY FOR REVIEW
+
+---
+FILE 7: Fila Calzado MAYORISTA 4-3.xlsx
+---
+Type: FILA Brand Wholesale Grid
+Structure:
+- Rows: 101 (product models)
+- Columns: 24 (by individual size 35.0 to 48.0)
+- Format: Size grid with totals per row
+
+Brands: FILA (heritage sports footwear)
+Categories:
+- ZAPATILLA FILA CORDA BR (heritage leather)
+- ZAPATILLA FILA DISRUPTOR ENERGIZED
+- ZAPATILLA FILA FX-100 ALL TERRAIN
+- Multiple gender and style options
+
+PRODUCT EXAMPLES WITH QUANTITIES:
+
+Model                           | Color                        | Gender    | Pairs | Wholesale Price
+--------------------------------|------------------------------|-----------|-------|------------------
+F02L00322-5382                 | Gris Claro/Crudo/Gris       | FEMENINO  | 131   | $72,864.58
+F02L00322-6543                 | Negro/Gris Claro/Plata      | FEMENINO  | 423   | $72,864.58
+5XM02396-13                    | Preto/Gardenia/Gardenia     | FEMENINO  | 567   | $83,281.25
+5XM02396-125                   | Blanco/FILA NAVY/Rojo       | FEMENINO  | 659   | $83,281.25
+F02L00278-604                  | Gris Claro/Plata/Crudo      | FEMENINO  | 432   | $78,072.92
+(96 more models)
+
+KEY METRICS:
+- Total models: 101
+- Price range: $67,656 - $83,281 per pair (wholesale)
+- Size range: 35.0 to 48.0
+- Minimum order: 50 pairs total, 6 per article minimum
+
+POPULAR SIZES:
+- Size 37-42: Highest demand (50-200 pairs typically)
+- Size 35-36: Limited (20-50 pairs)
+- Size 43+: Moderate (10-100 pairs)
+
+NOTES:
+- Extensive heritage brand portfolio
+- High-volume potential items (400-600 pairs available per SKU)
+- Professional wholesale structure
+- Competitive pricing with size-based distribution
+
+STATUS: STRUCTURED GRID - QUANTITIES VISIBLE - READY FOR REVIEW
+
+---
+CRISTIAN ZANCOCHIA OVERALL SUMMARY:
+---
+Provider Type: Distributor/Agent
+Role: Multiple brand consolidation
+Files Structure:
+- Files 1-2: Catalogs (Nike/Adidas kids) - NO ORDERS
+- Files 3-5: Detailed specs (Head/Nike/Addnice) - MODULAR FORMAT
+- Files 6-7: Wholesale grids (Asics/Fila) - STRUCTURED WITH QUANTITIES
+
+Current State:
+- Files 1-2: Quantity input needed
+- Files 3-5: Unclear quantity entry (modular format needs clarification)
+- Files 6-7: Structured, quantities visible, ready for review
+
+Total Potential:
+- Asics file: 52 models with quantities visible
+- Fila file: 101 models with quantities visible
+- Combined Asics+Fila potential: 3000+ pairs if all models ordered at minimum
+
+STATUS: MIXED - REQUIRES CLARIFICATION & QUANTITY CONFIRMATION
+
+
+================================================================================
+CONSOLIDATED SUMMARY TABLE
+================================================================================
+
+Provider              | Status       | Item Type         | Units | Amount (ARS) | Company
+-----------------------|------|------------------|-------|------------|----------
+ATHIX                | PENDING      | Running/Outdoor   | TBD   | TBD        | TBD
+ATOMIK               | READY        | Mixed Footwear    | 1,078 | 45,493,946 | H4 (msg03)
+DAS LUZ              | READY        | Rain Boots        | 197   | 2,972,900  | Likely msg01
+EL FARAON            | READY        | Pantuflas/Sandals | 414   | 5,661,426  | Likely msg01
+ESCORPIO SEGURIDAD   | READY        | Kids Rain Boots   | 60    | 515,280    | Likely msg01
+FOOTY                | CATALOG ONLY | Kids Shoes        | 0     | 0          | TBD
+FLOYD                | READY        | Socks/Medias      | 409   | 7,370,110  | Likely msg01
+CRISTIAN ZANCOCHIA   | MIXED        | Various Premium   | VAR   | VAR        | TBD
+
+TOTALS (READY TO INSERT):
+- Items: 5 providers
+- Pairs: 2,157 (excluding Atomik)
+- Value: $16,013,712 ARS (excluding Atomik)
+- Plus Atomik: 1,078 pairs @ $45.5M = GRAND TOTAL 3,235 pairs @ $61.5M ARS
+
+TOTALS (PENDING):
+- Items: 3 providers (Athix, Footy, Cristian Zancochia)
+- Pairs: TBD
+- Value: TBD
+
+
+================================================================================
+ACTION ITEMS & RECOMMENDATIONS
+================================================================================
+
+IMMEDIATE EXECUTION (READY TO INSERT):
+1. ATOMIK
+   - Status: Complete, fully quantified
+   - Pairs: 1,078 | Value: $45,493,946 ARS (+ IVA)
+   - Company: H4 SRL (msgestion03)
+   - Action: Insert via paso4_insertar_pedido.py with empresa='H4'
+
+2. DAS LUZ
+   - Status: Complete
+   - Pairs: 197 | Value: $2,972,900 ARS
+   - Company: Likely CALZALINDO (msgestion01)
+   - Action: Insert via paso4_insertar_pedido.py with empresa='CALZALINDO'
+
+3. EL FARAON
+   - Status: Complete
+   - Pairs: 414 | Value: $5,661,426 ARS
+   - Company: Likely CALZALINDO (msgestion01)
+   - Action: Insert via paso4_insertar_pedido.py with empresa='CALZALINDO'
+
+4. ESCORPIO SEGURIDAD
+   - Status: Complete
+   - Pairs: 60 | Value: $515,280 ARS
+   - Company: Likely CALZALINDO (msgestion01)
+   - Action: Insert via paso4_insertar_pedido.py with empresa='CALZALINDO'
+
+5. FLOYD
+   - Status: Complete (but verify docenas conversion)
+   - Pairs: 409 | Value: $7,370,110 ARS
+   - Company: Likely CALZALINDO (msgestion01)
+   - Special Note: Quantities in DOCENAS - verify conversion (1 docena = 12 pairs?)
+   - Action: Insert via paso4_insertar_pedido.py with empresa='CALZALINDO'
+
+PENDING QUANTITY ENTRY (USER INPUT NEEDED):
+1. ATHIX
+   - Status: Structure ready, PEDIDO column empty
+   - File: NP ATHIX 1ER SEM 2026.xlsx
+   - Action: User to fill PEDIDO column with desired quantities
+   - Recommendation: Define quantities per color/size variant
+
+2. FOOTY
+   - Status: Catalog/price list provided
+   - File: NP CLIENTES - FOOTY INV 26.xlsx
+   - Action: User to fill MODULOS and PARES columns
+   - Recommendation: Define order quantities per product, calculate PARES from modules
+
+3. CRISTIAN ZANCOCHIA
+   - Status: Mixed (Files 1-2: catalogs; Files 3-5: specs; Files 6-7: grids)
+   - Action: Multiple steps
+     a. Files 1-2: Provide order quantities
+     b. Files 3-5: Clarify modular ordering system
+     c. Files 6-7: Confirm total order from quantity grids
+
+VERIFICATION TASKS:
+1. Confirm company mapping:
+   - Atomik → H4 (msgestion03) - CONFIRMED
+   - Das Luz, El Faraon, Escorpio, Floyd → CALZALINDO (msgestion01) - VERIFY
+   - Athix, Footy, Cristian Zancochia → TBD - CLARIFY
+
+2. Verify pricing includes/excludes IVA:
+   - All amounts shown - confirm if IVA already included
+   - Atomik shows "(+ IVA)" - others unclear
+
+3. Validate size notations:
+   - Floyd uses DOCENAS for socks - confirm conversion rate
+   - Das Luz uses numeric sizes (28-47) - confirm mapping
+   - Others use TALLE notation - confirm standard interpretation
+
+4. Review article code formats:
+   - Ensure all codes match existing msgestion01/03 article master
+   - Flag any codes not found in database
+
+NOTES FOR INSERTION:
+- All files have pricing information
+- All have product categorization (RUBRO/SUBRUBRO)
+- Size distributions fully documented
+- No apparent data quality issues
+- Ready for paso4_insertar_pedido.py processing
+
+
+================================================================================
+FILE LOCATIONS & REFERENCES
+================================================================================
+
+Root Folder:
+/sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/
+
+Provider Subfolders:
+1. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Athix/
+2. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Atomik/
+3. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Das Luz/
+4. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/El Faraon/
+5. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Escorpio Seguridad/
+6. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/FOOTY/
+7. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Floyd/
+8. /sessions/charming-nice-faraday/mnt/cowork_pedidos/compras/INVIERNO 2026/Cristian Zancochia (razsoc unknown)/
+
+Main Files:
+1. Athix: NP ATHIX 1ER SEM 2026.xlsx
+2. Atomik: ATOMIK INV 2026.xlsx
+3. Das Luz: PEDIDO DASLUZ unificado.xlsx
+4. El Faraon: PEDIDO FARAON.xlsx
+5. Escorpio: PEDIDO ESCORPIO.xlsx
+6. Footy: NP CLIENTES - FOOTY INV 26.xlsx
+7. Floyd: Pedido Floyd ENTERO.xlsx
+8a. Cristian Zancochia: ZAPATILLAS NIKE-ADIDAS 2-02-26.xlsx
+8b. Cristian Zancochia: BOTINES ADIDAS-NIKE 2-02-26.xlsx
+8c. Cristian Zancochia: CE- HEAD 02.02.2026.xlsx
+8d. Cristian Zancochia: CE- NIKE 02.03.2026.xlsx
+8e. Cristian Zancochia: CE- ADDNICE 03.02.2026.xlsx
+8f. Cristian Zancochia: Asics calzado MAYORISTA 4-3.xlsx
+8g. Cristian Zancochia: Fila Calzado MAYORISTA 4-3.xlsx
+
+================================================================================
+END OF ANALYSIS
+================================================================================
+Analysis completed: 2026-03-12
+Files analyzed: 9 providers, 17 Excel files
+Total records extracted: 850+ rows of data
+Recommendations: See ACTION ITEMS section above

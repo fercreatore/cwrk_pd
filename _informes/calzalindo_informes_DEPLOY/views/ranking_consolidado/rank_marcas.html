@@ -1,0 +1,118 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-box { background: #fff; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 10px; }
+.kpi-box h4 { margin: 0; font-size: 13px; color: #888; }
+.kpi-box .valor { font-size: 22px; font-weight: bold; color: #1a1a2e; }
+.filtro-panel { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.filtro-panel label { font-size: 12px; }
+.filtro-panel .form-control { font-size: 12px; }
+#tabla-ranking { font-size: 12px; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <h3 style="margin-top:0;">
+        <i class="glyphicon glyphicon-stats"></i> Ranking de Marcas
+        <small style="color:#888;">Compras + Ventas + Stock consolidado</small>
+    </h3>
+
+    <!-- FORMULARIO -->
+    <div class="filtro-panel">
+        {{=form.custom.begin}}
+        <div class="row">
+            <div class="col-md-2">
+                <label>Desde</label>{{=form.custom.widget.desde}}
+            </div>
+            <div class="col-md-2">
+                <label>Hasta</label>{{=form.custom.widget.hasta}}
+            </div>
+            <div class="col-md-2">
+                <label>Compras desde</label>{{=form.custom.widget.c_desde}}
+            </div>
+            <div class="col-md-2">
+                <label>Compras hasta</label>{{=form.custom.widget.c_hasta}}
+            </div>
+            <div class="col-md-2">
+                <label>Marca</label>{{=form.custom.widget.marca}}
+            </div>
+            <div class="col-md-2">
+                <label>Linea</label>{{=form.custom.widget.linea}}
+            </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+            <div class="col-md-2">
+                <label>Rubro</label>{{=form.custom.widget.rubro}}
+            </div>
+            <div class="col-md-2">
+                <label>Subrubro</label>{{=form.custom.widget.subrubro}}
+            </div>
+            <div class="col-md-2">
+                <label>Agrup. Marca</label>{{=form.custom.widget.agrupador_marca}}
+            </div>
+            <div class="col-md-2">
+                <label>Agrup. Subrubro</label>{{=form.custom.widget.agrupador_subrubro}}
+            </div>
+            <div class="col-md-2">
+                <label>Sinonimo</label>{{=form.custom.widget.sinonimo}}
+            </div>
+            <div class="col-md-2" style="padding-top:22px;">
+                {{=form.custom.submit}}
+            </div>
+        </div>
+        {{=form.custom.end}}
+    </div>
+
+    {{if data:}}
+    <!-- TABLA -->
+    <div style="background:#fff; border-radius:8px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <div id="tabla-ranking"></div>
+    </div>
+
+    <!-- Tabulator -->
+    <link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator_bootstrap3.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+    <script>
+    var datos = {{=XML(data)}};
+    var table = new Tabulator("#tabla-ranking", {
+        data: datos,
+        layout: "fitColumns",
+        height: "600px",
+        pagination: false,
+        initialSort: [{column:"cantidad_v", dir:"desc"}],
+        columns: [
+            {formatter:"rownum", width:40, hozAlign:"center", headerSort:false},
+            {title:"Marca", field:"descripcion", sorter:"string", headerFilter:true,
+             formatter: function(cell){
+                var row = cell.getRow().getData();
+                var cod = row.marca || '';
+                return '<a href="/calzalindo_informes/ranking_consolidado/rank_productos/' + cod + '">' +
+                       cell.getValue() + '</a>';
+             }},
+            {title:"Cant.V", field:"cantidad_v", sorter:"number", topCalc:"sum", hozAlign:"right",
+             formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+            {title:"$Ventas", field:"total_v", sorter:"number", topCalc:"sum", hozAlign:"right",
+             formatter: function(c){ return '$ ' + Math.round(c.getValue()).toLocaleString('es-AR'); }},
+            {title:"Rent%", field:"rent", sorter:"number", hozAlign:"right",
+             formatter: function(c){ var v=c.getValue(); c.getElement().style.color = v>=30?'green':v>=15?'orange':'red'; return v.toFixed(1)+'%'; }},
+            {title:"Cant.C", field:"cantidad_c", sorter:"number", topCalc:"sum", hozAlign:"right",
+             formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+            {title:"$Compras", field:"neto_c", sorter:"number", topCalc:"sum", hozAlign:"right",
+             formatter: function(c){ return '$ ' + Math.round(c.getValue()).toLocaleString('es-AR'); }},
+            {title:"Stock", field:"stock", sorter:"number", topCalc:"sum", hozAlign:"right",
+             formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+            {title:"Acciones", hozAlign:"center", width:120, headerSort:false,
+             formatter: function(cell){
+                var row = cell.getRow().getData();
+                var cod = row.marca || '';
+                return '<a href="/calzalindo_informes/ranking_consolidado/rank_productos/' + cod +
+                       '" class="btn btn-xs btn-info" title="Productos"><i class="glyphicon glyphicon-zoom-in"></i></a> ' +
+                       '<a href="/calzalindo_informes/ranking_consolidado/marca_pedido/' + cod +
+                       '" class="btn btn-xs btn-success" title="Pedido"><i class="glyphicon glyphicon-shopping-cart"></i></a>';
+             }}
+        ]
+    });
+    </script>
+    {{else:}}
+    <div class="alert alert-info">Seleccione un periodo y haga click en Enviar para ver el ranking.</div>
+    {{pass}}
+</div>

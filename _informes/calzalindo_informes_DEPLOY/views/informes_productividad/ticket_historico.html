@@ -1,0 +1,168 @@
+{{extend 'layout.html'}}
+
+<style>
+.th-idx { font-size: 11px; background: #2c3e50; color: #fff; text-align: center; }
+.th-datos { font-size: 11px; background: #34495e; color: #fff; text-align: center; }
+.td-num { font-size: 11px; text-align: right; }
+.td-idx { font-size: 11px; text-align: center; font-weight: bold; }
+.idx-up { color: #27ae60; }
+.idx-down { color: #e74c3c; }
+.idx-flat { color: #666; }
+.kpi-card { background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; margin-bottom: 10px; }
+.kpi-card h3 { margin: 0 0 2px 0; font-size: 20px; }
+.kpi-card small { color: #666; font-size: 11px; }
+.highlight-row { background: #fef9e7; }
+.year-row td { background: #eaf2f8; font-weight: bold; font-size: 12px; }
+.panel-insight { margin-top: 15px; }
+.panel-insight li { margin-bottom: 5px; }
+table.table-ticket { border-collapse: collapse; }
+table.table-ticket thead th { position: sticky; top: 0; z-index: 10; }
+</style>
+
+<a href="{{=URL('informes_productividad','dashboard')}}" class="btn btn-default btn-sm">&laquo; Volver al Dashboard</a>
+
+<h2>Ticket Promedio Histórico <small>Indexado por CER, Xforcer y Salario</small></h2>
+
+<!-- KPIs resumen -->
+{{if len(filas) >= 2:}}
+{{
+primero = filas[0]
+ultimo = filas[-1]
+# Buscar hace 12 meses
+idx_12m = max(0, len(filas) - 13)
+hace_12 = filas[idx_12m]
+}}
+<div class="row" style="margin-top:15px;">
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card" style="border-left:4px solid #337ab7;">
+            <h3>${{='{:,.0f}'.format(ultimo['ticket_prom'])}}</h3>
+            <small>Ticket actual ({{=ultimo['label']}})</small>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card" style="border-left:4px solid #27ae60;">
+            <h3>${{='{:,.0f}'.format(ultimo['ticket_cer'])}}</h3>
+            <small>Ticket deflactado (CER)</small>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card" style="border-left:4px solid #e67e22;">
+            <h3>{{='{:.2f}'.format(ultimo['xforcer_ratio'])}}</h3>
+            <small>Pares Xforcer x ticket</small>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card" style="border-left:4px solid #8e44ad;">
+            <h3>{{='{:.0f}'.format(ultimo['salario_tickets'])}}</h3>
+            <small>Tickets p/ 1 sueldo</small>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card" style="border-left:4px solid #e74c3c;">
+            <h3>${{='{:,.0f}'.format(ultimo['xforcer_precio'])}}</h3>
+            <small>Xforcer 21872 hoy</small>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card" style="border-left:4px solid #16a085;">
+            <h3>${{='{:,.0f}'.format(ultimo['salario'])}}</h3>
+            <small>Maestranza B hoy</small>
+        </div>
+    </div>
+</div>
+{{pass}}
+
+<!-- Panel de insights -->
+<div class="panel panel-info panel-insight">
+<div class="panel-heading"><strong>Cómo leer esta tabla</strong></div>
+<div class="panel-body" style="font-size:12px;">
+    <p><strong>Índices (base Ene 2015 = 100):</strong> Permiten comparar la evolución relativa de cada variable eliminando el efecto de escala.</p>
+    <ul>
+        <li><strong>Ticket CER</strong> = Ticket × Coeficiente CER → muestra el ticket "real" quitando inflación. Si sube, el ticket crece más que la inflación.</li>
+        <li><strong>Xforcer Ratio</strong> = Ticket ÷ Precio Xforcer → cuántos pares de la zapatilla de referencia compra un ticket. Si sube, el cliente gasta más unidades-equivalentes.</li>
+        <li><strong>Sueldo/Tickets</strong> = Salario Maestranza B ÷ Ticket → cuántos tickets necesita un empleado de comercio para cubrir su sueldo. Si baja, el poder adquisitivo del comprador mejora.</li>
+    </ul>
+</div>
+</div>
+
+<!-- Tabla principal -->
+<div style="max-height:600px; overflow-y:auto; margin-top:10px;">
+<table class="table table-condensed table-striped table-bordered table-ticket">
+<thead>
+<tr>
+    <th class="th-datos" rowspan="2" style="min-width:65px;">Mes</th>
+    <th class="th-datos" colspan="4">Datos Nominales</th>
+    <th class="th-idx" colspan="2">Deflactado CER</th>
+    <th class="th-idx" colspan="2">Índice Xforcer 21872</th>
+    <th class="th-idx" colspan="2">Índice Salarial</th>
+    <th class="th-idx" colspan="3">Índice 100 (base Ene-15)</th>
+</tr>
+<tr>
+    <th class="th-datos">Ticket $</th>
+    <th class="th-datos">$/Par</th>
+    <th class="th-datos">Pares</th>
+    <th class="th-datos">Tickets</th>
+    <th class="th-idx">CER Coef</th>
+    <th class="th-idx">Ticket Real</th>
+    <th class="th-idx">Xforcer $</th>
+    <th class="th-idx">Pares/Tkt</th>
+    <th class="th-idx">Sueldo $</th>
+    <th class="th-idx">Tkts/Sueldo</th>
+    <th class="th-idx" style="background:#27ae60;">Ticket</th>
+    <th class="th-idx" style="background:#e67e22;">Xforcer</th>
+    <th class="th-idx" style="background:#8e44ad;">Salario</th>
+</tr>
+</thead>
+<tbody>
+{{
+prev_anio = 0
+for f in filas:
+    is_new_year = (f['anio'] != prev_anio)
+    prev_anio = f['anio']
+    is_dic = (f['mes'] == 12)
+}}
+{{if is_new_year and f['mes'] > 1:}}
+<tr class="year-row"><td colspan="14" style="text-align:center; font-size:13px;">── {{=f['anio']}} ──</td></tr>
+{{pass}}
+<tr class="{{='highlight-row' if is_dic else ''}}">
+    <td><strong>{{=f['label']}}</strong></td>
+    <td class="td-num">${{='{:,.0f}'.format(f['ticket_prom'])}}</td>
+    <td class="td-num">${{='{:,.0f}'.format(f['precio_par'])}}</td>
+    <td class="td-num">{{='{:,.0f}'.format(f['pares'])}}</td>
+    <td class="td-num">{{='{:,.0f}'.format(f['tickets'])}}</td>
+    <td class="td-idx" style="color:#999;">{{='{:.1f}'.format(f['cer_coef'])}}</td>
+    <td class="td-num" style="font-weight:bold; color:#27ae60;">${{='{:,.0f}'.format(f['ticket_cer'])}}</td>
+    <td class="td-num">${{='{:,.0f}'.format(f['xforcer_precio'])}}</td>
+    <td class="td-idx {{='idx-up' if f['xforcer_ratio'] > 0.65 else 'idx-down' if f['xforcer_ratio'] < 0.50 else 'idx-flat'}}">
+        {{='{:.2f}'.format(f['xforcer_ratio'])}}
+    </td>
+    <td class="td-num">{{if f['salario'] > 0:}}${{='{:,.0f}'.format(f['salario'])}}{{else:}}-{{pass}}</td>
+    <td class="td-idx">
+        {{if f['salario_tickets'] > 0:}}
+        {{='{:.0f}'.format(f['salario_tickets'])}}
+        {{else:}}-{{pass}}
+    </td>
+    <td class="td-idx {{='idx-up' if f['idx_ticket'] > 100 else 'idx-down'}}">{{='{:.0f}'.format(f['idx_ticket'])}}</td>
+    <td class="td-idx {{='idx-up' if f['idx_xforcer'] > 100 else 'idx-down'}}">{{='{:.0f}'.format(f['idx_xforcer'])}}</td>
+    <td class="td-idx {{='idx-up' if f['idx_salario'] > 100 else 'idx-down'}}">{{='{:.0f}'.format(f['idx_salario'])}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+</div>
+
+<div class="panel panel-default" style="margin-top:15px;">
+<div class="panel-heading"><strong>Fuentes de datos</strong></div>
+<div class="panel-body" style="font-size:12px;">
+    <ul>
+        <li><strong>Ticket Promedio:</strong> ventas1_vendedor (omicronvt) — venta_total ÷ tickets únicos</li>
+        <li><strong>CER:</strong> omicronvt.dbo.AjustarPorCer() — Coeficiente de Estabilización de Referencia (BCRA)</li>
+        <li><strong>Xforcer 21872:</strong> Precio promedio de venta mensual del artículo "21872 NGO/GRIS/NARAN X FORCER ZAPA CUERO ACORD" (Topper)</li>
+        <li><strong>Maestranza B:</strong> Sueldo básico bruto CCT 130/75 - Empleados de Comercio - Cat. Maestranza B (fuente: acuerdos FAECyS)</li>
+    </ul>
+</div>
+</div>
+
+<p class="text-muted" style="font-size:11px; margin-top:10px;">
+    Tiempos: {{for s in timing:}}{{=s}} | {{pass}}
+</p>

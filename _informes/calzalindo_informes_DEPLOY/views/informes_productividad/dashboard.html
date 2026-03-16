@@ -1,0 +1,251 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-box { background: #f8f9fa; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 15px; border-left: 4px solid #337ab7; }
+.kpi-box h2 { margin: 0; font-size: 24px; color: #333; }
+.kpi-box small { color: #666; font-size: 12px; }
+.kpi-box.success { border-left-color: #5cb85c; }
+.kpi-box.warning { border-left-color: #f0ad4e; }
+.kpi-box.danger { border-left-color: #d9534f; }
+.kpi-box.info { border-left-color: #5bc0de; }
+.badge-banda { padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #fff; }
+.banda-Elite { background: #27ae60; }
+.banda-Excelente { background: #2ecc71; }
+.banda-MuyBueno { background: #3498db; }
+.banda-Bueno { background: #f39c12; }
+.banda-Aceptable { background: #e67e22; }
+.banda-Insuficiente { background: #e74c3c; }
+.prod-high { color: #27ae60; font-weight: bold; }
+.prod-med { color: #f39c12; font-weight: bold; }
+.prod-low { color: #e74c3c; font-weight: bold; }
+.table-prod th { font-size: 12px; background: #2c3e50; color: #fff; position: sticky; top: 0; }
+.table-prod td { font-size: 12px; vertical-align: middle; }
+.table-prod tr:hover { background: #eaf2f8; }
+.sin-sueldo { opacity: 0.6; }
+.section-title { border-bottom: 2px solid #337ab7; padding-bottom: 8px; margin-top: 25px; }
+.filter-bar { background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+#chart-scatter { width: 100%; height: 400px; }
+</style>
+
+<h2>Productividad e Incentivos <small>Módulo RRHH</small></h2>
+
+<!-- Filtros -->
+<div class="filter-bar">
+    <form method="GET" class="form-inline">
+        <div class="form-group">
+            <label>Desde:</label>
+            <input type="date" name="desde" value="{{=desde}}" class="form-control input-sm">
+        </div>
+        <div class="form-group" style="margin-left:10px;">
+            <label>Hasta:</label>
+            <input type="date" name="hasta" value="{{=hasta}}" class="form-control input-sm">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-left:10px;">Actualizar</button>
+        <a href="{{=URL('informes_productividad','estacionalidad')}}" class="btn btn-info btn-sm" style="margin-left:10px;">Ver Estacionalidad</a>
+        <a href="{{=URL('informes_productividad','ticket_historico')}}" class="btn btn-warning btn-sm" style="margin-left:10px;">Ticket Histórico</a>
+    </form>
+</div>
+
+<!-- KPIs -->
+<div class="row">
+    <div class="col-md-2">
+        <div class="kpi-box">
+            <h2>${{='{:,.0f}'.format(total_venta)}}</h2>
+            <small>Venta Total Período</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-box success">
+            <h2>${{='{:,.0f}'.format(total_margen)}}</h2>
+            <small>Margen Total</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-box {{='success' if pct_margen_global >= 0.45 else 'warning' if pct_margen_global >= 0.35 else 'danger'}}">
+            <h2>{{='{:.1f}%'.format(pct_margen_global * 100)}}</h2>
+            <small>Margen Promedio</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-box info">
+            <h2>{{='{:.1f}x'.format(prod_promedio)}}</h2>
+            <small>Productividad Media</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-box warning">
+            <h2>${{='{:,.0f}'.format(total_sueldo)}}</h2>
+            <small>Masa Salarial/mes ({{=vendedores_con_sueldo}} vendedores)</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-box {{='success' if total_incentivo < total_margen * 0.1 else 'warning'}}">
+            <h2>${{='{:,.0f}'.format(total_incentivo)}}</h2>
+            <small>Total Incentivos Simulados</small>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas -->
+{{if estrellas:}}
+<div class="alert alert-success" style="margin-top:15px;">
+    <strong>Vendedores ESTRELLA (productividad &ge;5x, margen &ge;45%):</strong>
+    {{for e in estrellas[:5]:}}
+    <span class="label label-success" style="margin-left:5px;">{{=e['nombre']}} ({{='{:.1f}x'.format(e['productividad'])}})</span>
+    {{pass}}
+    {{if len(estrellas) > 5:}}<span class="label label-default">+{{=len(estrellas)-5}} más</span>{{pass}}
+</div>
+{{pass}}
+
+{{if revisar:}}
+<div class="alert alert-danger">
+    <strong>REVISAR URGENTE (productividad &lt;2x o margen &lt;35%):</strong>
+    {{for e in revisar[:5]:}}
+    <span class="label label-danger" style="margin-left:5px;">{{=e['nombre']}} ({{='{:.1f}x'.format(e['productividad'])}} / {{='{:.0f}%'.format(e['pct_margen']*100)}})</span>
+    {{pass}}
+    {{if len(revisar) > 5:}}<span class="label label-default">+{{=len(revisar)-5}} más</span>{{pass}}
+</div>
+{{pass}}
+
+<!-- Gráfico Scatter -->
+<h4 class="section-title">Productividad vs Margen</h4>
+<div id="chart-scatter"></div>
+
+<!-- Tabla principal -->
+<h4 class="section-title">Ranking de Productividad</h4>
+<div class="table-responsive" style="max-height:600px; overflow-y:auto;">
+<table class="table table-condensed table-striped table-prod">
+<thead>
+<tr>
+    <th>#</th>
+    <th>Cod</th>
+    <th>Vendedor</th>
+    <th style="text-align:right">Sueldo $/mes</th>
+    <th style="text-align:right">Venta $</th>
+    <th style="text-align:right">Margen $</th>
+    <th style="text-align:right">% Margen</th>
+    <th style="text-align:right">Tickets</th>
+    <th style="text-align:right">Pares/Tkt</th>
+    <th style="text-align:right">$/Ticket</th>
+    <th style="text-align:center">PRODUCTIVIDAD</th>
+    <th style="text-align:center">Banda</th>
+    <th style="text-align:right">Comisión $</th>
+    <th style="text-align:right">Bonus $</th>
+    <th style="text-align:right">Total Incentivo</th>
+    <th></th>
+</tr>
+</thead>
+<tbody>
+{{rank = 0}}
+{{for r in rows:}}
+{{rank += 1}}
+<tr class="{{='sin-sueldo' if r['sueldo'] == 0 else ''}}">
+    <td>{{=rank}}</td>
+    <td>{{=r['codigo']}}</td>
+    <td><a href="{{=URL('informes_productividad','vendedor', args=r['codigo'])}}">{{=r['nombre']}}</a></td>
+    <td style="text-align:right">{{='{:,.0f}'.format(r['sueldo']) if r['sueldo'] > 0 else '-'}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(r['venta'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(r['margen'])}}</td>
+    <td style="text-align:right; {{='color:#27ae60' if r['pct_margen'] >= 0.45 else 'color:#e74c3c' if r['pct_margen'] < 0.35 else ''}}">
+        {{='{:.1f}%'.format(r['pct_margen'] * 100)}}
+    </td>
+    <td style="text-align:right">{{='{:,.0f}'.format(r['tickets'])}}</td>
+    <td style="text-align:right">{{='{:.1f}'.format(r['pares_ticket'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(r['vta_ticket'])}}</td>
+    <td style="text-align:center" class="{{='prod-high' if r['productividad'] >= 5 else 'prod-low' if r['productividad'] < 2 else 'prod-med'}}">
+        {{='{:.1f}x'.format(r['productividad']) if r['sueldo'] > 0 else 'S/D'}}
+    </td>
+    <td style="text-align:center">
+        <span class="badge-banda banda-{{=r['banda'].replace(' ','')}}">{{=r['banda']}}</span>
+    </td>
+    <td style="text-align:right">{{='{:,.0f}'.format(r['comision_base'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(r['bonus_monto'])}}</td>
+    <td style="text-align:right; font-weight:bold">{{='{:,.0f}'.format(r['total_incentivo'])}}</td>
+    <td><a href="{{=URL('informes_productividad','vendedor', args=r['codigo'])}}" class="btn btn-xs btn-default">Detalle</a></td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+</div>
+
+<!-- Bandas de referencia -->
+<h4 class="section-title">Modelo de Incentivos — Bandas de Margen</h4>
+<table class="table table-bordered" style="max-width:500px;">
+<thead><tr><th>Margen Mínimo</th><th>% Comisión</th><th>Banda</th></tr></thead>
+<tbody>
+{{for umbral, comision, nombre in bandas:}}
+<tr>
+    <td>{{='{:.0f}%'.format(umbral * 100)}}</td>
+    <td>{{='{:.1f}%'.format(comision * 100)}}</td>
+    <td><span class="badge-banda banda-{{=nombre.replace(' ','')}}">{{=nombre}}</span></td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script>
+(function(){
+    var chartData = {{=XML(chart_json)}};
+    var vendedorUrl = '{{=URL("informes_productividad","vendedor")}}';
+
+    function renderChart() {
+        if (typeof Highcharts === 'undefined') {
+            // Fallback si Highcharts no carga: mostrar mensaje
+            document.getElementById('chart-scatter').innerHTML =
+                '<div style="padding:40px;text-align:center;color:#999;">' +
+                '<p>No se pudo cargar la libreria de graficos (Highcharts CDN).</p>' +
+                '<p>Datos disponibles: ' + chartData.length + ' vendedores con sueldo.</p></div>';
+            return;
+        }
+        Highcharts.chart('chart-scatter', {
+            chart: { type: 'scatter', zoomType: 'xy' },
+            title: { text: 'Productividad vs Margen por Vendedor' },
+            xAxis: {
+                title: { text: '% Margen' },
+                plotLines: [{ value: 35, color: '#e74c3c', width: 2, dashStyle: 'dash', label: { text: 'Min 35%', style: { color: '#e74c3c' } } }]
+            },
+            yAxis: {
+                title: { text: 'Productividad (Venta/Sueldo)' },
+                plotLines: [{ value: 2, color: '#f39c12', width: 2, dashStyle: 'dash', label: { text: 'Min 2x' } }]
+            },
+            tooltip: {
+                formatter: function() { return '<b>' + this.point.name + '</b><br>Margen: ' + this.x + '%<br>Productividad: ' + this.y + 'x'; }
+            },
+            plotOptions: {
+                scatter: {
+                    cursor: 'pointer',
+                    point: {
+                        events: {
+                            click: function() { window.location.href = vendedorUrl + '/' + this.cod; }
+                        }
+                    }
+                }
+            },
+            series: [{
+                name: 'Vendedores',
+                data: chartData,
+                marker: { radius: 6 },
+                color: '#337ab7'
+            }]
+        });
+    }
+
+    // Intentar render; si Highcharts aun no cargo, esperar
+    if (document.readyState === 'complete') {
+        renderChart();
+    } else {
+        window.addEventListener('load', renderChart);
+    }
+})();
+</script>
+
+<!-- Sensor de tiempos de carga -->
+{{if timing:}}
+<div style="margin-top:20px; padding:10px; background:#2c3e50; color:#ecf0f1; border-radius:5px; font-family:monospace; font-size:11px;">
+    <strong>Tiempos de carga:</strong>
+    {{for step in timing:}}
+    <span style="margin-left:12px; {{if float(step.split(': ')[1].replace('s','')) > 3:}}color:#e74c3c;{{elif float(step.split(': ')[1].replace('s','')) > 1:}}color:#f39c12;{{else:}}color:#2ecc71;{{pass}}">{{=step}}</span>
+    {{pass}}
+</div>
+{{pass}}

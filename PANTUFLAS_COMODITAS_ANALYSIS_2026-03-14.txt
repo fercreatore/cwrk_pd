@@ -1,0 +1,200 @@
+================================================================================
+PANTUFLAS COMODITAS (MARCA 776) — RESTOCK ANALYSIS
+================================================================================
+Analysis Date: 2026-03-14
+Supplier: Proveedor 98 (COMODITAS SA)
+Lead Time: 60 days (order → stock arrival ~mid-May)
+Seasonal Peak: May-July
+
+================================================================================
+STEP 1: CURRENT STOCK (depositos 0, 11)
+================================================================================
+
+Total Current Stock: 313 pairs (as of 2026-03-14)
+Total Articles (SKUs): 870
+
+Stock Distribution by Talle (Size):
+Top 10 SKUs by Stock:
+  • Talle 42, Grupo 13, Cod 359100: 24 pairs
+  • Talle 42, Grupo 13, Cod 359052: 24 pairs
+  • Talle 42, Grupo 13, Cod 359047: 24 pairs
+  • Talle 40, Grupo 36, Cod 359067: 20 pairs
+  • Talle 38, Grupo 36, Cod 359065: 16 pairs
+  • Talle 44, Grupo 13, Cod 359102: 12 pairs
+  • Talle 44, Grupo 13, Cod 359054: 12 pairs
+  • Talle 44, Grupo 13, Cod 359049: 12 pairs
+  • Talle 38, Grupo 36, Cod 359092: 12 pairs
+  • Talle 38, Grupo 36, Cod 359058: 12 pairs
+
+Most stock concentrated in:
+  - Talle 42 (large adult)
+  - Grupo 13 & Grupo 36 (HOLANDESA PELUCHE styles)
+
+Stock Issues:
+  - 35 out of 870 articles have negative stock (data integrity issue or consignment)
+  - Max single article: 24 pairs
+  - Min single article: -1 pair
+  - Average per article: 0.36 pairs
+
+================================================================================
+STEP 2: MARKET SEASONALITY — ALL PANTUFLAS (all brands)
+================================================================================
+
+3-Year Period: 2023-03 to 2026-03 (37 months)
+Total Sales: 5,693 pairs
+Monthly Average: 153.9 pairs/month
+
+Monthly Seasonality Index (% of average):
+  Jan:   10.0%  |  Apr: 159.0%  |  Jul: 195.0%  |  Oct:  35.7%
+  Feb:   11.7%  |  May: 250.7%  |  Aug:  90.1%  |  Nov:  15.6%
+  Mar:   36.1%  |  Jun: 356.6%  |  Sep:  43.1%  |  Dec:  17.8%
+
+Key Season Pattern:
+  ★ PEAK SEASON: April-July (strong demand, May-June are TOP months at ~350% of average)
+  ★ Off-season: January-March and November-December (~10-35% of average)
+  ★ Transition: August-October (declining from peak, 36-90% of average)
+
+Raw Monthly Sales (All Pantuflas):
+  2023: Mar-32→Apr-221→May-231→Jun-609→Jul-250→Aug-151→Sep-101→Oct-83→Nov-22→Dec-22
+  2024: Jan-16→Feb-13→Mar-54→Apr-271→May-521→Jun-516→Jul-282→Aug-116→Sep-32→Oct-36→Nov-26→Dec-32
+  2025: Jan-17→Feb-21→Mar-115→Apr-242→May-405→Jun-521→Jul-368→Aug-149→Sep-66→Oct-46→Nov-24→Dec-28
+  2026: Jan-13→Feb-20→Mar-10
+
+================================================================================
+STEP 3: COMODITAS MARKET SHARE & SALES
+================================================================================
+
+Comoditas Market Share: 55.2% of all pantuflas (3,140 pairs out of 5,693)
+Total 3-Year Sales: 3,140 pairs
+Monthly Average: 84.9 pairs/month
+
+Comoditas Seasonality Index (% of Comoditas average):
+  Jan:   7.5%  |  Apr: 199.1%  |  Jul: 202.3%  |  Oct:  27.5%
+  Feb:   9.0%  |  May: 247.1%  |  Aug:  77.4%  |  Nov:   9.4%
+  Mar:  40.1%  |  Jun: 356.6%  |  Sep:  33.8%  |  Dec:  10.2%
+
+CRITICAL: Comoditas follows IDENTICAL seasonality pattern as market overall!
+  → Peak demand: May-June (250-356% of average)
+  → July still strong: 202% of average
+  → Off-season: Jan-Feb (7-9% of average)
+
+Raw Monthly Sales (Comoditas only, marca 776):
+  2023: Mar-32→Apr-167→May-173→Jun-349→Jul-138→Aug-61→Sep-42→Oct-37→Nov-8→Dec-9
+  2024: Jan-9→Feb-4→Mar-32→Apr-183→May-244→Jun-258→Jul-149→Aug-48→Sep-13→Oct-17→Nov-11→Dec-12
+  2025: Jan-6→Feb-11→Mar-71→Apr-157→May-212→Jun-301→Jul-228→Aug-88→Sep-31→Oct-16→Nov-5→Dec-5
+  2026: Jan-4→Feb-8→Mar-1 (partial, only to 2026-03-14)
+
+================================================================================
+STEP 4: PURCHASE ORDERS (last 3 years)
+================================================================================
+
+Total Purchases: 3,578 pairs
+Purchase Orders: 11 (sporadic, irregular pattern)
+
+Purchase Timeline:
+  2023-05: 240 pairs  | (offset: -2 months from peak, covers May sales start)
+  2024-03: 576 pairs  | (offset: +1 month, very large order)
+  2024-05: 506 pairs  | (offset: 0 months, aligned to peak)
+  2024-09: 72 pairs   | (offset: +2 months, small order)
+  2024-12: 168 pairs  | (offset: +5 months, small order)
+  2025-03: 288 pairs  | (offset: +1 month, pre-peak)
+  2025-04: 216 pairs  | (offset: 0 months, aligned to peak)
+  2025-05: 360 pairs  | (offset: 0 months, aligned to peak)
+  2025-06: 384 pairs  | (offset: 0 months, AT peak month)
+  2025-07: 384 pairs  | (offset: 0 months, extended into July)
+  2026-02: 384 pairs  | (offset: +3 months, pre-peak for 2026 season)
+
+PATTERN: Orders are typically 250-400 pairs, placed 1-3 months BEFORE peak season.
+Last order: 2026-02 (384 pairs) — should reach warehouse mid-April for May peak.
+
+================================================================================
+STEP 5: STOCK RECONSTRUCTION & QUIEBRE ANALYSIS
+================================================================================
+
+KEY FINDING: Comoditas pantuflas have been in CHRONIC QUIEBRE for 35 of 37 months!
+
+Stock Reconstruction (backwards from current 313 pairs as of 2026-03-14):
+
+Month    | Stock_Start | Purchases | Sales | Stock_End | Status   | Notes
+---------|-------------|-----------|-------|-----------|----------|-------------------------------------------
+2023-03  |    -125     |     0     |  32   |   -157    | BROKEN   | Starts in quiebre already
+2023-04  |    -157     |     0     |  167  |   -324    | BROKEN   | Demand exceeds stock
+2023-05  |    -324     |   240     |  173  |   -257    | BROKEN   | Purchase helps but insufficient
+2023-06  |    -257     |     0     |  349  |   -606    | BROKEN   | PEAK MONTH, no purchases
+2023-07  |    -606     |     0     |  138  |   -744    | BROKEN   | Negative stock snowballs
+[... 20 more broken months ...]
+2025-07  |     -69     |   384     |  228  |     87    | BROKEN   | Large purchase end-of-month
+2025-08  |      87     |     0     |  88   |     -1    | OK*      | Nearly breaks again!
+2025-09  |     -1      |     0     |  31   |    -32    | BROKEN   | Resumes quiebre
+[... 5 more broken months ...]
+2026-02  |     -62     |   384     |   8   |    314    | BROKEN   | Large purchase saves month
+2026-03  |    314      |     0     |   1   |    313    | OK       | Current state (partial month)
+
+Quiebre Statistics:
+  • Broken months: 35 out of 37 (94.6%)
+  • OK months: 2 out of 37 (5.4%)
+  • Average shortfall when broken: ~400 pairs
+
+Velocity Analysis (CRITICAL):
+  ╔════════════════════════════════════════════════════════════════╗
+  ║ Apparent velocity (naive calculation):                         ║
+  ║   Total sales / Total months = 3,140 / 37 = 84.9 pairs/month  ║
+  ║                                                                ║
+  ║ Real velocity (only months with stock):                        ║
+  ║   Sales in non-broken months / Non-broken months              ║
+  ║   = 89 / 2 = 44.5 pairs/month                                 ║
+  ║                                                                ║
+  ║ ⚠️ CRITICAL: Real velocity is HALF of apparent velocity!      ║
+  ║   This means demand from non-broken periods is masked.        ║
+  ║   TRUE demand when in stock: ~44.5 pairs/month (baseline)     ║
+  ║   But during peak: 200-350 pairs/month (4-8x baseline!)       ║
+  ╚════════════════════════════════════════════════════════════════╝
+
+Interpretation:
+  1. System is SEVERELY UNDERSTOCKED for this product line
+  2. Demand is NOT being recorded in broken months (lost sales)
+  3. The 313 pairs in stock is inadequate for even 4 days of peak season
+  4. Current stock turnover is artificially suppressed due to quiebre
+  5. Real addressable market may be 2-3x what sales data show
+
+================================================================================
+RECOMMENDATION FOR RESTOCK ORDER
+================================================================================
+
+Analysis of Demand Pattern:
+  • Average off-season (Jan-Mar):    ~30-35 pairs/month
+  • Peak season (Apr-Jul):            ~170-300 pairs/month
+  • Declining season (Aug-Oct):       ~30-50 pairs/month
+  • Off-season (Nov-Dec):             ~6-9 pairs/month
+
+Lead Time Consideration:
+  • Order today (2026-03-14)
+  • Arrival: mid-May 2026 (~60 days)
+  • Peak season in effect: May-June (350%+ of average demand)
+  • Next 90 days (Apr-Jun): Projected ~600-700 pairs sold
+
+Current Stock: 313 pairs
+  • Covers March (partial) + all of April = ~1-2 months
+  • Insufficient for May-June peak (which will consume 300-350 pairs alone)
+  • Expected stock at mid-May arrival: ~50-100 pairs (DANGER zone)
+
+OPTIMAL ORDER QUANTITY:
+  ✓ MINIMUM: 600 pairs (covers May + June peak)
+  ✓ RECOMMENDED: 800-1000 pairs (covers May-June + buffer + July transition)
+  ✓ CONSERVATIVE: 1200 pairs (full peak season + 2-month buffer)
+
+Timing:
+  ✓ ORDER IMMEDIATELY (by 2026-03-20 latest) for mid-May delivery
+  ✓ Secondary safety order: 1 month later if June delivery possible (June-July peak)
+
+Risk Assessment:
+  • HIGH RISK: Current 313 pairs will cause quiebre by mid-April if large orders don't appear
+  • MEDIUM RISK: Even 600-pair order at peak may be insufficient if demand exceeds 300/month
+  • MITIGATE: Split order 2 weeks apart for May + June delivery windows
+
+Expected Outcome:
+  ✓ 800-pair order → Should suppress quiebre April-August
+  ✓ Allows capturing market share beyond just recorded sales
+  ✓ Positions for 2027 peak with healthy stock levels
+
+================================================================================

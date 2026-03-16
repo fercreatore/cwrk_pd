@@ -1,0 +1,114 @@
+{{extend 'layout.html'}}
+{{response.title = 'Admin - Roles'}}
+
+<style>
+.role-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: bold; color: #fff; margin: 2px;
+}
+.role-informes_admin { background: #dc3545; }
+.role-informes_gerencia { background: #007bff; }
+.role-informes_compras { background: #28a745; }
+.user-card {
+    background: #fff; border-radius: 8px; padding: 12px 15px;
+    margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 15px; flex-wrap: wrap;
+}
+.user-card .user-info { flex: 1; min-width: 200px; }
+.user-card .user-info strong { font-size: 14px; }
+.user-card .user-info small { color: #888; }
+.user-card .roles-area { flex: 2; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.user-card .assign-area { flex: 1; min-width: 250px; }
+.buscar-bar {
+    background: #f8f9fa; padding: 12px 15px; border-radius: 8px;
+    margin-bottom: 20px; border: 1px solid #dee2e6;
+}
+.role-legend { margin-bottom: 15px; font-size: 12px; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <h3 style="margin: 0 0 5px;">
+        <i class="glyphicon glyphicon-lock"></i> Gestion de Roles
+    </h3>
+    <p class="text-muted" style="margin-bottom: 15px;">
+        Asigna roles a los usuarios para controlar que secciones pueden ver.
+    </p>
+
+    <!-- LEYENDA -->
+    <div class="role-legend">
+        <strong>Roles:</strong>
+        <span class="role-badge role-informes_admin">admin</span> Todo + gestionar usuarios
+        &nbsp;
+        <span class="role-badge role-informes_gerencia">gerencia</span> Calce Financiero, Negociacion, Recupero Hist + Live, Pedidos
+        &nbsp;
+        <span class="role-badge role-informes_compras">compras</span> Pedidos, Recupero Live, Agrupadores
+    </div>
+
+    <!-- BUSCAR -->
+    <div class="buscar-bar">
+        <form method="GET" class="form-inline">
+            <input type="text" name="buscar" class="form-control input-sm" placeholder="Buscar usuario por nombre o email..."
+                   value="{{=buscar}}" style="width: 300px;">
+            <button type="submit" class="btn btn-primary btn-sm" style="margin-left: 5px;">
+                <i class="glyphicon glyphicon-search"></i> Buscar
+            </button>
+            {{if buscar:}}
+            <a href="{{=URL('admin_roles', 'index')}}" class="btn btn-default btn-sm" style="margin-left: 5px;">Limpiar</a>
+            {{pass}}
+            <span class="text-muted" style="margin-left: 15px;">{{=len(usuarios)}} usuarios</span>
+        </form>
+    </div>
+
+    <!-- LISTA DE USUARIOS -->
+    {{for u in usuarios:}}
+    {{u_roles = roles_por_usuario.get(u.id, [])}}
+    <div class="user-card">
+        <!-- INFO USUARIO -->
+        <div class="user-info">
+            <strong>{{=u.first_name or ''}} {{=u.last_name or ''}}</strong>
+            <br><small>{{=u.email or 'sin email'}}</small>
+        </div>
+
+        <!-- ROLES ACTUALES -->
+        <div class="roles-area">
+            {{if u_roles:}}
+                {{for r in u_roles:}}
+                <span class="role-badge role-{{=r}}">
+                    {{=r.replace('informes_', '')}}
+                    <a href="{{=URL('admin_roles', 'quitar_rol', args=[u.id, [g.id for g in roles_disponibles if g.role == r][0] if [g for g in roles_disponibles if g.role == r] else 0], vars=dict(buscar=buscar))}}"
+                       style="color: #fff; margin-left: 5px; text-decoration: none;" title="Quitar rol"
+                       onclick="return confirm('Quitar rol {{=r.replace('informes_', '')}} a {{=u.first_name}}?')">
+                        &times;
+                    </a>
+                </span>
+                {{pass}}
+            {{else:}}
+                <span class="text-muted" style="font-size: 12px;">Sin acceso a informes</span>
+            {{pass}}
+        </div>
+
+        <!-- ASIGNAR ROL -->
+        <div class="assign-area">
+            <form method="POST" action="{{=URL('admin_roles', 'asignar_rol')}}" class="form-inline">
+                <input type="hidden" name="user_id" value="{{=u.id}}">
+                <input type="hidden" name="buscar" value="{{=buscar}}">
+                <select name="group_id" class="form-control input-sm" style="font-size: 11px;">
+                    <option value="">+ Agregar rol...</option>
+                    {{for g in roles_disponibles:}}
+                    {{if g.role not in u_roles:}}
+                    <option value="{{=g.id}}">{{=g.role.replace('informes_', '')}}</option>
+                    {{pass}}
+                    {{pass}}
+                </select>
+                <button type="submit" class="btn btn-success btn-xs" style="margin-left: 3px;">
+                    <i class="glyphicon glyphicon-plus"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    {{pass}}
+
+    {{if not usuarios:}}
+    <div class="alert alert-info">No se encontraron usuarios.</div>
+    {{pass}}
+</div>

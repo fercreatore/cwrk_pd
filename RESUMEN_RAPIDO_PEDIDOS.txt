@@ -1,0 +1,173 @@
+================================================================================
+QUICK REFERENCE: WINTER 2026 PURCHASE ORDERS
+================================================================================
+Date: 2026-03-12
+Location: /cowork_pedidos/compras/INVIERNO 2026/
+
+STATUS: 5 COMPLETE ORDERS + 3 PENDING
+
+
+================================================================================
+READY TO INSERT (5 ORDERS)
+================================================================================
+
+1. ATOMIK - ATOMIK INV 2026.xlsx
+   Pairs: 1,078 | Amount: $45,493,946 ARS
+   Type: Mixed Footwear (Kids/Men/Women)
+   Company: H4 SRL (msgestion03)
+   Models: 74 | Delivery: Modular
+
+
+2. DAS LUZ - PEDIDO DASLUZ unificado.xlsx
+   Pairs: 197 | Amount: $2,972,900 ARS
+   Type: Botas de lluvia (Rain Boots)
+   Company: CALZALINDO (msg01) - VERIFY
+   Items: 12 | Colors: Negro (8), Café (2), Rojo (1), Borravino (1)
+   Sizes: 28-47 | Avg Price: $15,100/pair
+
+
+3. EL FARAON - PEDIDO FARAON.xlsx
+   Pairs: 414 | Amount: $5,661,426 ARS
+   Type: Pantuflas (93%) + Panchas (7%)
+   Company: CALZALINDO (msg01) - VERIFY
+   Items: 5 | Pantufla top seller: Azul (132 pairs)
+   Prices: $9,080-$13,439/pair
+
+
+4. ESCORPIO SEGURIDAD - PEDIDO ESCORPIO.xlsx
+   Pairs: 60 | Amount: $515,280 ARS
+   Type: Botas de lluvia (Kids)
+   Company: CALZALINDO (msg01) - VERIFY
+   Items: 1 | Color: Amarillo | Sizes: 23/24-33/34
+   Price: $8,588/pair
+
+
+5. FLOYD - Pedido Floyd ENTERO.xlsx
+   Pairs: 409 | Amount: $7,370,110 ARS
+   Type: Medias (Socks) - 100%
+   Company: CALZALINDO (msg01) - VERIFY
+   Items: 56 | Sizes: T00-T05+U (special sock sizes)
+   NOTE: Quantities in DOCENAS - verify conversion
+   Prices: $12,000-$33,480/pair (size-dependent)
+
+
+================================================================================
+TOTALS - READY ORDERS
+================================================================================
+Total Pairs: 2,157 (excl. Atomik) = 3,235 (incl. Atomik)
+Total Value: $16,013,712 ARS (excl. Atomik) = $61,507,658 ARS (incl. Atomik)
+Ready Insert: YES
+
+
+================================================================================
+PENDING - QUANTITY ENTRY NEEDED (3 PROVIDERS)
+================================================================================
+
+1. ATHIX - NP ATHIX 1ER SEM 2026.xlsx
+   Status: Structure ready, PEDIDO column empty
+   Models: 19+ (SPEED FORM, HIKE ONE, ZENITH, RUNWAY, SUMMIT)
+   Type: Running/Outdoor Hombre (39/44 size only)
+   Prices: $18,999-$29,999 wholesale
+   Action: Fill PEDIDO column with quantities
+
+
+2. FOOTY - NP CLIENTES - FOOTY INV 26.xlsx
+   Status: Catalog/price list (all quantities = 0)
+   Type: Kids shoes (licensed FOOTY brand)
+   Lines: MINNI PRO (12 prs/mod), PRO (18 prs/mod)
+   Prices: $26,200-$34,900 per module
+   Delivery: INMEDIATA (30%) | MARZO (70%)
+   Action: Fill MODULOS and PARES columns
+
+
+3. CRISTIAN ZANCOCHIA - 7 Files (Distributor)
+   Status: Mixed
+   - Files 1-2 (Nike/Adidas): Catalog - quantity = 0
+   - Files 3-5 (Head/Nike/Addnice): Spec sheets - modular format
+   - Files 6-7 (Asics/Fila): Wholesale grids - quantities visible
+
+   Asics: 52 models, price $68,368-73,632, min 50 pairs total
+   Fila: 101 models, price $67,656-83,281, min 50 pairs total
+
+   Action: Clarify modular ordering, confirm final quantities
+
+
+================================================================================
+EXECUTION CHECKLIST
+================================================================================
+
+BEFORE INSERTION:
+[ ] Confirm company mapping (Atomik=H4, others=CALZALINDO)
+[ ] Verify IVA included/excluded in all prices
+[ ] Check Floyd DOCENAS conversion (1 docena = 12 pairs?)
+[ ] Validate all article codes exist in msgestion01/03
+[ ] Clarify size notation standards
+
+INSERTION SEQUENCE:
+1. [ ] Atomik (H4, 1,078 pairs, largest order)
+2. [ ] Das Luz (197 pairs, rain boots)
+3. [ ] El Faraon (414 pairs, pantuflas)
+4. [ ] Escorpio (60 pairs, kids boots)
+5. [ ] Floyd (409 pairs, socks)
+
+VERIFICATION AFTER INSERT:
+[ ] pedico2 entries created (cabecera)
+[ ] pedico1 entries created (detalle)
+[ ] All pair quantities match
+[ ] All totals match invoice amounts
+[ ] No missing article codes
+[ ] All size distributions preserved
+
+
+================================================================================
+QUICK FACTS
+================================================================================
+
+Total Providers: 8
+Total Files: 17 Excel files
+Total Records: 850+ rows analyzed
+Analysis Time: 2026-03-12
+
+Order Status Breakdown:
+- Complete (ready to insert): 5 orders = 2,157 pairs
+- Complete (need confirmation): 1 large order = 1,078 pairs (Atomik)
+- Catalog only (need quantities): 1 provider = ~150+ products
+- Mixed (need clarification): 1 distributor = 7 files
+
+Product Categories Identified:
+- Running/Athletic shoes: ATHIX
+- Mixed footwear: ATOMIK
+- Rain boots: DAS LUZ, ESCORPIO
+- Pantuflas/Sandals: EL FARAON
+- Socks/Medias: FLOYD
+- Kids shoes: FOOTY
+- Premium brands: CRISTIAN ZANCOCHIA (Nike, Adidas, Head, Addnice, Asics, Fila)
+
+Highest Value Order: ATOMIK ($45.5M)
+Largest Item Order: EL FARAON (414 pairs single item)
+Most Items: FLOYD (56 sock products)
+Specialist Orders: ESCORPIO (kids only), FOOTY (licensed kids brand)
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Get confirmation from team:
+   - Company assignments (msg01 vs msg03)
+   - IVA status on all invoices
+   - Floyd DOCENAS interpretation
+   - Cristian Zancochia quantity priorities
+
+2. Run paso4_insertar_pedido.py for 5 ready orders
+
+3. Follow up on pending quantity entries:
+   - ATHIX: Request order quantities
+   - FOOTY: Request module/pair decisions
+   - CRISTIAN ZANCOCHIA: Clarify modular system & priorities
+
+4. Verify post-insertion:
+   - Run queries against pedico1/pedico2
+   - Confirm all pairs and amounts
+   - Check for any missing article codes
+
+================================================================================

@@ -1,0 +1,1672 @@
+{
+  "np466962": [
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.0100001",
+      "descripcion": "ORGANIZADOR DE VIAJE UNICROSS 6 PIEZAS",
+      "precio": 9190.0,
+      "total": 110280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.2300004",
+      "descripcion": "MORRAL UNICROSS",
+      "precio": 6590.0,
+      "total": 79080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.2300005",
+      "descripcion": "MORRAL UNICROSS",
+      "precio": 9990.0,
+      "total": 119880.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "62.2300008",
+      "descripcion": "MORRAL PORTANOTEBOOK UNICROSS",
+      "precio": 14990.0,
+      "total": 59960.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "62.261041R",
+      "descripcion": "MOCHILA MATERO UNICROSS NEGRO 14.5\"",
+      "precio": 18690.0,
+      "total": 37380.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "62.3100007",
+      "descripcion": "MOCHILA CRUZADA UNICROSS",
+      "precio": 8190.0,
+      "total": 32760.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600002",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600003",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600004",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600006",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600007",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600011",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 6090.0,
+      "total": 73080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600012",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 5990.0,
+      "total": 71880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600015",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 6090.0,
+      "total": 73080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600017",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 5690.0,
+      "total": 68280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.3600019",
+      "descripcion": "BILLETERA UNICROSS",
+      "precio": 5690.0,
+      "total": 68280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.P5015",
+      "descripcion": "PARAGUAS CORTO MANUAL UNICROSS 21\"",
+      "precio": 6790.0,
+      "total": 81480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.P5017",
+      "descripcion": "PARAGUAS MANUAL UNICROSS 22\"",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.T6045",
+      "descripcion": "GORRO UNICROSS",
+      "precio": 4690.0,
+      "total": 56280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.T6046",
+      "descripcion": "GORRO UNICROSS",
+      "precio": 4790.0,
+      "total": 57480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.T6050",
+      "descripcion": "GORRO UNICROSS",
+      "precio": 3390.0,
+      "total": 40680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.T6051",
+      "descripcion": "GORRO UNICROSS",
+      "precio": 3490.0,
+      "total": 41880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.T6106",
+      "descripcion": "BUFANDA UNICROSS",
+      "precio": 8890.0,
+      "total": 106680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.T6107",
+      "descripcion": "BUFANDA UNICROSS",
+      "precio": 7590.0,
+      "total": 91080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "62.T6108",
+      "descripcion": "BUFANDA UNICROSS",
+      "precio": 7590.0,
+      "total": 91080.0
+    },
+    {
+      "cantidad": 24,
+      "articulo_prov": "62.T6222",
+      "descripcion": "GUANTES P/ MOTO UNICROSS",
+      "precio": 11490.0,
+      "total": 275760.0
+    },
+    {
+      "cantidad": 24,
+      "articulo_prov": "62.T6233",
+      "descripcion": "GUANTES UNICROSS",
+      "precio": 3490.0,
+      "total": 83760.0
+    },
+    {
+      "cantidad": 24,
+      "articulo_prov": "62.T6241",
+      "descripcion": "GUANTES UNICROSS",
+      "precio": 3190.0,
+      "total": 76560.0
+    },
+    {
+      "cantidad": 24,
+      "articulo_prov": "62.T6243",
+      "descripcion": "GUANTES UNICROSS",
+      "precio": 3590.0,
+      "total": 86160.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "65.3600001",
+      "descripcion": "BILLETERA WILSON",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "65.3600002",
+      "descripcion": "BILLETERA WILSON",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "65.3600003",
+      "descripcion": "BILLETERA WILSON",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "65.3600004",
+      "descripcion": "BILLETERA WILSON",
+      "precio": 7390.0,
+      "total": 88680.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800003",
+      "descripcion": "CARTERA AMAYRA CAMEL",
+      "precio": 20790.0,
+      "total": 41580.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.0800019",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 29690.0,
+      "total": 118760.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800020",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 29690.0,
+      "total": 59380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800021",
+      "descripcion": "CARTERA AMAYRA SUELA",
+      "precio": 29690.0,
+      "total": 59380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800031",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 28190.0,
+      "total": 56380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800032",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 28190.0,
+      "total": 56380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800049",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 27790.0,
+      "total": 55580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800050",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 27790.0,
+      "total": 55580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800064",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 26190.0,
+      "total": 52380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800076",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 23590.0,
+      "total": 47180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800077",
+      "descripcion": "CARTERA AMAYRA CAFE",
+      "precio": 23590.0,
+      "total": 47180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800078",
+      "descripcion": "CARTERA AMAYRA CAMEL",
+      "precio": 23590.0,
+      "total": 47180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800082",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 26190.0,
+      "total": 52380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800083",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 26190.0,
+      "total": 52380.0
+    },
+    {
+      "cantidad": 6,
+      "articulo_prov": "67.0800094",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 20690.0,
+      "total": 124140.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.0800100",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 23490.0,
+      "total": 93960.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800101",
+      "descripcion": "CARTERA AMAYRA CAMEL",
+      "precio": 23490.0,
+      "total": 46980.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.0800106",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 31990.0,
+      "total": 127960.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800115",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 32190.0,
+      "total": 64380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800116",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 32190.0,
+      "total": 64380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800117",
+      "descripcion": "CARTERA AMAYRA VERDE",
+      "precio": 32190.0,
+      "total": 64380.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.0800121",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 29890.0,
+      "total": 119560.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800122",
+      "descripcion": "CARTERA AMAYRA CAFE",
+      "precio": 29890.0,
+      "total": 59780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800123",
+      "descripcion": "CARTERA AMAYRA CAMEL",
+      "precio": 29890.0,
+      "total": 59780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800124",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 28490.0,
+      "total": 56980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800125",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 28490.0,
+      "total": 56980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800127",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 29390.0,
+      "total": 58780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800129",
+      "descripcion": "CARTERA AMAYRA SUELA",
+      "precio": 29390.0,
+      "total": 58780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800133",
+      "descripcion": "CARTERA AMAYRA NEGRO",
+      "precio": 28590.0,
+      "total": 57180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800139",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 27490.0,
+      "total": 54980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800140",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 27490.0,
+      "total": 54980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800141",
+      "descripcion": "CARTERA AMAYRA SUELA",
+      "precio": 27490.0,
+      "total": 54980.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.0800148",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 28190.0,
+      "total": 112760.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800149",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 28190.0,
+      "total": 56380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800150",
+      "descripcion": "CARTERA AMAYRA SUELA",
+      "precio": 28190.0,
+      "total": 56380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800154",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 27790.0,
+      "total": 55580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800155",
+      "descripcion": "CARTERA AMAYRA VISON",
+      "precio": 27790.0,
+      "total": 55580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800156",
+      "descripcion": "CARTERA AMAYRA CREMA",
+      "precio": 27790.0,
+      "total": 55580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800175",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 9490.0,
+      "total": 18980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800177",
+      "descripcion": "CARTERA AMAYRA CAMEL",
+      "precio": 9490.0,
+      "total": 18980.0
+    },
+    {
+      "cantidad": 3,
+      "articulo_prov": "67.0800184",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 10990.0,
+      "total": 32970.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.0800185",
+      "descripcion": "CARTERA AMAYRA CAFE",
+      "precio": 10990.0,
+      "total": 43960.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800212",
+      "descripcion": "CARTERA AMAYRA CAFE",
+      "precio": 11490.0,
+      "total": 22980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800237",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 15990.0,
+      "total": 31980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800238",
+      "descripcion": "CARTERA AMAYRA VERDE",
+      "precio": 15990.0,
+      "total": 31980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800241",
+      "descripcion": "RI\u00d1ONERA AMAYRA NEGRA",
+      "precio": 12190.0,
+      "total": 24380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800252",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 23690.0,
+      "total": 47380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.0800254",
+      "descripcion": "CARTERA AMAYRA CAMEL",
+      "precio": 23690.0,
+      "total": 47380.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500001",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500013",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500014",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500017",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500018",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500020",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 7590.0,
+      "total": 91080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500021",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 7590.0,
+      "total": 91080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500028",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500033",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500035",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 5890.0,
+      "total": 70680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500036",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 5290.0,
+      "total": 63480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500043",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 7790.0,
+      "total": 93480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500048",
+      "descripcion": "TARJETERO AMAYRA",
+      "precio": 4990.0,
+      "total": 59880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500051",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 6390.0,
+      "total": 76680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500052",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 7590.0,
+      "total": 91080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500057",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 7590.0,
+      "total": 91080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500116",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 13190.0,
+      "total": 158280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500117",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 14590.0,
+      "total": 175080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500118",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 14590.0,
+      "total": 175080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500119",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 12090.0,
+      "total": 145080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500128",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 14390.0,
+      "total": 172680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500131",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 15890.0,
+      "total": 190680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.3500133",
+      "descripcion": "BILLETERA AMAYRA",
+      "precio": 18390.0,
+      "total": 220680.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300013",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 27590.0,
+      "total": 55180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300014",
+      "descripcion": "MOCHILA AMAYRA VISON",
+      "precio": 27590.0,
+      "total": 55180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300015",
+      "descripcion": "MOCHILA AMAYRA CAMEL",
+      "precio": 27590.0,
+      "total": 55180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300025",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 30290.0,
+      "total": 60580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300026",
+      "descripcion": "MOCHILA AMAYRA CAFE",
+      "precio": 30290.0,
+      "total": 60580.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.5300043",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 29290.0,
+      "total": 117160.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300044",
+      "descripcion": "MOCHILA AMAYRA VISON",
+      "precio": 29290.0,
+      "total": 58580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300049",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 28590.0,
+      "total": 57180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300050",
+      "descripcion": "MOCHILA AMAYRA VISON",
+      "precio": 28590.0,
+      "total": 57180.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300058",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 30990.0,
+      "total": 61980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300060",
+      "descripcion": "MOCHILA AMAYRA SUELA",
+      "precio": 30990.0,
+      "total": 61980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300061",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 30190.0,
+      "total": 60380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300062",
+      "descripcion": "MOCHILA AMAYRA CAFE",
+      "precio": 30190.0,
+      "total": 60380.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300064",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 35390.0,
+      "total": 70780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300065",
+      "descripcion": "MOCHILA AMAYRA CAMEL",
+      "precio": 35390.0,
+      "total": 70780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300066",
+      "descripcion": "MOCHILA AMAYRA VERDE",
+      "precio": 35390.0,
+      "total": 70780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300067",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 30890.0,
+      "total": 61780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300069",
+      "descripcion": "MOCHILA AMAYRA VISON",
+      "precio": 30890.0,
+      "total": 61780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300097",
+      "descripcion": "MOCHILA AMAYRA NEGRA",
+      "precio": 22290.0,
+      "total": 44580.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5300098",
+      "descripcion": "MOCHILA AMAYRA VERDE",
+      "precio": 22290.0,
+      "total": 44580.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.5400001",
+      "descripcion": "MORRAL AMAYRA NEGRO",
+      "precio": 12190.0,
+      "total": 48760.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.5400004",
+      "descripcion": "MORRAL AMAYRA NEGRA",
+      "precio": 8990.0,
+      "total": 35960.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.5400013",
+      "descripcion": "MORRAL AMAYRA NEGRA",
+      "precio": 11790.0,
+      "total": 47160.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5400015",
+      "descripcion": "MORRAL AMAYRA SUELA",
+      "precio": 11790.0,
+      "total": 23580.0
+    },
+    {
+      "cantidad": 6,
+      "articulo_prov": "67.5400034",
+      "descripcion": "MORRAL AMAYRA NEGRA",
+      "precio": 8990.0,
+      "total": 53940.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.5400043",
+      "descripcion": "MORRAL AMAYRA NEGRA",
+      "precio": 10790.0,
+      "total": 43160.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.5400045",
+      "descripcion": "MORRAL AMAYRA SUELA",
+      "precio": 10790.0,
+      "total": 21580.0
+    },
+    {
+      "cantidad": 6,
+      "articulo_prov": "67.7400004",
+      "descripcion": "RI\u00d1ONERA AMAYRA NEGRA",
+      "precio": 17990.0,
+      "total": 107940.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.7400005",
+      "descripcion": "RI\u00d1ONERA AMAYRA TAUPE",
+      "precio": 17990.0,
+      "total": 35980.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.7400007",
+      "descripcion": "RI\u00d1ONERA AMAYRA NEGRA",
+      "precio": 19490.0,
+      "total": 77960.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.7400009",
+      "descripcion": "RI\u00d1ONERA AMAYRA CAMEL",
+      "precio": 19490.0,
+      "total": 38980.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.7400010",
+      "descripcion": "RI\u00d1ONERA AMAYRA NEGRA",
+      "precio": 15990.0,
+      "total": 63960.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.7400011",
+      "descripcion": "RI\u00d1ONERA AMAYRA TAUPE",
+      "precio": 15990.0,
+      "total": 31980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.7400012",
+      "descripcion": "RI\u00d1ONERA AMAYRA GREEN",
+      "precio": 15990.0,
+      "total": 31980.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.7400028",
+      "descripcion": "RI\u00d1ONERA AMAYRA NEGRA",
+      "precio": 21690.0,
+      "total": 86760.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.7400029",
+      "descripcion": "RI\u00d1ONERA AMAYRA CAFE",
+      "precio": 21690.0,
+      "total": 86760.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.7400030",
+      "descripcion": "RI\u00d1ONERA AMAYRA VERDE",
+      "precio": 21690.0,
+      "total": 86760.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.7600001",
+      "descripcion": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+      "precio": 10090.0,
+      "total": 121080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.7600003",
+      "descripcion": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+      "precio": 10090.0,
+      "total": 121080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.7600004",
+      "descripcion": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+      "precio": 10090.0,
+      "total": 121080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.7600005",
+      "descripcion": "PARAGUAS AUTOMATICO AMAYRA 21\"",
+      "precio": 10590.0,
+      "total": 127080.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.8500023",
+      "descripcion": "PORTABOTELLA AMAYRA VISON",
+      "precio": 11390.0,
+      "total": 45560.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.8500024",
+      "descripcion": "PORTABOTELLA AMAYRA VERDE",
+      "precio": 11390.0,
+      "total": 45560.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.8500025",
+      "descripcion": "PORTABOTELLA AMAYRA NEGRA",
+      "precio": 11390.0,
+      "total": 45560.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.8500026",
+      "descripcion": "PORTABOTELLA AMAYRA VISON",
+      "precio": 11390.0,
+      "total": 22780.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.8500050",
+      "descripcion": "PORTABOTELLA AMAYRA NEGRA",
+      "precio": 10490.0,
+      "total": 20980.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.8500051",
+      "descripcion": "PORTABOTELLA AMAYRA VERDE",
+      "precio": 10490.0,
+      "total": 20980.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.B989.1",
+      "descripcion": "BANDOLERA PORTA CELULAR AMAYRA NEGRA",
+      "precio": 7890.0,
+      "total": 31560.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.B989.2",
+      "descripcion": "BANDOLERA PORTA CELULAR AMAYRA CAMEL",
+      "precio": 7890.0,
+      "total": 31560.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.B991.1",
+      "descripcion": "BANDOLERA PORTA CELULAR AMAYRA NEGRA",
+      "precio": 9790.0,
+      "total": 39160.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C26311R",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 18590.0,
+      "total": 74360.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C2947.1",
+      "descripcion": "MORRAL AMAYRA NEGRO",
+      "precio": 10890.0,
+      "total": 43560.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C2948.1",
+      "descripcion": "MORRAL AMAYRA NEGRO",
+      "precio": 9390.0,
+      "total": 37560.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C2950.1",
+      "descripcion": "MORRAL AMAYRA NEGRO",
+      "precio": 12190.0,
+      "total": 48760.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C2957.1",
+      "descripcion": "MORRAL AMAYRA NEGRO",
+      "precio": 12190.0,
+      "total": 48760.0
+    },
+    {
+      "cantidad": 6,
+      "articulo_prov": "67.C2959.1",
+      "descripcion": "MORRAL AMAYRA NEGRO",
+      "precio": 9390.0,
+      "total": 56340.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C2959.2",
+      "descripcion": "MORRAL AMAYRA SUELA",
+      "precio": 9390.0,
+      "total": 37560.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C2971.1",
+      "descripcion": "MORRAL AMAYRA NEGRO",
+      "precio": 10790.0,
+      "total": 43160.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.C2971.3",
+      "descripcion": "MORRAL AMAYRA SUELA",
+      "precio": 10790.0,
+      "total": 21580.0
+    },
+    {
+      "cantidad": 4,
+      "articulo_prov": "67.C3217.1",
+      "descripcion": "CARTERA AMAYRA NEGRA",
+      "precio": 20990.0,
+      "total": 83960.0
+    },
+    {
+      "cantidad": 2,
+      "articulo_prov": "67.C3240.2",
+      "descripcion": "CARTERA AMAYRA SUELA",
+      "precio": 38390.0,
+      "total": 76780.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4015",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 7890.0,
+      "total": 94680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4016",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 7190.0,
+      "total": 86280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4017",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 7890.0,
+      "total": 94680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4022",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 10890.0,
+      "total": 130680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4023",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 8590.0,
+      "total": 103080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4024",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 10190.0,
+      "total": 122280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4025",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 7890.0,
+      "total": 94680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4026",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 9890.0,
+      "total": 118680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4027",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 9890.0,
+      "total": 118680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4028",
+      "descripcion": "BUFANDA AMAYRA",
+      "precio": 9890.0,
+      "total": 118680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4254",
+      "descripcion": "GORRO AMAYRA",
+      "precio": 5890.0,
+      "total": 70680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4255",
+      "descripcion": "GORRO AMAYRA",
+      "precio": 5490.0,
+      "total": 65880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4260",
+      "descripcion": "GORRO AMAYRA",
+      "precio": 5490.0,
+      "total": 65880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4263",
+      "descripcion": "GORRO AMAYRA",
+      "precio": 5490.0,
+      "total": 65880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4330",
+      "descripcion": "GUANTES AMAYRA",
+      "precio": 3490.0,
+      "total": 41880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4332",
+      "descripcion": "GUANTES AMAYRA",
+      "precio": 3290.0,
+      "total": 39480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4333",
+      "descripcion": "GUANTES AMAYRA",
+      "precio": 2790.0,
+      "total": 33480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4334",
+      "descripcion": "GUANTES AMAYRA",
+      "precio": 2790.0,
+      "total": 33480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4336",
+      "descripcion": "GUANTES AMAYRA",
+      "precio": 4490.0,
+      "total": 53880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4340",
+      "descripcion": "GUANTES AMAYRA",
+      "precio": 2190.0,
+      "total": 26280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "67.T4344",
+      "descripcion": "GUANTES AMAYRA",
+      "precio": 3790.0,
+      "total": 45480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "68.7600004",
+      "descripcion": "PARAGUAS AUTOMATICO INFLUENCER 21\"",
+      "precio": 9590.0,
+      "total": 115080.0
+    }
+  ],
+  "np467731": [
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700002",
+      "descripcion": "GUANTES DISNEY MINNIE",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700004",
+      "descripcion": "GORRO DISNEY MINNIE",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700005",
+      "descripcion": "GUANTES DISNEY MINNIE",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700006",
+      "descripcion": "BUFANDA DISNEY MINNIE",
+      "precio": 8490.0,
+      "total": 101880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700008",
+      "descripcion": "GUANTES DISNEY MINNIE",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700011",
+      "descripcion": "GUANTES DISNEY MINNIE",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700019",
+      "descripcion": "GORRO DISNEY MINNIE",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.6700021",
+      "descripcion": "BUFANDA DISNEY MINNIE",
+      "precio": 11090.0,
+      "total": 133080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.7600001",
+      "descripcion": "PARAGUAS MANUAL DISNEY MINNIE 17\"",
+      "precio": 8590.0,
+      "total": 103080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.7600002",
+      "descripcion": "PARAGUAS MANUAL DISNEY MINNIE 17\"",
+      "precio": 8590.0,
+      "total": 103080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "70.7600006",
+      "descripcion": "PARAGUAS MANUAL DISNEY MINNIE 21\"",
+      "precio": 12490.0,
+      "total": 149880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700002",
+      "descripcion": "GUANTES DISNEY MICKEY",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700003",
+      "descripcion": "BUFANDA DISNEY MICKEY",
+      "precio": 8490.0,
+      "total": 101880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700004",
+      "descripcion": "GORRO DISNEY MICKEY",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700005",
+      "descripcion": "GUANTES DISNEY MICKEY",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700006",
+      "descripcion": "BUFANDA DISNEY MICKEY",
+      "precio": 8490.0,
+      "total": 101880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700008",
+      "descripcion": "GUANTES DISNEY MICKEY",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700011",
+      "descripcion": "GUANTES DISNEY MICKEY",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700013",
+      "descripcion": "GORRO DISNEY MICKEY",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700014",
+      "descripcion": "GUANTES DISNEY MICKEY",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700015",
+      "descripcion": "BUFANDA DISNEY MICKEY",
+      "precio": 9290.0,
+      "total": 111480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700016",
+      "descripcion": "GORRO DISNEY MICKEY",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700017",
+      "descripcion": "GUANTES DISNEY MICKEY",
+      "precio": 2990.0,
+      "total": 35880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.6700018",
+      "descripcion": "BUFANDA DISNEY MICKEY",
+      "precio": 11090.0,
+      "total": 133080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.7600001",
+      "descripcion": "PARAGUAS MANUAL DISNEY MICKEY 17\"",
+      "precio": 8590.0,
+      "total": 103080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "71.7600002",
+      "descripcion": "PARAGUAS MANUAL DISNEY MICKEY 17\"",
+      "precio": 8590.0,
+      "total": 103080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700001",
+      "descripcion": "GORRO DISNEY STITCH",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700002",
+      "descripcion": "GUANTES DISNEY STITCH",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700003",
+      "descripcion": "BUFANDA DISNEY STITCH",
+      "precio": 8490.0,
+      "total": 101880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700005",
+      "descripcion": "GUANTES DISNEY STITCH",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700007",
+      "descripcion": "GORRO DISNEY STITCH",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700008",
+      "descripcion": "GUANTES DISNEY STITCH",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700009",
+      "descripcion": "BUFANDA DISNEY STITCH",
+      "precio": 8490.0,
+      "total": 101880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700010",
+      "descripcion": "GORRO DISNEY STITCH",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700014",
+      "descripcion": "GUANTES DISNEY STITCH",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700017",
+      "descripcion": "GUANTES DISNEY STITCH",
+      "precio": 2990.0,
+      "total": 35880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700018",
+      "descripcion": "BUFANDA DISNEY STITCH",
+      "precio": 11090.0,
+      "total": 133080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700019",
+      "descripcion": "GORRO DISNEY STITCH",
+      "precio": 5790.0,
+      "total": 69480.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700020",
+      "descripcion": "GUANTES DISNEY STITCH",
+      "precio": 2990.0,
+      "total": 35880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.6700021",
+      "descripcion": "BUFANDA DISNEY STITCH",
+      "precio": 11090.0,
+      "total": 133080.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.7600005",
+      "descripcion": "PARAGUAS MANUAL DISNEY STITCH 21\"",
+      "precio": 10190.0,
+      "total": 122280.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "73.7600006",
+      "descripcion": "PARAGUAS MANUAL DISNEY STITCH 21\"",
+      "precio": 11390.0,
+      "total": 136680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "75.6700001",
+      "descripcion": "GORRO MARVEL SPIDERMAN",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "75.6700002",
+      "descripcion": "GUANTES MARVEL SPIDERMAN",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "75.6700003",
+      "descripcion": "BUFANDA MARVEL SPIDERMAN",
+      "precio": 8490.0,
+      "total": 101880.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "75.6700005",
+      "descripcion": "GUANTES MARVEL SPIDERMAN",
+      "precio": 3390.0,
+      "total": 40680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "75.6700008",
+      "descripcion": "GUANTES MARVEL SPIDERMAN",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "75.6700010",
+      "descripcion": "GORRO MARVEL SPIDERMAN",
+      "precio": 6890.0,
+      "total": 82680.0
+    },
+    {
+      "cantidad": 12,
+      "articulo_prov": "75.6700011",
+      "descripcion": "GORRO MARVEL SPIDERMAN",
+      "precio": 2890.0,
+      "total": 34680.0
+    },
+    {
+      "cantidad": 24,
+      "articulo_prov": "76.6700001",
+      "descripcion": "GORRO MARVEL AVENGERS",
+      "precio": 6890.0,
+      "total": 165360.0
+    },
+    {
+      "cantidad": 24,
+      "articulo_prov": "76.6700002",
+      "descripcion": "GUANTES MARVEL AVENGERS",
+      "precio": 2890.0,
+      "total": 69360.0
+    }
+  ]
+}

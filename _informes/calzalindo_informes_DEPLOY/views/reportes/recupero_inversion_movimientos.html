@@ -1,0 +1,225 @@
+{{extend 'layout.html'}}
+{{response.title = 'Movimientos - ' + proveedor + ' ' + periodo}}
+
+<style>
+.kpi-card{background:#fff;border-radius:8px;padding:14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:12px}
+.kpi-card .kpi-value{font-size:22px;font-weight:700;color:#1a1a2e}
+.kpi-card .kpi-label{font-size:10px;color:#888;text-transform:uppercase;margin-top:3px}
+.tbl-mov{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.tbl-mov th{background:#1a1a2e;color:#fff;padding:8px 10px;white-space:nowrap;cursor:pointer}
+.tbl-mov td{padding:6px 10px;border-bottom:1px solid #eee;white-space:nowrap}
+.tbl-mov tbody tr:hover{background:#f0f4ff;cursor:pointer}
+.tbl-mov .num{text-align:right;font-family:'Courier New',monospace}
+.val-pos{color:#27ae60}.val-neg{color:#e74c3c}.val-warn{color:#f39c12}
+.badge-estado{padding:3px 8px;border-radius:3px;font-size:10px;font-weight:700;color:#fff}
+.badge-CERRADA{background:#27ae60}.badge-EN.CURSO{background:#3498db}
+
+/* Detalle mensual expandible */
+.mov-detail{display:none;background:#f8f9fa}
+.mov-detail td{padding:4px 10px;font-size:11px;border-bottom:1px solid #e8e8e8}
+.mov-detail th{background:#e8ecf1;color:#333;font-size:11px;padding:5px 10px;font-weight:600}
+.row-toggle .expand-icon{display:inline-block;width:16px;transition:transform .2s}
+.row-toggle.open .expand-icon{transform:rotate(90deg)}
+
+.back-link{font-size:13px;color:#666;margin-bottom:10px;display:inline-block}
+.back-link:hover{color:#1a1a2e}
+</style>
+
+<!-- Breadcrumb -->
+<div style="margin-top:10px">
+    <a class="back-link" href="{{=URL('reportes','recupero_inversion')}}">&#8592; Recupero Inversión</a>
+    &nbsp;/&nbsp;
+    <a class="back-link" href="{{=URL('reportes','recupero_inversion_detalle', vars=dict(proveedor=proveedor))}}">{{=proveedor}}</a>
+    &nbsp;/&nbsp;
+    <strong style="font-size:13px">{{=periodo}}</strong>
+</div>
+
+<h3 style="margin-top:8px;color:#1a1a2e">{{=proveedor}} &mdash; {{=periodo}}</h3>
+
+<!-- KPIs -->
+{{if summary:}}
+<div class="row" style="margin-top:10px">
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=formato_moneda(summary.get('total_costo_compra',0))}}</div>
+            <div class="kpi-label">Inversión</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{="{:,.0f}".format(float(summary.get('total_unidades',0))).replace(",",".")}}</div>
+            <div class="kpi-label">Unidades</div>
+        </div>
+    </div>
+    <div class="col-md-1 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=int(summary.get('dias_50',0))}}</div>
+            <div class="kpi-label">Días 50%</div>
+        </div>
+    </div>
+    <div class="col-md-1 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=int(summary.get('dias_75',0))}}</div>
+            <div class="kpi-label">Días 75%</div>
+        </div>
+    </div>
+    <div class="col-md-1 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{="%.1f%%" % float(summary.get('pct_vendido',0))}}</div>
+            <div class="kpi-label">% Vendido</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=int(summary.get('plazo_pago_real_prom',0))}}</div>
+            <div class="kpi-label">Plazo Pago</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            {{calce = int(summary.get('brecha_pago_vs_rec50', 0))}}
+            <div class="kpi-value {{if calce >= 15:}}val-pos{{elif calce >= 0:}}val-warn{{else:}}val-neg{{pass}}">{{=calce}}</div>
+            <div class="kpi-label">Calce Financiero</div>
+        </div>
+    </div>
+    <div class="col-md-1 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=int(summary.get('cant_articulos',0))}}</div>
+            <div class="kpi-label">Artículos</div>
+        </div>
+    </div>
+</div>
+{{pass}}
+
+<!-- Tabla de Artículos -->
+<h4 style="margin-top:18px;color:#333">Detalle por Artículo</h4>
+<div style="overflow-x:auto">
+{{if articulos:}}
+<table class="tbl-mov" id="tblArticulos">
+<thead><tr>
+    <th></th>
+    <th>Código</th>
+    <th>Descripción</th>
+    <th>Marca</th>
+    <th>Qty</th>
+    <th>Precio Prom</th>
+    <th>Costo Total</th>
+    <th>Stk Inicial</th>
+    <th>% Vend</th>
+    <th>D50</th>
+    <th>D75</th>
+    <th>D100</th>
+    <th>Stk Actual</th>
+</tr></thead>
+<tbody>
+{{for i, art in enumerate(articulos):}}
+<tr class="row-toggle" data-art="{{=art['codigo']}}" onclick="toggleDetail(this)">
+    <td><span class="expand-icon">&#9654;</span></td>
+    <td>{{=art['codigo']}}</td>
+    <td>{{=art.get('descripcion','?')}}</td>
+    <td>{{=art.get('marca','')}}</td>
+    <td class="num">{{=art['qty']}}</td>
+    <td class="num">{{=formato_moneda(art['precio_prom'])}}</td>
+    <td class="num">{{=formato_moneda(art['costo'])}}</td>
+    <td class="num">{{=art['stock_inicio']}}</td>
+    <td class="num {{if art['pct_vendido'] >= 75:}}val-pos{{elif art['pct_vendido'] >= 40:}}val-warn{{else:}}val-neg{{pass}}">
+        {{="%.1f%%" % art['pct_vendido']}}
+    </td>
+    <td class="num">{{=art['d50'] if art['d50'] is not None else '-'}}</td>
+    <td class="num">{{=art['d75'] if art['d75'] is not None else '-'}}</td>
+    <td class="num">{{=art['d100'] if art['d100'] is not None else '-'}}</td>
+    <td class="num">{{=art['stock_actual']}}</td>
+</tr>
+<!-- Detalle mensual (oculto) -->
+<tr class="mov-detail" id="detail-{{=art['codigo']}}">
+    <td colspan="13" style="padding:0">
+        <table style="width:100%;border-collapse:collapse">
+        <thead><tr>
+            <th style="width:25%">Mes</th>
+            <th style="width:15%">Stock Inicio</th>
+            <th style="width:15%">Compras</th>
+            <th style="width:15%">Ventas</th>
+            <th style="width:15%">Stock Fin</th>
+            <th style="width:15%">Costo Inmov.</th>
+        </tr></thead>
+        <tbody id="movBody-{{=art['codigo']}}">
+        </tbody>
+        </table>
+    </td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+{{else:}}
+<div class="alert alert-info">No hay artículos en este período para el proveedor.</div>
+{{pass}}
+</div>
+
+<!-- Leyenda -->
+<div style="margin-top:12px; padding:10px 14px; background:#f8f9fa; border-left:3px solid #007bff; border-radius:3px; font-size:12px; color:#555;">
+    <strong>Stk Inicial</strong>: stock al momento de la primera compra del período (foto semanal).
+    <strong>D50/D75/D100</strong>: días desde la compra hasta vender 50%/75%/100% de lo comprado (FIFO).
+    <strong>% Vend</strong>: porcentaje de lo comprado que se vendió.
+    <strong>Costo Inmov.</strong>: stock valorizado al costo promedio de compra.
+</div>
+
+<div style="margin-top:6px;text-align:center;padding:15px;color:#999;font-size:11px">
+    Calzalindo Informes &mdash; Sistema de Gestion Financiera
+</div>
+
+<script>
+// Movimientos mensuales (JSON desde Python)
+var movData = {{=XML(movimientos_json)}};
+
+function formatMoney(v) {
+    if (!v) return '$ 0';
+    return '$ ' + Math.round(v).toLocaleString('es-AR').replace(/,/g, '.');
+}
+
+function toggleDetail(row) {
+    var cod = row.getAttribute('data-art');
+    var detailRow = document.getElementById('detail-' + cod);
+    var isOpen = row.classList.contains('open');
+
+    if (isOpen) {
+        row.classList.remove('open');
+        detailRow.style.display = 'none';
+        return;
+    }
+
+    row.classList.add('open');
+    detailRow.style.display = '';
+
+    // Popular movimientos si no están cargados
+    var tbody = document.getElementById('movBody-' + cod);
+    if (tbody.children.length > 0) return;
+
+    var movs = movData[cod] || [];
+    if (movs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:10px">Sin movimientos registrados</td></tr>';
+        return;
+    }
+
+    // Encontrar precio promedio del articulo
+    var precioProm = 0;
+    {{import json as _json2}}
+    var arts = {{=XML(_json2.dumps([{'codigo': a['codigo'], 'precio_prom': a['precio_prom']} for a in articulos]))}};
+    for (var j = 0; j < arts.length; j++) {
+        if (arts[j].codigo == cod) { precioProm = arts[j].precio_prom; break; }
+    }
+
+    for (var i = 0; i < movs.length; i++) {
+        var m = movs[i];
+        var costoInmov = Math.round(m.stock_fin * precioProm);
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td style="padding-left:30px">' + m.mes + '</td>' +
+            '<td class="num">' + m.stock_inicio + '</td>' +
+            '<td class="num" style="color:#3498db">' + (m.compras > 0 ? '+' + m.compras : (m.compras < 0 ? m.compras : '-')) + '</td>' +
+            '<td class="num" style="color:#e74c3c">' + (m.ventas > 0 ? '-' + m.ventas : '-') + '</td>' +
+            '<td class="num">' + m.stock_fin + '</td>' +
+            '<td class="num">' + formatMoney(costoInmov) + '</td>';
+        tbody.appendChild(tr);
+    }
+}
+</script>

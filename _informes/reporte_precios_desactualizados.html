@@ -1,0 +1,3885 @@
+<!-- Generado automáticamente por Cowork - No editar manualmente -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Precios Desactualizados — H4 / CALZALINDO</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3050d0;
+            --secondary: #3a86ff;
+            --success: #06d6a0;
+            --warning: #fca311;
+            --danger: #e63946;
+            --dark: #1a1a2e;
+            --light: #f7f8fc;
+            --border: #e0e4f0;
+            --text: #2a2a3e;
+            --text-light: #666680;
+            --bg-card: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f7fa;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--dark) 0%, #2d2d4a 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--primary);
+        }
+
+        .kpi-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .kpi-card.danger {
+            border-left-color: var(--danger);
+        }
+
+        .kpi-card.success {
+            border-left-color: var(--success);
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .kpi-card.warning .kpi-value {
+            color: var(--warning);
+        }
+
+        .kpi-card.danger .kpi-value {
+            color: var(--danger);
+        }
+
+        .kpi-card.success .kpi-value {
+            color: var(--success);
+        }
+
+        /* Filters Bar */
+        .filters-bar {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            color: var(--text);
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab-button {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            top: 2px;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: var(--text);
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Table */
+        .table-wrapper {
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        thead {
+            background: var(--light);
+            border-bottom: 2px solid var(--border);
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 1.5rem;
+        }
+
+        th:hover {
+            background: #f0f2f8;
+        }
+
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.3;
+            position: absolute;
+            right: 0.5rem;
+        }
+
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+
+        td {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        tbody tr.expanded {
+            background: var(--light);
+        }
+
+        /* Expandable rows */
+        .expand-btn {
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            border: none;
+            background: var(--light);
+            color: var(--text);
+            font-weight: bold;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .expand-btn:hover {
+            background: var(--border);
+        }
+
+        .expand-btn.open {
+            transform: rotate(180deg);
+        }
+
+        .expanded-content {
+            display: none;
+            padding: 1.5rem;
+            background: var(--light);
+            grid-column: 1 / -1;
+        }
+
+        .expanded-content.show {
+            display: block;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-success {
+            background: rgba(6, 214, 160, 0.1);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(252, 163, 17, 0.1);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: rgba(230, 57, 70, 0.1);
+            color: var(--danger);
+        }
+
+        .badge-info {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
+
+        /* Percentage colors */
+        .percent-positive {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .percent-neutral {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .percent-negative {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* Money text */
+        .money {
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .money.positive {
+            color: var(--success);
+        }
+
+        .money.negative {
+            color: var(--danger);
+        }
+
+        /* Summary Cards Tab */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-card h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .summary-card-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-card-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-card-item-label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .summary-card-item-value {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* Chart bars */
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.75rem 0;
+        }
+
+        .chart-bar-label {
+            min-width: 120px;
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        .chart-bar-fill {
+            flex: 1;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .chart-bar-value {
+            min-width: 60px;
+            text-align: right;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            margin-top: 3rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .filters-bar {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th, td {
+                padding: 0.6rem;
+            }
+
+            .tab-button {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Print */
+        @media print {
+            .filters-bar,
+            .tab-button,
+            .expand-btn {
+                display: none;
+            }
+
+            body {
+                background: white;
+            }
+
+            .header {
+                box-shadow: none;
+                border-bottom: 2px solid var(--border);
+            }
+
+            table {
+                page-break-inside: avoid;
+            }
+
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <h1>Reporte de Precios Desactualizados — H4 / CALZALINDO</h1>
+            <p id="fecha-generacion">Generado: 11 de marzo de 2026</p>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card danger">
+                    <div class="kpi-label">Stock Desactualizado Total</div>
+                    <div class="kpi-value money" id="kpi-valuado">$0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Artículos a Revisar</div>
+                    <div class="kpi-value" id="kpi-articulos">0</div>
+                </div>
+                <div class="kpi-card warning">
+                    <div class="kpi-label">Pares Afectados</div>
+                    <div class="kpi-value" id="kpi-pares">0</div>
+                </div>
+                <div class="kpi-card success">
+                    <div class="kpi-label">Plata Recuperable</div>
+                    <div class="kpi-value money" id="kpi-recuperable">$0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label for="search-input">Buscar Artículo</label>
+                <input type="text" id="search-input" placeholder="Nombre o código...">
+            </div>
+            <div class="filter-group">
+                <label for="marca-filter">Marca</label>
+                <select id="marca-filter">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="temporada-filter">Temporada</label>
+                <select id="temporada-filter">
+                    <option value="">Todas</option>
+                    <option value="VERANO">Verano</option>
+                    <option value="INVIERNO">Invierno</option>
+                    <option value="COLEGIAL">Colegial</option>
+                    <option value="ATEMPORAL">Atemporal</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="sort-by">Ordenar por</label>
+                <select id="sort-by">
+                    <option value="valuado-desc">Stock Valuado ↓</option>
+                    <option value="rentab-asc">Rentabilidad ↑</option>
+                    <option value="dias-desc">Antigüedad ↓</option>
+                    <option value="desvio-desc">Desvío Potencial ↓</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="stock-min">Stock Mín.</label>
+                <input type="number" id="stock-min" value="1" min="0">
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="detalle">Detalle Artículos</button>
+            <button class="tab-button" data-tab="marcas">Resumen por Marca</button>
+            <button class="tab-button" data-tab="analisis">Análisis Rápido</button>
+        </div>
+
+        <!-- Tab 1: Detalle Artículos -->
+        <div id="detalle" class="tab-content active">
+            <div class="table-wrapper">
+                <table id="tabla-articulos">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"></th>
+                            <th class="sortable">Código</th>
+                            <th class="sortable">Artículo</th>
+                            <th class="sortable">Marca</th>
+                            <th class="sortable">Temporada</th>
+                            <th class="sortable" style="text-align: right;">Stock</th>
+                            <th class="sortable" style="text-align: right;">Precio Act.</th>
+                            <th class="sortable" style="text-align: right;">Costo CER</th>
+                            <th class="sortable" style="text-align: right;">Rentab. %</th>
+                            <th class="sortable" style="text-align: right;">Precio Sug.</th>
+                            <th class="sortable" style="text-align: right;">Desvío</th>
+                            <th class="sortable">Últ. Actual.</th>
+                            <th class="sortable" style="text-align: right;">Días</th>
+                            <th class="sortable">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-articulos">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 2: Resumen por Marca -->
+        <div id="marcas" class="tab-content">
+            <div class="table-wrapper">
+                <table id="tabla-marcas">
+                    <thead>
+                        <tr>
+                            <th class="sortable">Marca</th>
+                            <th class="sortable" style="text-align: right;">Artículos</th>
+                            <th class="sortable" style="text-align: right;">Pares</th>
+                            <th class="sortable" style="text-align: right;">Stock Valuado</th>
+                            <th class="sortable" style="text-align: right;">Rentab. Prom.</th>
+                            <th class="sortable" style="text-align: right;">Plata Recuperable</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-marcas">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: Análisis Rápido -->
+        <div id="analisis" class="tab-content">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Top 5 Marcas con Mayor Pérdida</h3>
+                    <div id="top5-marcas"></div>
+                </div>
+                <div class="summary-card">
+                    <h3>Distribución por Temporada</h3>
+                    <div id="dist-temporada"></div>
+                </div>
+                <div class="summary-card">
+                    <h3>Distribución de Acciones</h3>
+                    <div id="dist-acciones"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generado: <span id="fecha-pie"></span> | Cowork Sistema de Gestión</p>
+        </div>
+    </div>
+
+    <!-- Data and Logic -->
+    <script>
+        // ==================== DATA ====================
+        const REPORT_DATA = {
+  "generated": "2026-03-11T10:50:00",
+  "summary": {
+    "total_valuado": 113649021.0,
+    "total_articulos": 150,
+    "total_pares": 5148,
+    "plata_recuperable": 44554298.0
+  },
+  "marcas_summary": [
+    {
+      "marca": "ALMACEN DE MODA",
+      "articulos": 940,
+      "pares": 6365,
+      "valuado": 21292127
+    },
+    {
+      "marca": "GONDOLINO",
+      "articulos": 154,
+      "pares": 186,
+      "valuado": 14696751
+    },
+    {
+      "marca": "GIRAFF",
+      "articulos": 106,
+      "pares": 128,
+      "valuado": 9870864
+    },
+    {
+      "marca": "KUSHIRO",
+      "articulos": 26,
+      "pares": 381,
+      "valuado": 8971747
+    },
+    {
+      "marca": "PENALTY",
+      "articulos": 77,
+      "pares": 123,
+      "valuado": 8495551
+    },
+    {
+      "marca": "XL EXTRA LARGE",
+      "articulos": 113,
+      "pares": 131,
+      "valuado": 7811689
+    },
+    {
+      "marca": "TOPPER",
+      "articulos": 79,
+      "pares": 235,
+      "valuado": 6938912
+    },
+    {
+      "marca": "LA CHAPELLE",
+      "articulos": 203,
+      "pares": 486,
+      "valuado": 6518669
+    },
+    {
+      "marca": "WILSON - SAYER",
+      "articulos": 56,
+      "pares": 509,
+      "valuado": 6236954
+    },
+    {
+      "marca": "THIS IS BP",
+      "articulos": 109,
+      "pares": 201,
+      "valuado": 6214725
+    },
+    {
+      "marca": "HEY DAY",
+      "articulos": 211,
+      "pares": 340,
+      "valuado": 5775186
+    },
+    {
+      "marca": "VANNER",
+      "articulos": 139,
+      "pares": 165,
+      "valuado": 5755942
+    },
+    {
+      "marca": "PICCADILLY",
+      "articulos": 63,
+      "pares": 73,
+      "valuado": 4824304
+    },
+    {
+      "marca": "DIADORA",
+      "articulos": 69,
+      "pares": 86,
+      "valuado": 4634991
+    },
+    {
+      "marca": "GTN",
+      "articulos": 90,
+      "pares": 178,
+      "valuado": 4377060
+    },
+    {
+      "marca": "MIWOK",
+      "articulos": 83,
+      "pares": 91,
+      "valuado": 4210760
+    },
+    {
+      "marca": "PIANS",
+      "articulos": 121,
+      "pares": 166,
+      "valuado": 4147360
+    },
+    {
+      "marca": "WIDELAN",
+      "articulos": 119,
+      "pares": 164,
+      "valuado": 4014241
+    },
+    {
+      "marca": "NOBA",
+      "articulos": 191,
+      "pares": 233,
+      "valuado": 3194648
+    },
+    {
+      "marca": "MONTAGNE",
+      "articulos": 36,
+      "pares": 43,
+      "valuado": 3140146
+    },
+    {
+      "marca": "COMODITAS",
+      "articulos": 123,
+      "pares": 167,
+      "valuado": 3136239
+    },
+    {
+      "marca": "LEPOQUE",
+      "articulos": 39,
+      "pares": 43,
+      "valuado": 2980538
+    },
+    {
+      "marca": "OWEN",
+      "articulos": 38,
+      "pares": 140,
+      "valuado": 2934275
+    },
+    {
+      "marca": "HEYAS",
+      "articulos": 24,
+      "pares": 29,
+      "valuado": 2896529
+    },
+    {
+      "marca": "FLOYD MEDIAS",
+      "articulos": 54,
+      "pares": 668,
+      "valuado": 2881606
+    },
+    {
+      "marca": "DINO FUN",
+      "articulos": 91,
+      "pares": 125,
+      "valuado": 2846025
+    },
+    {
+      "marca": "AMPHORA",
+      "articulos": 50,
+      "pares": 54,
+      "valuado": 2726138
+    },
+    {
+      "marca": "FREE LANCE",
+      "articulos": 95,
+      "pares": 134,
+      "valuado": 2662400
+    },
+    {
+      "marca": "TIMMIS",
+      "articulos": 71,
+      "pares": 89,
+      "valuado": 2556215
+    },
+    {
+      "marca": "HALA + BLETZ",
+      "articulos": 139,
+      "pares": 211,
+      "valuado": 2548575
+    }
+  ],
+  "articulos": [
+    {
+      "codigo": 354289,
+      "nombre": "S/GO DANCE NEGRO/NEGRO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 86,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.29,
+      "rentab": 402491.8,
+      "precio_sugerido": 101.66,
+      "desvio": 84109.34,
+      "fecha_ult_act": "2025-12-06",
+      "dias_sin_act": 95,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 354290,
+      "nombre": "S/GO DANCE NEGRO/NEGRO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 72,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.29,
+      "rentab": 402491.8,
+      "precio_sugerido": 101.66,
+      "desvio": 84109.34,
+      "fecha_ult_act": "2025-12-06",
+      "dias_sin_act": 95,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 354291,
+      "nombre": "S/GO DANCE NEGRO/NEGRO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 60,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.29,
+      "rentab": 402491.8,
+      "precio_sugerido": 101.66,
+      "desvio": 84109.34,
+      "fecha_ult_act": "2025-12-06",
+      "dias_sin_act": 95,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 350789,
+      "nombre": "UNICO 38/39/40/41 OFERTA",
+      "marca": "CAVATINI",
+      "temporada": "VERANO",
+      "subrubro": "CASUAL",
+      "stock": 58,
+      "precio_actual": 68377.69,
+      "costo": 12000,
+      "costo_cer": 13585.52,
+      "rentab": 403.3,
+      "precio_sugerido": 111781.63,
+      "desvio": -29044.63,
+      "fecha_ult_act": "2025-10-09",
+      "dias_sin_act": 153,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 308256,
+      "nombre": "EPFI-N3B1 SURTIDO PELOTA FUTBOL Nº3",
+      "marca": "KUSHIRO",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 109,
+      "precio_actual": 30186.78,
+      "costo": 7215.25,
+      "costo_cer": 9045.25,
+      "rentab": 233.7,
+      "precio_sugerido": 24078.44,
+      "desvio": 12447.56,
+      "fecha_ult_act": "2025-05-07",
+      "dias_sin_act": 308,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354292,
+      "nombre": "S/GO DANCE NEGRO/NEGRO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 42,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.29,
+      "rentab": 402491.8,
+      "precio_sugerido": 101.66,
+      "desvio": 84109.34,
+      "fecha_ult_act": "2025-12-06",
+      "dias_sin_act": 95,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 354280,
+      "nombre": "S/GO DANCE BLANCO/BLANCO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 31,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.34,
+      "rentab": 401273.0,
+      "precio_sugerido": 101.97,
+      "desvio": 84109.03,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 256972,
+      "nombre": "PINS FUNNY P/CROCS SURTIDOS (SIN CAMBIO/SIN GARANTIA)",
+      "marca": "ALMACEN DE MODA",
+      "temporada": "VERANO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 965,
+      "precio_actual": 2000,
+      "costo": 460,
+      "costo_cer": 1409.84,
+      "rentab": 41.9,
+      "precio_sugerido": 3752.98,
+      "desvio": -1332.98,
+      "fecha_ult_act": "2024-02-09",
+      "dias_sin_act": 761,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 258032,
+      "nombre": "WI3181 SOQUETE INVISIBLE C/TALON ANTIDESLIZANTE PACK X3",
+      "marca": "WILSON - SAYER",
+      "temporada": "VERANO",
+      "subrubro": "MEDIAS",
+      "stock": 83,
+      "precio_actual": 22702.48,
+      "costo": 8103.22,
+      "costo_cer": 16755.74,
+      "rentab": 35.5,
+      "precio_sugerido": 40548.89,
+      "desvio": -13078.89,
+      "fecha_ult_act": "2024-04-26",
+      "dias_sin_act": 684,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 350788,
+      "nombre": "UNICO 35/36/37 OFERTA",
+      "marca": "CAVATINI",
+      "temporada": "VERANO",
+      "subrubro": "CASUAL",
+      "stock": 27,
+      "precio_actual": 68290.08,
+      "costo": 12000,
+      "costo_cer": 13046.76,
+      "rentab": 423.4,
+      "precio_sugerido": 78932.89,
+      "desvio": 3698.11,
+      "fecha_ult_act": "2025-12-06",
+      "dias_sin_act": 95,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354281,
+      "nombre": "S/GO DANCE BLANCO/BLANCO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 26,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.34,
+      "rentab": 401273.0,
+      "precio_sugerido": 101.97,
+      "desvio": 84109.03,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 273236,
+      "nombre": "PAGUE LO QUE QUIERA",
+      "marca": "ALMACEN DE MODA",
+      "temporada": "INVIERNO",
+      "subrubro": "-",
+      "stock": 1000,
+      "precio_actual": 1693.39,
+      "costo": 300,
+      "costo_cer": 1809.39,
+      "rentab": -6.4,
+      "precio_sugerido": 4378.73,
+      "desvio": -2329.73,
+      "fecha_ult_act": "2023-08-17",
+      "dias_sin_act": 937,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 351647,
+      "nombre": "BOTA UNICA 38/39/40/41",
+      "marca": "CAVATINI",
+      "temporada": "INVIERNO",
+      "subrubro": "BOTAS",
+      "stock": 18,
+      "precio_actual": 79338.84,
+      "costo": 12000,
+      "costo_cer": 13585.52,
+      "rentab": 484.0,
+      "precio_sugerido": 131507.8,
+      "desvio": -35507.8,
+      "fecha_ult_act": "2025-10-09",
+      "dias_sin_act": 153,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354282,
+      "nombre": "S/GO DANCE BLANCO/BLANCO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 17,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.34,
+      "rentab": 401273.0,
+      "precio_sugerido": 101.97,
+      "desvio": 84109.03,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 259546,
+      "nombre": "89017 ROD II BLANCO/ROSA ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 18,
+      "precio_actual": 60722.31,
+      "costo": 40163.63,
+      "costo_cer": 47037.2,
+      "rentab": 29.1,
+      "precio_sugerido": 113203.95,
+      "desvio": -39729.95,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 255009,
+      "nombre": "BECV MULTI PACK X5 BANDA ELAST CIRCULAR",
+      "marca": "KUSHIRO",
+      "temporada": "VERANO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 64,
+      "precio_actual": 16642.98,
+      "costo": 4468.8,
+      "costo_cer": 11668.57,
+      "rentab": 42.6,
+      "precio_sugerido": 31061.74,
+      "desvio": -10923.74,
+      "fecha_ult_act": "2024-03-04",
+      "dias_sin_act": 737,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 312694,
+      "nombre": "173045 BLANCO VECTOR IV PELOTA FUTSAL",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 30,
+      "precio_actual": 34610.74,
+      "costo": 21055.5,
+      "costo_cer": 25725.46,
+      "rentab": 34.5,
+      "precio_sugerido": 61913.21,
+      "desvio": -20034.21,
+      "fecha_ult_act": "2025-06-02",
+      "dias_sin_act": 282,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 208771,
+      "nombre": "173127 COLLEGE N°7 NARANJA PELOTA BASKET",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "PELOTAS",
+      "stock": 30,
+      "precio_actual": 33753.72,
+      "costo": 18548.83,
+      "costo_cer": 22662.83,
+      "rentab": 48.9,
+      "precio_sugerido": 54542.4,
+      "desvio": -13700.4,
+      "fecha_ult_act": "2025-06-02",
+      "dias_sin_act": 282,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354283,
+      "nombre": "S/GO DANCE BLANCO/BLANCO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 14,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.34,
+      "rentab": 401273.0,
+      "precio_sugerido": 101.97,
+      "desvio": 84109.03,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 288085,
+      "nombre": "25486 ROD II NEGRO/MONOCROMO ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 16,
+      "precio_actual": 60722.31,
+      "costo": 35136.9,
+      "costo_cer": 41150.19,
+      "rentab": 47.6,
+      "precio_sugerido": 99035.76,
+      "desvio": -25561.76,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 327833,
+      "nombre": "173208 NEGRO BOLSO ACTIVE MEDIANO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "BOLSOS",
+      "stock": 17,
+      "precio_actual": 56861.16,
+      "costo": 34591.5,
+      "costo_cer": 42263.65,
+      "rentab": 34.5,
+      "precio_sugerido": 101715.5,
+      "desvio": -32913.5,
+      "fecha_ult_act": "2025-06-02",
+      "dias_sin_act": 282,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 347422,
+      "nombre": "26555 DRIVE 2 NEGRO/GRIS ZAPA DEP ACORD DET REFUERZOS",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 14,
+      "precio_actual": 65195.04,
+      "costo": 39660.96,
+      "costo_cer": 44873.06,
+      "rentab": 45.3,
+      "precio_sugerido": 107995.54,
+      "desvio": -29109.54,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 316250,
+      "nombre": "25787 WIND V NEGRO/GRIS ZAPA DEP AC DET COMB",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 16,
+      "precio_actual": 56931.4,
+      "costo": 34634.22,
+      "costo_cer": 39185.73,
+      "rentab": 45.3,
+      "precio_sugerido": 94307.9,
+      "desvio": -25420.9,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 176133,
+      "nombre": "24306 NEGRO/GRIS GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 12,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 351447,
+      "nombre": "CASUAL UNICO SURTIDO",
+      "marca": "CAVATINI",
+      "temporada": "PRETEMPORADA",
+      "subrubro": "CASUAL",
+      "stock": 15,
+      "precio_actual": 59590.08,
+      "costo": 12000,
+      "costo_cer": 13291.69,
+      "rentab": 348.3,
+      "precio_sugerido": 96497.67,
+      "desvio": -24393.67,
+      "fecha_ult_act": "2025-11-11",
+      "dias_sin_act": 120,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 313197,
+      "nombre": "PRODUCTO EN PROMO x20mil",
+      "marca": "ALMACEN DE MODA",
+      "temporada": "ATEMPORAL",
+      "subrubro": "-",
+      "stock": 49,
+      "precio_actual": 17398.35,
+      "costo": 6000,
+      "costo_cer": 6563.06,
+      "rentab": 165.1,
+      "precio_sugerido": 15882.6,
+      "desvio": 5169.4,
+      "fecha_ult_act": "2025-11-28",
+      "dias_sin_act": 103,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 346846,
+      "nombre": "E02 SOPORTE PORTATIL P/CELULAR",
+      "marca": "GO by CLZ",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. MARRO",
+      "stock": 49,
+      "precio_actual": 17224.79,
+      "costo": 10000,
+      "costo_cer": 12283.41,
+      "rentab": 40.2,
+      "precio_sugerido": 29725.84,
+      "desvio": -8883.84,
+      "fecha_ult_act": "2025-05-27",
+      "dias_sin_act": 288,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 315617,
+      "nombre": "AFNI-N156 SURTIDO FUNDA NOTEBOOK NEOPRENE 15,6\"",
+      "marca": "KUSHIRO",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. MARRO",
+      "stock": 30,
+      "precio_actual": 28058.68,
+      "costo": 11445.42,
+      "costo_cer": 18633.99,
+      "rentab": 50.6,
+      "precio_sugerido": 49603.69,
+      "desvio": -15652.69,
+      "fecha_ult_act": "2024-08-17",
+      "dias_sin_act": 571,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 310278,
+      "nombre": "530146 PLAYOFF IX NARANJA/NEGRO PELOTA BASKET",
+      "marca": "PENALTY",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 16,
+      "precio_actual": 52022.31,
+      "costo": 27466.13,
+      "costo_cer": 33828.04,
+      "rentab": 53.8,
+      "precio_sugerido": 76542.72,
+      "desvio": -13595.72,
+      "fecha_ult_act": "2025-05-24",
+      "dias_sin_act": 291,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354841,
+      "nombre": "BORCEGO HOMBRE UNICO PAR",
+      "marca": "CAVATINI",
+      "temporada": "INVIERNO",
+      "subrubro": "BORCEGOS",
+      "stock": 10,
+      "precio_actual": 79338.84,
+      "costo": 12000,
+      "costo_cer": 13291.69,
+      "rentab": 496.9,
+      "precio_sugerido": 128663.55,
+      "desvio": -32663.55,
+      "fecha_ult_act": "2025-11-11",
+      "dias_sin_act": 120,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 288087,
+      "nombre": "25486 ROD II NEGRO/MONOCROMO ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 13,
+      "precio_actual": 60722.31,
+      "costo": 35136.9,
+      "costo_cer": 41150.19,
+      "rentab": 47.6,
+      "precio_sugerido": 99035.76,
+      "desvio": -25561.76,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 310274,
+      "nombre": "521342 RX 500 XXIII BLANCO/ROSA/AZUL PELOTA FUTSAL",
+      "marca": "PENALTY",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 18,
+      "precio_actual": 43323.14,
+      "costo": 29226.13,
+      "costo_cer": 35995.71,
+      "rentab": 20.4,
+      "precio_sugerido": 81447.49,
+      "desvio": -29026.49,
+      "fecha_ult_act": "2025-05-24",
+      "dias_sin_act": 291,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 310275,
+      "nombre": "521342 RX 500 XXIII BLANCO/AMARILLO/NEGRO PELOTA FUTSAL",
+      "marca": "PENALTY",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 18,
+      "precio_actual": 43323.14,
+      "costo": 29226.13,
+      "costo_cer": 35995.71,
+      "rentab": 20.4,
+      "precio_sugerido": 81447.49,
+      "desvio": -29026.49,
+      "fecha_ult_act": "2025-05-24",
+      "dias_sin_act": 291,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 351646,
+      "nombre": "BOTA UNICA 35/36/37",
+      "marca": "CAVATINI",
+      "temporada": "INVIERNO",
+      "subrubro": "BOTAS",
+      "stock": 13,
+      "precio_actual": 59504.13,
+      "costo": 12000,
+      "costo_cer": 13291.69,
+      "rentab": 347.7,
+      "precio_sugerido": 96497.67,
+      "desvio": -24497.67,
+      "fecha_ult_act": "2025-11-11",
+      "dias_sin_act": 120,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 351446,
+      "nombre": "ZAPA UNICO SURTIDO",
+      "marca": "CAVATINI",
+      "temporada": "PRETEMPORADA",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 14,
+      "precio_actual": 54545.45,
+      "costo": 12000,
+      "costo_cer": 13291.69,
+      "rentab": 310.4,
+      "precio_sugerido": 88456.19,
+      "desvio": -22456.19,
+      "fecha_ult_act": "2025-11-11",
+      "dias_sin_act": 120,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 336384,
+      "nombre": "173280 NEGRO GUANTES LUVA TOPPER STRIKE II",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "PROMO COMPRA",
+      "stock": 44,
+      "precio_actual": 17224.79,
+      "costo": 16543.5,
+      "costo_cer": 18385.79,
+      "rentab": -6.3,
+      "precio_sugerido": 44248.89,
+      "desvio": -23406.89,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 352003,
+      "nombre": "026444 FAST 2.0 LILA/NUDE ZAPA DEP ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 12,
+      "precio_actual": 61889.26,
+      "costo": 37650.27,
+      "costo_cer": 42598.13,
+      "rentab": 45.3,
+      "precio_sugerido": 102520.5,
+      "desvio": -27634.5,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 336387,
+      "nombre": "173279 BLANCO GUANTES LUVA TOPPER STRIKE II",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "PROMO COMPRA",
+      "stock": 43,
+      "precio_actual": 17224.79,
+      "costo": 16543.5,
+      "costo_cer": 18385.78,
+      "rentab": -6.3,
+      "precio_sugerido": 44248.88,
+      "desvio": -23406.88,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 353079,
+      "nombre": "349 CAMEL ZAPATO ESPANOL/FOLCLORE 4.5 CM",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATO DE VESTIR",
+      "stock": 17,
+      "precio_actual": 43090.91,
+      "costo": 23700,
+      "costo_cer": 25669.88,
+      "rentab": 67.9,
+      "precio_sugerido": 68333.21,
+      "desvio": -16193.21,
+      "fecha_ult_act": "2025-12-11",
+      "dias_sin_act": 90,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 312693,
+      "nombre": "173041 BLANCO VECTOR IV PELOTA CAMPO",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 20,
+      "precio_actual": 34610.74,
+      "costo": 21055.5,
+      "costo_cer": 25725.46,
+      "rentab": 34.5,
+      "precio_sugerido": 61913.21,
+      "desvio": -20034.21,
+      "fecha_ult_act": "2025-06-02",
+      "dias_sin_act": 282,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 178155,
+      "nombre": "24305 BLANCO/AZUL GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 9,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352023,
+      "nombre": "026435 TERRANO II GRIS ZAPA URB ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 9,
+      "precio_actual": 73953.72,
+      "costo": 44989.3,
+      "costo_cer": 50901.63,
+      "rentab": 45.3,
+      "precio_sugerido": 122504.44,
+      "desvio": -33020.44,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 205221,
+      "nombre": "MEDIAS FINAS 2 X $2.000",
+      "marca": "ALMACEN DE MODA",
+      "temporada": "ATEMPORAL",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 382,
+      "precio_actual": 1735.54,
+      "costo": 450,
+      "costo_cer": 507.86,
+      "rentab": 241.7,
+      "precio_sugerido": 2150.79,
+      "desvio": -50.79,
+      "fecha_ult_act": "2025-10-14",
+      "dias_sin_act": 148,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 332826,
+      "nombre": "173293 NEGRO BOLSO SPARKS CHER MIX",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "BOLSOS",
+      "stock": 12,
+      "precio_actual": 53500.83,
+      "costo": 32586.16,
+      "costo_cer": 39707.29,
+      "rentab": 34.7,
+      "precio_sugerido": 95563.13,
+      "desvio": -30827.13,
+      "fecha_ult_act": "2025-06-05",
+      "dias_sin_act": 279,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 336192,
+      "nombre": "172671 BLANCO PELOTA ULTIMATE V CAMPO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 21,
+      "precio_actual": 30274.38,
+      "costo": 20052.83,
+      "costo_cer": 24500.4,
+      "rentab": 23.6,
+      "precio_sugerido": 58964.88,
+      "desvio": -22332.88,
+      "fecha_ult_act": "2025-06-02",
+      "dias_sin_act": 282,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354336,
+      "nombre": "ZAPA TAUPE ACORD P/TRABAJO C/PUNTERA",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA OUTDOOR",
+      "stock": 12,
+      "precio_actual": 52196.69,
+      "costo": 48,
+      "costo_cer": 52.35,
+      "rentab": 99615.7,
+      "precio_sugerido": 307.82,
+      "desvio": 62850.18,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 352002,
+      "nombre": "026444 FAST 2.0 LILA/NUDE ZAPA DEP ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 10,
+      "precio_actual": 61889.26,
+      "costo": 37650.27,
+      "costo_cer": 42598.13,
+      "rentab": 45.3,
+      "precio_sugerido": 102520.5,
+      "desvio": -27634.5,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 292022,
+      "nombre": "2010 NARANJA PELOTA BASKET Nº7 MOLTEN",
+      "marca": "STRIKER - MOLTEN",
+      "temporada": "INVIERNO",
+      "subrubro": "PELOTAS",
+      "stock": 4,
+      "precio_actual": 152936.36,
+      "costo": 66440,
+      "costo_cer": 76918.02,
+      "rentab": 98.8,
+      "precio_sugerido": 186141.6,
+      "desvio": -1088.6,
+      "fecha_ult_act": "2025-09-03",
+      "dias_sin_act": 189,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 259547,
+      "nombre": "89017 ROD II BLANCO/ROSA ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 10,
+      "precio_actual": 60722.31,
+      "costo": 40163.63,
+      "costo_cer": 47037.2,
+      "rentab": 29.1,
+      "precio_sugerido": 113203.95,
+      "desvio": -39729.95,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 223199,
+      "nombre": "27132 GONDOR II GRIS/NEGRO/NARANJA ZAPA TREKKING ACORD",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA OUTDOOR",
+      "stock": 10,
+      "precio_actual": 60722.31,
+      "costo": 40113.37,
+      "costo_cer": 46978.33,
+      "rentab": 29.3,
+      "precio_sugerido": 113062.28,
+      "desvio": -39588.28,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 178154,
+      "nombre": "24305 BLANCO/AZUL GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 8,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 344505,
+      "nombre": "4814 NEGRO CAMPERA COST C/CAP INT PIEL",
+      "marca": "KALIF - ALEX SPORT",
+      "temporada": "INVIERNO",
+      "subrubro": "CAMPERAS",
+      "stock": 10,
+      "precio_actual": 59850.41,
+      "costo": 32917.5,
+      "costo_cer": 38947.79,
+      "rentab": 53.7,
+      "precio_sugerido": 103679.02,
+      "desvio": -31260.02,
+      "fecha_ult_act": "2025-07-26",
+      "dias_sin_act": 228,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 344506,
+      "nombre": "4814 NEGRO CAMPERA COST C/CAP INT PIEL",
+      "marca": "KALIF - ALEX SPORT",
+      "temporada": "INVIERNO",
+      "subrubro": "CAMPERAS",
+      "stock": 10,
+      "precio_actual": 59850.41,
+      "costo": 32917.5,
+      "costo_cer": 38947.79,
+      "rentab": 53.7,
+      "precio_sugerido": 103679.02,
+      "desvio": -31260.02,
+      "fecha_ult_act": "2025-07-26",
+      "dias_sin_act": 228,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 347439,
+      "nombre": "26557 DRIVE 2 NEGRO/CORAL ZAPA DEP ACORD DET REFUERZOS",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 9,
+      "precio_actual": 65195.04,
+      "costo": 39660.96,
+      "costo_cer": 44077.6,
+      "rentab": 47.9,
+      "precio_sugerido": 106081.12,
+      "desvio": -27195.12,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 208464,
+      "nombre": "89600 PROFESIONAL BLANCO ZAPA ACORD C/PUNTERA",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 12,
+      "precio_actual": 48542.98,
+      "costo": 31618.18,
+      "costo_cer": 37029.29,
+      "rentab": 31.1,
+      "precio_sugerido": 89118.02,
+      "desvio": -30381.02,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 248840,
+      "nombre": "PUSHUP NEGRO/AZUL PARALELAS PUSH UP",
+      "marca": "KUSHIRO",
+      "temporada": "VERANO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 34,
+      "precio_actual": 16642.98,
+      "costo": 4468.8,
+      "costo_cer": 11668.57,
+      "rentab": 42.6,
+      "precio_sugerido": 31061.74,
+      "desvio": -10923.74,
+      "fecha_ult_act": "2024-03-04",
+      "dias_sin_act": 737,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 353629,
+      "nombre": "26442 FAST 2.0 CELESTE/LIMA ZAPA DEP ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 9,
+      "precio_actual": 61889.26,
+      "costo": 37650.27,
+      "costo_cer": 41843.0,
+      "rentab": 47.9,
+      "precio_sugerido": 100703.13,
+      "desvio": -25817.13,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354279,
+      "nombre": "S/GO DANCE BLANCO/BLANCO ZAPA DANZA ACORD C/CAMARA DE AIRE",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 8,
+      "precio_actual": 69595.87,
+      "costo": 15.9,
+      "costo_cer": 17.34,
+      "rentab": 401273.0,
+      "precio_sugerido": 101.97,
+      "desvio": 84109.03,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 349847,
+      "nombre": "259PU SUELA ZAPATO 4.5 FOLCLORE CLASICO T/SEP",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATO DE VESTIR",
+      "stock": 14,
+      "precio_actual": 39173.55,
+      "costo": 23700,
+      "costo_cer": 25669.88,
+      "rentab": 52.6,
+      "precio_sugerido": 62121.1,
+      "desvio": -14721.1,
+      "fecha_ult_act": "2025-12-11",
+      "dias_sin_act": 90,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 308255,
+      "nombre": "EPFI-N5A2 SURTIDO PELOTA FUTBOL Nº5",
+      "marca": "KUSHIRO",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 42,
+      "precio_actual": 13047.93,
+      "costo": 8425.55,
+      "costo_cer": 10442.05,
+      "rentab": 25.0,
+      "precio_sugerido": 27796.74,
+      "desvio": -12008.74,
+      "fecha_ult_act": "2025-05-17",
+      "dias_sin_act": 298,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 256737,
+      "nombre": "578 NEGRO/CH SANDALIA T/CUAD DET PULSERA",
+      "marca": "JUANA VA",
+      "temporada": "VERANO",
+      "subrubro": "FIESTA",
+      "stock": 17,
+      "precio_actual": 32186.78,
+      "costo": 16000,
+      "costo_cer": 17769.84,
+      "rentab": 81.1,
+      "precio_sugerido": 47303.32,
+      "desvio": -8357.32,
+      "fecha_ult_act": "2025-11-07",
+      "dias_sin_act": 124,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 288088,
+      "nombre": "25486 ROD II NEGRO/MONOCROMO ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 9,
+      "precio_actual": 60722.31,
+      "costo": 35136.9,
+      "costo_cer": 41150.19,
+      "rentab": 47.6,
+      "precio_sugerido": 99035.76,
+      "desvio": -25561.76,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 288084,
+      "nombre": "25486 ROD II NEGRO/MONOCROMO ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 9,
+      "precio_actual": 60722.31,
+      "costo": 35136.9,
+      "costo_cer": 41150.19,
+      "rentab": 47.6,
+      "precio_sugerido": 99035.76,
+      "desvio": -25561.76,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 344798,
+      "nombre": "BETHANY NEGRO BOTA CORTA 2 CIERRES DET TALON",
+      "marca": "MASSIMO CHIESA",
+      "temporada": "INVIERNO",
+      "subrubro": "BOTAS",
+      "stock": 6,
+      "precio_actual": 90826.45,
+      "costo": 49455,
+      "costo_cer": 53850.53,
+      "rentab": 68.7,
+      "precio_sugerido": 130318.28,
+      "desvio": -20418.28,
+      "fecha_ult_act": "2025-12-04",
+      "dias_sin_act": 97,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 279665,
+      "nombre": "26876 T350 MESH NEGRO/GRIS ZAPA SNEAKER ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA SNEAKERS",
+      "stock": 9,
+      "precio_actual": 58981.82,
+      "costo": 34181.82,
+      "costo_cer": 40031.66,
+      "rentab": 47.3,
+      "precio_sugerido": 96343.79,
+      "desvio": -24975.79,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 177693,
+      "nombre": "24306 NEGRO/GRIS GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 7,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 178156,
+      "nombre": "24305 BLANCO/AZUL GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 7,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51393.59,
+      "rentab": 47.3,
+      "precio_sugerido": 123688.43,
+      "desvio": -32109.43,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 179254,
+      "nombre": "24305 BLANCO/AZUL GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 7,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354335,
+      "nombre": "ZAPA TAUPE ACORD P/TRABAJO C/PUNTERA",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA OUTDOOR",
+      "stock": 10,
+      "precio_actual": 52196.69,
+      "costo": 48,
+      "costo_cer": 52.35,
+      "rentab": 99615.7,
+      "precio_sugerido": 307.82,
+      "desvio": 62850.18,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 254495,
+      "nombre": "25292 JIRO NUDE ZAPA URBANA ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 10,
+      "precio_actual": 52022.31,
+      "costo": 35790.38,
+      "costo_cer": 41915.51,
+      "rentab": 24.1,
+      "precio_sugerido": 100877.63,
+      "desvio": -37930.63,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352020,
+      "nombre": "026435 TERRANO II GRIS ZAPA URB ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 7,
+      "precio_actual": 73953.72,
+      "costo": 44989.3,
+      "costo_cer": 50901.63,
+      "rentab": 45.3,
+      "precio_sugerido": 122504.44,
+      "desvio": -33020.44,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 299862,
+      "nombre": "LU-A4 LINTERNA ALUMINIO LED 1 W",
+      "marca": "KUSHIRO",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. MARRO",
+      "stock": 50,
+      "precio_actual": 10297.52,
+      "costo": 2765.07,
+      "costo_cer": 7219.93,
+      "rentab": 42.6,
+      "precio_sugerido": 19219.45,
+      "desvio": -6759.45,
+      "fecha_ult_act": "2024-03-04",
+      "dias_sin_act": 737,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348196,
+      "nombre": "SWIFT 5 FUCSIA ZAPA DEP ACORD DET TEJIDO",
+      "marca": "OLYMPIKUS",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 8,
+      "precio_actual": 64167.77,
+      "costo": 36972.9,
+      "costo_cer": 43195.37,
+      "rentab": 48.6,
+      "precio_sugerido": 109759.44,
+      "desvio": -32116.44,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 239408,
+      "nombre": "26401 SAN CIRO V TF NEGRO/NEGRO BOTIN PISTA ACORD COST",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "BOTINES PISTA",
+      "stock": 10,
+      "precio_actual": 51147.93,
+      "costo": 31115.5,
+      "costo_cer": 35826.32,
+      "rentab": 42.8,
+      "precio_sugerido": 86222.84,
+      "desvio": -24333.84,
+      "fecha_ult_act": "2025-09-12",
+      "dias_sin_act": 180,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 328287,
+      "nombre": "36620 SET AROS",
+      "marca": "MODAX (Marroquineria)",
+      "temporada": "-",
+      "subrubro": "ACC. MARRO",
+      "stock": 109,
+      "precio_actual": 4638.84,
+      "costo": 2242.5,
+      "costo_cer": 2949.69,
+      "rentab": 57.3,
+      "precio_sugerido": 8565.89,
+      "desvio": -2952.89,
+      "fecha_ult_act": "2025-03-18",
+      "dias_sin_act": 358,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 336393,
+      "nombre": "173282 AZUL GUANTES TOPPER MAESTRO II",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "PROMO COMPRA",
+      "stock": 29,
+      "precio_actual": 17224.79,
+      "costo": 25066.16,
+      "costo_cer": 27857.53,
+      "rentab": -38.2,
+      "precio_sugerido": 67044.43,
+      "desvio": -46202.43,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 305644,
+      "nombre": "34US6657 VALIJA RIGIDA  MEDIANA 24\"",
+      "marca": "LA CHAPELLE",
+      "temporada": "VERANO",
+      "subrubro": "VALIJAS",
+      "stock": 5,
+      "precio_actual": 99808.26,
+      "costo": 57600,
+      "costo_cer": 75764.5,
+      "rentab": 31.7,
+      "precio_sugerido": 201685.09,
+      "desvio": -80917.09,
+      "fecha_ult_act": "2025-03-18",
+      "dias_sin_act": 358,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 316629,
+      "nombre": "1184.1101.13488 NEGRO/CH STILETTO T/FINO PUNTUDO",
+      "marca": "VIZZANO",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATO DE VESTIR",
+      "stock": 10,
+      "precio_actual": 49233.88,
+      "costo": 29786.3,
+      "costo_cer": 34337.55,
+      "rentab": 43.4,
+      "precio_sugerido": 83096.86,
+      "desvio": -23523.86,
+      "fecha_ult_act": "2025-09-10",
+      "dias_sin_act": 182,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 349496,
+      "nombre": "52221 VALLARTA BLANCO/GRIS ZAPA ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 7,
+      "precio_actual": 70152.89,
+      "costo": 42677.01,
+      "costo_cer": 49227.79,
+      "rentab": 42.5,
+      "precio_sugerido": 118476.04,
+      "desvio": -33591.04,
+      "fecha_ult_act": "2025-09-09",
+      "dias_sin_act": 183,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 349507,
+      "nombre": "52222 VALLARTA NEGRO/NEGRO ZAPA ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 7,
+      "precio_actual": 70152.89,
+      "costo": 42677.01,
+      "costo_cer": 49227.79,
+      "rentab": 42.5,
+      "precio_sugerido": 118476.04,
+      "desvio": -33591.04,
+      "fecha_ult_act": "2025-09-09",
+      "dias_sin_act": 183,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 116458,
+      "nombre": "2250 NEGRO BOTA T/GOND 2 CIERRES DET COSTURAS",
+      "marca": "GONDOLINO",
+      "temporada": "INVIERNO",
+      "subrubro": "BOTAS",
+      "stock": 5,
+      "precio_actual": 97520.66,
+      "costo": 59000,
+      "costo_cer": 70166.82,
+      "rentab": 39.0,
+      "precio_sugerido": 169803.71,
+      "desvio": -51803.71,
+      "fecha_ult_act": "2025-07-16",
+      "dias_sin_act": 238,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348725,
+      "nombre": "26468 GROVE NEGRO/NEGRO ZAPA TREKKING ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA OUTDOOR",
+      "stock": 7,
+      "precio_actual": 69421.49,
+      "costo": 40163.63,
+      "costo_cer": 47037.19,
+      "rentab": 47.6,
+      "precio_sugerido": 113203.94,
+      "desvio": -29203.94,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 267692,
+      "nombre": "89016 ROD II BLANCO/AZUL ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 8,
+      "precio_actual": 60722.31,
+      "costo": 40163.63,
+      "costo_cer": 47037.2,
+      "rentab": 29.1,
+      "precio_sugerido": 113203.95,
+      "desvio": -39729.95,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 310276,
+      "nombre": "521359 BRAVO XXIV BLANCO/AZUL/VIOLETA PELOTA CAMPO",
+      "marca": "PENALTY",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 10,
+      "precio_actual": 48542.98,
+      "costo": 26932.8,
+      "costo_cer": 33171.18,
+      "rentab": 46.3,
+      "precio_sugerido": 75056.43,
+      "desvio": -16319.43,
+      "fecha_ult_act": "2025-05-24",
+      "dias_sin_act": 291,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 334147,
+      "nombre": "GOLFTY SURTIDO PELOTA FUTBOL FOOTY",
+      "marca": "FOOTY",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 16,
+      "precio_actual": 30186.78,
+      "costo": 4900,
+      "costo_cer": 6142.78,
+      "rentab": 391.4,
+      "precio_sugerido": 14865.53,
+      "desvio": 21660.47,
+      "fecha_ult_act": "2025-05-07",
+      "dias_sin_act": 308,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 256738,
+      "nombre": "578 NEGRO/CH SANDALIA T/CUAD DET PULSERA",
+      "marca": "JUANA VA",
+      "temporada": "VERANO",
+      "subrubro": "FIESTA",
+      "stock": 15,
+      "precio_actual": 32186.78,
+      "costo": 16000,
+      "costo_cer": 17769.84,
+      "rentab": 81.1,
+      "precio_sugerido": 47303.32,
+      "desvio": -8357.32,
+      "fecha_ult_act": "2025-11-07",
+      "dias_sin_act": 124,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 313852,
+      "nombre": "25771 TYLER II NEGRO/BLANCO ZAPA URB ACORD COST",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA SKATER",
+      "stock": 8,
+      "precio_actual": 59852.07,
+      "costo": 36695.18,
+      "costo_cer": 42975.16,
+      "rentab": 39.3,
+      "precio_sugerido": 103427.89,
+      "desvio": -31006.89,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 308556,
+      "nombre": "25752 RACK AZUL/NEGRO ZAPA DEP ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 9,
+      "precio_actual": 52022.31,
+      "costo": 33277.01,
+      "costo_cer": 37792.15,
+      "rentab": 37.7,
+      "precio_sugerido": 90953.99,
+      "desvio": -28006.99,
+      "fecha_ult_act": "2025-10-04",
+      "dias_sin_act": 158,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 255007,
+      "nombre": "SMV NEGRO SOGA P/SALTAR",
+      "marca": "KUSHIRO",
+      "temporada": "VERANO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 63,
+      "precio_actual": 7382.64,
+      "costo": 298.86,
+      "costo_cer": 416.41,
+      "rentab": 1672.9,
+      "precio_sugerido": 1108.48,
+      "desvio": 7824.52,
+      "fecha_ult_act": "2025-01-06",
+      "dias_sin_act": 429,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348279,
+      "nombre": "173498 BEIGE MAT YOGA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. MARRO",
+      "stock": 12,
+      "precio_actual": 38731.4,
+      "costo": 23562.16,
+      "costo_cer": 27527.63,
+      "rentab": 40.7,
+      "precio_sugerido": 66250.47,
+      "desvio": -19385.47,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 343802,
+      "nombre": "GRETA NEGRO BOTA C/CIERRE DET CADENA",
+      "marca": "LADY STORK",
+      "temporada": "INVIERNO",
+      "subrubro": "BOTAS",
+      "stock": 4,
+      "precio_actual": 114976.86,
+      "costo": 69561,
+      "costo_cer": 81925.76,
+      "rentab": 40.3,
+      "precio_sugerido": 198260.33,
+      "desvio": -59138.33,
+      "fecha_ult_act": "2025-08-04",
+      "dias_sin_act": 219,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352008,
+      "nombre": "026447 DRIVE 2 GRIS ZAPA DEP ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 7,
+      "precio_actual": 65195.04,
+      "costo": 39660.96,
+      "costo_cer": 44873.06,
+      "rentab": 45.3,
+      "precio_sugerido": 107995.54,
+      "desvio": -29109.54,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352009,
+      "nombre": "026447 DRIVE 2 GRIS ZAPA DEP ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 7,
+      "precio_actual": 65195.04,
+      "costo": 39660.96,
+      "costo_cer": 44873.06,
+      "rentab": 45.3,
+      "precio_sugerido": 107995.54,
+      "desvio": -29109.54,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352021,
+      "nombre": "026435 TERRANO II GRIS ZAPA URB ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 6,
+      "precio_actual": 73953.72,
+      "costo": 44989.3,
+      "costo_cer": 50901.63,
+      "rentab": 45.3,
+      "precio_sugerido": 122504.44,
+      "desvio": -33020.44,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352024,
+      "nombre": "026435 TERRANO II GRIS ZAPA URB ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 6,
+      "precio_actual": 73953.72,
+      "costo": 44989.3,
+      "costo_cer": 50901.63,
+      "rentab": 45.3,
+      "precio_sugerido": 122504.44,
+      "desvio": -33020.44,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352025,
+      "nombre": "026435 TERRANO II GRIS ZAPA URB ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 6,
+      "precio_actual": 73953.72,
+      "costo": 44989.3,
+      "costo_cer": 50901.63,
+      "rentab": 45.3,
+      "precio_sugerido": 122504.44,
+      "desvio": -33020.44,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 356758,
+      "nombre": "TIDE 2 NEGRO ZAPA  RUNNING ACOR COMB",
+      "marca": "SAUCONY",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 4,
+      "precio_actual": 110104.96,
+      "costo": 66613.3,
+      "costo_cer": 72643.9,
+      "rentab": 51.6,
+      "precio_sugerido": 175798.23,
+      "desvio": -42571.23,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 288944,
+      "nombre": "51568 CIRCUS NEGRO/GRIS/BEIGE ZAPA URB COMB COST",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA SNEAKERS",
+      "stock": 6,
+      "precio_actual": 73075.21,
+      "costo": 44737.97,
+      "costo_cer": 52394.38,
+      "rentab": 39.5,
+      "precio_sugerido": 126097.04,
+      "desvio": -37676.04,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 207846,
+      "nombre": "89607 PROFESIONAL NEGRO ZAPA ACORD C/PUNT",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 9,
+      "precio_actual": 48542.98,
+      "costo": 31618.18,
+      "costo_cer": 37029.29,
+      "rentab": 31.1,
+      "precio_sugerido": 89118.02,
+      "desvio": -30381.02,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354093,
+      "nombre": "PANTUFLA SURTIDA ESTAMPA",
+      "marca": "EL REY DE LA PANTUFLA 2",
+      "temporada": "VERANO",
+      "subrubro": "PANTUFLA",
+      "stock": 22,
+      "precio_actual": 19834.71,
+      "costo": 12000,
+      "costo_cer": 13327.38,
+      "rentab": 48.8,
+      "precio_sugerido": 32252.26,
+      "desvio": -8252.26,
+      "fecha_ult_act": "2025-11-07",
+      "dias_sin_act": 124,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 310273,
+      "nombre": "521342 RX 500 XXIII BLANCO/AZUL/NEGRO PELOTA FUTSAL",
+      "marca": "PENALTY",
+      "temporada": "VERANO",
+      "subrubro": "PELOTAS",
+      "stock": 10,
+      "precio_actual": 43323.14,
+      "costo": 29226.13,
+      "costo_cer": 35995.71,
+      "rentab": 20.4,
+      "precio_sugerido": 81447.49,
+      "desvio": -29026.49,
+      "fecha_ult_act": "2025-05-24",
+      "dias_sin_act": 291,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 352005,
+      "nombre": "026444 FAST 2.0 LILA/NUDE ZAPA DEP ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 7,
+      "precio_actual": 61889.26,
+      "costo": 37650.27,
+      "costo_cer": 42598.13,
+      "rentab": 45.3,
+      "precio_sugerido": 102520.5,
+      "desvio": -27634.5,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 347750,
+      "nombre": "C10001 CLASSIC NEGRO ZUECO PERFORADO LISO",
+      "marca": "CROCS",
+      "temporada": "VERANO",
+      "subrubro": "ZUECOS",
+      "stock": 12,
+      "precio_actual": 35692.56,
+      "costo": 23273.28,
+      "costo_cer": 28038.07,
+      "rentab": 27.3,
+      "precio_sugerido": 61066.91,
+      "desvio": -17878.91,
+      "fecha_ult_act": "2025-06-20",
+      "dias_sin_act": 264,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 317899,
+      "nombre": "BOTA C/MEDIA CUERO",
+      "marca": "ALMACEN DE MODA",
+      "temporada": "INVIERNO",
+      "subrubro": "BOTAS",
+      "stock": 7,
+      "precio_actual": 60722.31,
+      "costo": 48000,
+      "costo_cer": 58022.48,
+      "rentab": 4.7,
+      "precio_sugerido": 140414.41,
+      "desvio": -66940.41,
+      "fecha_ult_act": "2025-06-14",
+      "dias_sin_act": 270,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 322468,
+      "nombre": "25810 CHALPA II GRIS/BEIGE ZAPA SNEAKER ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA SNEAKERS",
+      "stock": 7,
+      "precio_actual": 60722.31,
+      "costo": 39510.16,
+      "costo_cer": 46271.89,
+      "rentab": 31.2,
+      "precio_sugerido": 111362.09,
+      "desvio": -37888.09,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 259542,
+      "nombre": "89017 ROD II BLANCO/ROSA ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 7,
+      "precio_actual": 60722.31,
+      "costo": 40163.63,
+      "costo_cer": 47037.2,
+      "rentab": 29.1,
+      "precio_sugerido": 113203.95,
+      "desvio": -39729.95,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 260099,
+      "nombre": "89016 ROD II BLANCO/AZUL ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 7,
+      "precio_actual": 60722.31,
+      "costo": 40163.63,
+      "costo_cer": 47037.2,
+      "rentab": 29.1,
+      "precio_sugerido": 113203.95,
+      "desvio": -39729.95,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 288086,
+      "nombre": "25486 ROD II NEGRO/MONOCROMO ZAPA DEP ACORD DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 7,
+      "precio_actual": 60722.31,
+      "costo": 35136.9,
+      "costo_cer": 41150.19,
+      "rentab": 47.6,
+      "precio_sugerido": 99035.76,
+      "desvio": -25561.76,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 288116,
+      "nombre": "59574 TERRE NEGRO/GRIS ZAPA URB BAJA DET PICADO",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA CASUAL",
+      "stock": 7,
+      "precio_actual": 60722.31,
+      "costo": 35136.9,
+      "costo_cer": 41150.19,
+      "rentab": 47.6,
+      "precio_sugerido": 99035.76,
+      "desvio": -25561.76,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 298735,
+      "nombre": "172770 OLIVA/NIGHT CANILLERA KICK TOPPER",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "CANILLERA",
+      "stock": 22,
+      "precio_actual": 19277.69,
+      "costo": 5670.13,
+      "costo_cer": 15095.06,
+      "rentab": 27.7,
+      "precio_sugerido": 36329.12,
+      "desvio": -13003.12,
+      "fecha_ult_act": "2024-03-01",
+      "dias_sin_act": 740,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 313853,
+      "nombre": "25771 TYLER II NEGRO/BLANCO ZAPA URB ACORD COST",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA SKATER",
+      "stock": 7,
+      "precio_actual": 59852.07,
+      "costo": 36695.18,
+      "costo_cer": 42975.16,
+      "rentab": 39.3,
+      "precio_sugerido": 103427.89,
+      "desvio": -31006.89,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 313963,
+      "nombre": "26466 TYLER II KIDS NEGRO/CARAMELO ZAPA URB ACORD COST",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA SKATER",
+      "stock": 7,
+      "precio_actual": 59852.07,
+      "costo": 31618.18,
+      "costo_cer": 37029.29,
+      "rentab": 61.6,
+      "precio_sugerido": 89118.02,
+      "desvio": -16697.02,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 354337,
+      "nombre": "ZAPA TAUPE ACORD P/TRABAJO C/PUNTERA",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA OUTDOOR",
+      "stock": 8,
+      "precio_actual": 52196.69,
+      "costo": 48,
+      "costo_cer": 52.35,
+      "rentab": 99615.7,
+      "precio_sugerido": 307.82,
+      "desvio": 62850.18,
+      "fecha_ult_act": "2025-12-02",
+      "dias_sin_act": 99,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 342801,
+      "nombre": "27173 NEGRO/VIOLETA PILOTO KUROMI",
+      "marca": "WABRO S.A",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. MARRO",
+      "stock": 18,
+      "precio_actual": 23166.12,
+      "costo": 12741.5,
+      "costo_cer": 14876.84,
+      "rentab": 55.7,
+      "precio_sugerido": 39602.14,
+      "desvio": -11571.14,
+      "fecha_ult_act": "2025-08-20",
+      "dias_sin_act": 203,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348735,
+      "nombre": "50240 GROVE HIGH NEGRO/NEGRO BOTA TREKKING ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA OUTDOOR",
+      "stock": 6,
+      "precio_actual": 69421.49,
+      "costo": 45190.38,
+      "costo_cer": 52924.22,
+      "rentab": 31.2,
+      "precio_sugerido": 127372.18,
+      "desvio": -43372.18,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348724,
+      "nombre": "26468 GROVE NEGRO/NEGRO ZAPA TREKKING ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA OUTDOOR",
+      "stock": 6,
+      "precio_actual": 69421.49,
+      "costo": 40163.63,
+      "costo_cer": 47037.19,
+      "rentab": 47.6,
+      "precio_sugerido": 113203.94,
+      "desvio": -29203.94,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 351643,
+      "nombre": "FRANCISCANA UNICO",
+      "marca": "CAVATINI",
+      "temporada": "PRETEMPORADA",
+      "subrubro": "CASUAL",
+      "stock": 7,
+      "precio_actual": 59504.13,
+      "costo": 12000,
+      "costo_cer": 13585.52,
+      "rentab": 338.0,
+      "precio_sugerido": 98630.85,
+      "desvio": -26630.85,
+      "fecha_ult_act": "2025-10-09",
+      "dias_sin_act": 153,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 314675,
+      "nombre": "83686 SPLIT KNITTED NEGRO ZAPA DEP ACORD",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 8,
+      "precio_actual": 52022.31,
+      "costo": 49312.3,
+      "costo_cer": 56003.17,
+      "rentab": -7.1,
+      "precio_sugerido": 134782.26,
+      "desvio": -71835.26,
+      "fecha_ult_act": "2025-10-04",
+      "dias_sin_act": 158,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 309058,
+      "nombre": "29776 FAST AZUL/CELESTE ZAPA DEP ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 8,
+      "precio_actual": 52022.31,
+      "costo": 32422.46,
+      "costo_cer": 37971.21,
+      "rentab": 37.0,
+      "precio_sugerido": 91384.92,
+      "desvio": -28437.92,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 308557,
+      "nombre": "25752 RACK AZUL/NEGRO ZAPA DEP ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 8,
+      "precio_actual": 52022.31,
+      "costo": 33277.01,
+      "costo_cer": 37792.15,
+      "rentab": 37.7,
+      "precio_sugerido": 90953.99,
+      "desvio": -28006.99,
+      "fecha_ult_act": "2025-10-04",
+      "dias_sin_act": 158,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 298187,
+      "nombre": "PRODUCTO $1999",
+      "marca": "ALMACEN DE MODA",
+      "temporada": "ATEMPORAL",
+      "subrubro": "-",
+      "stock": 80,
+      "precio_actual": 5179.34,
+      "costo": 650,
+      "costo_cer": 3096.97,
+      "rentab": 67.2,
+      "precio_sugerido": 7494.67,
+      "desvio": -1227.67,
+      "fecha_ult_act": "2023-10-31",
+      "dias_sin_act": 862,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 279664,
+      "nombre": "26876 T350 MESH NEGRO/GRIS ZAPA SNEAKER ACORD",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA SNEAKERS",
+      "stock": 7,
+      "precio_actual": 58981.82,
+      "costo": 34181.82,
+      "costo_cer": 40031.66,
+      "rentab": 47.3,
+      "precio_sugerido": 96343.79,
+      "desvio": -24975.79,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 292646,
+      "nombre": "CCMI-AI18 PLATA COMEDERO MASCOTAS ACERO INOXIDABLE 18CM",
+      "marca": "KUSHIRO",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. MARRO",
+      "stock": 53,
+      "precio_actual": 7662.81,
+      "costo": 2057.51,
+      "costo_cer": 5372.4,
+      "rentab": 42.6,
+      "precio_sugerido": 14301.34,
+      "desvio": -5029.34,
+      "fecha_ult_act": "2024-03-04",
+      "dias_sin_act": 737,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348151,
+      "nombre": "4798M NEGRO REMERA M/LARGA TERMICA",
+      "marca": "KALIF - ALEX SPORT",
+      "temporada": "INVIERNO",
+      "subrubro": "REMERAS",
+      "stock": 36,
+      "precio_actual": 11280.99,
+      "costo": 5835.38,
+      "costo_cer": 6967.54,
+      "rentab": 61.9,
+      "precio_sugerido": 16861.45,
+      "desvio": -3211.45,
+      "fecha_ult_act": "2025-07-08",
+      "dias_sin_act": 246,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 296932,
+      "nombre": "GM FUCSIA/NEGRO ZAPA DANZA ACORDONADA",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 5,
+      "precio_actual": 80991.74,
+      "costo": 49000,
+      "costo_cer": 55718.36,
+      "rentab": 45.4,
+      "precio_sugerido": 134838.42,
+      "desvio": -36838.42,
+      "fecha_ult_act": "2025-10-02",
+      "dias_sin_act": 160,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 315126,
+      "nombre": "7H763010 GRIP BLANCO MAXTAC X1",
+      "marca": "PRINCE",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 154,
+      "precio_actual": 2592.56,
+      "costo": 916.7,
+      "costo_cer": 1097.28,
+      "rentab": 136.3,
+      "precio_sugerido": 2655.41,
+      "desvio": 481.59,
+      "fecha_ult_act": "2025-07-03",
+      "dias_sin_act": 251,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 316251,
+      "nombre": "25787 WIND V NEGRO/GRIS ZAPA DEP AC DET COMB",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 7,
+      "precio_actual": 56931.4,
+      "costo": 34634.22,
+      "costo_cer": 39185.73,
+      "rentab": 45.3,
+      "precio_sugerido": 94307.9,
+      "desvio": -25420.9,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 316249,
+      "nombre": "25787 WIND V NEGRO/GRIS ZAPA DEP AC DET COMB",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 7,
+      "precio_actual": 56931.4,
+      "costo": 34634.22,
+      "costo_cer": 39185.73,
+      "rentab": 45.3,
+      "precio_sugerido": 94307.9,
+      "desvio": -25420.9,
+      "fecha_ult_act": "2025-10-10",
+      "dias_sin_act": 152,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 336390,
+      "nombre": "173281 BLANCO GUANTES TOPPER VECTOR LEAGUE II",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "PROMO COMPRA",
+      "stock": 23,
+      "precio_actual": 17224.79,
+      "costo": 25066.16,
+      "costo_cer": 27857.53,
+      "rentab": -38.2,
+      "precio_sugerido": 67044.43,
+      "desvio": -46202.43,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "REVISAR COSTO"
+    },
+    {
+      "codigo": 348150,
+      "nombre": "4798M NEGRO REMERA M/LARGA TERMICA",
+      "marca": "KALIF - ALEX SPORT",
+      "temporada": "INVIERNO",
+      "subrubro": "REMERAS",
+      "stock": 35,
+      "precio_actual": 11280.99,
+      "costo": 5835.38,
+      "costo_cer": 6967.54,
+      "rentab": 61.9,
+      "precio_sugerido": 16861.45,
+      "desvio": -3211.45,
+      "fecha_ult_act": "2025-07-08",
+      "dias_sin_act": 246,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 336194,
+      "nombre": "173174 BLANCO PELOTA CAMPO ACTION II",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ACC. DEPORTIVOS",
+      "stock": 13,
+      "precio_actual": 30274.38,
+      "costo": 18548.83,
+      "costo_cer": 22662.83,
+      "rentab": 33.6,
+      "precio_sugerido": 54542.4,
+      "desvio": -17910.4,
+      "fecha_ult_act": "2025-06-02",
+      "dias_sin_act": 282,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 133750,
+      "nombre": "350 NEGRO ZAPATO VESTIR ACORDONADO DETALLE LINEA AZUL",
+      "marca": "GIRAFF",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATO DE VESTIR",
+      "stock": 5,
+      "precio_actual": 78707.44,
+      "costo": 38900,
+      "costo_cer": 56860.3,
+      "rentab": 38.4,
+      "precio_sugerido": 137601.93,
+      "desvio": -42365.93,
+      "fecha_ult_act": "2024-11-11",
+      "dias_sin_act": 485,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 289105,
+      "nombre": "GAB18J2 MOCHILA C/CARRO 3 RUEDAS",
+      "marca": "OWEN",
+      "temporada": "VERANO",
+      "subrubro": "MOCHILAS",
+      "stock": 4,
+      "precio_actual": 98361.98,
+      "costo": 15840,
+      "costo_cer": 95535.83,
+      "rentab": 3.0,
+      "precio_sugerido": 254316.37,
+      "desvio": -135298.37,
+      "fecha_ult_act": "2023-08-17",
+      "dias_sin_act": 937,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 335811,
+      "nombre": "KIT CUIDADO PERSONAL",
+      "marca": "CLZ BEAUTY",
+      "temporada": "VERANO",
+      "subrubro": "ACC. MARRO",
+      "stock": 12,
+      "precio_actual": 32727.27,
+      "costo": 14400,
+      "costo_cer": 16251.56,
+      "rentab": 101.4,
+      "precio_sugerido": 43261.66,
+      "desvio": -3661.66,
+      "fecha_ult_act": "2025-10-14",
+      "dias_sin_act": 148,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 311260,
+      "nombre": "25783 BORO III OLIVA/NEGRO ZAPA DEP AC DET TEXTURA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA RUNNING",
+      "stock": 9,
+      "precio_actual": 43323.14,
+      "costo": 27596.79,
+      "costo_cer": 32319.68,
+      "rentab": 34.0,
+      "precio_sugerido": 77783.44,
+      "desvio": -25362.44,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 353080,
+      "nombre": "349 CAMEL ZAPATO ESPANOL/FOLCLORE 4.5 CM",
+      "marca": "GO by CLZ",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATO DE VESTIR",
+      "stock": 9,
+      "precio_actual": 43090.91,
+      "costo": 23700,
+      "costo_cer": 25669.88,
+      "rentab": 67.9,
+      "precio_sugerido": 68333.21,
+      "desvio": -16193.21,
+      "fecha_ult_act": "2025-12-11",
+      "dias_sin_act": 90,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 349460,
+      "nombre": "26449 STRONG PACE III AZUL/NARANJA ZAPA DEP ACORD COMB",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 7,
+      "precio_actual": 55279.34,
+      "costo": 33628.88,
+      "costo_cer": 36562.32,
+      "rentab": 51.2,
+      "precio_sugerido": 87994.18,
+      "desvio": -21106.18,
+      "fecha_ult_act": "2025-12-06",
+      "dias_sin_act": 95,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 161313,
+      "nombre": "1184.1101.7286 NEGRO STILETTO T/FINO PUNTUDO",
+      "marca": "VIZZANO",
+      "temporada": "VERANO",
+      "subrubro": "ZAPATO DE VESTIR",
+      "stock": 8,
+      "precio_actual": 48330.58,
+      "costo": 29240.17,
+      "costo_cer": 33707.97,
+      "rentab": 43.4,
+      "precio_sugerido": 81573.29,
+      "desvio": -23093.29,
+      "fecha_ult_act": "2025-09-10",
+      "dias_sin_act": 182,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348197,
+      "nombre": "SWIFT 5 FUCSIA ZAPA DEP ACORD DET TEJIDO",
+      "marca": "OLYMPIKUS",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 6,
+      "precio_actual": 64167.77,
+      "costo": 36972.9,
+      "costo_cer": 43195.37,
+      "rentab": 48.6,
+      "precio_sugerido": 109759.44,
+      "desvio": -32116.44,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 348198,
+      "nombre": "SWIFT 5 FUCSIA ZAPA DEP ACORD DET TEJIDO",
+      "marca": "OLYMPIKUS",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TRAINING",
+      "stock": 6,
+      "precio_actual": 64167.77,
+      "costo": 36972.9,
+      "costo_cer": 43195.37,
+      "rentab": 48.6,
+      "precio_sugerido": 109759.44,
+      "desvio": -32116.44,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 218723,
+      "nombre": "50 NEGRO ZUECO FAJA ANCHA DET GLITTER",
+      "marca": "TIMMIS",
+      "temporada": "VERANO",
+      "subrubro": "PROMO FIN DE TEMPORADA",
+      "stock": 2,
+      "precio_actual": 192473.55,
+      "costo": 750,
+      "costo_cer": 1312.46,
+      "rentab": 14565.1,
+      "precio_sugerido": 3176.16,
+      "desvio": 229716.84,
+      "fecha_ult_act": "2024-06-27",
+      "dias_sin_act": 622,
+      "accion": "LIQUIDAR"
+    },
+    {
+      "codigo": 218725,
+      "nombre": "50 NEGRO ZUECO FAJA ANCHA DET GLITTER",
+      "marca": "TIMMIS",
+      "temporada": "VERANO",
+      "subrubro": "PROMO FIN DE TEMPORADA",
+      "stock": 2,
+      "precio_actual": 192473.55,
+      "costo": 450,
+      "costo_cer": 787.48,
+      "rentab": 24341.8,
+      "precio_sugerido": 1905.69,
+      "desvio": 230987.31,
+      "fecha_ult_act": "2024-06-27",
+      "dias_sin_act": 622,
+      "accion": "LIQUIDAR"
+    },
+    {
+      "codigo": 122854,
+      "nombre": "166 SPIDER ROJO ZUECO NIÑO C/BANDA",
+      "marca": "SEAWALK",
+      "temporada": "VERANO",
+      "subrubro": "ZUECOS",
+      "stock": 20,
+      "precio_actual": 19085.12,
+      "costo": 12421,
+      "costo_cer": 13804.2,
+      "rentab": 38.3,
+      "precio_sugerido": 33406.17,
+      "desvio": -10313.17,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 346524,
+      "nombre": "3989 NEGRO PANTALON JOGGER CARGO RECTO",
+      "marca": "KALIF - ALEX SPORT",
+      "temporada": "INVIERNO",
+      "subrubro": "PANTALON",
+      "stock": 11,
+      "precio_actual": 34623.97,
+      "costo": 24097.5,
+      "costo_cer": 26888.94,
+      "rentab": 28.8,
+      "precio_sugerido": 65071.22,
+      "desvio": -23176.22,
+      "fecha_ult_act": "2025-10-31",
+      "dias_sin_act": 131,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 313337,
+      "nombre": "165665 NEGRO CHALECO GD ABRIGO",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "PROMO COMPRA",
+      "stock": 5,
+      "precio_actual": 75901.65,
+      "costo": 32586.16,
+      "costo_cer": 55392.11,
+      "rentab": 37.0,
+      "precio_sugerido": 133311.63,
+      "desvio": -41470.63,
+      "fecha_ult_act": "2024-07-18",
+      "dias_sin_act": 601,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 336381,
+      "nombre": "173278 VIOLETA GUANTES LUVA TOPPER STRIKE II",
+      "marca": "TOPPER",
+      "temporada": "VERANO",
+      "subrubro": "PROMO COMPRA",
+      "stock": 22,
+      "precio_actual": 17224.79,
+      "costo": 14538.16,
+      "costo_cer": 16157.13,
+      "rentab": 6.6,
+      "precio_sugerido": 38885.2,
+      "desvio": -18043.2,
+      "fecha_ult_act": "2025-11-06",
+      "dias_sin_act": 125,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 179253,
+      "nombre": "24305 BLANCO/AZUL GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 5,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51393.59,
+      "rentab": 47.3,
+      "precio_sugerido": 123688.43,
+      "desvio": -32109.43,
+      "fecha_ult_act": "2025-08-15",
+      "dias_sin_act": 208,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 178158,
+      "nombre": "24305 BLANCO/AZUL GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 5,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 176134,
+      "nombre": "24306 NEGRO/GRIS GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 5,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    },
+    {
+      "codigo": 176135,
+      "nombre": "24306 NEGRO/GRIS GAME OVER III ZAPATILLA ACORDONADA",
+      "marca": "TOPPER",
+      "temporada": "INVIERNO",
+      "subrubro": "ZAPATILLA TENNIS",
+      "stock": 5,
+      "precio_actual": 75685.12,
+      "costo": 43883.42,
+      "costo_cer": 51268.92,
+      "rentab": 47.6,
+      "precio_sugerido": 123388.4,
+      "desvio": -31809.4,
+      "fecha_ult_act": "2025-08-19",
+      "dias_sin_act": 204,
+      "accion": "SUBIR PRECIO"
+    }
+  ]
+};
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function formatMoney(value) {
+            return new Intl.NumberFormat('es-AR', {
+                style: 'currency',
+                currency: 'ARS',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function getDaysSince(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            const today = new Date('2026-03-11T00:00:00');
+            const diffTime = Math.abs(today - date);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getRentabilityClass(rentab) {
+            if (rentab < 0) return 'percent-negative';
+            if (rentab < 50) return 'percent-neutral';
+            return 'percent-positive';
+        }
+
+        function getDesvioClass(desvio) {
+            return desvio < 0 ? 'money negative' : 'money positive';
+        }
+
+        function getAccionBadge(accion) {
+            const badges = {
+                'SUBIR PRECIO': 'badge-warning',
+                'LIQUIDAR': 'badge-danger',
+                'REVISAR': 'badge-info',
+                'REVISAR COSTO': 'badge-danger'
+            };
+            return badges[accion] || 'badge-info';
+        }
+
+        // ==================== INITIALIZE ====================
+        function initializeReport() {
+            // Recalculate summary
+            calculateSummary();
+
+            // Load filters from localStorage
+            loadFilters();
+
+            // Populate filter dropdowns
+            populateMarcaFilter();
+
+            // Render tables
+            renderDetalle();
+            renderMarcas();
+            renderAnalisis();
+
+            // Set generated date
+            const date = new Date(REPORT_DATA.generated);
+            const dateStr = date.toLocaleDateString('es-AR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }).replace(/(\d+)/, (match) => match.padStart(2, '0'));
+            document.getElementById('fecha-generacion').textContent = `Generado: ${dateStr}`;
+            document.getElementById('fecha-pie').textContent = dateStr;
+        }
+
+        function calculateSummary() {
+            let total_valuado = 0;
+            let total_articulos = REPORT_DATA.articulos.length;
+            let total_pares = 0;
+            let plata_recuperable = 0;
+
+            REPORT_DATA.articulos.forEach(art => {
+                total_valuado += art.stock * art.precio_actual;
+                total_pares += art.stock;
+                if (art.desvio < 0) {
+                    plata_recuperable += Math.abs(art.desvio);
+                }
+            });
+
+            REPORT_DATA.summary = {
+                total_valuado,
+                total_articulos,
+                total_pares,
+                plata_recuperable
+            };
+
+            // Update KPI cards
+            document.getElementById('kpi-valuado').textContent = formatMoney(total_valuado);
+            document.getElementById('kpi-articulos').textContent = total_articulos;
+            document.getElementById('kpi-pares').textContent = total_pares.toLocaleString('es-AR');
+            document.getElementById('kpi-recuperable').textContent = formatMoney(plata_recuperable);
+        }
+
+        function populateMarcaFilter() {
+            const marcas = [...new Set(REPORT_DATA.articulos.map(a => a.marca))].sort();
+            const select = document.getElementById('marca-filter');
+            marcas.forEach(marca => {
+                const option = document.createElement('option');
+                option.value = marca;
+                option.textContent = marca;
+                select.appendChild(option);
+            });
+        }
+
+        function getFilteredArticulos() {
+            let filtered = REPORT_DATA.articulos;
+
+            // Search
+            const search = document.getElementById('search-input').value.toLowerCase();
+            if (search) {
+                filtered = filtered.filter(a =>
+                    a.nombre.toLowerCase().includes(search) ||
+                    a.codigo.toString().includes(search)
+                );
+            }
+
+            // Marca
+            const marca = document.getElementById('marca-filter').value;
+            if (marca) {
+                filtered = filtered.filter(a => a.marca === marca);
+            }
+
+            // Temporada
+            const temporada = document.getElementById('temporada-filter').value;
+            if (temporada) {
+                filtered = filtered.filter(a => a.temporada === temporada);
+            }
+
+            // Stock mín
+            const stockMin = parseInt(document.getElementById('stock-min').value) || 0;
+            filtered = filtered.filter(a => a.stock >= stockMin);
+
+            // Sort
+            const sortBy = document.getElementById('sort-by').value;
+            switch(sortBy) {
+                case 'valuado-desc':
+                    filtered.sort((a, b) => (b.stock * b.precio_actual) - (a.stock * a.precio_actual));
+                    break;
+                case 'rentab-asc':
+                    filtered.sort((a, b) => a.rentab - b.rentab);
+                    break;
+                case 'dias-desc':
+                    filtered.sort((a, b) => getDaysSince(b.fecha_ult_act) - getDaysSince(a.fecha_ult_act));
+                    break;
+                case 'desvio-desc':
+                    filtered.sort((a, b) => b.desvio - a.desvio);
+                    break;
+            }
+
+            return filtered;
+        }
+
+        function renderDetalle() {
+            const tbody = document.getElementById('tbody-articulos');
+            tbody.innerHTML = '';
+
+            const articulos = getFilteredArticulos();
+
+            articulos.forEach((art, idx) => {
+                const valuado = art.stock * art.precio_actual;
+                const days = getDaysSince(art.fecha_ult_act);
+
+                const row = document.createElement('tr');
+                row.id = `row-${idx}`;
+                row.innerHTML = `
+                    <td style="padding: 0.5rem;">
+                        <button class="expand-btn" onclick="toggleExpand(${idx})">▼</button>
+                    </td>
+                    <td>${art.codigo}</td>
+                    <td>${art.nombre}</td>
+                    <td>${art.marca}</td>
+                    <td>${art.temporada}</td>
+                    <td style="text-align: right;">${art.stock}</td>
+                    <td style="text-align: right;">${formatMoney(art.precio_actual)}</td>
+                    <td style="text-align: right;">${formatMoney(art.costo_cer)}</td>
+                    <td style="text-align: right;"><span class="${getRentabilityClass(art.rentab)}">${art.rentab.toFixed(1)}%</span></td>
+                    <td style="text-align: right;">${formatMoney(art.precio_sugerido)}</td>
+                    <td style="text-align: right;"><span class="${getDesvioClass(art.desvio)}">${formatMoney(art.desvio)}</span></td>
+                    <td>${formatDate(art.fecha_ult_act)}</td>
+                    <td style="text-align: right;">${days}</td>
+                    <td><span class="badge ${getAccionBadge(art.accion)}">${art.accion}</span></td>
+                `;
+
+                tbody.appendChild(row);
+
+                // Expanded row
+                const expandRow = document.createElement('tr');
+                expandRow.id = `expand-${idx}`;
+                expandRow.style.display = 'none';
+                expandRow.innerHTML = `
+                    <td colspan="14">
+                        <div class="expanded-content" id="content-${idx}">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                                <div>
+                                    <strong>Detalles Generales</strong>
+                                    <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                                        <strong>Subrubro:</strong> ${art.subrubro}<br>
+                                        <strong>Stock Valuado:</strong> ${formatMoney(valuado)}<br>
+                                        <strong>Costo Base:</strong> ${formatMoney(art.costo)}<br>
+                                        <strong>Costo CER:</strong> ${formatMoney(art.costo_cer)}<br>
+                                    </p>
+                                </div>
+                                <div>
+                                    <strong>Análisis de Precio</strong>
+                                    <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                                        <strong>Precio Actual:</strong> ${formatMoney(art.precio_actual)}<br>
+                                        <strong>Precio Sugerido:</strong> ${formatMoney(art.precio_sugerido)}<br>
+                                        <strong>Desvío Total:</strong> <span class="${getDesvioClass(art.desvio)}">${formatMoney(art.desvio)}</span><br>
+                                        <strong>Rentabilidad:</strong> <span class="${getRentabilityClass(art.rentab)}">${art.rentab.toFixed(1)}%</span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <strong>Información Temporal</strong>
+                                    <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                                        <strong>Última Actualización:</strong> ${formatDate(art.fecha_ult_act)}<br>
+                                        <strong>Días sin Actualizar:</strong> ${days}<br>
+                                        <strong>Meses:</strong> ${(days / 30).toFixed(1)}<br>
+                                        <strong>Acción Sugerida:</strong> <strong style="color: var(--warning);">${art.accion}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(expandRow);
+            });
+
+            if (articulos.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="14" style="text-align: center; padding: 2rem; color: var(--text-light);">No hay artículos que coincidan con los filtros</td>';
+                tbody.appendChild(row);
+            }
+        }
+
+        function renderMarcas() {
+            const tbody = document.getElementById('tbody-marcas');
+            tbody.innerHTML = '';
+
+            const filtered = getFilteredArticulos();
+            const byMarca = {};
+
+            filtered.forEach(art => {
+                if (!byMarca[art.marca]) {
+                    byMarca[art.marca] = {
+                        marca: art.marca,
+                        articulos: 0,
+                        pares: 0,
+                        valuado: 0,
+                        rentabs: [],
+                        plata_recuperable: 0
+                    };
+                }
+                byMarca[art.marca].articulos++;
+                byMarca[art.marca].pares += art.stock;
+                byMarca[art.marca].valuado += art.stock * art.precio_actual;
+                byMarca[art.marca].rentabs.push(art.rentab);
+                if (art.desvio < 0) {
+                    byMarca[art.marca].plata_recuperable += Math.abs(art.desvio);
+                }
+            });
+
+            const marcas = Object.values(byMarca).sort((a, b) => b.valuado - a.valuado);
+
+            marcas.forEach(m => {
+                const rentabProm = m.rentabs.length > 0 ? m.rentabs.reduce((a, b) => a + b) / m.rentabs.length : 0;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${m.marca}</strong></td>
+                    <td style="text-align: right;">${m.articulos}</td>
+                    <td style="text-align: right;">${m.pares.toLocaleString('es-AR')}</td>
+                    <td style="text-align: right;"><strong>${formatMoney(m.valuado)}</strong></td>
+                    <td style="text-align: right;"><span class="${getRentabilityClass(rentabProm)}">${rentabProm.toFixed(1)}%</span></td>
+                    <td style="text-align: right;"><span class="money ${m.plata_recuperable > 0 ? 'positive' : ''}">${formatMoney(m.plata_recuperable)}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderAnalisis() {
+            // Top 5 marcas con mayor pérdida
+            const top5 = document.getElementById('top5-marcas');
+            top5.innerHTML = '';
+
+            const byMarca = {};
+            REPORT_DATA.articulos.forEach(art => {
+                if (!byMarca[art.marca]) {
+                    byMarca[art.marca] = 0;
+                }
+                if (art.desvio < 0) {
+                    byMarca[art.marca] += Math.abs(art.desvio);
+                }
+            });
+
+            const topMarcas = Object.entries(byMarca)
+                .filter(([_, plata]) => plata > 0)
+                .sort(([_,a], [__,b]) => b - a)
+                .slice(0, 5);
+
+            const maxPlata = topMarcas[0]?.[1] || 1;
+
+            topMarcas.forEach(([marca, plata]) => {
+                const pct = (plata / maxPlata * 100);
+                top5.innerHTML += `
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">${marca}</div>
+                        <div class="chart-bar-fill" style="width: ${pct}%; background: var(--danger);"></div>
+                        <div class="chart-bar-value">${formatMoney(plata)}</div>
+                    </div>
+                `;
+            });
+
+            if (topMarcas.length === 0) {
+                top5.innerHTML = '<p style="color: var(--text-light); font-size: 0.9rem;">No hay pérdidas de precio registradas</p>';
+            }
+
+            // Distribución por temporada
+            const distTemp = document.getElementById('dist-temporada');
+            distTemp.innerHTML = '';
+
+            const byTemp = {};
+            REPORT_DATA.articulos.forEach(art => {
+                if (!byTemp[art.temporada]) {
+                    byTemp[art.temporada] = 0;
+                }
+                byTemp[art.temporada]++;
+            });
+
+            const maxTemp = Math.max(...Object.values(byTemp));
+            const temps = Object.entries(byTemp).sort(([_,a], [__,b]) => b - a);
+
+            temps.forEach(([temp, count]) => {
+                const pct = (count / maxTemp * 100);
+                distTemp.innerHTML += `
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">${temp}</div>
+                        <div class="chart-bar-fill" style="width: ${pct}%; background: var(--primary);"></div>
+                        <div class="chart-bar-value">${count}</div>
+                    </div>
+                `;
+            });
+
+            // Distribución de acciones
+            const distAcc = document.getElementById('dist-acciones');
+            distAcc.innerHTML = '';
+
+            const byAccion = {};
+            REPORT_DATA.articulos.forEach(art => {
+                if (!byAccion[art.accion]) {
+                    byAccion[art.accion] = 0;
+                }
+                byAccion[art.accion]++;
+            });
+
+            const maxAcc = Math.max(...Object.values(byAccion));
+            const acciones = Object.entries(byAccion).sort(([_,a], [__,b]) => b - a);
+
+            const colorMap = {
+                'SUBIR PRECIO': 'var(--warning)',
+                'LIQUIDAR': 'var(--danger)',
+                'REVISAR': 'var(--primary)',
+                'REVISAR COSTO': 'var(--danger)'
+            };
+
+            acciones.forEach(([accion, count]) => {
+                const pct = (count / maxAcc * 100);
+                const color = colorMap[accion] || 'var(--primary)';
+                distAcc.innerHTML += `
+                    <div class="chart-bar">
+                        <div class="chart-bar-label">${accion}</div>
+                        <div class="chart-bar-fill" style="width: ${pct}%; background: ${color};"></div>
+                        <div class="chart-bar-value">${count}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleExpand(idx) {
+            const expandRow = document.getElementById(`expand-${idx}`);
+            const btn = document.querySelector(`#row-${idx} .expand-btn`);
+
+            if (expandRow.style.display === 'none') {
+                expandRow.style.display = 'table-row';
+                document.getElementById(`content-${idx}`).classList.add('show');
+                btn.classList.add('open');
+            } else {
+                expandRow.style.display = 'none';
+                document.getElementById(`content-${idx}`).classList.remove('show');
+                btn.classList.remove('open');
+            }
+        }
+
+        function saveFilters() {
+            const filters = {
+                search: document.getElementById('search-input').value,
+                marca: document.getElementById('marca-filter').value,
+                temporada: document.getElementById('temporada-filter').value,
+                sortBy: document.getElementById('sort-by').value,
+                stockMin: document.getElementById('stock-min').value
+            };
+            localStorage.setItem('reportFilters', JSON.stringify(filters));
+        }
+
+        function loadFilters() {
+            const saved = localStorage.getItem('reportFilters');
+            if (saved) {
+                const filters = JSON.parse(saved);
+                document.getElementById('search-input').value = filters.search || '';
+                document.getElementById('marca-filter').value = filters.marca || '';
+                document.getElementById('temporada-filter').value = filters.temporada || '';
+                document.getElementById('sort-by').value = filters.sortBy || 'valuado-desc';
+                document.getElementById('stock-min').value = filters.stockMin || '1';
+            }
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        document.getElementById('search-input').addEventListener('input', () => {
+            saveFilters();
+            renderDetalle();
+            renderMarcas();
+        });
+
+        document.getElementById('marca-filter').addEventListener('change', () => {
+            saveFilters();
+            renderDetalle();
+            renderMarcas();
+        });
+
+        document.getElementById('temporada-filter').addEventListener('change', () => {
+            saveFilters();
+            renderDetalle();
+            renderMarcas();
+        });
+
+        document.getElementById('sort-by').addEventListener('change', () => {
+            saveFilters();
+            renderDetalle();
+        });
+
+        document.getElementById('stock-min').addEventListener('change', () => {
+            saveFilters();
+            renderDetalle();
+            renderMarcas();
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.getAttribute('data-tab');
+
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-button').forEach(b => {
+                    b.classList.remove('active');
+                });
+
+                // Show selected tab
+                document.getElementById(tabName).classList.add('active');
+                btn.classList.add('active');
+
+                // Save tab preference
+                localStorage.setItem('selectedTab', tabName);
+            });
+        });
+
+        // Restore tab preference
+        const savedTab = localStorage.getItem('selectedTab');
+        if (savedTab && document.getElementById(savedTab)) {
+            document.querySelector(`[data-tab="${savedTab}"]`).click();
+        }
+
+        // ==================== STARTUP ====================
+        document.addEventListener('DOMContentLoaded', initializeReport);
+    </script>
+</body>
+</html>

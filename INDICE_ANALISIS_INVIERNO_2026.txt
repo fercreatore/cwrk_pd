@@ -1,0 +1,278 @@
+================================================================================
+WINTER 2026 PURCHASE ORDER ANALYSIS - COMPLETE INDEX
+================================================================================
+Generated: 2026-03-12
+Analyst: Claude Code
+Project: Cargas Automáticas de Pedidos H4/CALZALINDO
+
+This index provides navigation through all analysis documents and files
+related to the Winter 2026 (INVIERNO 2026) purchase order analysis.
+
+================================================================================
+ANALYSIS DOCUMENTS (Created in /cowork_pedidos/)
+================================================================================
+
+1. RESUMEN_RAPIDO_PEDIDOS.txt (THIS SESSION)
+   - Quick reference summary
+   - 5 complete orders ready to insert
+   - 3 pending (quantity entry needed)
+   - Execution checklist
+   - START HERE for quick overview
+
+2. ANALISIS_PEDIDOS_INVIERNO_2026.txt (THIS SESSION)
+   - Comprehensive detailed analysis
+   - 8 providers with full breakdown
+   - Article-by-article details
+   - Product categorizations
+   - Pricing and size distributions
+   - Action items and recommendations
+   - READ THIS for complete information
+
+3. CLAUDE.md (EXISTING - CRITICAL)
+   - Project infrastructure details
+   - Database connections and credentials
+   - SQL Server locations (111 vs 112)
+   - Insertion procedures and routing
+   - REVIEW THIS before any insertions
+
+4. BITACORA_DESARROLLO.md (EXISTING)
+   - Development history and changes
+   - Previous insertions (KNU GTN, CARMEL RINGO)
+   - Known issues and fixes
+   - REFERENCE for context
+
+
+================================================================================
+SOURCE FILES (in /cowork_pedidos/compras/INVIERNO 2026/)
+================================================================================
+
+PROVIDER 1: ATHIX
+  Main File: Athix/NP ATHIX 1ER SEM 2026.xlsx
+  Status: PENDING (needs quantity entry)
+  Analysis: Section 1 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+PROVIDER 2: ATOMIK
+  Main File: Atomik/ATOMIK INV 2026.xlsx
+  Status: READY TO INSERT (1,078 pairs)
+  Analysis: Section 2 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+PROVIDER 3: DAS LUZ
+  Main File: Das Luz/Pedidos 04-02 dasluz/PEDIDO DASLUZ unificado.xlsx
+  Status: READY TO INSERT (197 pairs)
+  Analysis: Section 3 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+PROVIDER 4: EL FARAON
+  Main File: El Faraon/Pedidos 05-02 faraon/PEDIDO FARAON.xlsx
+  Status: READY TO INSERT (414 pairs)
+  Analysis: Section 4 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+PROVIDER 5: ESCORPIO SEGURIDAD
+  Main File: Escorpio Seguridad/Pedido Calzados Argentinos (escorpio lluvia) 18-02/PEDIDO ESCORPIO.xlsx
+  Status: READY TO INSERT (60 pairs)
+  Analysis: Section 5 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+PROVIDER 6: FOOTY
+  Main File: FOOTY/NP CLIENTES - FOOTY INV 26.xlsx
+  Status: CATALOG ONLY (needs quantity entry)
+  Analysis: Section 6 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+PROVIDER 7: FLOYD
+  Main File: Floyd/Pedido 11-02 Floyd medias/Pedido Floyd ENTERO.xlsx
+  Status: READY TO INSERT (409 pairs - verify DOCENAS conversion)
+  Analysis: Section 7 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+PROVIDER 8: CRISTIAN ZANCOCHIA (Distributor - 7 files)
+  Files:
+    1. ZAPATILLAS NIKE-ADIDAS 2-02-26.xlsx (Nike/Adidas shoes - catalog)
+    2. BOTINES ADIDAS-NIKE 2-02-26.xlsx (Nike/Adidas boots - catalog)
+    3. CE- HEAD 02.02.2026.xlsx (HEAD shoes - detailed spec)
+    4. CE- NIKE 02.03.2026.xlsx (Nike shoes - spec)
+    5. CE- ADDNICE 03.02.2026.xlsx (Addnice - spec)
+    6. Asics calzado MAYORISTA 4-3.xlsx (Asics - wholesale grid)
+    7. Fila Calzado MAYORISTA 4-3.xlsx (Fila - wholesale grid)
+  Status: MIXED (clarification needed)
+  Analysis: Section 8 in ANALISIS_PEDIDOS_INVIERNO_2026.txt
+
+
+================================================================================
+ANALYSIS SUMMARY TABLE
+================================================================================
+
+Provider              Status           Pairs  Amount (ARS)   Action
+--------              ------           -----  -----------    ------
+ATHIX                 PENDING          TBD    TBD            Fill PEDIDO column
+ATOMIK                READY INSERT     1,078  45,493,946     paso4_insertar_pedido.py
+DAS LUZ               READY INSERT     197    2,972,900      paso4_insertar_pedido.py
+EL FARAON             READY INSERT     414    5,661,426      paso4_insertar_pedido.py
+ESCORPIO SEGURIDAD    READY INSERT     60     515,280        paso4_insertar_pedido.py
+FOOTY                 CATALOG ONLY     0      0              Fill MODULOS/PARES
+FLOYD                 READY INSERT     409    7,370,110      paso4_insertar_pedido.py (verify DOCENAS)
+CRISTIAN ZANCOCHIA    MIXED            VAR    VAR            Clarify & confirm
+
+TOTAL READY: 2,157 pairs / $16,013,712 ARS (excl. Atomik)
+TOTAL INCL. ATOMIK: 3,235 pairs / $61,507,658 ARS
+
+
+================================================================================
+KEY CONFIGURATION PARAMETERS
+================================================================================
+
+Database Routing (from CLAUDE.md):
+- Atomik order: Company 'H4' → msgestion03
+- Das Luz, El Faraon, Escorpio, Floyd: Company 'CALZALINDO' → msgestion01
+- Cristian Zancochia: TBD (need clarification)
+
+Article Master:
+- Atomik articles: Need validation in msgestion01art.dbo.articulo
+- Das Luz articles: 1200, 1150, 1210, 1110, 1006, 1610
+- El Faraon articles: 55, 255, 360
+- Escorpio article: 50
+- Floyd articles: 59, 61, 62, 63, 65, 67, 68, 82, MJ1-MJ21, CL09, Go###, etc.
+
+Insertion Parameters (from CLAUDE.md):
+- codigo=8, letra='X', sucursal=1, estado='V', usuario='COWORK'
+- numero and orden: MAX+1 auto-increment
+
+Server Location:
+- Insert operations: 192.168.2.111 (DELL-SVR) via Python pyodbc
+- Query operations: 192.168.2.112 (DATASVRW replica) via MCP SQL
+
+
+================================================================================
+INSERTION WORKFLOW
+================================================================================
+
+1. PREPARATION
+   [ ] Read CLAUDE.md for infrastructure details
+   [ ] Confirm database connections
+   [ ] Verify article codes in msgestion01/03
+   [ ] Clarify company assignments (msg01 vs msg03)
+   [ ] Confirm IVA handling for all amounts
+
+2. EXECUTION (Order by size/complexity)
+   [ ] Test connection with paso1_verificar_bd.py
+   [ ] Insert ATOMIK (largest, H4 company)
+      Command: py -3 paso4_insertar_pedido.py --provider atomik
+   [ ] Insert DAS LUZ
+      Command: py -3 paso4_insertar_pedido.py --provider dasluz
+   [ ] Insert EL FARAON
+      Command: py -3 paso4_insertar_pedido.py --provider elfaraon
+   [ ] Insert ESCORPIO SEGURIDAD
+      Command: py -3 paso4_insertar_pedido.py --provider escorpio
+   [ ] Insert FLOYD (verify DOCENAS first)
+      Command: py -3 paso4_insertar_pedido.py --provider floyd
+
+3. VERIFICATION (After each insertion)
+   [ ] SELECT from msgestion01.dbo.pedico2 | WHERE numero = [new order #]
+   [ ] SELECT from msgestion01.dbo.pedico1 | WHERE numero = [new order #]
+   [ ] Verify pair counts match
+   [ ] Verify totals match amounts
+   [ ] Check size distributions preserved
+
+4. FOLLOW-UP (For pending orders)
+   [ ] Request ATHIX quantities from sales
+   [ ] Request FOOTY module/pair breakdown from client
+   [ ] Clarify CRISTIAN ZANCOCHIA modular system & priorities
+
+
+================================================================================
+IMPORTANT NOTES
+================================================================================
+
+ATOMIK SPECIAL:
+- Target company: H4 SRL (msgestion03) - NOT CALZALINDO
+- Largest order: 1,078 pairs
+- Insert first to verify process
+- Has detailed costing structure
+
+FLOYD SPECIAL:
+- Quantities in DOCENAS (dozens)
+- 409 in TOTAL column refers to pairs (need to verify)
+- Sizes use special notation (T00, T0, T01-T05, U)
+- Verify conversion before insertion
+
+CRISTIAN ZANCOCHIA SPECIAL:
+- Distributor/agent handling multiple brands
+- Files 1-2: Catalogs only (no current order)
+- Files 3-5: Modular format (need clarification)
+- Files 6-7: Have quantity grids (ready for review)
+- Requires additional clarification before insertion
+
+PRICING:
+- All prices shown appear to be unit prices per pair
+- Confirm if IVA included or excluded
+- Atomik explicitly shows "(+ IVA)" - others unclear
+- Verify before insertion to avoid overpayment
+
+
+================================================================================
+TROUBLESHOOTING REFERENCE
+================================================================================
+
+If article not found:
+- Check article code format (CODIGO vs SKU vs internal code)
+- Verify case sensitivity
+- Run paso2_buscar_articulo.py to test
+- May need to add to msgestion01art.dbo.articulo first
+
+If company/database mismatch:
+- Verify routing in get_tabla_base() function
+- Check empresa parameter spelling (case matters)
+- Review CLAUDE.md section on DB routing
+
+If size mapping fails:
+- Different providers use different size notations:
+  * Talle: Numeric child sizes (22-32)
+  * Numeric: Direct measurements (28-47)
+  * Special: T00-T05 for socks
+  * USA: 3.5-14.0 for shoes
+- May need custom mapping per provider
+
+If price validation fails:
+- Check for decimal vs thousands separator
+- Verify currency is ARS
+- Confirm IVA inclusion/exclusion
+- Check for subtotals vs unit prices
+
+
+================================================================================
+CONTACT & ESCALATION
+================================================================================
+
+Questions about:
+- Database structure/routing: See CLAUDE.md
+- Previous insertion examples: See KNU GTN or CARMEL RINGO in BITACORA
+- Article codes: Query msgestion01.dbo.articulo
+- Size notation: Review prep analysis for each provider
+- Company assignment: Verify with sales/accounting
+
+Files needing clarification:
+- ATHIX: Contact sales for order quantities
+- FOOTY: Contact client for module/pair decisions
+- CRISTIAN ZANCOCHIA: Contact distributor for modular system details
+
+
+================================================================================
+DOCUMENT HISTORY
+================================================================================
+
+2026-03-12: Initial comprehensive analysis created
+- All 8 providers analyzed
+- 17 Excel files processed
+- 850+ rows of data extracted
+- 5 orders marked ready for insertion
+- 3 orders flagged for pending action
+
+
+================================================================================
+END OF INDEX
+================================================================================
+
+For detailed information on any provider, see:
+  ANALISIS_PEDIDOS_INVIERNO_2026.txt (sections 1-8)
+
+For quick reference, see:
+  RESUMEN_RAPIDO_PEDIDOS.txt
+
+For next steps, see:
+  ACTION ITEMS in ANALISIS_PEDIDOS_INVIERNO_2026.txt

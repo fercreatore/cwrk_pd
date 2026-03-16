@@ -1,0 +1,123 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-box { background: #fff; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 10px; }
+.kpi-box h4 { margin: 0; font-size: 12px; color: #888; }
+.kpi-box .valor { font-size: 22px; font-weight: bold; color: #1a1a2e; }
+#tabla-pedido { font-size: 11px; }
+.quiebre-alto { color: #c0392b; font-weight: bold; }
+.quiebre-medio { color: #e67e22; }
+.quiebre-bajo { color: #27ae60; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <div style="margin-bottom:15px;">
+        <a href="{{=URL('ranking_consolidado','rank_productos', args=cod_marca)}}" class="btn btn-default btn-sm">
+            <i class="glyphicon glyphicon-arrow-left"></i> Volver a productos
+        </a>
+        <a href="{{=URL('ranking_consolidado','rank_marcas')}}" class="btn btn-default btn-sm">
+            <i class="glyphicon glyphicon-list"></i> Ranking marcas
+        </a>
+    </div>
+
+    <h3 style="margin-top:0;">
+        <i class="glyphicon glyphicon-shopping-cart"></i> Pedido Sugerido — {{=marca}}
+        <small style="color:#888;">Cobertura: {{=resumen['cobertura_objetivo']}} meses</small>
+    </h3>
+
+    <!-- KPIs -->
+    <div class="row">
+        <div class="col-md-2">
+            <div class="kpi-box">
+                <h4>Productos</h4>
+                <div class="valor">{{=resumen['total_productos']}}</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-box">
+                <h4>Con Quiebre</h4>
+                <div class="valor" style="color:#e74c3c;">{{=resumen['productos_con_quiebre']}}</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-box">
+                <h4>A Pedir</h4>
+                <div class="valor" style="color:#27ae60;">{{=resumen['productos_pedir']}}</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-box">
+                <h4>Total Pares</h4>
+                <div class="valor" style="color:#2980b9;">{{=resumen['total_pedir']}}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-box">
+                <h4>Monto Estimado</h4>
+                <div class="valor" style="color:#8e44ad;">$ {{='{:,.0f}'.format(resumen['total_monto']).replace(',','.')}}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA -->
+    <div style="background:#fff; border-radius:8px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <h5><i class="glyphicon glyphicon-th-list"></i> Detalle por producto</h5>
+        <div id="tabla-pedido"></div>
+    </div>
+</div>
+
+<!-- Tabulator -->
+<link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator_bootstrap3.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+
+<script>
+var datos = {{=XML(data_json)}};
+
+var table = new Tabulator("#tabla-pedido", {
+    data: datos.filter(function(r){ return !r.error; }),
+    layout: "fitColumns",
+    height: "600px",
+    initialSort: [{column:"pedir", dir:"desc"}],
+    columns: [
+        {formatter:"rownum", width:35, hozAlign:"center", headerSort:false},
+        {title:"Producto", field:"descripcion", sorter:"string", headerFilter:true, minWidth:180,
+         formatter: function(c){
+            var row = c.getRow().getData();
+            return '<a href="/calzalindo_informes/ranking_consolidado/producto_pedido/' + row.csr + '">' +
+                   c.getValue() + '</a>';
+         }},
+        {title:"Stock", field:"stock_actual", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"Vel.Real", field:"vel_real", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return c.getValue().toFixed(1); }},
+        {title:"%Quiebre", field:"pct_quiebre", sorter:"number", hozAlign:"right",
+         formatter: function(c){
+            var v = c.getValue();
+            var cls = v > 50 ? 'quiebre-alto' : v > 20 ? 'quiebre-medio' : 'quiebre-bajo';
+            return '<span class="' + cls + '">' + v.toFixed(0) + '%</span>';
+         }},
+        {title:"F.Est.", field:"factor_estacional", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return (c.getValue() || 1).toFixed(2); }},
+        {title:"Necesidad", field:"necesidad_total", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"PEDIR", field:"pedir", sorter:"number", hozAlign:"right",
+         formatter: function(c){
+            var v = c.getValue();
+            c.getElement().style.fontWeight = 'bold';
+            c.getElement().style.color = v > 0 ? '#27ae60' : '#888';
+            return Math.round(v).toLocaleString('es-AR');
+         },
+         topCalc:"sum"},
+        {title:"$/u CER", field:"precio_cer", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return '$ ' + Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"$Monto", field:"monto_pedir", sorter:"number", hozAlign:"right", topCalc:"sum",
+         formatter: function(c){ return '$ ' + Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"Det.", hozAlign:"center", width:60, headerSort:false,
+         formatter: function(c){
+            var row = c.getRow().getData();
+            return '<a href="/calzalindo_informes/ranking_consolidado/producto_pedido/' + row.csr +
+                   '" class="btn btn-xs btn-info"><i class="glyphicon glyphicon-zoom-in"></i></a>';
+         }}
+    ]
+});
+</script>

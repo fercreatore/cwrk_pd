@@ -1,0 +1,156 @@
+{{extend 'layout.html'}}
+
+<style>
+.sim-box { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-top: 15px; }
+.sim-result { font-size: 24px; font-weight: bold; color: #27ae60; }
+.banda-preview { padding: 8px 12px; margin: 5px; border-radius: 5px; display: inline-block; }
+</style>
+
+<a href="{{=URL('informes_productividad','dashboard')}}" class="btn btn-default btn-sm">&laquo; Volver al Dashboard</a>
+
+<h2>Simulador de Incentivos <small>Módulo RRHH</small></h2>
+
+<div class="row">
+    <!-- Panel simulación -->
+    <div class="col-md-6">
+        <div class="sim-box">
+            <h4>Simular Comisión de un Vendedor</h4>
+            <div class="form-group">
+                <label>Venta del mes ($)</label>
+                <input type="number" id="sim_venta" class="form-control" value="5000000" onchange="calcular()">
+            </div>
+            <div class="form-group">
+                <label>Costo del mes ($)</label>
+                <input type="number" id="sim_costo" class="form-control" value="2750000" onchange="calcular()">
+            </div>
+            <div class="form-group">
+                <label>Sueldo mensual ($)</label>
+                <input type="number" id="sim_sueldo" class="form-control" value="1000000" onchange="calcular()">
+            </div>
+            <div class="form-group">
+                <label>Mes</label>
+                <select id="sim_mes" class="form-control" onchange="calcular()">
+                    <option value="1">Enero (0.9)</option>
+                    <option value="2">Febrero (1.0)</option>
+                    <option value="3" selected>Marzo (1.3)</option>
+                    <option value="4">Abril (1.2)</option>
+                    <option value="5">Mayo (1.1)</option>
+                    <option value="6">Junio (1.0)</option>
+                    <option value="7">Julio (1.0)</option>
+                    <option value="8">Agosto (1.1)</option>
+                    <option value="9">Septiembre (1.2)</option>
+                    <option value="10">Octubre (0.9)</option>
+                    <option value="11">Noviembre (0.9)</option>
+                    <option value="12">Diciembre (0.8)</option>
+                </select>
+            </div>
+            <hr>
+            <div id="resultado">
+                <!-- Se llena por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel referencia -->
+    <div class="col-md-6">
+        <div class="sim-box">
+            <h4>Bandas de Margen</h4>
+            <table class="table table-bordered table-condensed">
+                <tr><th>Margen &ge;</th><th>% Comisión</th><th>Banda</th></tr>
+                {{for umbral, comision, nombre in bandas:}}
+                <tr>
+                    <td>{{='{:.0f}%'.format(umbral*100)}}</td>
+                    <td>{{='{:.1f}%'.format(comision*100)}}</td>
+                    <td>{{=nombre}}</td>
+                </tr>
+                {{pass}}
+            </table>
+
+            <h4 style="margin-top:20px;">Bonus por Productividad</h4>
+            <table class="table table-bordered table-condensed">
+                <tr><th>Productividad &ge;</th><th>Bonus adicional</th></tr>
+                {{for umbral, bonus in bonus_productividad:}}
+                <tr><td>{{=umbral}}x</td><td>+{{='{:.1f}%'.format(bonus*100)}}</td></tr>
+                {{pass}}
+            </table>
+
+            <h4 style="margin-top:20px;">Factores Estacionales</h4>
+            <table class="table table-bordered table-condensed">
+                <tr><th>Mes</th><th>Factor</th></tr>
+                {{meses_nombres = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'} }}
+                {{for k in sorted(factor_estacional.keys()):}}
+                <tr>
+                    <td>{{=meses_nombres.get(k)}}</td>
+                    <td style="{{='color:#27ae60; font-weight:bold' if factor_estacional[k] > 1.0 else 'color:#e74c3c; font-weight:bold' if factor_estacional[k] < 1.0 else ''}}">
+                        {{=factor_estacional[k]}}
+                    </td>
+                </tr>
+                {{pass}}
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+var factores = { {{for k,v in factor_estacional.items():}} {{=k}}: {{=v}}, {{pass}} };
+var bandas = [
+    {{for umbral, comision, nombre in bandas:}}
+    { umbral: {{=umbral}}, comision: {{=comision}}, nombre: '{{=nombre}}' },
+    {{pass}}
+];
+var bonus_prod = [
+    {{for umbral, bonus in bonus_productividad:}}
+    { umbral: {{=umbral}}, bonus: {{=bonus}} },
+    {{pass}}
+];
+
+function calcular() {
+    var venta = parseFloat(document.getElementById('sim_venta').value) || 0;
+    var costo = parseFloat(document.getElementById('sim_costo').value) || 0;
+    var sueldo = parseFloat(document.getElementById('sim_sueldo').value) || 0;
+    var mes = parseInt(document.getElementById('sim_mes').value);
+
+    var margen = venta - costo;
+    var pct_margen = venta > 0 ? margen / venta : 0;
+    var prod = sueldo > 0 ? venta / sueldo : 0;
+    var factor = factores[mes] || 1.0;
+
+    // Buscar banda
+    var pct_com = 0, banda_nombre = 'Sin banda';
+    for (var i = 0; i < bandas.length; i++) {
+        if (pct_margen >= bandas[i].umbral) {
+            pct_com = bandas[i].comision;
+            banda_nombre = bandas[i].nombre;
+            break;
+        }
+    }
+
+    // Buscar bonus prod
+    var bonus = 0;
+    for (var j = 0; j < bonus_prod.length; j++) {
+        if (prod >= bonus_prod[j].umbral) {
+            bonus = bonus_prod[j].bonus;
+            break;
+        }
+    }
+
+    var comision_base = venta * pct_com;
+    var comision_ajustada = comision_base * factor;
+    var bonus_monto = venta * bonus;
+    var total = comision_ajustada + bonus_monto;
+
+    var html = '<table class="table table-condensed" style="font-size:14px;">';
+    html += '<tr><td>% Margen</td><td style="text-align:right; font-weight:bold; color:' + (pct_margen >= 0.45 ? '#27ae60' : pct_margen < 0.35 ? '#e74c3c' : '#f39c12') + '">' + (pct_margen * 100).toFixed(1) + '%</td></tr>';
+    html += '<tr><td>Banda</td><td style="text-align:right; font-weight:bold">' + banda_nombre + '</td></tr>';
+    html += '<tr><td>Productividad</td><td style="text-align:right; font-weight:bold">' + prod.toFixed(1) + 'x</td></tr>';
+    html += '<tr><td>Comisión base (' + (pct_com*100).toFixed(1) + '% de venta)</td><td style="text-align:right">$' + comision_base.toLocaleString('es-AR', {maximumFractionDigits:0}) + '</td></tr>';
+    html += '<tr><td>Factor estacional (x' + factor + ')</td><td style="text-align:right">$' + comision_ajustada.toLocaleString('es-AR', {maximumFractionDigits:0}) + '</td></tr>';
+    html += '<tr><td>Bonus productividad (+' + (bonus*100).toFixed(1) + '%)</td><td style="text-align:right">$' + bonus_monto.toLocaleString('es-AR', {maximumFractionDigits:0}) + '</td></tr>';
+    html += '<tr style="border-top:2px solid #333"><td><strong>TOTAL INCENTIVO</strong></td><td style="text-align:right" class="sim-result">$' + total.toLocaleString('es-AR', {maximumFractionDigits:0}) + '</td></tr>';
+    html += '</table>';
+
+    document.getElementById('resultado').innerHTML = html;
+}
+
+calcular();
+</script>

@@ -1,0 +1,214 @@
+# -*- coding: utf-8 -*-
+
+# -------------------------------------------------------------------------
+# This scaffolding model makes your app work on Google App Engine too
+# File is released under public domain and you can use without limitations
+# -------------------------------------------------------------------------
+
+if request.global_settings.web2py_version < "2.14.1":
+    raise HTTP(500, "Requires web2py 2.13.3 or newer")
+
+# -------------------------------------------------------------------------
+# if SSL/HTTPS is properly configured and you want all HTTP requests to
+# be redirected to HTTPS, uncomment the line below:
+# -------------------------------------------------------------------------
+# request.requires_https()
+
+# -------------------------------------------------------------------------
+# app configuration made easy. Look inside private/appconfig.ini
+# -------------------------------------------------------------------------
+from gluon.contrib.appconfig import AppConfig
+
+# -------------------------------------------------------------------------
+# once in production, remove reload=True to gain full speed
+# -------------------------------------------------------------------------
+myconf = AppConfig(reload=True)
+
+if not request.env.web2py_runtime_gae:
+    # ---------------------------------------------------------------------
+    # if NOT running on Google App Engine use SQLite or other DB
+    # ---------------------------------------------------------------------
+    db = DAL(myconf.get('db.uri'),
+             pool_size=myconf.get('db.pool_size'),
+             migrate_enabled=myconf.get('db.migrate'),
+             check_reserved=['all'])
+
+    ### BASE DE DATOS MSSQL EN SERVIDOR CALZALINDO ### Habilitar la opción que corresponda
+    
+    # 01) Linux
+    #db1 = DAL('mssql://am:dl@181.230.19.4:1433/msgestion01?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)
+    # db1 = DAL('mssql://am:dl@calzalindo.duckdns.org:31433/msgestion01?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)
+    # dbC = DAL('mssql://am:dl@calzalindo.duckdns.org:31433/msgestionC?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)
+
+    # db1 = DAL('mssql://am:dl@evirtual.calzalindo.com.ar:31433/msgestion01?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)
+    # dbC = DAL('mssql://am:dl@evirtual.calzalindo.com.ar:31433/msgestionC?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)
+
+    db1 = DAL('mssql://am:dl@192.168.2.111:1433/msgestion01?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)
+    dbC = DAL('mssql://am:dl@192.168.2.111:1433/msgestionC?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False) 
+    dbH4 = DAL('mssql://am:dl@192.168.2.111:1433/msgestion03?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)   
+
+
+    # 09/06/2023, base para informes
+    db_omicronvt = DAL('mssql://am:dl@192.168.2.111:1433/omicronvt?DRIVER={FreeTDS}', migrate_enabled=True, entity_quoting=False)
+
+    ### Control de relojes Anviz
+    db_anviz2 = DAL('mssql://am:dl@192.168.2.111:1433/anviz2?DRIVER={FreeTDS}', migrate_enabled=False, entity_quoting=False)
+    
+    ## 02) Windows(con la versión de web2py para windows), hay que tener un dsn de sistema configurado con nombre msgestion01
+    #db1 = DAL('mssql://DSN=msgestion01;UID=am;PWD=dl', pool_size=20, migrate_enabled=False)
+
+    ## 03) Windows(con la versión de web2py desde SRC), hay que tener Python 2.7 instalado, con los módulos que haga falta. DB en servidor remoto.
+    #db1 = DAL('mssql4://am:dl@calzalindo.duckdns.org:1433/msgestion01', pool_size=20, migrate_enabled=False)
+
+    ## 04) Windows(con la versión de web2py desde SRC), hay que tener Python 2.7 instalado, con los módulos que haga falta. DB en servidor local.
+    #db1 = DAL('mssql4://am:dl@192.168.2.111:1433/msgestion01', pool_size=20, migrate_enabled=False)
+    #db_C = DAL('mssql4://am:dl@192.168.2.111:1433/msgestionC', pool_size=20, migrate_enabled=False)
+    ### Control de relojes Anviz
+    #db_anviz2 = DAL('mssql4://am:dl@192.168.2.111:1433/anviz2', pool_size=20, migrate_enabled=False)
+
+    ## 05)HABILITAR ESTAS PARA MYSQL TURNERO - DESARROLLO
+    # db2 = DAL('mysql://luciano:/*Luciano24732@evirtual.calzalindo.com.ar:33307/turnero_calzalindo', migrate_enabled=False)
+    # db2 = DAL('mysql://luciano:/*Luciano24732@evirtual.calzalindo.com.ar:33307/turnero_calzalindo', migrate_enabled=False)
+    # db3 = DAL('mysql://luciano:/*Luciano24732@evirtual.calzalindo.com.ar:33307/turnero_alvear', migrate_enabled=False)
+    # db4 = DAL('mysql://luciano:/*Luciano24732@evirtual.calzalindo.com.ar:33307/turnero_eperon', migrate_enabled=False)
+    # db5 = DAL('mysql://luciano:/*Luciano24732@calzalindo.duckdns.org:33307/turnos_todos', migrate_enabled=False)
+
+    db2 = DAL('mysql://objetivos:Calzalindo01@192.168.2.108/turnero_calzalindo', migrate_enabled=False)
+    db3 = DAL('mysql://objetivos:Calzalindo01@192.168.2.108/turnero_alvear', migrate_enabled=False)
+    db4 = DAL('mysql://objetivos:Calzalindo01@192.168.2.108/turnero_eperon', migrate_enabled=False)
+    db5 = DAL('mysql://objetivos:Calzalindo01@192.168.2.108/turnos_todos', migrate_enabled=False)
+
+
+
+    ## 06)HABILITAR ESTA PARA MYSQL TURNERO- SERVER EN PRODUCCION
+    # db2 = DAL('mysql://root:belgrano87@localhost/turnero_calzalindo', migrate_enabled=False)
+    # db3 = DAL('mysql://root:belgrano87@localhost/turnero_alvear', migrate_enabled=False)
+    # db4 = DAL('mysql://root:belgrano87@localhost/turnero_eperon', migrate_enabled=False)  
+    db5 = DAL('mysql://root:belgrano87@192.168.2.108/turnos_todos', migrate_enabled=False, pool_size=20,)  
+
+    ### agregado el 24/04/23 para poder autenticar contra la base de clz_ventas
+    #db_autenticacion = DAL('mysql://root:cagr$2011@192.168.2.109/clz_ventas_mysql', migrate_enabled=False)
+    db_autenticacion = DAL('mysql://root@127.0.0.1/clz_ventas_mysql', migrate_enabled=False)
+
+    ### agregado el 08/04/2024 para sincronizar los prods de ML desde web_stock - PID-227
+    db_ml = DAL('mysql://root:cagr$2011@192.168.2.109/clz_mercadolibre', migrate_enabled=False)
+
+else:
+    # ---------------------------------------------------------------------
+    # connect to Google BigTable (optional 'google:datastore://namespace')
+    # ---------------------------------------------------------------------
+    db = DAL('google:datastore+ndb')
+    # ---------------------------------------------------------------------
+    # store sessions and tickets there
+    # ---------------------------------------------------------------------
+    session.connect(request, response, db=db)
+    # ---------------------------------------------------------------------
+    # or store session in Memcache, Redis, etc.
+    # from gluon.contrib.memdb import MEMDB
+    # from google.appengine.api.memcache import Client
+    # session.connect(request, response, db = MEMDB(Client()))
+    # ---------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# by default give a view/generic.extension to all actions from localhost
+# none otherwise. a pattern can be 'controller/function.extension'
+# -------------------------------------------------------------------------
+response.generic_patterns = ['*'] if request.is_local else []
+# -------------------------------------------------------------------------
+# choose a style for forms
+# -------------------------------------------------------------------------
+response.formstyle = myconf.get('forms.formstyle')  # or 'bootstrap3_stacked' or 'bootstrap2' or other
+response.form_label_separator = myconf.get('forms.separator') or ''
+
+# -------------------------------------------------------------------------
+# (optional) optimize handling of static files
+# -------------------------------------------------------------------------
+# response.optimize_css = 'concat,minify,inline'
+# response.optimize_js = 'concat,minify,inline'
+
+# -------------------------------------------------------------------------
+# (optional) static assets folder versioning
+# -------------------------------------------------------------------------
+# response.static_version = '0.0.0'
+
+# -------------------------------------------------------------------------
+# Here is sample code if you need for
+# - email capabilities
+# - authentication (registration, login, logout, ... )
+# - authorization (role based authorization)
+# - services (xml, csv, json, xmlrpc, jsonrpc, amf, rss)
+# - old style crud actions
+# (more options discussed in gluon/tools.py)
+# -------------------------------------------------------------------------
+
+from gluon.tools import Auth, Service, PluginManager
+
+# host names must be a list of allowed host names (glob syntax allowed)
+
+### agregado el 24/04/23 para poder autenticar contra la base de clz_ventas
+#auth = Auth(db, host_names=myconf.get('host.names'))
+auth = Auth(db_autenticacion, host_names=myconf.get('host.names'), hmac_key=Auth.get_or_create_key())
+
+service = Service()
+plugins = PluginManager()
+
+# -------------------------------------------------------------------------
+# extra fiels Luciano Omicron-VT
+# -------------------------------------------------------------------------
+auth.settings.extra_fields['auth_user']=[
+Field('deposito_asignado'),
+Field('nro_proveedor')]
+
+
+
+# -------------------------------------------------------------------------
+# create all tables needed by auth if not custom tables
+# -------------------------------------------------------------------------
+auth.define_tables(username=False, signature=False, migrate=False)
+
+
+
+# -------------------------------------------------------------------------
+# configure email
+# -------------------------------------------------------------------------
+mail = auth.settings.mailer
+#mail.settings.server = 'logging' if request.is_local else myconf.get('smtp.server') 
+mail.settings.server = myconf.get('smtp.server')
+mail.settings.sender = myconf.get('smtp.sender')
+mail.settings.login = myconf.get('smtp.login')
+mail.settings.tls = myconf.get('smtp.tls') or False
+mail.settings.ssl = myconf.get('smtp.ssl') or False
+### PID-337 , si no cuelgan los envíos.
+mail.settings.timeout = 30
+
+# -------------------------------------------------------------------------
+# configure auth policy
+# -------------------------------------------------------------------------
+auth.settings.registration_requires_verification = False
+auth.settings.registration_requires_approval = False
+auth.settings.reset_password_requires_verification = True
+
+# -------------------------------------------------------------------------
+# Define your tables below (or better in another model file) for example
+#
+# >>> db.define_table('mytable', Field('myfield', 'string'))
+#
+# Fields can be 'string','text','password','integer','double','boolean'
+#       'date','time','datetime','blob','upload', 'reference TABLENAME'
+# There is an implicit 'id integer autoincrement' field
+# Consult manual for more options, validators, etc.
+#
+# More API examples for controllers:
+#
+# >>> db.mytable.insert(myfield='value')
+# >>> rows = db(db.mytable.myfield == 'value').select(db.mytable.ALL)
+# >>> for row in rows: print row.id, row.myfield
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# after defining tables, uncomment below to enable auditing
+# -------------------------------------------------------------------------
+# auth.enable_record_versioning(db)
+
+
+depo_faltantes = myconf.get('depo_faltantes.id')

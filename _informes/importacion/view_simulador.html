@@ -1,0 +1,330 @@
+{{extend 'layout.html'}}
+{{block content}}
+
+<style>
+.impo-card        { background:#fff; border:1px solid #ddd; border-radius:6px; padding:20px; margin-bottom:20px; }
+.impo-card h4     { margin-top:0; color:#555; border-bottom:1px solid #eee; padding-bottom:8px; }
+.impo-sep         { background:#f5f5f5; font-weight:bold; color:#444; }
+.impo-total       { background:#dff0d8; font-weight:bold; font-size:1.1em; }
+.impo-financiero  { background:#fcf8e3; }
+.impo-dumping     { background:#f2dede; }
+.tag-rec          { color:#3c763d; font-size:0.82em; font-weight:bold; }
+.tag-norec        { color:#a94442; font-size:0.82em; font-weight:bold; }
+.precio-nivel     { font-size:1.15em; font-weight:bold; color:#31708f; }
+#modo-contenedor  { display:none; }
+#modo-unitaria    { display:block; }
+</style>
+
+<div class="row">
+  <div class="col-md-12">
+    <h2 style="margin-bottom:4px;">&#x1F6A2; Simulador de Costo de Importacion</h2>
+    <p class="text-muted" style="margin-bottom:20px;">
+      Calcula costo economico por SKU | DI 20% | TC: Dolar vendedor BNA | Empresa RI
+    </p>
+  </div>
+</div>
+
+{{if error:}}
+<div class="alert alert-danger"><strong>Error:</strong> {{=error}}</div>
+{{pass}}
+
+<div class="row">
+
+<!-- ════════════════════════════════════════════════════════
+     FORMULARIO
+═════════════════════════════════════════════════════════ -->
+<div class="col-md-5">
+<div class="impo-card">
+  <h4>&#x1F4E6; Datos del producto</h4>
+
+  <form method="POST" action="{{=URL('importaciones','simulador')}}">
+
+    <div class="form-group">
+      <label>FOB real (USD) <small class="text-muted">- lo que pagaste en China</small></label>
+      <input type="number" step="0.0001" name="fob_real" class="form-control"
+             value="{{=post_vars.fob_real if post_vars else ''}}"
+             placeholder="ej: 8.00">
+      <span class="help-block">Dejar en 0 si no hay diferencia con FOB aduana (sin dumping)</span>
+    </div>
+
+    <div class="form-group">
+      <label>FOB aduana (USD) <small class="text-muted">- valor declarado ante AFIP</small></label>
+      <input type="number" step="0.0001" name="fob_aduana" class="form-control"
+             value="{{=post_vars.fob_aduana if post_vars else ''}}"
+             placeholder="ej: 15.70" required>
+    </div>
+
+    <div class="form-group">
+      <label>Tipo de cambio (ARS/USD) <small class="text-muted">- dolar vendedor BNA</small></label>
+      <input type="number" step="0.01" name="tipo_cambio" class="form-control"
+             value="{{=post_vars.tipo_cambio if post_vars else ''}}"
+             placeholder="ej: 1200" required>
+    </div>
+
+    <h4 style="margin-top:20px;">&#x1F69A; Logistica</h4>
+
+    <div class="form-group">
+      <label>Modo de ingreso</label>
+      <select name="modo_logistica" class="form-control" id="sel-modo"
+              onchange="toggleModo(this.value)">
+        <option value="unitaria"
+          {{='selected' if (not post_vars or post_vars.get('modo_logistica','unitaria')=='unitaria') else ''}}>
+          Ingresar logistica unitaria directamente (USD)
+        </option>
+        <option value="contenedor"
+          {{='selected' if post_vars and post_vars.get('modo_logistica')=='contenedor' else ''}}>
+          Calcular desde datos del contenedor
+        </option>
+      </select>
+    </div>
+
+    <div id="modo-unitaria">
+      <div class="form-group">
+        <label>Logistica unitaria (USD)</label>
+        <input type="number" step="0.0001" name="logistica_unitaria" class="form-control"
+               value="{{=post_vars.logistica_unitaria if post_vars else ''}}"
+               placeholder="ej: 3.4466">
+        <span class="help-block">Flete + flete interno + despachante prorrateado por este SKU</span>
+      </div>
+    </div>
+
+    <div id="modo-contenedor">
+      <div class="row">
+        <div class="col-xs-6">
+          <div class="form-group">
+            <label>Flete maritimo (USD)</label>
+            <input type="number" step="1" name="flete_maritimo" class="form-control"
+                   value="{{=post_vars.flete_maritimo if post_vars else ''}}"
+                   placeholder="ej: 3800">
+          </div>
+        </div>
+        <div class="col-xs-6">
+          <div class="form-group">
+            <label>Flete interno (USD)</label>
+            <input type="number" step="1" name="flete_interno" class="form-control"
+                   value="{{=post_vars.flete_interno if post_vars else ''}}"
+                   placeholder="ej: 1300">
+          </div>
+        </div>
+        <div class="col-xs-6">
+          <div class="form-group">
+            <label>Despachante (USD)</label>
+            <input type="number" step="1" name="despachante" class="form-control"
+                   value="{{=post_vars.despachante if post_vars else ''}}"
+                   placeholder="ej: 350">
+          </div>
+        </div>
+        <div class="col-xs-6">
+          <div class="form-group">
+            <label>FOB aduana TOTAL del contenedor (USD)</label>
+            <input type="number" step="0.01" name="fob_total_contenedor" class="form-control"
+                   value="{{=post_vars.fob_total_contenedor if post_vars else ''}}"
+                   placeholder="ej: 24825.90">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h4 style="margin-top:20px;">&#x1F4CA; Margenes de venta (opcional)</h4>
+    <div class="row">
+      <div class="col-xs-6">
+        <div class="form-group">
+          <label>Contado (%)</label>
+          <input type="number" step="0.1" name="margen_contado" class="form-control"
+                 value="{{=post_vars.margen_contado if post_vars else '98.9'}}">
+        </div>
+      </div>
+      <div class="col-xs-6">
+        <div class="form-group">
+          <label>Lista (%)</label>
+          <input type="number" step="0.1" name="margen_lista" class="form-control"
+                 value="{{=post_vars.margen_lista if post_vars else '122.9'}}">
+        </div>
+      </div>
+      <div class="col-xs-6">
+        <div class="form-group">
+          <label>Intermedio (%)</label>
+          <input type="number" step="0.1" name="margen_intermedio" class="form-control"
+                 value="{{=post_vars.margen_intermedio if post_vars else '60'}}">
+        </div>
+      </div>
+      <div class="col-xs-6">
+        <div class="form-group">
+          <label>Mayorista (%)</label>
+          <input type="number" step="0.1" name="margen_mayorista" class="form-control"
+                 value="{{=post_vars.margen_mayorista if post_vars else '45'}}">
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block btn-lg">
+      &#x2699; Calcular costo
+    </button>
+
+  </form>
+</div><!-- /impo-card -->
+</div><!-- /col-md-5 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     RESULTADO
+═════════════════════════════════════════════════════════ -->
+<div class="col-md-7">
+{{if resultado:}}
+{{r = resultado}}
+
+<!-- Resumen ejecutivo -->
+<div class="row" style="margin-bottom:16px;">
+  <div class="col-xs-6">
+    <div class="impo-card text-center" style="background:#dff0d8;">
+      <div style="font-size:0.9em; color:#555;">COSTO ECONOMICO / unidad</div>
+      <div style="font-size:2em; font-weight:bold; color:#2d6a2d;">
+        ${{='{:,.0f}'.format(r['costo_economico_ars']).replace(',','.')}}
+      </div>
+      <div style="font-size:0.8em; color:#555;">sin recuperables</div>
+    </div>
+  </div>
+  <div class="col-xs-6">
+    <div class="impo-card text-center" style="background:#fcf8e3;">
+      <div style="font-size:0.9em; color:#555;">COSTO FINANCIERO / unidad</div>
+      <div style="font-size:2em; font-weight:bold; color:#8a6d3b;">
+        ${{='{:,.0f}'.format(r['costo_financiero_ars']).replace(',','.')}}
+      </div>
+      <div style="font-size:0.8em; color:#555;">desembolso real</div>
+    </div>
+  </div>
+</div>
+
+<!-- Desglose -->
+<div class="impo-card">
+  <h4>Desglose</h4>
+  <table class="table table-condensed" style="margin-bottom:0;">
+
+    <tr><td>FOB real</td>
+        <td class="text-right">USD {{='{:.4f}'.format(r['fob_real_usd'])}}</td>
+        <td class="text-right">${{='{:,.0f}'.format(r['fob_real_usd'] * r['tipo_cambio']).replace(',','.')}}</td></tr>
+
+    <tr><td>FOB aduana</td>
+        <td class="text-right">USD {{='{:.4f}'.format(r['fob_aduana_usd'])}}</td>
+        <td class="text-right">${{='{:,.0f}'.format(r['fob_aduana_usd'] * r['tipo_cambio']).replace(',','.')}}</td></tr>
+
+    <tr><td>Logistica</td>
+        <td class="text-right">USD {{='{:.4f}'.format(r['logistica_usd'])}}</td>
+        <td class="text-right">${{='{:,.0f}'.format(r['logistica_usd'] * r['tipo_cambio']).replace(',','.')}}</td></tr>
+
+    <tr class="impo-sep">
+      <td colspan="2"><strong>CIF (base aduanera)</strong></td>
+      <td class="text-right"><strong>${{='{:,.0f}'.format(r['cif_ars']).replace(',','.')}}</strong></td>
+    </tr>
+
+    <tr><td>Derecho importacion 20% <span class="tag-norec">NO REC</span></td>
+        <td></td>
+        <td class="text-right">${{='{:,.0f}'.format(r['derecho_ars']).replace(',','.')}}</td></tr>
+
+    <tr><td>Tasa estadistica 3% <span class="tag-norec">NO REC</span></td>
+        <td></td>
+        <td class="text-right">${{='{:,.0f}'.format(r['estadistica_ars']).replace(',','.')}}</td></tr>
+
+    <tr class="active">
+      <td colspan="2">Base IVA (CIF + Derecho)</td>
+      <td class="text-right"><strong>${{='{:,.0f}'.format(r['base_iva_ars']).replace(',','.')}}</strong></td>
+    </tr>
+
+    <tr><td>IVA 21% <span class="tag-rec">REC</span></td>
+        <td></td>
+        <td class="text-right">${{='{:,.0f}'.format(r['iva_ars']).replace(',','.')}}</td></tr>
+
+    <tr><td>Percepcion IVA 20% <span class="tag-rec">REC</span></td>
+        <td></td>
+        <td class="text-right">${{='{:,.0f}'.format(r['percepcion_iva_ars']).replace(',','.')}}</td></tr>
+
+    <tr><td>Percepcion Ganancias 6% <span class="tag-rec">REC</span></td>
+        <td></td>
+        <td class="text-right">${{='{:,.0f}'.format(r['percepcion_ganancias_ars']).replace(',','.')}}</td></tr>
+
+    <tr class="impo-financiero">
+      <td colspan="2"><strong>Costo financiero</strong>
+        <small class="text-muted">(desembolso total)</small></td>
+      <td class="text-right"><strong>${{='{:,.0f}'.format(r['costo_financiero_ars']).replace(',','.')}}</strong></td>
+    </tr>
+
+    <tr><td colspan="2"><em>menos recuperables</em></td>
+        <td class="text-right text-success"><em>-${{='{:,.0f}'.format(r['recuperables_ars']).replace(',','.')}}</em></td></tr>
+
+    <tr class="impo-total">
+      <td colspan="2">COSTO ECONOMICO</td>
+      <td class="text-right">${{='{:,.0f}'.format(r['costo_economico_ars']).replace(',','.')}}</td>
+    </tr>
+
+    {{if r['diferencial_dumping_usd'] > 0:}}
+    <tr class="impo-dumping">
+      <td colspan="2">
+        Sobrecosto dumping ({{='{:.1f}'.format(r['pct_sobrecosto_sobre_real'])}}% sobre FOB real)
+        <small class="text-muted"> - derechos sobre diferencia declarada</small>
+      </td>
+      <td class="text-right">${{='{:,.0f}'.format(r['sobrecosto_dumping_ars']).replace(',','.')}}</td>
+    </tr>
+    {{pass}}
+
+  </table>
+</div>
+
+<!-- Precios de venta -->
+{{if precios:}}
+<div class="impo-card">
+  <h4>&#x1F4B0; Precios de venta sugeridos</h4>
+  <table class="table table-condensed">
+    <thead>
+      <tr>
+        <th>Nivel</th>
+        <th class="text-right">Margen</th>
+        <th class="text-right">Precio exacto</th>
+        <th class="text-right">Redondeado a $100</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{for nivel, p in precios.items():}}
+      {{margen_val = post_vars.get('margen_' + nivel, '')}}
+      <tr>
+        <td><strong>{{=nivel.capitalize()}}</strong></td>
+        <td class="text-right text-muted">{{=margen_val}}%</td>
+        <td class="text-right">${{='{:,.0f}'.format(p['exacto']).replace(',','.')}}</td>
+        <td class="text-right"><span class="precio-nivel">${{='{:,}'.format(p['redondeado']).replace(',','.')}}</span></td>
+      </tr>
+      {{pass}}
+    </tbody>
+  </table>
+</div>
+{{pass}}
+
+{{else:}}
+<div class="impo-card text-center" style="padding:40px; color:#aaa;">
+  <p style="font-size:2em;">&#x1F6A2;</p>
+  <p>Ingresa los datos del producto y hace clic en <strong>Calcular costo</strong></p>
+  <p class="text-muted" style="font-size:0.9em;">
+    Ejemplo: Go Dance | FOB real USD 8 | FOB aduana USD 15.70 | TC 1200
+  </p>
+</div>
+{{pass}}
+
+</div><!-- /col-md-7 -->
+</div><!-- /row -->
+
+<script>
+function toggleModo(val) {
+    if (val === 'contenedor') {
+        document.getElementById('modo-contenedor').style.display = 'block';
+        document.getElementById('modo-unitaria').style.display = 'none';
+    } else {
+        document.getElementById('modo-contenedor').style.display = 'none';
+        document.getElementById('modo-unitaria').style.display = 'block';
+    }
+}
+// Restaurar estado al cargar si hubo POST
+(function(){
+    var sel = document.getElementById('sel-modo');
+    if (sel) toggleModo(sel.value);
+})();
+</script>
+
+{{end}}

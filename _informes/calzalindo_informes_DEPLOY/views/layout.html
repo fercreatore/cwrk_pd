@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{=response.title or 'Calzalindo Informes'}}</title>
+
+    <!-- Bootstrap 3 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+    <style>
+    body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+    /* NAVBAR */
+    .navbar-informes {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border: none; margin-bottom: 0; border-radius: 0;
+    }
+    .navbar-informes .navbar-brand {
+        color: #fff; font-weight: bold; font-size: 18px;
+    }
+    .navbar-informes .navbar-brand span { color: #4fc3f7; }
+    .navbar-informes .navbar-nav > li > a {
+        color: rgba(255,255,255,0.8); font-size: 13px;
+    }
+    .navbar-informes .navbar-nav > li > a:hover,
+    .navbar-informes .navbar-nav > li.active > a {
+        color: #fff; background: rgba(255,255,255,0.1);
+    }
+    .navbar-informes .navbar-nav > li > a > .glyphicon {
+        margin-right: 4px;
+    }
+
+    /* LINK AL SISTEMA PRINCIPAL */
+    .link-sistema {
+        color: rgba(255,255,255,0.5); font-size: 12px;
+    }
+    .link-sistema:hover { color: #fff; }
+
+    /* FLASH MESSAGES */
+    .flash-container { position: fixed; top: 60px; right: 20px; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-informes">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navMenu">
+                    <span class="icon-bar" style="background:#fff;"></span>
+                    <span class="icon-bar" style="background:#fff;"></span>
+                    <span class="icon-bar" style="background:#fff;"></span>
+                </button>
+                <a class="navbar-brand" href="{{=URL('default','index')}}">
+                    <span>CLZ</span> Informes
+                </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navMenu">
+                {{if auth.user:}}
+                <ul class="nav navbar-nav">
+                    <li {{if request.controller=='default':}}class="active"{{pass}}>
+                        <a href="{{=URL('default','index')}}">
+                            <i class="glyphicon glyphicon-home"></i> Inicio
+                        </a>
+                    </li>
+                    {{if _puede_ver('ranking_consolidado.rank_marcas'):}}
+                    <li {{if request.controller=='ranking_consolidado':}}class="active"{{pass}}>
+                        <a href="{{=URL('ranking_consolidado','rank_marcas')}}">
+                            <i class="glyphicon glyphicon-stats"></i> Ranking
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('calce_financiero.dashboard'):}}
+                    <li {{if request.controller=='calce_financiero':}}class="active"{{pass}}>
+                        <a href="{{=URL('calce_financiero','dashboard')}}">
+                            <i class="glyphicon glyphicon-usd"></i> Calce Financiero
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('reportes.pedidos'):}}
+                    <li {{if request.controller=='reportes' and request.function.startswith('pedidos'):}}class="active"{{pass}}>
+                        <a href="{{=URL('reportes','pedidos')}}">
+                            <i class="glyphicon glyphicon-list-alt"></i> Pedidos
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('reportes.recupero'):}}
+                    <li {{if request.controller=='reportes' and request.function=='recupero':}}class="active"{{pass}}>
+                        <a href="{{=URL('reportes','recupero')}}">
+                            <i class="glyphicon glyphicon-refresh"></i> Recupero Live
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('reportes.recupero_inversion'):}}
+                    <li {{if request.controller=='reportes' and request.function.startswith('recupero_inversion'):}}class="active"{{pass}}>
+                        <a href="{{=URL('reportes','recupero_inversion')}}">
+                            <i class="glyphicon glyphicon-stats"></i> Recupero Hist.
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('reportes.negociacion_plazos'):}}
+                    <li {{if request.controller=='reportes' and request.function.startswith('negociacion'):}}class="active"{{pass}}>
+                        <a href="{{=URL('reportes','negociacion_plazos')}}">
+                            <i class="glyphicon glyphicon-handshake"></i> Negociacion
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('agrupadores.index'):}}
+                    <li {{if request.controller=='agrupadores':}}class="active"{{pass}}>
+                        <a href="{{=URL('agrupadores','index')}}">
+                            <i class="glyphicon glyphicon-th-large"></i> Agrupadores
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('informes_productividad.dashboard'):}}
+                    <li {{if request.controller=='informes_productividad':}}class="active"{{pass}}>
+                        <a href="{{=URL('informes_productividad','dashboard')}}">
+                            <i class="glyphicon glyphicon-user"></i> Productividad
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _es_admin():}}
+                    <li {{if request.controller=='admin_roles':}}class="active"{{pass}}>
+                        <a href="{{=URL('admin_roles','index')}}" style="color:#f39c12;">
+                            <i class="glyphicon glyphicon-lock"></i> Admin
+                        </a>
+                    </li>
+                    {{pass}}
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="http://192.168.2.111/calzalindo_objetivos_v2" class="link-sistema" title="Ir al sistema principal">
+                            <i class="glyphicon glyphicon-log-out"></i> Sistema Principal
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{=URL('default','user', args='logout')}}" style="color: rgba(255,255,255,0.6);" title="Cerrar sesion">
+                            <i class="glyphicon glyphicon-off"></i> {{=auth.user.first_name or ''}}
+                        </a>
+                    </li>
+                </ul>
+                {{pass}}
+            </div>
+        </div>
+    </nav>
+
+    <!-- FLASH MESSAGES -->
+    {{if response.flash:}}
+    <div class="flash-container">
+        <div class="alert alert-info alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {{=response.flash}}
+        </div>
+    </div>
+    {{pass}}
+
+    <!-- CONTENIDO PRINCIPAL -->
+    {{include}}
+
+    <!-- FOOTER -->
+    <div style="text-align:center; padding: 15px; color: #999; font-size: 11px; margin-top: 20px;">
+        Calzalindo Informes &mdash; Sistema de Gestion Financiera
+    </div>
+
+</body>
+</html>

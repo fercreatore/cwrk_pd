@@ -1,0 +1,185 @@
+{{extend 'layout.html'}}
+{{response.title = 'Recupero de Inversion'}}
+
+<style>
+.kpi-card{background:#fff;border-radius:8px;padding:18px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:15px}
+.kpi-card .kpi-value{font-size:26px;font-weight:700;color:#1a1a2e}
+.kpi-card .kpi-label{font-size:11px;color:#888;text-transform:uppercase;margin-top:4px}
+.filter-bar{background:#fff;padding:12px 18px;border-radius:8px;margin-bottom:18px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.filter-bar .form-control{font-size:12px;height:32px}
+.filter-bar label{font-size:11px;color:#666}
+.tbl-ri{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.tbl-ri th{background:#1a1a2e;color:#fff;padding:8px 10px;cursor:pointer;white-space:nowrap}
+.tbl-ri th:hover{background:#2a2a4e}
+.tbl-ri td{padding:7px 10px;border-bottom:1px solid #eee;white-space:nowrap}
+.tbl-ri tbody tr:hover{background:#f8f9fa}
+.tbl-ri .num{text-align:right;font-family:'Courier New',monospace}
+.badge-estado{padding:3px 8px;border-radius:3px;font-size:10px;font-weight:700;color:#fff}
+.badge-PRESION{background:#e74c3c}
+.badge-OK{background:#27ae60}
+.val-pos{color:#27ae60}.val-neg{color:#e74c3c}.val-warn{color:#f39c12}
+</style>
+
+<!-- KPIs -->
+<div class="row" style="margin-top:15px">
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=formato_moneda(kpi.get('inversion_total',0))}}</div>
+            <div class="kpi-label">Inversion Total</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=int(float(kpi.get('dias_prom_50',0) or 0))}}</div>
+            <div class="kpi-label">Dias Prom 50%</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{="%.1f%%" % float(kpi.get('pct_vendido_prom',0) or 0)}}</div>
+            <div class="kpi-label">% Vendido Prom</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color:#e74c3c">{{=int(kpi.get('proveedores_presion',0) or 0)}}</div>
+            <div class="kpi-label">Prov. Presion</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=int(float(kpi.get('brecha_promedio',0) or 0))}}</div>
+            <div class="kpi-label">Calce Financiero Prom.</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=kpi.get('total_registros',0)}}</div>
+            <div class="kpi-label">Registros</div>
+        </div>
+    </div>
+</div>
+
+<!-- FILTROS -->
+<div class="filter-bar">
+    <form method="get" class="form-inline" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        {{if industrias:}}
+        <div>
+            <label>Industria</label><br>
+            <select name="industria" class="form-control">
+                <option value="">-- Todas --</option>
+                {{for ind in industrias:}}<option value="{{=ind}}" {{if filtro_industria==ind:}}selected{{pass}}>{{=ind}}</option>{{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if anios:}}
+        <div>
+            <label>Anio</label><br>
+            <select name="anio" class="form-control">
+                <option value="">-- Todos --</option>
+                {{for a in anios:}}<option value="{{=a}}" {{if filtro_anio==a:}}selected{{pass}}>{{=a}}</option>{{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if temporadas:}}
+        <div>
+            <label>Temporada</label><br>
+            <select name="temporada" class="form-control">
+                <option value="">-- Todas --</option>
+                {{for t in temporadas:}}<option value="{{=t}}" {{if filtro_temporada==t:}}selected{{pass}}>{{=t}}</option>{{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if estados:}}
+        <div>
+            <label>Estado</label><br>
+            <select name="estado" class="form-control">
+                <option value="">-- Todos --</option>
+                {{for e in estados:}}<option value="{{=e}}" {{if filtro_estado==e:}}selected{{pass}}>{{=e}}</option>{{pass}}
+            </select>
+        </div>
+        {{pass}}
+        <div>
+            <label>Proveedor</label><br>
+            <input type="text" name="proveedor" class="form-control" placeholder="buscar..." value="{{=filtro_proveedor}}" style="width:140px">
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+            <a href="{{=URL('reportes','recupero_inversion')}}" class="btn btn-default btn-sm">Limpiar</a>
+        </div>
+    </form>
+</div>
+
+<!-- POR INDUSTRIA -->
+{{if por_industria:}}
+<h4 style="margin-top:20px;color:#333">Velocidad por Industria</h4>
+<div style="overflow-x:auto">
+<table class="tbl-ri">
+<thead><tr>
+    <th>Industria</th><th>Registros</th><th>Inversion</th>
+    <th>Dias 50%</th><th>Dias 75%</th><th>% Vendido</th><th>% Vend. al Pago</th>
+</tr></thead>
+<tbody>
+{{for r in por_industria:}}
+<tr>
+    <td><strong>{{=r.get('industria','?')}}</strong></td>
+    <td class="num">{{=r.get('registros',0)}}</td>
+    <td class="num">{{=formato_moneda(r.get('inversion',0))}}</td>
+    <td class="num">{{=int(r.get('dias_prom_50',0))}}</td>
+    <td class="num">{{=int(r.get('dias_prom_75',0))}}</td>
+    <td class="num">{{="%.1f%%" % float(r.get('pct_vendido_prom',0))}}</td>
+    <td class="num">{{="%.1f%%" % float(r.get('pct_vendido_al_pago_prom',0))}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+</div>
+{{pass}}
+
+<!-- RANKING PROVEEDORES -->
+<h4 style="margin-top:20px;color:#333">Ranking de Proveedores</h4>
+<div style="overflow-x:auto">
+{{if ranking:}}
+<table class="tbl-ri" id="tblRanking">
+<thead><tr>
+    <th>Proveedor</th><th>Industria</th><th>Periodo</th>
+    <th>Inversion</th><th>Dias 50%</th><th>Dias 75%</th>
+    <th>Plazo Pago</th><th>% Vend. al Pago</th><th title="Plazo Pago − Días 50%. Positivo = vendés antes de pagar (capital del proveedor). Negativo = pagás antes de vender (capital propio).">Calce Fin.</th>
+    <th>% Vendido</th><th>Estado</th>
+</tr></thead>
+<tbody>
+{{for r in ranking:}}
+<tr>
+    <td>
+        <a href="{{=URL('reportes','recupero_inversion_detalle', vars=dict(proveedor=r.get('proveedor_nombre','')))}}">
+            {{=r.get('proveedor_nombre','?')}}
+        </a>
+    </td>
+    <td>{{=r.get('industria','?')}}</td>
+    <td><a href="{{=URL('reportes','recupero_inversion_movimientos', vars=dict(proveedor=r.get('proveedor_nombre',''), periodo=r.get('periodo','')))}}">{{=r.get('periodo','?')}}</a></td>
+    <td class="num">{{=formato_moneda(r.get('total_costo_compra',0))}}</td>
+    <td class="num">{{=int(r.get('dias_50',0))}}</td>
+    <td class="num">{{=int(r.get('dias_75',0))}}</td>
+    <td class="num">{{=int(r.get('plazo_pago_real_prom',0))}}</td>
+    <td class="num {{if float(r.get('pct_vendido_al_pago',0)) >= 75:}}val-pos{{elif float(r.get('pct_vendido_al_pago',0)) >= 50:}}val-warn{{else:}}val-neg{{pass}}">
+        {{="%.1f%%" % float(r.get('pct_vendido_al_pago',0))}}
+    </td>
+    <td class="num {{if float(r.get('brecha_pago_vs_rec50',0)) < 0:}}val-neg{{elif float(r.get('brecha_pago_vs_rec50',0)) < 15:}}val-warn{{else:}}val-pos{{pass}}">
+        {{=int(r.get('brecha_pago_vs_rec50',0))}}
+    </td>
+    <td class="num">{{="%.1f%%" % float(r.get('pct_vendido',0))}}</td>
+    <td><span class="badge-estado badge-{{=r.get('estado','OK')}}">{{=r.get('estado','?')}}</span></td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+{{else:}}
+<div class="alert alert-info">No hay datos para los filtros seleccionados.</div>
+{{pass}}
+</div>
+
+<div style="margin-top:12px; padding:10px 14px; background:#f8f9fa; border-left:3px solid #007bff; border-radius:3px; font-size:13px; color:#555;">
+    <strong>Calce Financiero</strong> = Plazo de Pago − Días al 50% vendido.
+    <span style="color:#27ae60">&#9679; Positivo</span>: vendés antes de pagar (operás con capital del proveedor).
+    <span style="color:#e74c3c">&#9679; Negativo</span>: pagás antes de vender (inmovilizás capital propio).
+</div>

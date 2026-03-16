@@ -1,0 +1,2 @@
+auth_user.id,auth_user.first_name,auth_user.last_name,auth_user.email,auth_user.password,auth_user.registration_key,auth_user.reset_password_key,auth_user.registration_id
+1,Fernando,Calaianov,fcalaianov@calzalindo.com.ar,"pbkdf2(1000,20,sha512)$bfc065b1e0aafc59$eb3189d6905272a39a9fa715893b3ffc166d0033",,,

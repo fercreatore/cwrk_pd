@@ -1,0 +1,192 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>DIAGNÓSTICO: Stock Negativo en CLZ (msgestion01)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a12;color:#e0e0e0;padding:20px;max-width:1100px;margin:0 auto}
+h1{text-align:center;color:#ff4444;margin-bottom:4px;font-size:1.5em}
+.sub{text-align:center;color:#888;margin-bottom:20px;font-size:.85em}
+.card{background:#14141e;border:1px solid #2a2a3a;border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{color:#00ccff;font-size:1.05em;margin-bottom:10px;border-bottom:1px solid #2a2a3a;padding-bottom:6px}
+.alert{background:#1a0a0a;border:1px solid #ff4444;border-radius:10px;padding:16px;margin-bottom:16px}
+.alert h2{color:#ff4444;border-bottom:1px solid #ff4444}
+.good{background:#0a1a0a;border-color:#44bb44}
+.good h2{color:#44bb44}
+.warn{background:#1a1a0a;border-color:#ffaa00}
+.warn h2{color:#ffaa00}
+.kpi-row{display:flex;gap:10px;justify-content:center;margin:14px 0;flex-wrap:wrap}
+.kpi{background:#14141e;border:1px solid #2a2a3a;border-radius:10px;padding:10px 16px;text-align:center;min-width:130px}
+.kpi .v{font-size:1.4em;font-weight:700}.kpi .l{font-size:.73em;color:#888}
+.red{color:#ff4444}.green{color:#44bb44}.blue{color:#00ccff}.orange{color:#ffaa00}.purple{color:#aa66ff}
+table{width:100%;border-collapse:collapse;font-size:.82em;margin:8px 0}
+th{background:#1a1a2e;color:#aaa;padding:6px 5px;text-align:center;font-weight:600;border-bottom:1px solid #333}
+td{padding:5px;text-align:center;border-bottom:1px solid #1a1a2a}
+.left{text-align:left}
+.flow{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0;flex-wrap:wrap;font-size:.9em}
+.flow-box{background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:10px 14px;text-align:center;min-width:100px}
+.flow-arrow{font-size:1.5em;color:#ff8800}
+.timeline{width:100%;height:180px;position:relative;margin:10px 0}
+.note{font-size:.75em;color:#555;margin-top:8px;font-style:italic}
+code{background:#1a1a2e;padding:2px 6px;border-radius:4px;font-size:.85em;color:#ffaa00}
+.mono{font-family:'Courier New',monospace}
+.highlight{background:#2a1a0a;border-left:3px solid #ff8800;padding:10px 14px;margin:10px 0;border-radius:0 8px 8px 0}
+</style></head><body>
+
+<h1>DIAGNÓSTICO: Stock Negativo en CLZ (msgestion01)</h1>
+<p class="sub">Investigación de -293,051 unidades fantasma · 13 Mar 2026</p>
+
+<!-- KPIs -->
+<div class="kpi-row">
+<div class="kpi"><div class="v red">-293,051</div><div class="l">Pares negativos en CLZ</div></div>
+<div class="kpi"><div class="v red">66,753</div><div class="l">Filas con stock &lt; 0</div></div>
+<div class="kpi"><div class="v orange">Código 95</div><div class="l">Operación causante</div></div>
+<div class="kpi"><div class="v orange">POS</div><div class="l">Usuario generador</div></div>
+<div class="kpi"><div class="v purple">Ago 2020</div><div class="l">Inicio del problema</div></div>
+<div class="kpi"><div class="v red">-574,687</div><div class="l">Neto acumulado cod.95</div></div>
+</div>
+
+<!-- CAUSA RAÍZ -->
+<div class="alert">
+<h2>CAUSA RAÍZ IDENTIFICADA</h2>
+<p style="font-size:.95em;line-height:1.6;margin:8px 0">
+El comprobante <code>código 95</code> — <b>"SOLICITUD A DEPOSITO"</b> — generado por el usuario <code>POS</code> (sistema de punto de venta)
+está removiendo stock de los depósitos de CLZ (msgestion01) <b>sin que ese stock haya sido ingresado previamente</b> en esa base.
+</p>
+<p style="font-size:.95em;line-height:1.6;margin:8px 0">
+Las compras se registran en <b>H4 (msgestion03)</b> vía Remito (código 7), pero las salidas por venta
+se registran en <b>CLZ (msgestion01)</b> vía Solicitud a Depósito (código 95). El resultado: CLZ tiene salidas sin entradas = <b>stock perpetuamente negativo</b>.
+</p>
+<p style="font-size:.95em;line-height:1.6;margin:8px 0">
+<b>H4 tiene CERO movimientos de código 95</b> — esta operación existe SOLO en CLZ. Esto confirma que el sistema POS registra toda la actividad de venta/despacho únicamente en la base contable de CLZ.
+</p>
+</div>
+
+<!-- MECANISMO -->
+<div class="card">
+<h2>Mecanismo del Problema</h2>
+
+<div class="flow">
+<div class="flow-box" style="border-color:#44bb44"><b style="color:#44bb44">COMPRA</b><br><small>Remito cod.7</small><br><small>→ H4 (msgestion03)</small><br><small>depo 0 / depo 11</small></div>
+<div class="flow-arrow">→</div>
+<div class="flow-box" style="border-color:#ff8800"><b style="color:#ff8800">TRANSFERENCIA</b><br><small>cod.87 sistema 12</small><br><small>→ CLZ (msgestion01)</small><br><small>depo 0 → sucursales</small></div>
+<div class="flow-arrow">→</div>
+<div class="flow-box" style="border-color:#ff4444"><b style="color:#ff4444">VENTA POS</b><br><small>Solicitud cod.95</small><br><small>→ CLZ (msgestion01)</small><br><small>usuario: POS</small></div>
+</div>
+
+<div class="highlight">
+<b>Ejemplo probado — Artículo 296113 (GONDOR II NEGRO T43):</b><br>
+• <b>H4</b>: +24 pares (2 remitos de compra, cod.7/R). Sin ventas ni transferencias.<br>
+• <b>CLZ</b>: -22 pares neto (transferencias 87 + solicitudes 95). <b>CERO compras.</b><br>
+• <b>Consolidado (msgestionC)</b>: 24 - 22 = <b>2 pares</b> → confirmado físicamente en ERP.<br>
+• Las salidas en CLZ <b>nunca fueron compensadas</b> con un ingreso de compra en CLZ.
+</div>
+</div>
+
+<!-- NÚMEROS -->
+<div class="card">
+<h2>Código 95 — Números Globales</h2>
+<table>
+<tr><th>Depósito</th><th>Entradas (+)</th><th>Salidas (-)</th><th>Neto</th><th>Movimientos</th><th>Ratio sal/ent</th></tr>
+<tr><td><b>0 (Central)</b></td><td>61,626</td><td>349,189</td><td class="red"><b>-287,563</b></td><td>394,781</td><td>5.7x</td></tr>
+<tr><td>8 (Junín)</td><td>5,603</td><td>66,201</td><td class="red"><b>-60,598</b></td><td>71,479</td><td>11.8x</td></tr>
+<tr><td>2 (Suc.2)</td><td>10,329</td><td>57,762</td><td class="red"><b>-47,433</b></td><td>67,406</td><td>5.6x</td></tr>
+<tr><td>6 (Suc.6)</td><td>6,293</td><td>48,329</td><td class="red"><b>-42,036</b></td><td>53,851</td><td>7.7x</td></tr>
+<tr><td>7 (Suc.7)</td><td>9,850</td><td>50,880</td><td class="red"><b>-41,030</b></td><td>60,079</td><td>5.2x</td></tr>
+<tr><td>9 (Suc.9)</td><td>5,823</td><td>46,423</td><td class="red"><b>-40,600</b></td><td>51,479</td><td>8.0x</td></tr>
+<tr><td>1 (Suc.1)</td><td>1,643</td><td>30,801</td><td class="red"><b>-29,158</b></td><td>32,257</td><td>18.7x</td></tr>
+<tr><td>Otros (4,10,15,16,14,3,5,11)</td><td>2,067</td><td>27,481</td><td class="red"><b>-25,269</b></td><td>28,621</td><td>—</td></tr>
+<tr style="background:#1a1a2e"><td><b>TOTAL</b></td><td><b>103,234</b></td><td><b>677,921</b></td><td class="red" style="font-size:1.1em"><b>-574,687</b></td><td><b>760,911</b></td><td><b>6.6x</b></td></tr>
+</table>
+<p class="note">Las "entradas" (15%) probablemente son devoluciones/anulaciones de solicitudes.</p>
+</div>
+
+<!-- CONCENTRACIÓN -->
+<div class="card">
+<h2>Concentración del Stock Negativo (tabla stock)</h2>
+<table>
+<tr><th>Depósito</th><th>Pares negativos</th><th>Filas</th><th>% del total negativo</th></tr>
+<tr><td><b>11 (Depósito de tránsito/producción)</b></td><td class="red"><b>-201,627</b></td><td>39,472</td><td>68.8%</td></tr>
+<tr><td><b>0 (Central)</b></td><td class="red"><b>-82,489</b></td><td>24,645</td><td>28.1%</td></tr>
+<tr><td>Otros</td><td class="red">-8,935</td><td>2,636</td><td>3.1%</td></tr>
+<tr style="background:#1a1a2e"><td><b>TOTAL</b></td><td class="red"><b>-293,051</b></td><td><b>66,753</b></td><td>100%</td></tr>
+</table>
+<p class="note">97% del negativo se concentra en depo 0 y depo 11.</p>
+</div>
+
+<!-- TIMELINE -->
+<div class="card">
+<h2>Evolución Temporal — Sangrado mensual por cod. 95</h2>
+<table>
+<tr><th>Período</th><th>Salidas</th><th>Entradas</th><th>Neto mensual</th><th>Neto acumulado aprox.</th></tr>
+<tr><td>Ago-Dic 2020</td><td>1,762</td><td>407</td><td class="red">-1,355</td><td>-1,355</td></tr>
+<tr><td>2021 (año)</td><td>18,806</td><td>2,666</td><td class="red">-16,140</td><td>-17,495</td></tr>
+<tr><td>2022 (año)</td><td>116,693</td><td>14,879</td><td class="red">-101,814</td><td>-119,309</td></tr>
+<tr><td>2023 (año)</td><td>139,826</td><td>19,805</td><td class="red">-120,021</td><td>-239,330</td></tr>
+<tr><td>2024 (año)</td><td>164,319</td><td>25,073</td><td class="red">-139,246</td><td>-378,576</td></tr>
+<tr><td>2025 (año)</td><td>183,727</td><td>30,669</td><td class="red">-153,058</td><td>-531,634</td></tr>
+<tr><td>Ene-Mar 2026</td><td>33,788</td><td>5,686</td><td class="red">-28,102</td><td>-559,736</td></tr>
+<tr style="background:#1a1a2e"><td><b>TOTAL</b></td><td><b>658,921</b></td><td><b>99,185</b></td><td class="red"><b>-574,687</b></td><td></td></tr>
+</table>
+<p class="note">El sangrado CRECE cada año. 2020: -1.4K → 2025: -153K. El problema se acelera con el volumen de ventas.</p>
+</div>
+
+<!-- COMPARACIÓN H4 vs CLZ -->
+<div class="card">
+<h2>Comparación H4 vs CLZ — Tipos de operación</h2>
+<table>
+<tr><th>Operación</th><th>H4 (msgestion03)</th><th>CLZ (msgestion01)</th><th>Observación</th></tr>
+<tr><td class="left">7/R Remito (compra) +</td><td class="green">455,118</td><td class="green">1,110,481</td><td class="left">CLZ recibe compras pero insuficientes</td></tr>
+<tr><td class="left">1/B Factura venta -</td><td>179</td><td class="red">929,693</td><td class="left"><b>Ventas casi exclusivamente en CLZ</b></td></tr>
+<tr><td class="left">87/P Transfer (sist.12)</td><td>0</td><td>~2.3M movs</td><td class="left"><b>Solo en CLZ — sistema interno</b></td></tr>
+<tr><td class="left">95/P Solicitud depósito</td><td class="green"><b>0</b></td><td class="red">760,911</td><td class="left"><b>SOLO EN CLZ — fuente del problema</b></td></tr>
+<tr><td class="left">22/D Nota egreso</td><td>223,568</td><td>Varios (gigante)</td><td class="left">Egresos en ambas bases</td></tr>
+</table>
+</div>
+
+<!-- DIAGNÓSTICO TÉCNICO -->
+<div class="card warn">
+<h2>Diagnóstico Técnico Detallado</h2>
+<p style="line-height:1.7;font-size:.9em">
+<b>1. El sistema POS escribe exclusivamente en CLZ (msgestion01)</b><br>
+Todas las operaciones de venta en sucursales (Factura 1/B y Solicitud 95) se registran en la base de CALZALINDO. H4 solo registra compras y egresos.
+</p>
+<p style="line-height:1.7;font-size:.9em;margin-top:10px">
+<b>2. La "Solicitud a Depósito" (cod.95) es una operación de DESCUENTO de stock sin contrapartida</b><br>
+Cuando el POS genera una solicitud, resta stock del depósito en CLZ. Pero el stock original ingresó por compra (cod.7) probablemente en H4 o en un depósito diferente de CLZ. La solicitud actúa como una "venta interna" que saca mercadería sin que haya entrado primero.
+</p>
+<p style="line-height:1.7;font-size:.9em;margin-top:10px">
+<b>3. Las transferencias (cod.87, sistema 12) redistribuyen pero no compensan</b><br>
+El módulo de transferencias (sistema 12) mueve stock entre depósitos dentro de CLZ, pero como la base de partida ya está en negativo, simplemente redistribuye el déficit.
+</p>
+<p style="line-height:1.7;font-size:.9em;margin-top:10px">
+<b>4. El consolidado (msgestionC) COMPENSA correctamente</b><br>
+La vista consolidada suma H4 + CLZ, así que los +24 de compra en H4 se netean con los -22 de solicitudes en CLZ = 2 pares reales. El stock físico ES correcto en la vista consolidada. El problema es solo a nivel de la base individual CLZ.
+</p>
+</div>
+
+<!-- SOLUCIÓN -->
+<div class="card good">
+<h2>Impacto y Opciones de Solución</h2>
+<p style="line-height:1.7;font-size:.9em">
+<b>¿Es urgente?</b> Desde el punto de vista operativo, NO — porque el consolidado (msgestionC) muestra el stock real y correcto. Pero desde el punto de vista contable de CLZ, el inventario muestra -293,051 unidades lo cual invalida cualquier reporte individual de esa base.
+</p>
+<p style="line-height:1.7;font-size:.9em;margin-top:10px">
+<b>Opción A — Corregir el flujo (prevención)</b><br>
+Configurar el POS para que las solicitudes (cod.95) se descuenten de H4 (donde entró la compra) en lugar de CLZ, o agregar un ingreso automático espejo en CLZ cuando H4 recibe la compra.
+</p>
+<p style="line-height:1.7;font-size:.9em;margin-top:10px">
+<b>Opción B — Ajuste masivo (corrección puntual)</b><br>
+Generar Notas de Ingreso (cod.22/P) en CLZ por el total faltante por artículo/depósito, para llevar el stock a 0 en los negativos. Esto no arregla la causa pero limpia el estado. Habría que repetir periódicamente.
+</p>
+<p style="line-height:1.7;font-size:.9em;margin-top:10px">
+<b>Opción C — Ignorar y usar solo consolidado</b><br>
+Si todos los reportes se hacen desde msgestionC (que ya compensa), el negativo en CLZ es solo "ruido contable" sin impacto operativo. El problema es si algún proceso usa el stock de CLZ individualmente.
+</p>
+</div>
+
+<p style="text-align:center;color:#444;margin-top:16px;font-size:.72em">
+Diagnóstico generado por análisis de movi_stock en msgestion01 vs msgestion03 ·
+Código 95 "SOLICITUD A DEPOSITO", usuario POS, sistema activo desde agosto 2020 ·
+574,687 pares de déficit acumulado · 13 Mar 2026
+</p>
+
+</body></html>

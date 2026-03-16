@@ -1,0 +1,5 @@
+auth_group.id,auth_group.role,auth_group.description
+1,user_1,Grupo asignado únicamente al usuario 1
+2,admins,Administradores de Calzalindo Objetivos
+3,usuarios_nivel_1,Usuarios con privilegios para ver informes.
+4,encargados,Encargados de sucursal

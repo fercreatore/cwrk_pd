@@ -1,0 +1,65 @@
+DEPLOY — Simulador de Importaciones
+=====================================
+App: calzalindo_informes
+Servidor: C:\web2py_src\applications\calzalindo_informes\
+
+ARCHIVOS A COPIAR
+-----------------
+
+1. modules\import_cost.py          (ya esta, paso anterior)
+
+2. controllers\importaciones.py
+   -> C:\web2py_src\applications\calzalindo_informes\controllers\importaciones.py
+
+3. views\importaciones\simulador.html
+   -> C:\web2py_src\applications\calzalindo_informes\views\importaciones\simulador.html
+   IMPORTANTE: crear la carpeta "importaciones" dentro de views si no existe
+
+
+AGREGAR AL MENU (models\menu.py)
+---------------------------------
+Buscar la linea que tiene 'Productividad' o 'CLZ VENTAS' y agregar ANTES:
+
+    response.menu+=[
+        ('Importaciones', False, URL('importaciones','simulador'), [])
+    ]
+
+O si queres que quede dentro de un menu existente, agregarlo como item:
+
+    ('Simulador Impo', False, URL('importaciones','simulador')),
+
+
+REINICIAR WEB2PY
+----------------
+Los controllers nuevos requieren reinicio para que el router los detecte.
+
+En Windows, desde el administrador de servicios o:
+    net stop web2py
+    net start web2py
+
+O cerrar y volver a abrir el proceso web2py.
+
+
+URL FINAL
+---------
+http://192.168.2.111:8000/calzalindo_informes/importaciones/simulador
+
+
+ACCESO
+------
+Requiere login. Roles con acceso: informes_admin, informes_gerencia, informes_compras
+
+
+VERIFICACION RAPIDA
+--------------------
+Ingresar estos datos y verificar que el resultado coincide:
+
+    FOB real:        8.00
+    FOB aduana:      15.70
+    Logistica:       3.4466  (modo unitaria)
+    Tipo de cambio:  1200
+
+    Resultado esperado:
+    Costo economico: $ 19.020
+    Costo financiero: $ 31.979
+    Sobrecosto dumping: $ 2.125 (22.1%)

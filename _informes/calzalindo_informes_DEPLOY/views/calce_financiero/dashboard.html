@@ -1,0 +1,883 @@
+{{extend 'layout.html'}}
+{{response.title = 'Calce Financiero'}}
+<!--
+  Vista: views/calce_financiero/dashboard.html
+  Copiar en: applications/calzalindo_informes/views/calce_financiero/dashboard.html
+  Controller: calce_financiero.py -> dashboard()
+-->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* === CARDS KPI === */
+.kpi-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.kpi-card {
+    flex: 1; min-width: 180px; background: #fff; border-radius: 8px;
+    padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); text-align: center;
+    border-top: 3px solid #007bff;
+}
+.kpi-card h5 { margin: 0 0 5px; font-size: 12px; color: #888; text-transform: uppercase; }
+.kpi-card .valor { font-size: 24px; font-weight: bold; color: #333; }
+.kpi-card .sub { font-size: 11px; color: #999; margin-top: 3px; }
+.kpi-card.verde { border-top-color: #28a745; }
+.kpi-card.rojo { border-top-color: #dc3545; }
+.kpi-card.naranja { border-top-color: #fd7e14; }
+.kpi-card.azul { border-top-color: #007bff; }
+/* === SEMAFORO === */
+.semaforo {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: bold; color: #fff;
+}
+.semaforo-CALZADO { background: #28a745; }
+.semaforo-AJUSTADO { background: #fd7e14; }
+.semaforo-PRESION { background: #dc3545; }
+.semaforo-DEFICIT { background: #6f42c1; }
+.semaforo-SIN-DATOS { background: #adb5bd; }
+/* === FILTROS === */
+.filtros-bar {
+    background: #f8f9fa; border-radius: 8px; padding: 12px 15px;
+    margin-bottom: 20px; border: 1px solid #dee2e6;
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
+}
+.filtros-bar .filtro-group { flex: 1; min-width: 180px; }
+.filtros-bar label { font-size: 12px; color: #666; margin-bottom: 2px; display: block; }
+.filtros-bar select, .filtros-bar input { width: 100%; }
+/* === TABLA MATRIZ === */
+.tabla-matriz { font-size: 12px; }
+.tabla-matriz th { background: #343a40; color: #fff; font-size: 11px; text-transform: uppercase; }
+.tabla-matriz td { vertical-align: middle; }
+.barra-progreso {
+    height: 18px; border-radius: 9px; background: #e9ecef; overflow: hidden;
+    position: relative; min-width: 80px;
+}
+.barra-progreso .fill {
+    height: 100%; border-radius: 9px; transition: width 0.3s;
+}
+.barra-progreso .fill.verde { background: #28a745; }
+.barra-progreso .fill.naranja { background: #fd7e14; }
+.barra-progreso .fill.rojo { background: #dc3545; }
+.barra-progreso .pct {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    font-size: 10px; font-weight: bold; line-height: 18px; color: #333;
+}
+/* === PANEL === */
+.panel-calce { margin-bottom: 20px; }
+.panel-calce .panel-heading { font-size: 14px; }
+/* === PRESION TABLE === */
+.presion-row { background: #fff5f5 !important; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <!-- TITULO -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin:0;">
+            <i class="glyphicon glyphicon-usd"></i>
+            Calce Financiero por Industria
+        </h3>
+        <div>
+            <a href="{{=URL('calce_financiero', 'exportar_csv')}}" class="btn btn-success btn-sm">
+                <i class="glyphicon glyphicon-download"></i> Exportar CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="filtros-bar">
+        <div class="filtro-group">
+            <label>Industria</label>
+            <select id="fil-industria" class="form-control input-sm">
+                <option value="">Todas</option>
+                {{for ind in industrias:}}
+                <option value="{{=html(ind)}}" {{if filtro_industria==ind:}}selected{{pass}}>{{=html(ind)}}</option>
+                {{pass}}
+            </select>
+        </div>
+        <div class="filtro-group">
+            <label>Temporada</label>
+            <select id="fil-temporada" class="form-control input-sm">
+                <option value="">Todas</option>
+                {{for t in temporadas:}}
+                <option value="{{=html(t)}}" {{if filtro_temporada==t:}}selected{{pass}}>{{=html(t)}}</option>
+                {{pass}}
+            </select>
+        </div>
+        <div class="filtro-group">
+            <label>Proveedor</label>
+            <input type="text" id="fil-proveedor" class="form-control input-sm"
+                   placeholder="Buscar..." value="{{=filtro_proveedor}}">
+        </div>
+        <div style="display: flex; gap: 5px;">
+            <button id="btnFiltrar" class="btn btn-primary btn-sm">
+                <i class="glyphicon glyphicon-search"></i> Filtrar
+            </button>
+            <button id="btnLimpiar" class="btn btn-default btn-sm">
+                <i class="glyphicon glyphicon-remove"></i>
+            </button>
+        </div>
+    </div>
+    <!-- FILTROS DETALLADOS (marca, rubro, subrubro, grupo, linea) -->
+    {{if marcas or rubros or subrubros or grupos or lineas:}}
+    <div class="filtros-bar" style="margin-top: -10px;">
+        {{if marcas:}}
+        <div class="filtro-group">
+            <label>Marca</label>
+            <select id="fil-marca" class="form-control input-sm">
+                <option value="">Todas</option>
+                {{for mc in marcas:}}
+                <option value="{{=html(mc)}}" {{if filtro_marca==mc:}}selected{{pass}}>{{=html(mc)}}</option>
+                {{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if rubros:}}
+        <div class="filtro-group">
+            <label>Rubro</label>
+            <select id="fil-rubro" class="form-control input-sm">
+                <option value="">Todos</option>
+                {{for r in rubros:}}
+                <option value="{{=html(r)}}" {{if filtro_rubro==r:}}selected{{pass}}>{{=html(r)}}</option>
+                {{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if subrubros:}}
+        <div class="filtro-group">
+            <label>Subrubro</label>
+            <select id="fil-subrubro" class="form-control input-sm">
+                <option value="">Todos</option>
+                {{for s in subrubros:}}
+                <option value="{{=html(s)}}" {{if filtro_subrubro==s:}}selected{{pass}}>{{=html(s)}}</option>
+                {{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if grupos:}}
+        <div class="filtro-group">
+            <label>Grupo (Material)</label>
+            <select id="fil-grupo" class="form-control input-sm">
+                <option value="">Todos</option>
+                {{for g in grupos:}}
+                <option value="{{=html(g)}}" {{if filtro_grupo==g:}}selected{{pass}}>{{=html(g)}}</option>
+                {{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if lineas:}}
+        <div class="filtro-group">
+            <label>Linea (Temporada)</label>
+            <select id="fil-linea" class="form-control input-sm">
+                <option value="">Todas</option>
+                {{for l in lineas:}}
+                <option value="{{=html(l)}}" {{if filtro_linea==l:}}selected{{pass}}>{{=html(l)}}</option>
+                {{pass}}
+            </select>
+        </div>
+        {{pass}}
+    </div>
+    {{pass}}
+
+    <!-- KPIs GLOBALES -->
+    <div class="kpi-row">
+        <div class="kpi-card azul">
+            <h5>Comprometido Total</h5>
+            <div class="valor">{{=fmt(kpi_comp.get('total_comprometido', 0))}}</div>
+            <div class="sub">Notas de pedido vigentes</div>
+        </div>
+        <div class="kpi-card naranja">
+            <h5>Pendiente de Recibir</h5>
+            <div class="valor">{{=fmt(kpi_comp.get('total_pendiente_recibir', 0))}}</div>
+            <div class="sub">Mercaderia en transito</div>
+        </div>
+        <div class="kpi-card rojo">
+            <h5>Vencido</h5>
+            <div class="valor">{{=fmt(kpi_comp.get('total_vencido', 0))}}</div>
+            <div class="sub">Pedidos fuera de fecha</div>
+        </div>
+        <div class="kpi-card verde">
+            <h5>% Vendido al Pago</h5>
+            <div class="valor">{{="%.0f" % float(kpi_rec.get('pct_vendido_al_pago_global', 0) or 0)}}%</div>
+            <div class="sub">Recupero promedio al vencimiento</div>
+        </div>
+        <div class="kpi-card">
+            <h5>Dias al 50%</h5>
+            <div class="valor">{{="%.0f" % float(kpi_rec.get('dias_50_global', 0) or 0)}}</div>
+            <div class="sub">Promedio de dias para vender mitad</div>
+        </div>
+        <div class="kpi-card rojo">
+            <h5>Proveedores en Presion</h5>
+            <div class="valor">{{=int(kpi_rec.get('total_presion', 0) or 0)}}</div>
+            <div class="sub">No calzan pagos con ventas</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- COLUMNA IZQUIERDA: GRAFICO + VENCIMIENTOS -->
+        <div class="col-md-4">
+            <!-- Grafico Calce por Industria -->
+            <div class="panel panel-info panel-calce">
+                <div class="panel-heading">
+                    <strong><i class="glyphicon glyphicon-stats"></i> Calce por Industria</strong>
+                </div>
+                <div class="panel-body" style="padding: 10px;">
+                    <canvas id="chartCalce" height="250"></canvas>
+                </div>
+            </div>
+
+            <!-- Vencimientos Proximos -->
+            <div class="panel panel-warning panel-calce">
+                <div class="panel-heading">
+                    <strong><i class="glyphicon glyphicon-time"></i> Vencimientos Proximos</strong>
+                </div>
+                <div class="panel-body" style="padding: 0;">
+                    <table class="table table-condensed table-striped" style="font-size: 12px; margin: 0;">
+                        <thead><tr style="background:#f0ad4e; color:#fff;">
+                            <th>Rango</th><th class="text-right">Pedidos</th>
+                            <th class="text-right">Monto</th><th class="text-right">Provs</th>
+                        </tr></thead>
+                        <tbody>
+                        {{for v in vencimientos:}}
+                        <tr {{if v.get('rango','')=='VENCIDO':}}class="presion-row"{{pass}}>
+                            <td><strong>{{=v.get('rango','-')}}</strong></td>
+                            <td class="text-right">{{=v.get('pedidos',0)}}</td>
+                            <td class="text-right">{{=fmt(v.get('monto',0))}}</td>
+                            <td class="text-right">{{=v.get('proveedores',0)}}</td>
+                        </tr>
+                        {{pass}}
+                        {{if not vencimientos:}}
+                        <tr><td colspan="4" class="text-center text-muted">Sin vencimientos</td></tr>
+                        {{pass}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: MATRIZ PRINCIPAL -->
+        <div class="col-md-8">
+            <div class="panel panel-default panel-calce">
+                <div class="panel-heading">
+                    <strong><i class="glyphicon glyphicon-th"></i> Matriz de Calce por Industria</strong>
+                    <span class="badge">{{=len(matriz)}}</span>
+                </div>
+                <div class="panel-body" style="padding: 0; overflow-x: auto;">
+                    <table class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
+                        <thead>
+                            <tr>
+                                <th>Industria</th>
+                                <th class="text-right">Presupuesto</th>
+                                <th class="text-right">Comprometido</th>
+                                <th class="text-right">Disponible</th>
+                                <th>Cumplimiento</th>
+                                <th class="text-center">Dias 50%</th>
+                                <th class="text-center">Plazo Pago</th>
+                                <th class="text-center">% Vend. al Pago</th>
+                                <th class="text-center" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin.</th>
+                                <th class="text-center">Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{for m in matriz:}}
+                        <tr {{if m['semaforo'] in ('PRESION','DEFICIT'):}}class="presion-row"{{pass}}>
+                            <td>
+                                <strong>{{=html(m['industria'])}}</strong>
+                                <br><small class="text-muted">{{=m['proveedores']}} provs &middot; {{=m['pedidos']}} pedidos</small>
+                            </td>
+                            <td class="text-right">
+                                {{if m.get('presupuesto', 0) > 0:}}
+                                <strong>{{=fmt(m['presupuesto'])}}</strong>
+                                {{else:}}<span class="text-muted">-</span>{{pass}}
+                            </td>
+                            <td class="text-right">
+                                <strong>{{=fmt(m['comprometido'])}}</strong>
+                                {{if m.get('pct_ejecutado', 0) > 0:}}
+                                <br><small class="text-muted">{{="%.0f" % m['pct_ejecutado']}}% del presup.</small>
+                                {{pass}}
+                            </td>
+                            <td class="text-right">
+                                {{disp = m.get('disponible', 0)}}
+                                {{if m.get('presupuesto', 0) > 0:}}
+                                <strong style="color:{{if disp >= 0:}}#28a745{{else:}}#dc3545{{pass}};">
+                                    {{=fmt(disp)}}
+                                </strong>
+                                {{else:}}<span class="text-muted">-</span>{{pass}}
+                            </td>
+                            <td style="min-width:90px;">
+                                {{pct = m['pct_cumplimiento']}}
+                                <div class="barra-progreso">
+                                    <div class="fill {{if pct >= 75:}}verde{{elif pct >= 40:}}naranja{{else:}}rojo{{pass}}"
+                                         style="width:{{=min(pct, 100)}}%"></div>
+                                    <span class="pct">{{="%.0f" % pct}}%</span>
+                                </div>
+                                {{if m.get('vencido', 0) > 0:}}
+                                <small style="color:#dc3545;">{{=fmt(m['vencido'])}} vencido</small>
+                                {{pass}}
+                            </td>
+                            <td class="text-center">
+                                {{if m['dias_50']:}}
+                                <strong>{{="%.0f" % m['dias_50']}}</strong>d
+                                {{else:}}-{{pass}}
+                            </td>
+                            <td class="text-center">
+                                {{if m['plazo_pago']:}}
+                                <strong>{{="%.0f" % m['plazo_pago']}}</strong>d
+                                {{else:}}-{{pass}}
+                            </td>
+                            <td class="text-center">
+                                {{pv = m['pct_vendido_al_pago']}}
+                                <strong style="color:{{if pv >= 75:}}#28a745{{elif pv >= 50:}}#fd7e14{{else:}}#dc3545{{pass}};">
+                                    {{="%.0f" % pv}}%
+                                </strong>
+                            </td>
+                            <td class="text-center">
+                                {{b = m['brecha']}}
+                                <span style="color:{{if b >= 0:}}#28a745{{else:}}#dc3545{{pass}};">
+                                    {{if b >= 0:}}+{{pass}}{{="%.0f" % b}}d
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="semaforo semaforo-{{=m['semaforo'].replace(' ', '-')}}">
+                                    {{=m['semaforo']}}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{=URL('calce_financiero','detalle_industria', vars=dict(industria=url_safe(m['industria'])))}}"
+                                   class="btn btn-xs btn-default" title="Ver detalle">
+                                    <i class="glyphicon glyphicon-zoom-in"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {{pass}}
+                        {{if not matriz:}}
+                        <tr><td colspan="12" class="text-center text-muted" style="padding:30px;">Sin datos para los filtros seleccionados</td></tr>
+                        {{pass}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PROVEEDORES EN PRESION -->
+            {{if proveedores_presion:}}
+            <div class="panel panel-danger panel-calce">
+                <div class="panel-heading">
+                    <strong><i class="glyphicon glyphicon-warning-sign"></i> Top Proveedores en Presion de Caja</strong>
+                </div>
+                <div class="panel-body" style="padding: 0; overflow-x: auto;">
+                    <table class="table table-condensed table-striped" style="font-size: 12px; margin: 0;">
+                        <thead><tr style="background:#dc3545; color:#fff;">
+                            <th>Proveedor</th>
+                            <th>Industria</th>
+                            <th class="text-right">Inversion</th>
+                            <th class="text-center">Dias 50%</th>
+                            <th class="text-center">Plazo Pago</th>
+                            <th class="text-center">% Vend. al Pago</th>
+                            <th class="text-center" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin.</th>
+                        </tr></thead>
+                        <tbody>
+                        {{for p in proveedores_presion:}}
+                        <tr>
+                            <td><strong>{{=html(p.get('proveedor_nombre', '-'))}}</strong></td>
+                            <td>{{=html(p.get('industria', '-'))}}</td>
+                            <td class="text-right">{{=fmt(p.get('total_costo_compra', 0))}}</td>
+                            <td class="text-center">{{=p.get('dias_50', '-')}}</td>
+                            <td class="text-center">{{="%.0f" % float(p.get('plazo_pago_real_prom', 0) or 0)}}</td>
+                            <td class="text-center" style="color:#dc3545;">
+                                <strong>{{="%.0f" % float(p.get('pct_vendido_al_pago', 0) or 0)}}%</strong>
+                            </td>
+                            <td class="text-center">{{="%.0f" % float(p.get('brecha_pago_vs_rec50', 0) or 0)}}d</td>
+                        </tr>
+                        {{pass}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{pass}}
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MEJORA 1: FLUJO DE CAJA SEMANAL PROYECTADO -->
+    <!-- ================================================================= -->
+    {{if flujo_caja:}}
+    <div class="panel panel-info panel-calce" style="margin-top: 20px;">
+        <div class="panel-heading">
+            <strong><i class="glyphicon glyphicon-transfer"></i> Flujo de Caja Semanal (Proximas 12 semanas)</strong>
+            <span class="badge" style="background:#17a2b8;">CFO</span>
+        </div>
+        <div class="panel-body" style="padding: 10px;">
+            <div class="row">
+                <div class="col-md-8">
+                    <canvas id="chartFlujoCaja" height="220"></canvas>
+                </div>
+                <div class="col-md-4">
+                    <table class="table table-condensed" style="font-size: 11px; margin: 0;">
+                        <thead><tr style="background:#17a2b8; color:#fff;">
+                            <th>Sem</th><th class="text-right">Pagos</th>
+                            <th class="text-right">Cobranza Est.</th>
+                            <th class="text-right">Balance</th>
+                            <th class="text-right">Acumulado</th>
+                        </tr></thead>
+                        <tbody>
+                        {{for fc in flujo_caja:}}
+                        <tr {{if float(fc.get('balance_acumulado',0) or 0) < 0:}}style="background:#fff5f5;"{{pass}}>
+                            <td><strong>S{{=fc.get('semana_numero','')}}</strong>
+                                <br><small class="text-muted">{{=str(fc.get('semana_inicio',''))[:5]}}</small></td>
+                            <td class="text-right" style="color:#dc3545;">{{=fmt(fc.get('pagos_total',0))}}</td>
+                            <td class="text-right" style="color:#28a745;">{{=fmt(fc.get('cobranza_estimada',0))}}</td>
+                            <td class="text-right">
+                                {{bal = float(fc.get('balance_semanal',0) or 0)}}
+                                <span style="color:{{if bal >= 0:}}#28a745{{else:}}#dc3545{{pass}};">
+                                    {{=fmt(bal)}}
+                                </span>
+                            </td>
+                            <td class="text-right">
+                                {{acum = float(fc.get('balance_acumulado',0) or 0)}}
+                                <strong style="color:{{if acum >= 0:}}#28a745{{else:}}#dc3545{{pass}};">
+                                    {{=fmt(acum)}}
+                                </strong>
+                            </td>
+                        </tr>
+                        {{pass}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #888;">
+                <strong>Pagos</strong>: OPs con vencimiento en la semana (de moviprov2).
+                <strong>Cobranza</strong>: estimada por run-rate ultimos 60 dias ajustada por estacionalidad.
+                <span style="color:#dc3545;">Rojo = semanas donde pagas mas de lo que cobras.</span>
+            </div>
+        </div>
+    </div>
+    {{pass}}
+
+    <!-- ================================================================= -->
+    <!-- MEJORA 2: ROI POR PROVEEDOR / RANKING DE COMPRA -->
+    <!-- ================================================================= -->
+    {{if roi_proveedores:}}
+    <div class="panel panel-success panel-calce">
+        <div class="panel-heading">
+            <strong><i class="glyphicon glyphicon-sort-by-attributes-alt"></i> Ranking de Compra por Proveedor (ROI)</strong>
+            <span class="badge" style="background:#28a745;">CFO</span>
+            <span style="font-size:11px; color:#666; margin-left:10px;">
+                Si tenes $5M, a quien le compras primero?
+            </span>
+        </div>
+        <div class="panel-body" style="padding: 0; overflow-x: auto;">
+            <table class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th style="width:30px;">#</th>
+                        <th>Proveedor</th>
+                        <th>Industria</th>
+                        <th class="text-right">Margen%</th>
+                        <th class="text-center">Dias 50%</th>
+                        <th class="text-right">Rotac. Anual</th>
+                        <th class="text-right" title="Margen × Rotacion Anualizada">ROI Anual%</th>
+                        <th class="text-center">Plazo Pago</th>
+                        <th class="text-center" title="Plazo Pago - Dias 50%">Calce</th>
+                        <th class="text-center">% Vend Pago</th>
+                        <th class="text-center" title="Score combinado: 50% ROI + 30% calce + 20% margen">Score</th>
+                        <th>Recomendacion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {{for r in roi_proveedores:}}
+                {{score = float(r.get('score_compra', 0) or 0)}}
+                <tr {{if score < 30:}}class="presion-row"{{pass}}>
+                    <td><strong>{{=r.get('ranking', '-')}}</strong></td>
+                    <td><strong>{{=html(r.get('proveedor_nombre', '-'))}}</strong></td>
+                    <td>{{=html(r.get('industria', '-'))}}</td>
+                    <td class="text-right">
+                        {{mg = float(r.get('margen_bruto_pct', 0) or 0)}}
+                        <span style="color:{{if mg >= 40:}}#28a745{{elif mg >= 25:}}#fd7e14{{else:}}#dc3545{{pass}};">
+                            {{="%.1f" % mg}}%
+                        </span>
+                    </td>
+                    <td class="text-center">{{=r.get('dias_50', '-') or '-'}}d</td>
+                    <td class="text-right">{{="%.1f" % float(r.get('rotacion_anual', 0) or 0)}}x</td>
+                    <td class="text-right">
+                        {{roi = float(r.get('roi_anualizado', 0) or 0)}}
+                        <strong style="color:{{if roi >= 200:}}#28a745{{elif roi >= 100:}}#fd7e14{{else:}}#dc3545{{pass}};">
+                            {{="%.0f" % roi}}%
+                        </strong>
+                    </td>
+                    <td class="text-center">{{="%.0f" % float(r.get('plazo_pago', 0) or 0)}}d</td>
+                    <td class="text-center">
+                        {{br = float(r.get('brecha', 0) or 0)}}
+                        <span style="color:{{if br >= 0:}}#28a745{{else:}}#dc3545{{pass}};">
+                            {{if br >= 0:}}+{{pass}}{{="%.0f" % br}}d
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        {{pv = float(r.get('pct_vendido_al_pago', 0) or 0)}}
+                        <span style="color:{{if pv >= 75:}}#28a745{{elif pv >= 50:}}#fd7e14{{else:}}#dc3545{{pass}};">
+                            {{="%.0f" % pv}}%
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <div class="barra-progreso" style="min-width:60px;">
+                            <div class="fill {{if score >= 70:}}verde{{elif score >= 50:}}naranja{{else:}}rojo{{pass}}"
+                                 style="width:{{=min(score, 100)}}%"></div>
+                            <span class="pct">{{="%.0f" % score}}</span>
+                        </div>
+                    </td>
+                    <td style="font-size:10px; max-width:200px; white-space:normal;">
+                        {{=html(r.get('recomendacion', ''))}}
+                    </td>
+                </tr>
+                {{pass}}
+                </tbody>
+            </table>
+        </div>
+        <div style="padding: 8px 15px; font-size: 11px; color: #888; border-top: 1px solid #eee;">
+            <strong>Score</strong> = 50% ROI anualizado (margen × rotacion) + 30% calce financiero (brecha pagos) + 20% margen bruto.
+            <strong>ROI Anual</strong> = Margen% × (365 / Dias al 50%). Ejemplo: 40% margen × 12 rotaciones = 480% ROI.
+        </div>
+    </div>
+    {{pass}}
+
+    <!-- ================================================================= -->
+    <!-- MEJORA 3: CAPITAL DE TRABAJO MENSUAL (grafico por industria) -->
+    <!-- ================================================================= -->
+    {{if capital_trabajo:}}
+    <div class="panel panel-default panel-calce">
+        <div class="panel-heading">
+            <strong><i class="glyphicon glyphicon-signal"></i> Curva de Capital de Trabajo Mensual</strong>
+            <span class="badge" style="background:#6f42c1;">CFO</span>
+            <span style="font-size:11px; color:#666; margin-left:10px;">
+                Cuanto capital necesitas inmovilizado mes a mes?
+            </span>
+        </div>
+        <div class="panel-body" style="padding: 10px;">
+            <div class="row">
+                <div class="col-md-7">
+                    <canvas id="chartCapitalTrabajo" height="250"></canvas>
+                </div>
+                <div class="col-md-5">
+                    {{for ind_cap, meses_cap in capital_trabajo.items():}}
+                    <div style="margin-bottom: 10px;">
+                        <strong>{{=html(ind_cap)}}</strong>
+                        <table class="table table-condensed" style="font-size: 11px; margin: 5px 0;">
+                            <thead><tr style="background:#f0f0f0;">
+                                <th>Mes</th>
+                                <th class="text-right">Compras</th>
+                                <th class="text-right">Recupero</th>
+                                <th class="text-right">Neto</th>
+                                <th class="text-right">Acumulado</th>
+                            </tr></thead>
+                            <tbody>
+                            {{for mc in meses_cap:}}
+                            <tr {{if mc.get('pico'):}}style="background:#fff3cd; font-weight:bold;"{{pass}}>
+                                <td>{{=mc.get('mes_nombre','')[:3]}}</td>
+                                <td class="text-right" style="color:#dc3545;">{{=fmt(mc.get('compras',0))}}</td>
+                                <td class="text-right" style="color:#28a745;">{{=fmt(mc.get('recupero',0))}}</td>
+                                <td class="text-right">
+                                    {{neto = mc.get('neto', 0)}}
+                                    <span style="color:{{if neto >= 0:}}#dc3545{{else:}}#28a745{{pass}};">
+                                        {{=fmt(neto)}}
+                                    </span>
+                                </td>
+                                <td class="text-right">
+                                    {{acum_c = mc.get('acumulado', 0)}}
+                                    <strong style="color:{{if acum_c >= 0:}}#dc3545{{else:}}#28a745{{pass}};">
+                                        {{=fmt(acum_c)}}
+                                    </strong>
+                                    {{if mc.get('pico'):}}<small> PICO</small>{{pass}}
+                                </td>
+                            </tr>
+                            {{pass}}
+                            </tbody>
+                        </table>
+                    </div>
+                    {{pass}}
+                </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #888;">
+                <strong>Compras</strong>: comprometido distribuido por estacionalidad.
+                <strong>Recupero</strong>: venta estimada ajustada por velocidad de venta (dias 50%).
+                <strong>Neto positivo</strong> = necesitas poner capital propio.
+                <span style="background:#fff3cd; padding:1px 5px; border-radius:3px;"><strong>PICO</strong></span> = mes de maxima inmovilizacion.
+            </div>
+        </div>
+    </div>
+    {{pass}}
+
+    <!-- ================================================================= -->
+    <!-- MEJORA 4: DATOS ENRIQUECEDORES (margen, concentracion, stock muerto) -->
+    <!-- ================================================================= -->
+    {{if enriquecedores:}}
+    <div class="row" style="margin-top: 10px;">
+        {{for ind_e, datos_e in enriquecedores.items():}}
+        <div class="col-md-4" style="margin-bottom: 15px;">
+            <div class="panel panel-default" style="margin:0;">
+                <div class="panel-heading" style="padding: 8px 12px;">
+                    <strong>{{=html(ind_e)}}</strong>
+                    <span class="badge" style="background:#6c757d;">Datos CFO</span>
+                </div>
+                <div class="panel-body" style="padding: 10px; font-size: 12px;">
+                    <!-- Margen bruto -->
+                    <div style="margin-bottom: 8px;">
+                        <span style="color:#888;">Margen Bruto:</span>
+                        {{mg_e = float(datos_e.get('margen_bruto_pct', 0) or 0)}}
+                        <strong style="color:{{if mg_e >= 40:}}#28a745{{elif mg_e >= 25:}}#fd7e14{{else:}}#dc3545{{pass}};">
+                            {{="%.1f" % mg_e}}%
+                        </strong>
+                        <small class="text-muted">
+                            (Venta {{=fmt(datos_e.get('venta_precio_12m', 0))}} / Costo {{=fmt(datos_e.get('venta_costo_12m', 0))}})
+                        </small>
+                    </div>
+                    <!-- Concentracion -->
+                    <div style="margin-bottom: 8px;">
+                        <span style="color:#888;">Concentracion Top 3:</span>
+                        {{conc = float(datos_e.get('top3_pct', 0) or 0)}}
+                        {{nivel = datos_e.get('nivel_concentracion', '')}}
+                        <strong style="color:{{if nivel == 'ALTO':}}#dc3545{{elif nivel == 'MEDIO':}}#fd7e14{{else:}}#28a745{{pass}};">
+                            {{="%.0f" % conc}}% ({{=nivel}})
+                        </strong>
+                        <br><small class="text-muted">
+                            Top 1: {{=html(datos_e.get('top1_proveedor', '-'))}}
+                            ({{="%.0f" % float(datos_e.get('top1_pct', 0) or 0)}}%)
+                        </small>
+                        <br><small class="text-muted">{{=html(datos_e.get('top3_proveedores', ''))}}</small>
+                    </div>
+                    <!-- Stock muerto -->
+                    <div>
+                        <span style="color:#888;">Stock Muerto:</span>
+                        <br>
+                        <span style="color:#fd7e14;">
+                            >90d: {{=datos_e.get('stock_muerto_90d_uds', 0)}} arts
+                            ({{=fmt(datos_e.get('stock_muerto_90d_costo', 0))}})
+                        </span>
+                        <br>
+                        <span style="color:#dc3545;">
+                            >180d: {{=datos_e.get('stock_muerto_180d_uds', 0)}} arts
+                            ({{=fmt(datos_e.get('stock_muerto_180d_costo', 0))}})
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{pass}}
+    </div>
+    {{pass}}
+
+    <!-- LEYENDA -->
+    <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 12px; color: #666;">
+        <strong>Como leer este informe:</strong>
+        <span class="semaforo semaforo-CALZADO">CALZADO</span> = Vendes >75% antes de pagar.
+        <span class="semaforo semaforo-AJUSTADO">AJUSTADO</span> = Vendes 50-75% al pago, monitorea.
+        <span class="semaforo semaforo-PRESION">PRESION</span> = Vendes <50% al pago, necesitas financiar.
+        <span class="semaforo semaforo-DEFICIT">DEFICIT</span> = Hay compromisos sin datos de recupero.
+        <strong>Calce Financiero</strong> = Plazo de Pago − Días al 50% vendido. <span style="color:#28a745">Positivo</span> = vendés antes de pagar (capital del proveedor). <span style="color:#dc3545">Negativo</span> = pagás antes de vender (capital propio).
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Filtros
+    $('#btnFiltrar').on('click', function() {
+        var params = {};
+        var ind = $('#fil-industria').val();
+        var temp = $('#fil-temporada').val();
+        var prov = $('#fil-proveedor').val();
+        var rub = $('#fil-rubro').val();
+        var sub = $('#fil-subrubro').val();
+        var grp = $('#fil-grupo').val();
+        var lin = $('#fil-linea').val();
+        var mrc = $('#fil-marca').val();
+        if (ind) params.industria = ind;
+        if (temp) params.temporada = temp;
+        if (prov) params.proveedor = prov;
+        if (rub) params.rubro = rub;
+        if (sub) params.subrubro = sub;
+        if (grp) params.grupo = grp;
+        if (lin) params.linea = lin;
+        if (mrc) params.marca = mrc;
+        window.location.href = '{{=URL("calce_financiero","dashboard")}}?' + $.param(params);
+    });
+    $('#btnLimpiar').on('click', function() {
+        window.location.href = '{{=URL("calce_financiero","dashboard")}}';
+    });
+
+    // Grafico de barras horizontales: Calce por industria
+    {{import json as _json}}
+    var matrizData = {{=XML(_json.dumps([
+        {'industria': m['industria'], 'comprometido': m['comprometido'],
+         'pct_al_pago': m['pct_vendido_al_pago'], 'semaforo': m['semaforo']}
+        for m in matriz
+    ][:10]))}};
+
+    if (matrizData.length > 0) {
+        var colores = matrizData.map(function(d) {
+            if (d.semaforo === 'CALZADO') return '#28a745';
+            if (d.semaforo === 'AJUSTADO') return '#fd7e14';
+            if (d.semaforo === 'PRESION') return '#dc3545';
+            if (d.semaforo === 'DEFICIT') return '#6f42c1';
+            return '#adb5bd';
+        });
+
+        new Chart(document.getElementById('chartCalce'), {
+            type: 'bar',
+            data: {
+                labels: matrizData.map(function(d) { return d.industria; }),
+                datasets: [{
+                    label: '% Vendido al Pago',
+                    data: matrizData.map(function(d) { return d.pct_al_pago; }),
+                    backgroundColor: colores,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ctx.raw.toFixed(0) + '% vendido al momento del pago';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { callback: function(v) { return v + '%'; } },
+                        grid: { color: '#f0f0f0' }
+                    },
+                    y: { ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // ================================================================
+    // GRAFICO FLUJO DE CAJA SEMANAL
+    // ================================================================
+    {{import json as _j2}}
+    var flujoData = {{=XML(_j2.dumps(flujo_caja[:12]))}};
+    if (flujoData.length > 0 && document.getElementById('chartFlujoCaja')) {
+        new Chart(document.getElementById('chartFlujoCaja'), {
+            type: 'bar',
+            data: {
+                labels: flujoData.map(function(d) { return 'S' + d.semana_numero; }),
+                datasets: [
+                    {
+                        label: 'Pagos',
+                        data: flujoData.map(function(d) { return -(d.pagos_total || 0); }),
+                        backgroundColor: 'rgba(220,53,69,0.7)',
+                        borderRadius: 3,
+                    },
+                    {
+                        label: 'Cobranza Est.',
+                        data: flujoData.map(function(d) { return d.cobranza_estimada || 0; }),
+                        backgroundColor: 'rgba(40,167,69,0.7)',
+                        borderRadius: 3,
+                    },
+                    {
+                        label: 'Balance Acum.',
+                        data: flujoData.map(function(d) { return d.balance_acumulado || 0; }),
+                        type: 'line',
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0,123,255,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        yAxisID: 'y',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                var val = ctx.raw || 0;
+                                return ctx.dataset.label + ': $ ' + Math.abs(val).toLocaleString('es-AR', {maximumFractionDigits:0});
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        ticks: {
+                            callback: function(v) {
+                                return (v >= 0 ? '' : '-') + '$ ' + Math.abs(v/1000000).toFixed(1) + 'M';
+                            },
+                            font: { size: 10 }
+                        },
+                        grid: { color: '#f0f0f0' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ================================================================
+    // GRAFICO CAPITAL DE TRABAJO MENSUAL (todas las industrias)
+    // ================================================================
+    var capitalData = {{=XML(_j2.dumps(capital_trabajo))}};
+    if (Object.keys(capitalData).length > 0 && document.getElementById('chartCapitalTrabajo')) {
+        var datasets = [];
+        var coloresInd = ['#dc3545','#007bff','#28a745','#fd7e14','#6f42c1','#17a2b8'];
+        var labels = null;
+        var idx = 0;
+        for (var ind in capitalData) {
+            if (!labels) {
+                labels = capitalData[ind].map(function(d) { return d.mes_nombre.substring(0,3); });
+            }
+            datasets.push({
+                label: ind,
+                data: capitalData[ind].map(function(d) { return d.acumulado; }),
+                borderColor: coloresInd[idx % coloresInd.length],
+                backgroundColor: 'transparent',
+                tension: 0.3,
+                pointRadius: 4,
+                pointBackgroundColor: coloresInd[idx % coloresInd.length],
+            });
+            idx++;
+        }
+        if (labels) {
+            new Chart(document.getElementById('chartCapitalTrabajo'), {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                        title: { display: true, text: 'Capital Acumulado por Industria (+ = capital inmovilizado)', font: { size: 12 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    var v = ctx.raw || 0;
+                                    return ctx.dataset.label + ': $ ' + v.toLocaleString('es-AR', {maximumFractionDigits:0});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(v) {
+                                    return '$ ' + (v/1000000).toFixed(1) + 'M';
+                                },
+                                font: { size: 10 }
+                            },
+                            grid: { color: '#f0f0f0' }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>

@@ -1,0 +1,205 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-card {
+    background: #fff; border-radius: 10px; padding: 18px; text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px;
+}
+.kpi-card h5 { color: #888; font-size: 12px; margin: 0 0 5px; text-transform: uppercase; }
+.kpi-card .valor { font-size: 24px; font-weight: bold; color: #333; }
+.filtros-bar {
+    background: #f4f6f9; padding: 15px; border-radius: 8px;
+    margin-bottom: 20px; border: 1px solid #dee2e6;
+}
+.dias-pos { color: #28a745; font-weight: bold; }
+.dias-neg { color: #dc3545; font-weight: bold; }
+.vista-tabs { margin-bottom: 15px; }
+.vista-tabs .btn.active { background: #007bff; color: #fff; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+
+    <h3><i class="glyphicon glyphicon-usd"></i> Recupero Financiero <small>(Live - moviprov2)</small></h3>
+    <p class="text-muted" style="margin-bottom:15px;">
+        Dias entre la OP y el golpe bancario. <strong class="dias-pos">Positivo</strong> = cheque diferido (beneficio).
+        <strong class="dias-neg">Negativo</strong> = cheque vencido (pagando con plata vieja).
+    </p>
+    <hr>
+
+    <!-- KPIs -->
+    <div class="row">
+        <div class="col-md-2">
+            <div class="kpi-card">
+                <h5>Total Pagado</h5>
+                <div class="valor" style="color:#007bff; font-size:18px;">{{=formato_moneda(kpi.get('total_importe', 0))}}</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card">
+                <h5>Cant. OPs</h5>
+                <div class="valor">{{=kpi.get('cant_ops', 0) or 0}}</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card">
+                <h5>Proveedores</h5>
+                <div class="valor">{{=kpi.get('proveedores', 0) or 0}}</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card">
+                <h5>Recupero Ponderado</h5>
+                {{
+import decimal
+dias_p = kpi.get('dias_recupero_ponderado', 0) or 0
+if isinstance(dias_p, decimal.Decimal): dias_p = float(dias_p)
+                }}
+                <div class="valor {{'dias-pos' if dias_p >= 0 else 'dias-neg'}}">{{='{:+.1f}'.format(dias_p)}} dias</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card">
+                <h5>Pagado Diferido</h5>
+                <div class="valor" style="color:#28a745; font-size:16px;">{{=formato_moneda(kpi.get('importe_diferido', 0))}}</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card">
+                <h5>Pagado Vencido</h5>
+                <div class="valor" style="color:#dc3545; font-size:16px;">{{=formato_moneda(kpi.get('importe_vencido', 0))}}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="filtros-bar">
+        <form method="GET" action="{{=URL('reportes','recupero')}}">
+            <input type="hidden" name="vista" value="{{=vista}}">
+            <div class="row">
+                <div class="col-md-2">
+                    <label>Desde</label>
+                    <input type="date" name="fecha_desde" class="form-control input-sm" value="{{=filtro_fecha_desde or '2025-01-01'}}">
+                </div>
+                <div class="col-md-2">
+                    <label>Hasta</label>
+                    <input type="date" name="fecha_hasta" class="form-control input-sm" value="{{=filtro_fecha_hasta}}">
+                </div>
+                <div class="col-md-2">
+                    <label>Proveedor</label>
+                    <input type="text" name="proveedor" class="form-control input-sm" value="{{=filtro_proveedor}}" placeholder="Buscar...">
+                </div>
+                <div class="col-md-2">
+                    <label>Marca</label>
+                    <input type="text" name="marca" class="form-control input-sm" value="{{=filtro_marca}}" placeholder="Buscar marca...">
+                </div>
+                <div class="col-md-2" style="padding-top: 22px;">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="glyphicon glyphicon-search"></i> Filtrar</button>
+                    <a href="{{=URL('reportes','recupero', vars=dict(vista=vista))}}" class="btn btn-default btn-sm">Limpiar</a>
+                </div>
+                <div class="col-md-2" style="padding-top: 22px;">
+                    <a href="{{=URL('reportes','recupero_csv', vars=dict(fecha_desde=filtro_fecha_desde, fecha_hasta=filtro_fecha_hasta, proveedor=filtro_proveedor, marca=filtro_marca, tipo='detalle'))}}" class="btn btn-success btn-sm" title="CSV detallado">
+                        <i class="glyphicon glyphicon-download"></i> CSV Detalle
+                    </a>
+                    <a href="{{=URL('reportes','recupero_csv', vars=dict(fecha_desde=filtro_fecha_desde, fecha_hasta=filtro_fecha_hasta, proveedor=filtro_proveedor, marca=filtro_marca, tipo='resumen'))}}" class="btn btn-success btn-sm" title="CSV resumen por proveedor">
+                        <i class="glyphicon glyphicon-download"></i> CSV Resumen
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- TABS DE VISTA -->
+    <div class="vista-tabs btn-group">
+        <a href="{{=URL('reportes','recupero', vars=dict(vista='mes', fecha_desde=filtro_fecha_desde, fecha_hasta=filtro_fecha_hasta, proveedor=filtro_proveedor, marca=filtro_marca))}}"
+           class="btn btn-default btn-sm {{'active' if vista=='mes' else ''}}">
+            <i class="glyphicon glyphicon-calendar"></i> Por Mes
+        </a>
+        <a href="{{=URL('reportes','recupero', vars=dict(vista='proveedor', fecha_desde=filtro_fecha_desde, fecha_hasta=filtro_fecha_hasta, proveedor=filtro_proveedor, marca=filtro_marca))}}"
+           class="btn btn-default btn-sm {{'active' if vista=='proveedor' else ''}}">
+            <i class="glyphicon glyphicon-user"></i> Por Proveedor
+        </a>
+        <a href="{{=URL('reportes','recupero', vars=dict(vista='marca', fecha_desde=filtro_fecha_desde, fecha_hasta=filtro_fecha_hasta, proveedor=filtro_proveedor, marca=filtro_marca))}}"
+           class="btn btn-default btn-sm {{'active' if vista=='marca' else ''}}">
+            <i class="glyphicon glyphicon-tag"></i> Por Marca
+        </a>
+    </div>
+
+    <!-- TABLA DE DATOS -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <strong>
+                {{if vista == 'mes':}}
+                <i class="glyphicon glyphicon-calendar"></i> Recupero por Mes
+                {{elif vista == 'proveedor':}}
+                <i class="glyphicon glyphicon-user"></i> Recupero por Proveedor (Top 50 por volumen)
+                {{elif vista == 'marca':}}
+                <i class="glyphicon glyphicon-tag"></i> Recupero por Marca (Top 50 por volumen)
+                {{pass}}
+            </strong>
+            <span class="pull-right text-muted">{{=len(datos)}} registros</span>
+        </div>
+        <div class="panel-body" style="padding:0; overflow-x:auto;">
+            <table class="table table-condensed table-striped table-hover" style="font-size:12px; margin:0;">
+                <thead>
+                    <tr style="background:#343a40; color:white;">
+                        {{if vista == 'mes':}}
+                        <th>Mes</th><th class="text-right">OPs</th><th class="text-right">Proveedores</th>
+                        <th class="text-right">Total Pagado</th>
+                        <th class="text-right">Rec. Promedio</th><th class="text-right">Rec. Ponderado</th>
+                        <th class="text-right">Min</th><th class="text-right">Max</th>
+                        {{elif vista == 'proveedor':}}
+                        <th>Proveedor</th><th>Marca Ppal</th><th class="text-right">OPs</th>
+                        <th class="text-right">Total Pagado</th>
+                        <th class="text-right">Rec. Promedio</th><th class="text-right">Rec. Ponderado</th>
+                        <th class="text-right">Min</th><th class="text-right">Max</th><th></th>
+                        {{elif vista == 'marca':}}
+                        <th>Marca</th><th class="text-right">OPs</th><th class="text-right">Proveedores</th>
+                        <th class="text-right">Total Pagado</th>
+                        <th class="text-right">Rec. Promedio</th><th class="text-right">Rec. Ponderado</th>
+                        <th class="text-right">Min</th><th class="text-right">Max</th>
+                        {{pass}}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for r in datos:}}
+                    <tr>
+                        <td><strong>{{=r.get('agrupador','?')}}</strong></td>
+
+                        {{if vista == 'proveedor':}}
+                        <td><span class="label label-info">{{=r.get('marca_ppal','?')}}</span></td>
+                        {{pass}}
+
+                        <td class="text-right">{{=r.get('cant_ops', 0)}}</td>
+
+                        {{if vista != 'proveedor':}}
+                        <td class="text-right">{{=r.get('proveedores', '')}}</td>
+                        {{pass}}
+
+                        <td class="text-right">{{=formato_moneda(r.get('total_importe', 0))}}</td>
+                        <td class="text-right">
+                            {{dp = float(r.get('dias_recupero_promedio', 0) or 0)}}
+                            <span class="{{'dias-pos' if dp >= 0 else 'dias-neg'}}">{{='{:+.0f}'.format(dp)}}</span>
+                        </td>
+                        <td class="text-right">
+                            {{dpond = float(r.get('dias_recupero_ponderado', 0) or 0)}}
+                            <strong class="{{'dias-pos' if dpond >= 0 else 'dias-neg'}}">{{='{:+.1f}'.format(dpond)}}</strong>
+                        </td>
+                        <td class="text-right">{{=r.get('min_dias', '')}}</td>
+                        <td class="text-right">{{=r.get('max_dias', '')}}</td>
+
+                        {{if vista == 'proveedor':}}
+                        <td>
+                            <a href="{{=URL('reportes','recupero_detalle', vars=dict(cod=r.get('cod',''), nombre=r.get('agrupador','')))}}"
+                               class="btn btn-xs btn-info" title="Ver OPs">
+                                <i class="glyphicon glyphicon-zoom-in"></i>
+                            </a>
+                        </td>
+                        {{pass}}
+                    </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>

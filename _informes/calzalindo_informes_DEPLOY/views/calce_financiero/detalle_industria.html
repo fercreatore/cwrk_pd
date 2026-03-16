@@ -1,0 +1,575 @@
+{{extend 'layout.html'}}
+
+<style>
+/* === DETALLE INDUSTRIA STYLES === */
+.di-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.di-header h2 { margin: 0; font-size: 1.7rem; }
+.di-back { color: #2563eb; text-decoration: none; font-size: 1.05rem; }
+.di-back:hover { text-decoration: underline; }
+
+/* KPIs */
+.di-kpis { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.di-kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; flex: 1; min-width: 140px; }
+.di-kpi-label { font-size: 0.95rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.di-kpi-value { font-size: 1.6rem; font-weight: 700; color: #1e293b; }
+.di-kpi-value.verde { color: #16a34a; }
+.di-kpi-value.rojo { color: #dc2626; }
+.di-kpi-value.naranja { color: #ea580c; }
+.di-kpi-sub { font-size: 0.85rem; color: #94a3b8; margin-top: 2px; }
+
+/* Tendencia box */
+.di-tendencia { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
+.di-tendencia.caida { background: #fef2f2; border-color: #f87171; }
+.di-tendencia.sube { background: #f0fdf4; border-color: #4ade80; }
+.di-tendencia.estable { background: #f8fafc; border-color: #94a3b8; }
+.di-tendencia h4 { margin: 0 0 10px 0; font-size: 1.15rem; }
+.di-tendencia-grid { display: flex; gap: 20px; flex-wrap: wrap; }
+.di-tend-item { min-width: 100px; }
+.di-tend-item .label { font-size: 0.85rem; color: #64748b; }
+.di-tend-item .value { font-size: 1.3rem; font-weight: 700; }
+.di-tend-meses { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.di-tend-mes { text-align: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; min-width: 60px; }
+.di-tend-mes .mes-label { font-size: 0.8rem; color: #64748b; }
+.di-tend-mes .mes-ratio { font-size: 1.05rem; font-weight: 600; }
+.di-tend-mes.completo { border-color: #2563eb; background: #eff6ff; }
+.di-tend-mes.parcial { border-color: #fbbf24; background: #fffbeb; opacity: 0.7; }
+
+/* Filtros */
+.di-filtros { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; }
+.di-filtros-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.di-filtro-group { display: flex; flex-direction: column; }
+.di-filtro-group label { font-size: 0.9rem; color: #64748b; margin-bottom: 2px; }
+.di-filtro-group select { padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 1rem; min-width: 140px; }
+.di-filtro-btn { padding: 8px 20px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; align-self: flex-end; }
+.di-filtro-btn:hover { background: #1d4ed8; }
+.di-filtro-btn.secondary { background: #94a3b8; }
+.di-filtro-btn.secondary:hover { background: #64748b; }
+
+/* Tablas */
+.di-section { margin-bottom: 28px; }
+.di-section h3 { font-size: 1.35rem; color: #334155; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+.di-table-wrap { overflow-x: auto; }
+table.di-table { width: 100%; border-collapse: collapse; font-size: 1.05rem; }
+table.di-table th { background: #f1f5f9; color: #475569; font-weight: 600; padding: 11px 14px; text-align: left;
+    border-bottom: 2px solid #cbd5e1; white-space: nowrap; cursor: pointer; user-select: none; position: relative; font-size: 1rem; }
+table.di-table th:hover { background: #e2e8f0; }
+table.di-table th .sort-arrow { font-size: 0.75rem; margin-left: 3px; color: #94a3b8; }
+table.di-table th.sorted-asc .sort-arrow { color: #2563eb; }
+table.di-table th.sorted-desc .sort-arrow { color: #2563eb; }
+table.di-table td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; }
+table.di-table tr:hover { background: #f8fafc; }
+table.di-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.di-table .pct-bar { display: inline-block; height: 8px; border-radius: 4px; background: #2563eb; min-width: 2px; }
+table.di-table .pct-cell { display: flex; align-items: center; gap: 6px; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; }
+.badge-verde { background: #dcfce7; color: #166534; }
+.badge-naranja { background: #ffedd5; color: #9a3412; }
+.badge-rojo { background: #fee2e2; color: #991b1b; }
+.badge-gris { background: #f1f5f9; color: #475569; }
+.badge-azul { background: #dbeafe; color: #1e40af; }
+.text-muted { color: #94a3b8; }
+.row-sin-pedidos { opacity: 0.6; font-style: italic; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .di-kpis { flex-direction: column; }
+    .di-filtros-row { flex-direction: column; }
+}
+</style>
+
+<!-- HEADER -->
+<div class="di-header">
+    <div>
+        <a class="di-back" href="{{=URL('calce_financiero', 'dashboard')}}">&larr; Volver al Dashboard</a>
+        <h2>{{=html(industria)}}</h2>
+        {{if periodo:}}
+        <span style="color:#64748b; font-size:1rem;">
+            Temporada {{=periodo.get('temporada','')}} {{=periodo.get('anio_objetivo','')}}
+            &mdash; Base: ventas {{=periodo.get('anio_base','')}}
+            (meses {{=periodo.get('mes_desde','')}} a {{=periodo.get('mes_hasta','')}})
+        </span>
+        {{pass}}
+    </div>
+</div>
+
+<!-- TENDENCIA DE FACTURACION -->
+{{
+# Factor de unidades es el indicador principal (sin distorsion inflacion)
+fuds = factor_tendencia_uds if factor_tendencia_uds else factor_tendencia
+tend_class = 'caida' if fuds < 0.80 else 'caida' if fuds < 0.95 else 'estable' if fuds <= 1.05 else 'sube'
+tend_icon = '&#x25BC;' if fuds < 0.95 else '&#x25B2;' if fuds > 1.05 else '&#x25CF;'
+tend_color = '#dc2626' if fuds < 0.80 else '#ea580c' if fuds < 0.95 else '#64748b' if fuds <= 1.05 else '#16a34a'
+# Color para ticket (inflacion)
+tk_color = '#16a34a' if var_ticket_prom > 10 else '#ea580c' if var_ticket_prom < -10 else '#64748b'
+meses_nombres = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'}
+}}
+<div class="di-tendencia {{=tend_class}}">
+    <h4>Tendencia 2026 vs 2025 &mdash; Descomposici&oacute;n Precio/Volumen</h4>
+
+    {{if diagnostico:}}
+    <div style="background:rgba(0,0,0,0.05); border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:1.05rem; font-weight:500;">
+        {{=diagnostico}}
+    </div>
+    {{pass}}
+
+    <div class="di-tendencia-grid">
+        <!-- Unidades (indicador principal) -->
+        <div class="di-tend-item">
+            <div class="label">Unidades YoY</div>
+            <div class="value" style="color:{{=tend_color}}">{{=tend_icon}} {{="%.1f" % ((fuds - 1) * 100)}}%</div>
+        </div>
+        <!-- Ticket / Precio -->
+        <div class="di-tend-item">
+            <div class="label">Ticket prom.</div>
+            <div class="value" style="color:{{=tk_color}}; font-size:1.15rem;">
+                {{if var_ticket_prom > 0:}}+{{pass}}{{="%.0f" % var_ticket_prom}}%
+            </div>
+        </div>
+        <!-- Costo total (combinado) -->
+        <div class="di-tend-item">
+            <div class="label">Costo total</div>
+            <div class="value" style="font-size:1.15rem; color:{{='#dc2626' if factor_tendencia < 0.95 else '#ea580c' if factor_tendencia < 1.0 else '#16a34a'}}">
+                {{="%.1f" % ((factor_tendencia - 1) * 100)}}%
+            </div>
+        </div>
+        <!-- YTD Unidades -->
+        <div class="di-tend-item">
+            <div class="label">Uds YTD 2026</div>
+            <div class="value" style="font-size:1.15rem;">{{="{:,.0f}".format(uds_ytd_2026).replace(",",".")}}</div>
+            <div style="font-size:0.8rem; color:#94a3b8;">vs {{="{:,.0f}".format(uds_ytd_2025).replace(",",".")}} (2025)</div>
+        </div>
+        <!-- Proyeccion anual -->
+        {{if uds_proy_anual_2026 > 0:}}
+        <div class="di-tend-item">
+            <div class="label">Proy. Anual Uds</div>
+            <div class="value" style="font-size:1.15rem;">{{="{:,.0f}".format(uds_proy_anual_2026).replace(",",".")}}</div>
+            <div style="font-size:0.8rem; color:#94a3b8;">por estacionalidad</div>
+        </div>
+        {{pass}}
+        <div class="di-tend-item">
+            <div class="label">Meses evaluados</div>
+            <div class="value" style="font-size:1.1rem;">{{=meses_evaluados}}</div>
+        </div>
+    </div>
+
+    {{if tendencia_meses:}}
+    <!-- Boxes mensuales: fila 1 = unidades, fila 2 = costo -->
+    <div style="margin-top:12px;">
+        <div style="font-size:0.85rem; color:#475569; font-weight:600; margin-bottom:4px;">Unidades por mes (26 vs 25):</div>
+        <div class="di-tend-meses">
+            {{for tm in tendencia_meses:}}
+            {{
+            m_ratio_u = tm.get('ratio_uds', 0)
+            m_completo = tm.get('completo', 0)
+            mu_color = '#dc2626' if m_ratio_u < 0.80 and m_ratio_u > 0 else '#ea580c' if m_ratio_u < 0.95 and m_ratio_u > 0 else '#64748b' if m_ratio_u <= 1.05 or m_ratio_u == 0 else '#16a34a'
+            }}
+            <div class="di-tend-mes {{='completo' if m_completo else 'parcial' if tm.get('u2026', 0) > 0 else ''}}" title="Uds 25: {{='{:,.0f}'.format(tm.get('u2025',0)).replace(',','.')}} / Uds 26: {{='{:,.0f}'.format(tm.get('u2026',0)).replace(',','.')}}">
+                <div class="mes-label">{{=meses_nombres.get(tm['mes'], tm['mes'])}}</div>
+                {{if m_ratio_u > 0:}}
+                <div class="mes-ratio" style="color:{{=mu_color}}">{{="%.0f" % ((m_ratio_u - 1)*100)}}%</div>
+                {{else:}}
+                <div class="mes-ratio" style="color:#cbd5e1">-</div>
+                {{pass}}
+                {{if tm.get('idx_est', 0) > 0:}}
+                <div style="font-size:0.7rem; color:#94a3b8;">{{="%.1f" % tm['idx_est']}}%</div>
+                {{pass}}
+            </div>
+            {{pass}}
+        </div>
+
+        <div style="font-size:0.85rem; color:#475569; font-weight:600; margin-bottom:4px; margin-top:8px;">Ticket prom. por mes (26 vs 25):</div>
+        <div class="di-tend-meses">
+            {{for tm in tendencia_meses:}}
+            {{
+            m_ratio_t = tm.get('ratio_ticket', 0)
+            m_completo = tm.get('completo', 0)
+            mt_color = '#16a34a' if m_ratio_t > 1.05 else '#ea580c' if m_ratio_t < 0.95 and m_ratio_t > 0 else '#64748b'
+            }}
+            <div class="di-tend-mes {{='completo' if m_completo else 'parcial' if tm.get('tk2026', 0) > 0 else ''}}" title="Tk 25: ${{='{:,.0f}'.format(tm.get('tk2025',0)).replace(',','.')}} / Tk 26: ${{='{:,.0f}'.format(tm.get('tk2026',0)).replace(',','.')}}">
+                <div class="mes-label">{{=meses_nombres.get(tm['mes'], tm['mes'])}}</div>
+                {{if m_ratio_t > 0:}}
+                <div class="mes-ratio" style="color:{{=mt_color}}">{{="%.0f" % ((m_ratio_t - 1)*100)}}%</div>
+                {{else:}}
+                <div class="mes-ratio" style="color:#cbd5e1">-</div>
+                {{pass}}
+            </div>
+            {{pass}}
+        </div>
+    </div>
+    <div style="font-size:0.8rem; color:#94a3b8; margin-top:6px;">
+        <span style="display:inline-block;width:12px;height:12px;background:#eff6ff;border:1px solid #2563eb;border-radius:3px;vertical-align:middle;"></span> Mes completo
+        &nbsp;
+        <span style="display:inline-block;width:12px;height:12px;background:#fffbeb;border:1px solid #fbbf24;border-radius:3px;vertical-align:middle;"></span> Mes en curso/parcial
+        &nbsp; | &nbsp; En cajas de Uds: el n&uacute;mero chico es el &iacute;ndice de estacionalidad (% del a&ntilde;o)
+    </div>
+    {{pass}}
+</div>
+
+<!-- KPIs -->
+<div class="di-kpis">
+    <div class="di-kpi">
+        <div class="di-kpi-label">Presupuesto Original</div>
+        <div class="di-kpi-value">{{=fmt(total_presupuesto)}}</div>
+        <div class="di-kpi-sub">Base ventas {{=periodo.get('anio_base','') if periodo else ''}}</div>
+    </div>
+    <div class="di-kpi">
+        <div class="di-kpi-label">Presup. Ajustado</div>
+        <div class="di-kpi-value" style="color:{{=tend_color}}">{{=fmt(total_presupuesto_ajustado)}}</div>
+        <div class="di-kpi-sub">Factor $: {{="%.2f" % factor_tendencia}}x | Uds: {{="%.2f" % fuds}}x</div>
+    </div>
+    <div class="di-kpi">
+        <div class="di-kpi-label">Comprometido</div>
+        <div class="di-kpi-value">{{=fmt(total_comprometido)}}</div>
+    </div>
+    <div class="di-kpi">
+        <div class="di-kpi-label">Disponible Ajust.</div>
+        <div class="di-kpi-value {{='rojo' if total_disponible_ajustado < 0 else 'verde'}}">{{=fmt(total_disponible_ajustado)}}</div>
+    </div>
+    <div class="di-kpi">
+        <div class="di-kpi-label">% Ejec. Ajustado</div>
+        <div class="di-kpi-value {{='rojo' if total_pct_ejecutado_ajustado > 100 else 'naranja' if total_pct_ejecutado_ajustado > 75 else ''}}">{{="%.1f" % total_pct_ejecutado_ajustado}}%</div>
+    </div>
+    <div class="di-kpi">
+        <div class="di-kpi-label">Vencido</div>
+        <div class="di-kpi-value {{='rojo' if total_vencido > 0 else ''}}">{{=fmt(total_vencido)}}</div>
+    </div>
+</div>
+
+<!-- FILTROS -->
+<div class="di-filtros">
+    <form method="GET" action="{{=URL('calce_financiero', 'detalle_industria')}}">
+        <input type="hidden" name="industria" value="{{=url_safe(industria)}}" />
+        <div class="di-filtros-row">
+            {{if temporadas_list:}}
+            <div class="di-filtro-group">
+                <label>Temporada</label>
+                <select name="temporada">
+                    <option value="">Actual</option>
+                    {{for t in temporadas_list:}}
+                    <option value="{{=url_safe(t)}}" {{='selected' if filtro_temporada and t == filtro_temporada else ''}}>{{=html(t)}}</option>
+                    {{pass}}
+                </select>
+            </div>
+            {{pass}}
+
+            {{if marcas_list:}}
+            <div class="di-filtro-group">
+                <label>Marca</label>
+                <select name="marca">
+                    <option value="">Todas</option>
+                    {{for m in marcas_list:}}
+                    <option value="{{=url_safe(m)}}" {{='selected' if filtro_marca and m == filtro_marca else ''}}>{{=html(m)}}</option>
+                    {{pass}}
+                </select>
+            </div>
+            {{pass}}
+
+            {{if proveedores_list:}}
+            <div class="di-filtro-group">
+                <label>Proveedor</label>
+                <select name="proveedor">
+                    <option value="">Todos</option>
+                    {{for p in proveedores_list:}}
+                    <option value="{{=url_safe(p)}}" {{='selected' if filtro_proveedor and p == filtro_proveedor else ''}}>{{=html(p)}}</option>
+                    {{pass}}
+                </select>
+            </div>
+            {{pass}}
+
+            {{if rubros_list:}}
+            <div class="di-filtro-group">
+                <label>Rubro</label>
+                <select name="rubro">
+                    <option value="">Todos</option>
+                    {{for r in rubros_list:}}
+                    <option value="{{=url_safe(r)}}" {{='selected' if filtro_rubro and r == filtro_rubro else ''}}>{{=html(r)}}</option>
+                    {{pass}}
+                </select>
+            </div>
+            {{pass}}
+
+            {{if subrubros_list:}}
+            <div class="di-filtro-group">
+                <label>Subrubro</label>
+                <select name="subrubro">
+                    <option value="">Todos</option>
+                    {{for s in subrubros_list:}}
+                    <option value="{{=url_safe(s)}}" {{='selected' if filtro_subrubro and s == filtro_subrubro else ''}}>{{=html(s)}}</option>
+                    {{pass}}
+                </select>
+            </div>
+            {{pass}}
+
+            {{if grupos_list:}}
+            <div class="di-filtro-group">
+                <label>Grupo</label>
+                <select name="grupo">
+                    <option value="">Todos</option>
+                    {{for g in grupos_list:}}
+                    <option value="{{=url_safe(g)}}" {{='selected' if filtro_grupo and g == filtro_grupo else ''}}>{{=html(g)}}</option>
+                    {{pass}}
+                </select>
+            </div>
+            {{pass}}
+
+            {{if lineas_list:}}
+            <div class="di-filtro-group">
+                <label>Linea</label>
+                <select name="linea">
+                    <option value="">Todas</option>
+                    {{for l in lineas_list:}}
+                    <option value="{{=url_safe(l)}}" {{='selected' if filtro_linea and l == filtro_linea else ''}}>{{=html(l)}}</option>
+                    {{pass}}
+                </select>
+            </div>
+            {{pass}}
+
+            <button type="submit" class="di-filtro-btn">Filtrar</button>
+            <a href="{{=URL('calce_financiero', 'detalle_industria', vars=dict(industria=url_safe(industria)))}}" class="di-filtro-btn secondary" style="text-decoration:none;">Limpiar</a>
+        </div>
+    </form>
+</div>
+
+<!-- ================================================================ -->
+<!-- TABLA PRINCIPAL: MARCAS CON PRESUPUESTO + COMPROMISOS + AJUSTE   -->
+<!-- ================================================================ -->
+<div class="di-section">
+    <h3>Presupuesto y Compromisos por Marca</h3>
+    {{if marcas:}}
+    <div class="di-table-wrap">
+        <table class="di-table" id="tblMarcas">
+            <thead>
+                <tr>
+                    <th data-sort="string">Marca <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Presup. Orig. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Presup. Ajust. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Comprometido <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Disp. Ajust. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">% Ejec. Ajust. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Uds. Pedidas <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Uds. Recibidas <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">% Cumplim. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Vencido <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Arts. Base <span class="sort-arrow">&#9650;&#9660;</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{for m in marcas:}}
+                <tr class="{{='row-sin-pedidos' if m.get('comprometido',0) == 0 else ''}}">
+                    <td>{{=html(m.get('marca', '-'))}}</td>
+                    <td class="num" data-val="{{=m.get('presupuesto', 0)}}">
+                        {{if m.get('presupuesto', 0) > 0:}}{{=fmt(m['presupuesto'])}}{{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('presupuesto_ajustado', 0)}}">
+                        {{pa = m.get('presupuesto_ajustado', 0)}}
+                        {{if pa > 0:}}<span style="color:{{=tend_color}}">{{=fmt(pa)}}</span>{{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('comprometido', 0)}}">
+                        {{if m.get('comprometido', 0) > 0:}}{{=fmt(m['comprometido'])}}{{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('disponible_ajustado', 0)}}">
+                        {{da = m.get('disponible_ajustado', 0)}}
+                        {{if m.get('presupuesto_ajustado', 0) > 0:}}
+                        <span style="color:{{='#dc2626' if da < 0 else '#16a34a'}}">{{=fmt(da)}}</span>
+                        {{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('pct_ejecutado_ajustado', 0)}}">
+                        {{pct_ea = m.get('pct_ejecutado_ajustado', 0)}}
+                        {{if m.get('presupuesto_ajustado', 0) > 0:}}
+                        <div class="pct-cell">
+                            <span class="pct-bar" style="width:{{=min(pct_ea, 100)}}px; background:{{='#dc2626' if pct_ea > 100 else '#ea580c' if pct_ea > 75 else '#2563eb'}};"></span>
+                            <span>{{="%.1f" % pct_ea}}%</span>
+                        </div>
+                        {{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('unidades_pedidas', 0)}}">
+                        {{="{:,.0f}".format(m.get('unidades_pedidas', 0)).replace(",",".")}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('unidades_recibidas', 0)}}">
+                        {{="{:,.0f}".format(m.get('unidades_recibidas', 0)).replace(",",".")}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('pct_cumplimiento', 0)}}">
+                        {{pct_c = m.get('pct_cumplimiento', 0)}}
+                        {{if m.get('unidades_pedidas', 0) > 0:}}
+                        <div class="pct-cell">
+                            <span class="pct-bar" style="width:{{=min(pct_c, 100)}}px; background:#16a34a;"></span>
+                            <span>{{="%.1f" % pct_c}}%</span>
+                        </div>
+                        {{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('monto_vencido', 0)}}">
+                        {{venc = m.get('monto_vencido', 0)}}
+                        {{if venc > 0:}}<span style="color:#dc2626; font-weight:600;">{{=fmt(venc)}}</span>
+                        {{else:}}<span class="text-muted">0</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=m.get('articulos_base', 0)}}">
+                        {{ab = m.get('articulos_base', 0)}}
+                        {{if ab > 0:}}{{="{:,.0f}".format(ab).replace(",",".")}}{{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                </tr>
+                {{pass}}
+            </tbody>
+        </table>
+    </div>
+    {{else:}}
+    <p class="text-muted">No hay datos de marcas para esta industria.</p>
+    {{pass}}
+</div>
+
+<!-- ================================================================ -->
+<!-- COMPROMISOS POR PROVEEDOR (original)                              -->
+<!-- ================================================================ -->
+<div class="di-section">
+    <h3>Compromisos de Compra por Proveedor</h3>
+    {{if proveedores_pedidos:}}
+    <div class="di-table-wrap">
+        <table class="di-table" id="tblProveedores">
+            <thead>
+                <tr>
+                    <th data-sort="string">Proveedor <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Comprometido <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Pendiente <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Uds. Pedidas <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Uds. Recibidas <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">% Cumplimiento <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">L&iacute;neas Vencidas <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="string">1er Pedido <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="string">&Uacute;lt. Entrega <span class="sort-arrow">&#9650;&#9660;</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{for p in proveedores_pedidos:}}
+                <tr>
+                    <td>{{=p.get('proveedor', '-')}}</td>
+                    <td class="num" data-val="{{=p.get('comprometido', 0)}}">{{=fmt(p.get('comprometido', 0))}}</td>
+                    <td class="num" data-val="{{=p.get('pendiente', 0)}}">{{=fmt(p.get('pendiente', 0))}}</td>
+                    <td class="num" data-val="{{=p.get('unidades_pedidas', 0)}}">{{="{:,.0f}".format(float(p.get('unidades_pedidas', 0))).replace(",",".")}}</td>
+                    <td class="num" data-val="{{=p.get('unidades_recibidas', 0)}}">{{="{:,.0f}".format(float(p.get('unidades_recibidas', 0))).replace(",",".")}}</td>
+                    <td class="num" data-val="{{=p.get('pct_cumplimiento', 0)}}">
+                        {{pct = float(p.get('pct_cumplimiento', 0))}}
+                        <div class="pct-cell"><span class="pct-bar" style="width:{{=min(pct, 100)}}px; background:#16a34a;"></span><span>{{="%.1f" % pct}}%</span></div>
+                    </td>
+                    <td class="num" data-val="{{=p.get('lineas_vencidas', 0)}}">
+                        {{v = int(p.get('lineas_vencidas', 0))}}
+                        {{if v > 0:}}<span style="color:#dc2626; font-weight:600;">{{=v}}</span>{{else:}}0{{pass}}
+                    </td>
+                    <td>{{=str(p.get('primer_pedido', '-'))[:10]}}</td>
+                    <td>{{=str(p.get('ultima_entrega', '-'))[:10]}}</td>
+                </tr>
+                {{pass}}
+            </tbody>
+        </table>
+    </div>
+    {{else:}}
+    <p class="text-muted">No hay notas de pedido para esta industria.</p>
+    {{pass}}
+</div>
+
+<!-- ================================================================ -->
+<!-- RECUPERO DE INVERSION POR PROVEEDOR (original)                    -->
+<!-- ================================================================ -->
+<div class="di-section">
+    <h3>Recupero de Inversi&oacute;n por Proveedor</h3>
+    {{if recupero_proveedores:}}
+    <div class="di-table-wrap">
+        <table class="di-table" id="tblRecupero">
+            <thead>
+                <tr>
+                    <th data-sort="string">Proveedor <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="string">Per&iacute;odo <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Inversi&oacute;n <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">D&iacute;as 50% <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">D&iacute;as 75% <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Plazo Pago <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">% Vendido <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">% al Pago <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Brecha <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="string">Estado <span class="sort-arrow">&#9650;&#9660;</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{for r in recupero_proveedores:}}
+                <tr>
+                    <td>{{=r.get('proveedor_nombre', '-')}}</td>
+                    <td>{{=r.get('periodo', '-')}}</td>
+                    <td class="num" data-val="{{=r.get('total_costo_compra', 0)}}">{{=fmt(r.get('total_costo_compra', 0))}}</td>
+                    <td class="num" data-val="{{=r.get('dias_50', 0)}}">{{=r.get('dias_50', '-')}}</td>
+                    <td class="num" data-val="{{=r.get('dias_75', 0)}}">{{=r.get('dias_75', '-')}}</td>
+                    <td class="num" data-val="{{=r.get('plazo_pago_real_prom', 0)}}">{{="%.0f" % float(r.get('plazo_pago_real_prom', 0))}}</td>
+                    <td class="num" data-val="{{=r.get('pct_vendido', 0)}}">{{="%.1f" % float(r.get('pct_vendido', 0))}}%</td>
+                    <td class="num" data-val="{{=r.get('pct_vendido_al_pago', 0)}}">
+                        {{pv = float(r.get('pct_vendido_al_pago', 0))}}
+                        <span class="badge {{='badge-verde' if pv >= 75 else 'badge-naranja' if pv >= 50 else 'badge-rojo' if pv > 0 else 'badge-gris'}}">{{="%.0f" % pv}}%</span>
+                    </td>
+                    <td class="num" data-val="{{=r.get('brecha_pago_vs_rec50', 0)}}">
+                        {{b = float(r.get('brecha_pago_vs_rec50', 0))}}
+                        <span style="color:{{='#16a34a' if b >= 0 else '#dc2626'}}">{{if b >= 0:}}+{{pass}}{{="%.0f" % b}}d</span>
+                    </td>
+                    <td>
+                        {{est = r.get('estado', '-')}}
+                        <span class="badge {{='badge-rojo' if est == 'PRESION' else 'badge-verde' if est == 'OK' else 'badge-naranja' if est == 'EN CURSO' else 'badge-gris'}}">{{=est}}</span>
+                    </td>
+                </tr>
+                {{pass}}
+            </tbody>
+        </table>
+    </div>
+    {{else:}}
+    <p class="text-muted">No hay datos de recupero para esta industria.</p>
+    {{pass}}
+</div>
+
+<!-- ================================================================ -->
+<!-- JAVASCRIPT: ORDENAR COLUMNAS                                      -->
+<!-- ================================================================ -->
+<script>
+(function() {
+    // Sortable tables: click header to sort asc/desc
+    var tables = document.querySelectorAll('table.di-table');
+    for (var t = 0; t < tables.length; t++) {
+        (function(table) {
+            var headers = table.querySelectorAll('th[data-sort]');
+            for (var h = 0; h < headers.length; h++) {
+                (function(header, colIdx) {
+                    header.addEventListener('click', function() {
+                        var sortType = header.getAttribute('data-sort');
+                        var tbody = table.querySelector('tbody');
+                        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+                        var isAsc = header.classList.contains('sorted-asc');
+
+                        // Remove sorted class from all headers in this table
+                        var allTh = table.querySelectorAll('th');
+                        for (var i = 0; i < allTh.length; i++) {
+                            allTh[i].classList.remove('sorted-asc', 'sorted-desc');
+                        }
+
+                        rows.sort(function(a, b) {
+                            var cellA = a.children[colIdx];
+                            var cellB = b.children[colIdx];
+                            var valA, valB;
+
+                            if (sortType === 'number') {
+                                valA = parseFloat(cellA.getAttribute('data-val') || cellA.textContent.replace(/[^0-9.\-]/g, '')) || 0;
+                                valB = parseFloat(cellB.getAttribute('data-val') || cellB.textContent.replace(/[^0-9.\-]/g, '')) || 0;
+                            } else {
+                                valA = (cellA.textContent || '').trim().toLowerCase();
+                                valB = (cellB.textContent || '').trim().toLowerCase();
+                            }
+
+                            if (valA < valB) return isAsc ? 1 : -1;
+                            if (valA > valB) return isAsc ? -1 : 1;
+                            return 0;
+                        });
+
+                        header.classList.add(isAsc ? 'sorted-desc' : 'sorted-asc');
+
+                        for (var i = 0; i < rows.length; i++) {
+                            tbody.appendChild(rows[i]);
+                        }
+                    });
+                })(headers[h], h);
+            }
+        })(tables[t]);
+    }
+})();
+</script>

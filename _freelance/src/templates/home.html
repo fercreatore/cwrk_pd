@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H4 - Sistema Vendedor Freelance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+               background: #f0f2f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { max-width: 400px; width: 90%; text-align: center; }
+        h1 { font-size: 28px; color: #1a1a2e; margin-bottom: 8px; }
+        p.subtitle { color: #666; margin-bottom: 32px; font-size: 15px; }
+        .login-box { background: white; border-radius: 16px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        label { display: block; text-align: left; font-size: 13px; color: #666; margin-bottom: 6px; }
+        input { width: 100%; padding: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;
+                margin-bottom: 16px; outline: none; transition: border 0.2s; }
+        input:focus { border-color: #0f3460; }
+        button { width: 100%; padding: 14px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                 color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;
+                 transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error { background: #fce4ec; color: #c62828; padding: 12px; border-radius: 8px;
+                 font-size: 14px; margin-bottom: 16px; display: none; }
+        .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+        .divider hr { flex: 1; border: none; border-top: 1px solid #e0e0e0; }
+        .divider span { font-size: 12px; color: #999; }
+        .btn-code { width: 100%; padding: 12px; background: white; color: #0f3460;
+                    border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px;
+                    font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-code:hover { border-color: #0f3460; background: #f8f9ff; }
+        .code-section { display: none; margin-top: 16px; }
+        .links { margin-top: 24px; }
+        .links a { color: #999; font-size: 13px; text-decoration: none; display: inline-block; margin: 4px 8px; }
+        .links a:hover { color: #0f3460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>H4 Freelance</h1>
+        <p class="subtitle">Red de vendedores independientes</p>
+
+        <div class="login-box">
+            <div id="error" class="error"></div>
+
+            <!-- Login con email/password -->
+            <div id="login-email">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="tu@calzalindo.com.ar" autofocus
+                       onkeypress="if(event.key==='Enter') document.getElementById('pass').focus()">
+                <label>Contraseña</label>
+                <input type="password" id="pass" placeholder="Tu contraseña"
+                       onkeypress="if(event.key==='Enter') loginEmail()">
+                <button id="btn-login" onclick="loginEmail()">Ingresar</button>
+            </div>
+
+            <div class="divider"><hr><span>o</span><hr></div>
+
+            <!-- Acceso rápido por código -->
+            <button class="btn-code" onclick="toggleCode()">Acceso rápido con código vendedor</button>
+            <div id="code-section" class="code-section">
+                <label>Código (ej: V569)</label>
+                <input type="text" id="codigo" placeholder="V569"
+                       onkeypress="if(event.key==='Enter') entrarCodigo()">
+                <button onclick="entrarCodigo()" style="background:#fff;color:#0f3460;border:2px solid #0f3460">
+                    Entrar con código
+                </button>
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="/docs">API Docs →</a>
+        </div>
+    </div>
+
+    <script>
+    function showError(msg) {
+        const el = document.getElementById('error');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    function toggleCode() {
+        const section = document.getElementById('code-section');
+        section.style.display = section.style.display === 'none' ? 'block' : 'block';
+        document.getElementById('codigo').focus();
+    }
+
+    async function loginEmail() {
+        const email = document.getElementById('email').value.trim();
+        const pass = document.getElementById('pass').value;
+        if (!email || !pass) { showError('Ingresá email y contraseña'); return; }
+
+        const btn = document.getElementById('btn-login');
+        btn.disabled = true;
+        btn.textContent = 'Ingresando...';
+
+        try {
+            const res = await fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, password: pass}),
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                showError(data.detail || 'Error de autenticación');
+                btn.disabled = false;
+                btn.textContent = 'Ingresar';
+                return;
+            }
+
+            // Redirigir según rol
+            if (data.usuario.es_admin) {
+                window.location.href = '/admin/dashboard';
+            } else if (data.usuario.es_vendedor && data.usuario.codigo_vendedor) {
+                window.location.href = '/panel/' + data.usuario.codigo_vendedor;
+            } else {
+                // Usuario autenticado pero sin rol específico → admin si tiene permisos
+                window.location.href = '/admin/dashboard';
+            }
+        } catch (e) {
+            showError('Error de conexión');
+            btn.disabled = false;
+            btn.textContent = 'Ingresar';
+        }
+    }
+
+    function entrarCodigo() {
+        const cod = document.getElementById('codigo').value.trim().toUpperCase();
+        if (cod) window.location.href = '/panel/' + cod;
+    }
+
+    // Si ya tiene sesión, redirigir
+    fetch('/api/v1/auth/check_token').then(r => r.json()).then(d => {
+        // No redirigir automáticamente, solo verificar
+    }).catch(() => {});
+    </script>
+</body>
+</html>

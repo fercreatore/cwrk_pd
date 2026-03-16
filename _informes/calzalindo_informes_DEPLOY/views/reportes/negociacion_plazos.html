@@ -1,0 +1,468 @@
+{{extend 'layout.html'}}
+{{response.title = 'Negociacion de Plazos'}}
+
+<style>
+.kpi-card{background:#fff;border-radius:8px;padding:18px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:15px}
+.kpi-card .kpi-value{font-size:26px;font-weight:700;color:#1a1a2e}
+.kpi-card .kpi-label{font-size:11px;color:#888;text-transform:uppercase;margin-top:4px}
+.filter-bar{background:#fff;padding:12px 18px;border-radius:8px;margin-bottom:18px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.filter-bar .form-control{font-size:12px;height:32px}
+.filter-bar label{font-size:11px;color:#666}
+.tab-vista{margin-bottom:15px}
+.tab-vista .btn{font-size:12px;padding:6px 14px}
+.tab-vista .btn.active{background:#1a1a2e;color:#fff}
+
+/* Tabla sorteable */
+.tbl-neg{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.tbl-neg th{background:#1a1a2e;color:#fff;padding:8px 10px;cursor:pointer;user-select:none;white-space:nowrap;position:relative}
+.tbl-neg th:hover{background:#2a2a4e}
+.tbl-neg th .sort-arrow{margin-left:4px;font-size:10px;opacity:.5}
+.tbl-neg th.sort-asc .sort-arrow{opacity:1}
+.tbl-neg th.sort-desc .sort-arrow{opacity:1}
+.tbl-neg td{padding:7px 10px;border-bottom:1px solid #eee;white-space:nowrap}
+.tbl-neg tbody tr:hover{background:#f8f9fa}
+.tbl-neg .num{text-align:right;font-family:'Courier New',monospace}
+
+/* Semaforos */
+.badge-sem{padding:3px 8px;border-radius:3px;font-size:10px;font-weight:700;color:#fff}
+.badge-CALZADO{background:#27ae60}
+.badge-OK{background:#2ecc71}
+.badge-AJUSTADO{background:#f39c12}
+.badge-PRESION{background:#e74c3c}
+.badge-VENCIDO{background:#c0392b}
+.badge-SIN.DATOS,.badge-DEFICIT{background:#95a5a6}
+
+/* Colores condicionales */
+.val-pos{color:#27ae60}
+.val-neg{color:#e74c3c}
+.val-warn{color:#f39c12}
+.val-neutral{color:#333}
+
+/* Filtro de valores */
+.val-filter{margin-top:10px;background:#fff;padding:10px 15px;border-radius:6px;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.val-filter select,.val-filter input{font-size:12px;height:28px;padding:2px 6px}
+</style>
+
+<!-- KPIs -->
+<div class="row" style="margin-top:15px">
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=formato_moneda(kpi.get('total_pagado',0))}}</div>
+            <div class="kpi-label">Total Pagado</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=kpi.get('cant_ops',0)}}</div>
+            <div class="kpi-label">OPs</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=kpi.get('proveedores',0)}}</div>
+            <div class="kpi-label">Proveedores</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value" id="kpiDias">{{="%.1f" % float(kpi.get('dias_ponderado_global',0) or 0)}}</div>
+            <div class="kpi-label">Dias Recupero Pond.</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{=formato_moneda(kpi_stk.get('stock_valorizado',0))}}</div>
+            <div class="kpi-label">Stock Valorizado</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-xs-6">
+        <div class="kpi-card">
+            <div class="kpi-value">{{="{:,.0f}".format(float(kpi_stk.get('stock_unidades',0) or 0)).replace(",",".")}}</div>
+            <div class="kpi-label">Stock Unidades</div>
+        </div>
+    </div>
+</div>
+
+<!-- FILTROS -->
+<div class="filter-bar">
+    <form method="get" class="form-inline" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <input type="hidden" name="vista" id="vistaInput" value="{{=vista}}">
+        <div>
+            <label>Desde</label><br>
+            <input type="date" name="fecha_desde" class="form-control" value="{{=filtro_fecha_desde}}">
+        </div>
+        <div>
+            <label>Hasta</label><br>
+            <input type="date" name="fecha_hasta" class="form-control" value="{{=filtro_fecha_hasta}}">
+        </div>
+        <div>
+            <label>Proveedor</label><br>
+            <input type="text" name="proveedor" class="form-control" placeholder="buscar..." value="{{=filtro_proveedor}}" style="width:140px">
+        </div>
+        <div>
+            <label>Marca</label><br>
+            <input type="text" name="marca" class="form-control" placeholder="buscar..." value="{{=filtro_marca}}" style="width:120px">
+        </div>
+        {{if industrias:}}
+        <div>
+            <label>Industria</label><br>
+            <select name="industria" class="form-control">
+                <option value="">-- Todas --</option>
+                {{for ind in industrias:}}
+                <option value="{{=ind}}" {{if filtro_industria==ind:}}selected{{pass}}>{{=ind}}</option>
+                {{pass}}
+            </select>
+        </div>
+        {{pass}}
+        {{if rubros:}}
+        <div>
+            <label>Rubro</label><br>
+            <select name="rubro" class="form-control">
+                <option value="">-- Todos --</option>
+                {{for rb in rubros:}}
+                <option value="{{=rb}}" {{if filtro_rubro==rb:}}selected{{pass}}>{{=rb}}</option>
+                {{pass}}
+            </select>
+        </div>
+        {{pass}}
+        <div>
+            <button type="submit" class="btn btn-primary btn-sm" style="margin-bottom:1px">
+                <i class="glyphicon glyphicon-filter"></i> Filtrar
+            </button>
+            <a href="{{=URL('reportes','negociacion_plazos', vars=dict(vista=vista))}}" class="btn btn-default btn-sm" style="margin-bottom:1px">Limpiar</a>
+        </div>
+        <div style="margin-left:auto">
+            <a href="{{=URL('reportes','negociacion_csv', vars=request.vars)}}" class="btn btn-success btn-sm" style="margin-bottom:1px">
+                <i class="glyphicon glyphicon-download-alt"></i> CSV
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- TABS VISTA -->
+<div class="tab-vista btn-group">
+    {{for v, label in [('proveedor','Proveedor'),('marca','Marca'),('rubro','Rubro'),('subrubro','Subrubro'),('familia','Familia'),('industria','Industria')]:}}
+    <a href="{{=URL('reportes','negociacion_plazos', vars=dict(vista=v, fecha_desde=filtro_fecha_desde, fecha_hasta=filtro_fecha_hasta, proveedor=filtro_proveedor, marca=filtro_marca, industria=filtro_industria, rubro=filtro_rubro))}}"
+       class="btn btn-default {{if vista==v:}}active{{pass}}">{{=label}}</a>
+    {{pass}}
+</div>
+
+<!-- FILTRO POR VALOR -->
+<div class="val-filter" id="valFilter" style="display:none">
+    <span style="font-weight:600">Filtrar valores:</span>
+    <select id="vfCol" style="margin-left:8px"><option value="">-- Columna --</option></select>
+    <select id="vfOp" style="margin-left:4px">
+        <option value="gt">Mayor que</option>
+        <option value="lt">Menor que</option>
+        <option value="eq">Igual a</option>
+        <option value="gte">Mayor o igual</option>
+        <option value="lte">Menor o igual</option>
+    </select>
+    <input type="number" id="vfVal" style="width:100px;margin-left:4px" placeholder="valor">
+    <button class="btn btn-xs btn-primary" onclick="aplicarFiltroValor()" style="margin-left:4px">Aplicar</button>
+    <button class="btn btn-xs btn-default" onclick="limpiarFiltroValor()" style="margin-left:4px">Limpiar</button>
+    <span id="vfCount" style="margin-left:10px;color:#888"></span>
+</div>
+
+<!-- TABLA DE DATOS -->
+<div style="overflow-x:auto;margin-top:10px">
+{{if datos:}}
+
+{{if vista == 'proveedor':}}
+<table class="tbl-neg" id="tblDatos">
+<thead><tr>
+    <th data-col="0">Proveedor <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="1">Marca Ppal <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="2" data-type="num">OPs <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="3" data-type="num">Total Pagado <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="4" data-type="num">Dias Recup. <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="5" data-type="num">Stock Uds <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="6" data-type="num">Stock $ <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="7" data-type="num">Dias 50% <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="8" data-type="num">% Vendido <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="9" data-type="num" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin. <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="10" data-type="num">Plazo Sug. <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="11">Estado <span class="sort-arrow">&#9650;&#9660;</span></th>
+</tr></thead>
+<tbody>
+{{for r in datos:}}
+<tr>
+    <td>
+        <a href="{{=URL('reportes','recupero_detalle', vars=dict(cod=r.get('cod',''), nombre=r.get('agrupador','')))}}">
+            {{=r.get('agrupador','?')}}
+        </a>
+    </td>
+    <td>{{=r.get('marca_ppal','?')}}</td>
+    <td class="num">{{=r.get('cant_ops',0)}}</td>
+    <td class="num">{{=formato_moneda(r.get('total_pagado',0))}}</td>
+    <td class="num {{if float(r.get('dias_recupero',0)) < 0:}}val-neg{{elif float(r.get('dias_recupero',0)) > 15:}}val-pos{{else:}}val-warn{{pass}}">
+        {{="%.1f" % float(r.get('dias_recupero',0))}}
+    </td>
+    <td class="num">{{="{:,.0f}".format(float(r.get('stock_unidades',0))).replace(",",".")}}</td>
+    <td class="num">{{=formato_moneda(r.get('stock_valorizado',0))}}</td>
+    <td class="num {{if float(r.get('dias_50',0)) == 0:}}val-neutral{{elif float(r.get('dias_50',0)) <= 60:}}val-pos{{elif float(r.get('dias_50',0)) <= 120:}}val-warn{{else:}}val-neg{{pass}}">
+        {{=int(r.get('dias_50',0))}}
+    </td>
+    <td class="num {{if float(r.get('pct_vendido',0)) >= 75:}}val-pos{{elif float(r.get('pct_vendido',0)) >= 40:}}val-warn{{elif float(r.get('pct_vendido',0)) > 0:}}val-neg{{pass}}">
+        {{="%.1f%%" % float(r.get('pct_vendido',0))}}
+    </td>
+    <td class="num {{if float(r.get('brecha',0)) < 0:}}val-neg{{elif float(r.get('brecha',0)) < 15:}}val-warn{{else:}}val-pos{{pass}}">
+        {{=int(r.get('brecha',0))}}
+    </td>
+    <td class="num" style="font-weight:700">{{=r.get('plazo_sugerido',0)}}</td>
+    <td><span class="badge-sem badge-{{=r.get('semaforo','SIN DATOS').replace(' ','.')}}">{{=r.get('semaforo','?')}}</span></td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+
+{{elif vista == 'marca':}}
+<table class="tbl-neg" id="tblDatos">
+<thead><tr>
+    <th data-col="0">Marca <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="1" data-type="num">Proveedores <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="2" data-type="num">Articulos <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="3" data-type="num">Stock Uds <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="4" data-type="num">Stock $ <span class="sort-arrow">&#9650;&#9660;</span></th>
+</tr></thead>
+<tbody>
+{{for r in datos:}}
+<tr>
+    <td><strong>{{=r.get('agrupador','?')}}</strong></td>
+    <td class="num">{{=r.get('cant_proveedores',0)}}</td>
+    <td class="num">{{=r.get('cant_articulos',0)}}</td>
+    <td class="num">{{="{:,.0f}".format(float(r.get('stock_unidades',0))).replace(",",".")}}</td>
+    <td class="num">{{=formato_moneda(r.get('stock_valorizado',0))}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+
+{{elif vista == 'rubro':}}
+<table class="tbl-neg" id="tblDatos">
+<thead><tr>
+    <th data-col="0">Rubro <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="1" data-type="num">Proveedores <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="2" data-type="num">Marcas <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="3" data-type="num">Articulos <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="4" data-type="num">Stock Uds <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="5" data-type="num">Stock $ <span class="sort-arrow">&#9650;&#9660;</span></th>
+</tr></thead>
+<tbody>
+{{for r in datos:}}
+<tr>
+    <td><strong>{{=r.get('agrupador','?')}}</strong></td>
+    <td class="num">{{=r.get('cant_proveedores',0)}}</td>
+    <td class="num">{{=r.get('cant_marcas',0)}}</td>
+    <td class="num">{{=r.get('cant_articulos',0)}}</td>
+    <td class="num">{{="{:,.0f}".format(float(r.get('stock_unidades',0))).replace(",",".")}}</td>
+    <td class="num">{{=formato_moneda(r.get('stock_valorizado',0))}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+
+{{elif vista == 'subrubro':}}
+<table class="tbl-neg" id="tblDatos">
+<thead><tr>
+    <th data-col="0">Subrubro <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="1">Rubro <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="2" data-type="num">Proveedores <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="3" data-type="num">Articulos <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="4" data-type="num">Stock Uds <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="5" data-type="num">Stock $ <span class="sort-arrow">&#9650;&#9660;</span></th>
+</tr></thead>
+<tbody>
+{{for r in datos:}}
+<tr>
+    <td><strong>{{=r.get('agrupador','?')}}</strong></td>
+    <td>{{=r.get('rubro_desc','?')}}</td>
+    <td class="num">{{=r.get('cant_proveedores',0)}}</td>
+    <td class="num">{{=r.get('cant_articulos',0)}}</td>
+    <td class="num">{{="{:,.0f}".format(float(r.get('stock_unidades',0))).replace(",",".")}}</td>
+    <td class="num">{{=formato_moneda(r.get('stock_valorizado',0))}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+
+{{elif vista == 'familia':}}
+<table class="tbl-neg" id="tblDatos">
+<thead><tr>
+    <th data-col="0">Familia <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="1">Descripcion <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="2">Marca <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="3">Rubro <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="4">Subrubro <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="5" data-type="num">Talles <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="6" data-type="num">Stock Uds <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="7" data-type="num">Stock $ <span class="sort-arrow">&#9650;&#9660;</span></th>
+</tr></thead>
+<tbody>
+{{for r in datos:}}
+<tr>
+    <td><strong>{{=r.get('agrupador','?')}}</strong></td>
+    <td>{{=r.get('descripcion_ej','?')}}</td>
+    <td>{{=r.get('marca_desc','?')}}</td>
+    <td>{{=r.get('rubro_desc','?')}}</td>
+    <td>{{=r.get('subrubro_desc','?')}}</td>
+    <td class="num">{{=r.get('talles',0)}}</td>
+    <td class="num">{{="{:,.0f}".format(float(r.get('stock_unidades',0))).replace(",",".")}}</td>
+    <td class="num">{{=formato_moneda(r.get('stock_valorizado',0))}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+
+{{elif vista == 'industria':}}
+<table class="tbl-neg" id="tblDatos">
+<thead><tr>
+    <th data-col="0">Industria <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="1" data-type="num">Registros <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="2" data-type="num">Inversion <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="3" data-type="num">Dias 50% <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="4" data-type="num">Dias 75% <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="5" data-type="num">% Vendido <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="6" data-type="num">% Vend. al Pago <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="7" data-type="num" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin. <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="8" data-type="num">Plazo Pago <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="9" data-type="num">Presion <span class="sort-arrow">&#9650;&#9660;</span></th>
+    <th data-col="10" data-type="num">OK <span class="sort-arrow">&#9650;&#9660;</span></th>
+</tr></thead>
+<tbody>
+{{for r in datos:}}
+<tr>
+    <td><strong>{{=r.get('agrupador','?')}}</strong></td>
+    <td class="num">{{=r.get('registros',0)}}</td>
+    <td class="num">{{=formato_moneda(r.get('inversion',0))}}</td>
+    <td class="num {{if float(r.get('dias_50',0)) <= 60:}}val-pos{{elif float(r.get('dias_50',0)) <= 120:}}val-warn{{else:}}val-neg{{pass}}">
+        {{=int(r.get('dias_50',0))}}
+    </td>
+    <td class="num">{{=int(r.get('dias_75',0))}}</td>
+    <td class="num {{if float(r.get('pct_vendido',0)) >= 75:}}val-pos{{elif float(r.get('pct_vendido',0)) >= 40:}}val-warn{{else:}}val-neg{{pass}}">
+        {{="%.1f%%" % float(r.get('pct_vendido',0))}}
+    </td>
+    <td class="num">{{="%.1f%%" % float(r.get('pct_vendido_al_pago',0))}}</td>
+    <td class="num {{if float(r.get('brecha',0)) < 0:}}val-neg{{elif float(r.get('brecha',0)) < 15:}}val-warn{{else:}}val-pos{{pass}}">
+        {{=int(r.get('brecha',0))}}
+    </td>
+    <td class="num">{{=int(r.get('plazo_pago',0))}}</td>
+    <td class="num val-neg">{{=r.get('presion',0)}}</td>
+    <td class="num val-pos">{{=r.get('ok',0)}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+{{pass}}
+
+{{else:}}
+<div class="alert alert-info" style="margin-top:20px">No hay datos para los filtros seleccionados.</div>
+{{pass}}
+</div>
+
+<!-- LEYENDA -->
+<div style="margin-top:12px;font-size:11px;color:#888">
+    <strong>Leyenda colores:</strong>
+    <span class="val-pos">&#9632;</span> Favorable &nbsp;
+    <span class="val-warn">&#9632;</span> Atencion &nbsp;
+    <span class="val-neg">&#9632;</span> Critico &nbsp;|&nbsp;
+    <strong>Semaforos:</strong>
+    <span class="badge-sem badge-CALZADO">CALZADO</span>
+    <span class="badge-sem badge-OK">OK</span>
+    <span class="badge-sem badge-AJUSTADO">AJUSTADO</span>
+    <span class="badge-sem badge-PRESION">PRESION</span>
+    <span class="badge-sem badge-VENCIDO">VENCIDO</span>
+    &nbsp;|&nbsp;
+    <strong>Dias Recup.:</strong> positivo = diferido (beneficio), negativo = pagamos antes de cobrar
+    &nbsp;|&nbsp;
+    <strong>Plazo Sug.:</strong> MAX(dias_50, dias_recupero) + 7 dias margen
+</div>
+
+<script>
+// =========== SORT POR COLUMNAS ===========
+(function(){
+    var tbl = document.getElementById('tblDatos');
+    if (!tbl) return;
+    var headers = tbl.querySelectorAll('th');
+    var tbody = tbl.querySelector('tbody');
+    var sortState = {}; // col -> 'asc'|'desc'
+
+    function parseNum(txt) {
+        // Remove $, ., % and parse
+        var clean = txt.replace(/\$/g,'').replace(/\./g,'').replace(/,/g,'.').replace(/%/g,'').replace(/\s/g,'');
+        var n = parseFloat(clean);
+        return isNaN(n) ? 0 : n;
+    }
+
+    headers.forEach(function(th) {
+        th.addEventListener('click', function() {
+            var col = parseInt(th.getAttribute('data-col'));
+            var isNum = th.getAttribute('data-type') === 'num';
+            var dir = sortState[col] === 'asc' ? 'desc' : 'asc';
+            sortState = {};
+            sortState[col] = dir;
+
+            // Update arrows
+            headers.forEach(function(h) { h.classList.remove('sort-asc','sort-desc'); });
+            th.classList.add('sort-' + dir);
+
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+            rows.sort(function(a, b) {
+                var aText = a.children[col].textContent.trim();
+                var bText = b.children[col].textContent.trim();
+                var cmp;
+                if (isNum) {
+                    cmp = parseNum(aText) - parseNum(bText);
+                } else {
+                    cmp = aText.localeCompare(bText);
+                }
+                return dir === 'asc' ? cmp : -cmp;
+            });
+            rows.forEach(function(row) { tbody.appendChild(row); });
+        });
+    });
+
+    // =========== FILTRO POR VALOR ===========
+    var vfDiv = document.getElementById('valFilter');
+    var vfCol = document.getElementById('vfCol');
+    var numHeaders = [];
+    headers.forEach(function(th) {
+        if (th.getAttribute('data-type') === 'num') {
+            var opt = document.createElement('option');
+            opt.value = th.getAttribute('data-col');
+            opt.textContent = th.textContent.replace(/[^\w\s%$.]/g,'').trim();
+            vfCol.appendChild(opt);
+            numHeaders.push(th);
+        }
+    });
+    if (numHeaders.length > 0) vfDiv.style.display = 'block';
+
+    window.aplicarFiltroValor = function() {
+        var col = parseInt(vfCol.value);
+        var op = document.getElementById('vfOp').value;
+        var val = parseFloat(document.getElementById('vfVal').value);
+        if (isNaN(col) || isNaN(val)) return;
+        var rows = tbody.querySelectorAll('tr');
+        var shown = 0;
+        rows.forEach(function(row) {
+            var cellVal = parseNum(row.children[col].textContent);
+            var show = false;
+            if (op === 'gt') show = cellVal > val;
+            else if (op === 'lt') show = cellVal < val;
+            else if (op === 'eq') show = cellVal === val;
+            else if (op === 'gte') show = cellVal >= val;
+            else if (op === 'lte') show = cellVal <= val;
+            row.style.display = show ? '' : 'none';
+            if (show) shown++;
+        });
+        document.getElementById('vfCount').textContent = shown + ' de ' + rows.length + ' filas';
+    };
+
+    window.limpiarFiltroValor = function() {
+        var rows = tbody.querySelectorAll('tr');
+        rows.forEach(function(row) { row.style.display = ''; });
+        document.getElementById('vfCount').textContent = '';
+        document.getElementById('vfVal').value = '';
+    };
+})();
+</script>

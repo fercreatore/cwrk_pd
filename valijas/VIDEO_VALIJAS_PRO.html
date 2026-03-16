@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Valijas GO - Calzalindo</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Montserrat', sans-serif;
+    background: #050510;
+    color: white;
+  }
+
+  /* Setup panel */
+  .setup-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+  }
+  .setup-panel.hidden { display: none; }
+  .setup-title {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  .setup-sub {
+    font-size: 16px;
+    opacity: 0.5;
+    margin-bottom: 30px;
+  }
+  .setup-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+    max-width: 700px;
+  }
+  .setup-slot {
+    width: 150px;
+    height: 150px;
+    border: 2px dashed rgba(255,255,255,0.2);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    overflow: hidden;
+    position: relative;
+  }
+  .setup-slot:hover { border-color: #eab308; background: rgba(234,179,8,0.05); }
+  .setup-slot.filled { border: 2px solid #22c55e; }
+  .setup-slot img { width: 100%; height: 100%; object-fit: cover; }
+  .setup-slot .slot-label {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.4;
+    margin-top: 5px;
+  }
+  .setup-slot .slot-icon { font-size: 28px; opacity: 0.3; }
+  .start-btn {
+    background: linear-gradient(135deg, #eab308, #d97706);
+    color: #000;
+    border: none;
+    padding: 16px 50px;
+    border-radius: 60px;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: transform 0.2s;
+  }
+  .start-btn:hover { transform: scale(1.05); }
+  .start-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .skip-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.4);
+    padding: 10px 30px;
+    border-radius: 50px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 15px;
+  }
+
+  /* Slides */
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(1.05);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    padding: 50px;
+    text-align: center;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Slide backgrounds */
+  .slide { background: linear-gradient(170deg, #050510, #0f172a, #1e1b4b); }
+
+  /* Slide 1: Hook */
+  .s1-hook {
+    font-size: min(14vw, 90px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .slide.active .s1-hook {
+    animation: revealUp 0.6s 0.2s ease forwards;
+  }
+  .s1-hook em {
+    font-style: normal;
+    background: linear-gradient(135deg, #eab308, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .s1-sub {
+    font-size: min(5vw, 28px);
+    font-weight: 300;
+    opacity: 0;
+    letter-spacing: 4px;
+  }
+  .slide.active .s1-sub {
+    animation: fadeIn 0.6s 0.6s ease forwards;
+  }
+
+  /* Slide 2: Product reveal */
+  .s2-title {
+    font-family: 'Playfair Display', serif;
+    font-size: min(16vw, 100px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #fff, #e2e8f0, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+    opacity: 0;
+  }
+  .slide.active .s2-title { animation: revealUp 0.7s 0.2s ease forwards; }
+  .s2-sizes {
+    font-size: min(5vw, 24px);
+    color: #eab308;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+    opacity: 0;
+  }
+  .slide.active .s2-sizes { animation: fadeIn 0.5s 0.5s ease forwards; }
+  .s2-image {
+    width: min(80vw, 600px);
+    height: min(60vw, 450px);
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    opacity: 0;
+  }
+  .slide.active .s2-image { animation: scaleIn 0.8s 0.3s ease forwards; }
+  .s2-image img { width: 100%; height: 100%; object-fit: cover; }
+  .s2-desc {
+    font-size: min(4vw, 20px);
+    opacity: 0;
+    margin-top: 15px;
+    color: rgba(255,255,255,0.5);
+  }
+  .slide.active .s2-desc { animation: fadeIn 0.5s 0.8s ease forwards; }
+
+  /* Slide 3: Detail shots */
+  .s3-title {
+    font-size: min(7vw, 40px);
+    font-weight: 800;
+    margin-bottom: 25px;
+    opacity: 0;
+  }
+  .slide.active .s3-title { animation: revealUp 0.5s 0.2s ease forwards; }
+  .s3-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    max-width: min(80vw, 600px);
+  }
+  .s3-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    opacity: 0;
+  }
+  .slide.active .s3-card:nth-child(1) { animation: scaleIn 0.4s 0.3s ease forwards; }
+  .slide.active .s3-card:nth-child(2) { animation: scaleIn 0.4s 0.5s ease forwards; }
+  .slide.active .s3-card:nth-child(3) { animation: scaleIn 0.4s 0.7s ease forwards; }
+  .slide.active .s3-card:nth-child(4) { animation: scaleIn 0.4s 0.9s ease forwards; }
+  .s3-card .feat-icon { font-size: min(10vw, 44px); margin-bottom: 8px; }
+  .s3-card .feat-name { font-size: min(4vw, 20px); font-weight: 700; }
+  .s3-card .feat-desc { font-size: min(3vw, 14px); opacity: 0.5; margin-top: 4px; }
+
+  /* Slide 4: Colors */
+  .s4-title {
+    font-size: min(10vw, 56px);
+    font-weight: 800;
+    margin-bottom: 30px;
+    opacity: 0;
+  }
+  .slide.active .s4-title { animation: revealUp 0.5s 0.2s ease forwards; }
+  .s4-colors {
+    display: flex;
+    gap: min(5vw, 30px);
+  }
+  .s4-color {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+  }
+  .slide.active .s4-color:nth-child(1) { animation: popIn 0.4s 0.4s ease forwards; }
+  .slide.active .s4-color:nth-child(2) { animation: popIn 0.4s 0.6s ease forwards; }
+  .slide.active .s4-color:nth-child(3) { animation: popIn 0.4s 0.8s ease forwards; }
+  .slide.active .s4-color:nth-child(4) { animation: popIn 0.4s 1.0s ease forwards; }
+  .s4-dot {
+    width: min(18vw, 90px);
+    height: min(18vw, 90px);
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .s4-name {
+    font-size: min(3.5vw, 16px);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  /* Slide 5: Price */
+  .s5-old {
+    font-size: min(6vw, 32px);
+    color: #64748b;
+    text-decoration: line-through;
+    margin-bottom: 5px;
+    opacity: 0;
+  }
+  .slide.active .s5-old { animation: fadeIn 0.4s 0.2s ease forwards; }
+  .s5-price {
+    font-size: min(20vw, 110px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 8px;
+    opacity: 0;
+  }
+  .slide.active .s5-price { animation: priceReveal 0.8s 0.4s ease forwards; }
+  .s5-transfer {
+    font-size: min(5vw, 28px);
+    color: #22c55e;
+    font-weight: 700;
+    margin-bottom: 15px;
+    opacity: 0;
+  }
+  .slide.active .s5-transfer { animation: fadeIn 0.4s 0.8s ease forwards; }
+  .s5-cuotas {
+    font-size: min(4vw, 22px);
+    background: rgba(255,255,255,0.06);
+    padding: 12px 35px;
+    border-radius: 50px;
+    margin-bottom: 20px;
+    opacity: 0;
+  }
+  .slide.active .s5-cuotas { animation: fadeIn 0.4s 1.0s ease forwards; }
+  .s5-shipping {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    padding: 14px 40px;
+    border-radius: 60px;
+    font-size: min(4.5vw, 22px);
+    font-weight: 800;
+    letter-spacing: 2px;
+    opacity: 0;
+  }
+  .slide.active .s5-shipping { animation: scaleIn 0.5s 1.2s ease forwards; }
+
+  /* Slide 6: CTA */
+  .s6-title {
+    font-size: min(10vw, 60px);
+    font-weight: 900;
+    margin-bottom: 30px;
+    line-height: 1.2;
+    opacity: 0;
+  }
+  .slide.active .s6-title { animation: revealUp 0.6s 0.2s ease forwards; }
+  .s6-title em {
+    font-style: normal;
+    color: #25d366;
+  }
+  .s6-wa {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #25d366;
+    padding: 20px 50px;
+    border-radius: 60px;
+    font-size: min(6vw, 28px);
+    font-weight: 800;
+    text-decoration: none;
+    color: white;
+    opacity: 0;
+    box-shadow: 0 8px 40px rgba(37,211,102,0.3);
+  }
+  .slide.active .s6-wa { animation: scaleIn 0.5s 0.5s ease forwards; }
+  .s6-wa svg { width: min(8vw, 36px); height: min(8vw, 36px); fill: white; }
+  .s6-web {
+    font-size: min(4vw, 22px);
+    opacity: 0;
+    margin-top: 20px;
+    letter-spacing: 3px;
+  }
+  .slide.active .s6-web { animation: fadeIn 0.5s 0.8s ease forwards; }
+  .s6-brand {
+    font-size: min(3vw, 16px);
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    opacity: 0;
+    margin-top: 30px;
+  }
+  .slide.active .s6-brand { animation: fadeIn 0.5s 1s ease forwards; }
+
+  /* Animations */
+  @keyframes revealUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.6; }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0) rotate(-10deg); }
+    to { opacity: 1; transform: scale(1) rotate(0); }
+  }
+  @keyframes priceReveal {
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 40px rgba(37,211,102,0.3); }
+    50% { transform: scale(1.05); box-shadow: 0 8px 50px rgba(37,211,102,0.5); }
+  }
+
+  /* Progress */
+  .progress-bar {
+    position: fixed;
+    bottom: 0; left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #eab308, #22c55e);
+    transition: width 0.4s ease;
+    z-index: 50;
+  }
+  .slide-counter {
+    position: fixed;
+    bottom: 15px;
+    right: 20px;
+    font-size: 14px;
+    opacity: 0.2;
+    z-index: 50;
+  }
+</style>
+</head>
+<body>
+
+<!-- Setup Panel -->
+<div class="setup-panel" id="setupPanel">
+  <div class="setup-title">Carga tus fotos</div>
+  <div class="setup-sub">Hace click en cada slot para elegir la imagen</div>
+  <div class="setup-grid">
+    <div class="setup-slot" data-slot="set" onclick="pickImage(this, 'set')">
+      <div class="slot-icon">&#128188;</div>
+      <div class="slot-label">Set completo</div>
+    </div>
+    <div class="setup-slot" data-slot="wheel" onclick="pickImage(this, 'wheel')">
+      <div class="slot-icon">&#9881;</div>
+      <div class="slot-label">Rueda</div>
+    </div>
+    <div class="setup-slot" data-slot="lock" onclick="pickImage(this, 'lock')">
+      <div class="slot-icon">&#128274;</div>
+      <div class="slot-label">Cierre</div>
+    </div>
+    <div class="setup-slot" data-slot="logo" onclick="pickImage(this, 'logo')">
+      <div class="slot-icon">&#127991;</div>
+      <div class="slot-label">Logo GO</div>
+    </div>
+  </div>
+  <button class="start-btn" id="startBtn" onclick="startVideo()">GENERAR VIDEO</button>
+  <button class="skip-btn" onclick="startVideo()">Omitir fotos (usar sin imagenes)</button>
+</div>
+
+<!-- Slide 1: Hook -->
+<div class="slide" id="slide1">
+  <div class="s1-hook">Vas a<br><em>viajar</em>?</div>
+  <div class="s1-sub">TENEMOS LO QUE NECESITAS</div>
+</div>
+
+<!-- Slide 2: Product -->
+<div class="slide" id="slide2">
+  <div class="s2-title">Valijas GO</div>
+  <div class="s2-sizes">17" + 19" + 21" &bull; 8 Ruedas</div>
+  <div class="s2-image" id="s2img"></div>
+  <div class="s2-desc">Set de 3 Valijas Rigidas ABS</div>
+</div>
+
+<!-- Slide 3: Features -->
+<div class="slide" id="slide3">
+  <div class="s3-title">Calidad Premium</div>
+  <div class="s3-grid">
+    <div class="s3-card">
+      <div class="feat-icon">&#128260;</div>
+      <div class="feat-name">8 Ruedas 360&deg;</div>
+      <div class="feat-desc">Giro libre total</div>
+    </div>
+    <div class="s3-card">
+      <div class="feat-icon">&#128170;</div>
+      <div class="feat-name">ABS Rigido</div>
+      <div class="feat-desc">Resistente a golpes</div>
+    </div>
+    <div class="s3-card">
+      <div class="feat-icon">&#128274;</div>
+      <div class="feat-name">Cierre Clave</div>
+      <div class="feat-desc">Combinacion numerica</div>
+    </div>
+    <div class="s3-card">
+      <div class="feat-icon">&#128092;</div>
+      <div class="feat-name">Interior Organizado</div>
+      <div class="feat-desc">Correas y bolsillos</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 4: Colors -->
+<div class="slide" id="slide4">
+  <div class="s4-title">4 Colores</div>
+  <div class="s4-colors">
+    <div class="s4-color">
+      <div class="s4-dot" style="background:#1a1a1a;"></div>
+      <div class="s4-name">Negro</div>
+    </div>
+    <div class="s4-color">
+      <div class="s4-dot" style="background:linear-gradient(135deg,#c9967a,#dbb7a0);"></div>
+      <div class="s4-name">Rosa Gold</div>
+    </div>
+    <div class="s4-color">
+      <div class="s4-dot" style="background:#e91e8c;"></div>
+      <div class="s4-name">Rosa</div>
+    </div>
+    <div class="s4-color">
+      <div class="s4-dot" style="background:#b91c1c;"></div>
+      <div class="s4-name">Rojo</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5: Price -->
+<div class="slide" id="slide5">
+  <div class="s5-old">$249.999</div>
+  <div class="s5-price">$199.999</div>
+  <div class="s5-transfer">$159.999 por transferencia</div>
+  <div class="s5-cuotas">6 cuotas sin inter&eacute;s</div>
+  <div class="s5-shipping">ENVIO GRATIS A TODO EL PAIS</div>
+</div>
+
+<!-- Slide 6: CTA -->
+<div class="slide" id="slide6">
+  <div class="s6-title">Pedi<br><em>el tuyo</em><br>ahora</div>
+  <div class="s6-wa">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    wa.me/5493462676300
+  </div>
+  <div class="s6-web" style="opacity:0;">calzalindo.com.ar</div>
+  <div class="s6-brand" style="opacity:0;">Calzalindo</div>
+</div>
+
+<div class="progress-bar" id="progressBar"></div>
+<div class="slide-counter" id="slideCounter"></div>
+
+<script>
+  const images = {};
+  const totalSlides = 6;
+  let current = 0;
+  let timer = null;
+  const interval = 3500;
+
+  function pickImage(slot, type) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          images[type] = ev.target.result;
+          slot.innerHTML = '<img src="' + ev.target.result + '">';
+          slot.classList.add('filled');
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  }
+
+  function startVideo() {
+    // Apply images
+    if (images.set) {
+      document.getElementById('s2img').innerHTML = '<img src="' + images.set + '">';
+    }
+
+    // Hide setup
+    document.getElementById('setupPanel').classList.add('hidden');
+
+    // Start slideshow
+    current = 0;
+    showSlide(0);
+    timer = setInterval(nextSlide, interval);
+  }
+
+  function showSlide(n) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.getElementById('slide' + (n + 1)).classList.add('active');
+    document.getElementById('progressBar').style.width = ((n + 1) / totalSlides * 100) + '%';
+    document.getElementById('slideCounter').textContent = (n + 1) + '/' + totalSlides;
+  }
+
+  function nextSlide() {
+    current = (current + 1) % totalSlides;
+    showSlide(current);
+  }
+
+  // Click/tap to advance
+  document.body.addEventListener('click', (e) => {
+    if (!document.getElementById('setupPanel').classList.contains('hidden')) return;
+    if (e.target.closest('.setup-panel')) return;
+    clearInterval(timer);
+    nextSlide();
+    timer = setInterval(nextSlide, interval);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      clearInterval(timer);
+      nextSlide();
+      timer = setInterval(nextSlide, interval);
+    }
+  });
+</script>
+
+</body>
+</html>

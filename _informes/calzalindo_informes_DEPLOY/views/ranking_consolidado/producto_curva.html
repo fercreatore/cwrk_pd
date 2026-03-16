@@ -1,0 +1,126 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-box { background: #fff; border-radius: 8px; padding: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 10px; }
+.kpi-box h4 { margin: 0; font-size: 11px; color: #888; }
+.kpi-box .valor { font-size: 16px; font-weight: bold; }
+.chart-panel { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+#tabla-curva { font-size: 11px; }
+.quiebre-alto { color: #c0392b; font-weight: bold; }
+.quiebre-medio { color: #e67e22; }
+.quiebre-bajo { color: #27ae60; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <div style="margin-bottom:15px;">
+        <a href="javascript:history.back()" class="btn btn-default btn-sm">
+            <i class="glyphicon glyphicon-arrow-left"></i> Volver
+        </a>
+        <a href="{{=URL('ranking_consolidado','producto_pedido', args=csr)}}" class="btn btn-success btn-sm">
+            <i class="glyphicon glyphicon-shopping-cart"></i> Sugerencia de pedido
+        </a>
+    </div>
+
+    <h3 style="margin-top:0;">
+        <i class="glyphicon glyphicon-barcode"></i> {{=descripcion}}
+        <small style="color:#888;">CSR: {{=csr}} — {{=desde}} a {{=hasta}}</small>
+    </h3>
+
+    <!-- GRAFICOS -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="chart-panel">
+                <h5>Compras vs Ventas (anio-mes)</h5>
+                <div id="graf1" style="height:220px;"></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-panel">
+                <h5>Estacionalidad mensual</h5>
+                <div id="graf2" style="height:220px;"></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-panel">
+                <h5>Curva ideal (% por talle)</h5>
+                <div id="graf_curva" style="height:220px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA POR TALLE -->
+    <div style="background:#fff; border-radius:8px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <h5><i class="glyphicon glyphicon-th"></i> Detalle por talle</h5>
+        <div id="tabla-curva"></div>
+    </div>
+</div>
+
+<!-- Highcharts -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<!-- Tabulator -->
+<link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator_bootstrap3.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+
+<script>
+var g1 = {{=XML(hc_graf1 or '[]')}};
+var g2 = {{=XML(hc_graf2 or '[]')}};
+var gc = {{=XML(hc_curva or '[]')}};
+
+if (g1.length > 0) {
+    Highcharts.chart('graf1', {
+        chart:{type:'column'}, title:{text:null}, credits:{enabled:false},
+        xAxis:{type:'category'}, yAxis:{title:{text:'Uds'}}, series: g1
+    });
+}
+if (g2.length > 0) {
+    Highcharts.chart('graf2', {
+        chart:{type:'column'}, title:{text:null}, credits:{enabled:false},
+        xAxis:{type:'category'}, yAxis:{title:{text:'Uds'}}, series: g2
+    });
+}
+if (gc.length > 0) {
+    Highcharts.chart('graf_curva', {
+        chart:{type:'bar'}, title:{text:null}, credits:{enabled:false},
+        xAxis:{type:'category'}, yAxis:{title:{text:'%'}},
+        plotOptions:{bar:{dataLabels:{enabled:true, format:'{y}%'}}},
+        series: gc
+    });
+}
+
+// Tabla
+var datos = {{=XML(data)}};
+var table = new Tabulator("#tabla-curva", {
+    data: datos,
+    layout: "fitColumns",
+    height: "400px",
+    initialSort: [{column:"descripcion_5", dir:"asc"}],
+    columns: [
+        {title:"Talle", field:"descripcion_5", sorter:"string", width:80},
+        {title:"Cod.Sin.", field:"codigo_sinonimo", sorter:"string", width:120},
+        {title:"Vent.", field:"cant_v", sorter:"number", hozAlign:"right", topCalc:"sum",
+         formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"Comp.", field:"cant_c", sorter:"number", hozAlign:"right", topCalc:"sum",
+         formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"Stock", field:"stock_actual", sorter:"number", hozAlign:"right", topCalc:"sum",
+         formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"Vel.Apar.", field:"vel_aparente", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return c.getValue().toFixed(1); }},
+        {title:"Vel.Real", field:"vel_real", sorter:"number", hozAlign:"right",
+         formatter: function(c){ var v=c.getValue(); return '<strong>' + v.toFixed(1) + '</strong>'; }},
+        {title:"%Quiebre", field:"pct_quiebre", sorter:"number", hozAlign:"right",
+         formatter: function(c){
+            var v = c.getValue();
+            var cls = v > 50 ? 'quiebre-alto' : v > 20 ? 'quiebre-medio' : 'quiebre-bajo';
+            return '<span class="' + cls + '">' + v.toFixed(0) + '%</span>';
+         }},
+        {title:"F.Est.", field:"factor_estacional", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return c.getValue().toFixed(2); }},
+        {title:"Vel.Adj.", field:"vel_ajustada", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return c.getValue().toFixed(1); }},
+        {title:"Cobert.", field:"cobertura", sorter:"number", hozAlign:"right",
+         formatter: function(c){ var v=c.getValue(); return v >= 999 ? '-' : v.toFixed(1) + 'm'; }},
+        {title:"$Ult.Compra", field:"ultimo_precio", sorter:"number", hozAlign:"right",
+         formatter: function(c){ return '$ ' + Math.round(c.getValue()).toLocaleString('es-AR'); }}
+    ]
+});
+</script>

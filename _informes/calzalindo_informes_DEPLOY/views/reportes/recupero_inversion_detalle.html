@@ -1,0 +1,51 @@
+{{extend 'layout.html'}}
+{{response.title = 'Detalle Recupero - ' + proveedor}}
+
+<style>
+.tbl-det{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.tbl-det th{background:#1a1a2e;color:#fff;padding:8px 10px;white-space:nowrap}
+.tbl-det td{padding:7px 10px;border-bottom:1px solid #eee;white-space:nowrap}
+.tbl-det tbody tr:hover{background:#f8f9fa}
+.tbl-det .num{text-align:right;font-family:'Courier New',monospace}
+.badge-estado{padding:3px 8px;border-radius:3px;font-size:10px;font-weight:700;color:#fff}
+.badge-PRESION{background:#e74c3c}.badge-OK{background:#27ae60}
+</style>
+
+<div style="margin-top:15px">
+    <a href="{{=URL('reportes','recupero_inversion')}}" class="btn btn-default btn-sm">
+        <i class="glyphicon glyphicon-arrow-left"></i> Volver
+    </a>
+    <h3 style="display:inline;margin-left:15px">{{=proveedor}}</h3>
+</div>
+
+<div style="overflow-x:auto;margin-top:15px">
+{{if detalle:}}
+<table class="tbl-det">
+<thead><tr>
+    <th>Industria</th><th>Periodo</th><th>Temporada</th>
+    <th>Inversion</th><th>Dias 50%</th><th>Dias 75%</th>
+    <th>Plazo Pago</th><th>% Vendido</th><th>% Vend. Pago</th>
+    <th title="Plazo Pago − Días 50%. Positivo = capital del proveedor. Negativo = capital propio.">Calce Fin.</th><th>Estado</th>
+</tr></thead>
+<tbody>
+{{for r in detalle:}}
+<tr>
+    <td>{{=r.get('industria','?')}}</td>
+    <td><a href="{{=URL('reportes','recupero_inversion_movimientos', vars=dict(proveedor=proveedor, periodo=r.get('periodo','')))}}">{{=r.get('periodo','?')}}</a></td>
+    <td>{{=r.get('temporada_tipo','?')}}</td>
+    <td class="num">{{=formato_moneda(r.get('total_costo_compra',0))}}</td>
+    <td class="num">{{=int(r.get('dias_50',0))}}</td>
+    <td class="num">{{=int(r.get('dias_75',0))}}</td>
+    <td class="num">{{=int(r.get('plazo_pago_real_prom',0))}}</td>
+    <td class="num">{{="%.1f%%" % float(r.get('pct_vendido',0))}}</td>
+    <td class="num">{{="%.1f%%" % float(r.get('pct_vendido_al_pago',0))}}</td>
+    <td class="num">{{=int(r.get('brecha_pago_vs_rec50',0))}}</td>
+    <td><span class="badge-estado badge-{{=r.get('estado','OK')}}">{{=r.get('estado','?')}}</span></td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+{{else:}}
+<div class="alert alert-info">No hay datos para este proveedor.</div>
+{{pass}}
+</div>

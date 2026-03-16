@@ -1,0 +1,108 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-box { background: #fff; border-radius: 8px; padding: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 10px; }
+.kpi-box h4 { margin: 0; font-size: 12px; color: #888; }
+.kpi-box .valor { font-size: 18px; font-weight: bold; color: #1a1a2e; }
+.chart-panel { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+#tabla-productos { font-size: 11px; }
+.img-mini { max-width: 50px; max-height: 60px; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <div style="margin-bottom:15px;">
+        <a href="{{=URL('ranking_consolidado','rank_marcas')}}" class="btn btn-default btn-sm">
+            <i class="glyphicon glyphicon-arrow-left"></i> Volver al ranking
+        </a>
+        <a href="{{=URL('ranking_consolidado','marca_pedido', args=cod_marca)}}" class="btn btn-success btn-sm">
+            <i class="glyphicon glyphicon-shopping-cart"></i> Pedido completo
+        </a>
+    </div>
+
+    <h3 style="margin-top:0;">
+        <i class="glyphicon glyphicon-th-list"></i> {{=marca}}
+        <small style="color:#888;">Productos — {{=desde}} a {{=hasta}}</small>
+    </h3>
+
+    <!-- GRAFICOS -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-panel">
+                <h5>Compras vs Ventas (por anio-mes)</h5>
+                <div id="graf1" style="height:250px;"></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-panel">
+                <h5>Estacionalidad mensual</h5>
+                <div id="graf2" style="height:250px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA PRODUCTOS -->
+    <div style="background:#fff; border-radius:8px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <h5><i class="glyphicon glyphicon-list"></i> Productos</h5>
+        <div id="tabla-productos"></div>
+    </div>
+</div>
+
+<!-- Highcharts -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<!-- Tabulator -->
+<link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator_bootstrap3.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+
+<script>
+// Graficos
+var g1 = {{=XML(hc_graf1 or '[]')}};
+var g2 = {{=XML(hc_graf2 or '[]')}};
+
+if (g1.length > 0) {
+    Highcharts.chart('graf1', {
+        chart: {type:'column'}, title:{text:null}, credits:{enabled:false},
+        xAxis:{type:'category'}, yAxis:{title:{text:'Unidades'}},
+        series: g1
+    });
+}
+if (g2.length > 0) {
+    Highcharts.chart('graf2', {
+        chart: {type:'column'}, title:{text:null}, credits:{enabled:false},
+        xAxis:{type:'category'}, yAxis:{title:{text:'Unidades'}},
+        series: g2
+    });
+}
+
+// Tabla
+var datos = {{=XML(data)}};
+var table = new Tabulator("#tabla-productos", {
+    data: datos,
+    layout: "fitColumns",
+    height: "500px",
+    initialSort: [{column:"cantidad_v", dir:"desc"}],
+    columns: [
+        {formatter:"rownum", width:35, hozAlign:"center", headerSort:false},
+        {title:"Img", field:"imagen", width:60, hozAlign:"center", headerSort:false,
+         formatter: function(c){ var v=c.getValue(); return v ? '<img src="/calzalindo_objetivos_v2/static/images/thumbnails/'+v+'" class="img-mini">' : ''; }},
+        {title:"Producto", field:"descripcion", sorter:"string", headerFilter:true, minWidth:180,
+         formatter: function(c){
+            var row = c.getRow().getData();
+            return '<a href="/calzalindo_informes/ranking_consolidado/producto_curva/' + row.csr + '">' +
+                   c.getValue() + '</a>';
+         }},
+        {title:"Num", field:"numeracion", sorter:"string", width:80},
+        {title:"Cant.V", field:"cantidad_v", sorter:"number", topCalc:"sum", hozAlign:"right",
+         formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"Cant.C", field:"cantidad_c", sorter:"number", topCalc:"sum", hozAlign:"right",
+         formatter: function(c){ return Math.round(c.getValue()).toLocaleString('es-AR'); }},
+        {title:"Stock", field:"stock", sorter:"number", topCalc:"sum", hozAlign:"right",
+         formatter: function(c){ return Math.round(c.getValue() || 0).toLocaleString('es-AR'); }},
+        {title:"Pedido", hozAlign:"center", width:70, headerSort:false,
+         formatter: function(c){
+            var row = c.getRow().getData();
+            return '<a href="/calzalindo_informes/ranking_consolidado/producto_pedido/' + row.csr +
+                   '" class="btn btn-xs btn-warning" title="Sugerencia pedido"><i class="glyphicon glyphicon-shopping-cart"></i></a>';
+         }}
+    ]
+});
+</script>

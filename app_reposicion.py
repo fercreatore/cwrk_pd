@@ -1,0 +1,1405 @@
+#!/usr/bin/env python3
+"""
+app_reposicion.py — Reposición Inteligente con Waterfall ROI
+=============================================================
+Dashboard global de reposición de stock para H4/CALZALINDO.
+
+Modelo:
+  1. Velocidad REAL corregida por quiebre de stock
+  2. Estacionalidad mensual (3 años historia)
+  3. Proyección waterfall a 15/30/45/60 días
+  4. Pedidos pendientes como stock en tránsito (se descuentan)
+  5. Ranking por ROI: ¿en cuántos días recupero la inversión?
+  6. Presupuesto como driver → optimizador que sugiere qué comprar primero
+
+EJECUTAR:
+  streamlit run app_reposicion.py
+
+Autor: Cowork + Claude — Marzo 2026
+"""
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import pyodbc
+import json
+import os
+from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
+
+from config import (
+    CONN_COMPRAS, CONN_ARTICULOS, PROVEEDORES,
+    EMPRESA_DEFAULT, calcular_precios, get_conn_string
+)
+from proveedores_db import obtener_pricing_proveedor, listar_proveedores_activos
+
+# ============================================================================
+# CONSTANTES
+# ============================================================================
+
+DEPOS_INFORMES = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14, 15, 198)
+DEPOS_SQL = '(0,1,2,3,4,5,6,7,8,9,11,12,14,15,198)'
+EXCL_VENTAS = '(7,36)'
+VENTANAS_DIAS = [15, 30, 45, 60]
+MESES_HISTORIA = 12  # para quiebre
+MESES_ESTACIONALIDAD = 36  # 3 años
+LOG_FILE = os.path.join(os.path.dirname(__file__), 'pedidos_log.json')
+
+CONN_REPLICA = get_conn_string("msgestionC")
+
+# ============================================================================
+# PAGE CONFIG
+# ============================================================================
+
+st.set_page_config(
+    page_title="Reposición Inteligente",
+    page_icon="🔄",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ============================================================================
+# CSS CUSTOM
+# ============================================================================
+
+st.markdown("""
+<style>
+    .semaforo-rojo { background-color: #ff4b4b; color: white; padding: 4px 12px;
+                     border-radius: 12px; font-weight: bold; text-align: center; }
+    .semaforo-amarillo { background-color: #ffa726; color: white; padding: 4px 12px;
+                         border-radius: 12px; font-weight: bold; text-align: center; }
+    .semaforo-verde { background-color: #66bb6a; color: white; padding: 4px 12px;
+                      border-radius: 12px; font-weight: bold; text-align: center; }
+    .kpi-box { background: #f8f9fa; border-radius: 8px; padding: 16px;
+               border-left: 4px solid #1976d2; margin-bottom: 8px; }
+    .waterfall-header { font-size: 13px; font-weight: 600; color: #555; }
+    div[data-testid="stMetric"] { background: #f0f2f6; border-radius: 8px; padding: 10px; }
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================================
+# DATABASE HELPERS
+# ============================================================================
+
+@st.cache_resource
+def get_conn():
+    """Conexión a SQL Server para análisis (SELECT)."""
+    try:
+        return pyodbc.connect(CONN_COMPRAS, timeout=10)
+    except Exception:
+        return pyodbc.connect(CONN_REPLICA, timeout=10)
+
+
+def query_df(sql, conn=None):
+    """Ejecuta query y retorna DataFrame."""
+    c = conn or get_conn()
+    try:
+        return pd.read_sql(sql, c)
+    except Exception as e:
+        st.error(f"Error SQL: {e}")
+        return pd.DataFrame()
+
+
+# ============================================================================
+# ANÁLISIS DE QUIEBRE (core del sistema)
+# ============================================================================
+
+def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
+    """
+    Analiza quiebre para MÚLTIPLES codigo_sinonimo en batch.
+    Retorna dict {codigo_sinonimo: {stock_actual, meses_quebrado, vel_real, vel_aparente, ...}}
+    """
+    if not codigos_sinonimo:
+        return {}
+
+    hoy = date.today()
+    desde = (hoy - relativedelta(months=meses)).replace(day=1)
+
+    # Construir filtro IN
+    filtro = ",".join(f"'{c}'" for c in codigos_sinonimo)
+
+    # 1. Stock actual por codigo_sinonimo
+    sql_stock = f"""
+        SELECT a.codigo_sinonimo,
+               ISNULL(SUM(s.stock_actual), 0) AS stock
+        FROM msgestionC.dbo.stock s
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
+        WHERE a.codigo_sinonimo IN ({filtro})
+          AND s.deposito IN {DEPOS_SQL}
+        GROUP BY a.codigo_sinonimo
+    """
+    df_stock = query_df(sql_stock)
+    stock_dict = {}
+    for _, r in df_stock.iterrows():
+        stock_dict[r['codigo_sinonimo'].strip()] = float(r['stock'])
+
+    # 2. Ventas mensuales por codigo_sinonimo
+    sql_ventas = f"""
+        SELECT a.codigo_sinonimo,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
+               YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.codigo_sinonimo IN ({filtro})
+          AND v.fecha >= '{desde}'
+        GROUP BY a.codigo_sinonimo, YEAR(v.fecha), MONTH(v.fecha)
+    """
+    df_ventas = query_df(sql_ventas)
+
+    # 3. Compras mensuales por codigo_sinonimo
+    sql_compras = f"""
+        SELECT a.codigo_sinonimo,
+               SUM(rc.cantidad) AS cant,
+               YEAR(rc.fecha) AS anio, MONTH(rc.fecha) AS mes
+        FROM msgestionC.dbo.compras1 rc
+        JOIN msgestion01art.dbo.articulo a ON rc.articulo = a.codigo
+        WHERE rc.operacion = '+'
+          AND a.codigo_sinonimo IN ({filtro})
+          AND rc.fecha >= '{desde}'
+        GROUP BY a.codigo_sinonimo, YEAR(rc.fecha), MONTH(rc.fecha)
+    """
+    df_compras = query_df(sql_compras)
+
+    # Organizar ventas y compras en dicts
+    ventas_by_cs = {}
+    for _, r in df_ventas.iterrows():
+        cs = r['codigo_sinonimo'].strip()
+        if cs not in ventas_by_cs:
+            ventas_by_cs[cs] = {}
+        ventas_by_cs[cs][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    compras_by_cs = {}
+    for _, r in df_compras.iterrows():
+        cs = r['codigo_sinonimo'].strip()
+        if cs not in compras_by_cs:
+            compras_by_cs[cs] = {}
+        compras_by_cs[cs][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    # Lista de meses hacia atrás
+    meses_lista = []
+    cursor = hoy.replace(day=1)
+    for _ in range(meses):
+        meses_lista.append((cursor.year, cursor.month))
+        cursor -= relativedelta(months=1)
+
+    # Reconstruir quiebre para cada codigo_sinonimo
+    resultados = {}
+    for cs in codigos_sinonimo:
+        stock_actual = stock_dict.get(cs, 0)
+        v_dict = ventas_by_cs.get(cs, {})
+        c_dict = compras_by_cs.get(cs, {})
+
+        stock_fin = stock_actual
+        meses_q = 0
+        meses_ok = 0
+        ventas_total = 0
+        ventas_ok = 0
+
+        for anio, mes in meses_lista:
+            v = v_dict.get((anio, mes), 0)
+            c = c_dict.get((anio, mes), 0)
+            stock_inicio = stock_fin + v - c
+            ventas_total += v
+
+            if stock_inicio <= 0:
+                meses_q += 1
+            else:
+                meses_ok += 1
+                ventas_ok += v
+
+            stock_fin = stock_inicio
+
+        vel_ap = ventas_total / max(meses, 1)
+        vel_real = ventas_ok / max(meses_ok, 1) if meses_ok > 0 else vel_ap
+
+        resultados[cs] = {
+            'stock_actual': stock_actual,
+            'meses_quebrado': meses_q,
+            'meses_ok': meses_ok,
+            'pct_quiebre': round(meses_q / max(meses, 1) * 100, 1),
+            'vel_aparente': round(vel_ap, 2),
+            'vel_real': round(vel_real, 2),
+            'ventas_total': ventas_total,
+            'ventas_ok': ventas_ok,
+        }
+
+    return resultados
+
+
+# ============================================================================
+# ESTACIONALIDAD
+# ============================================================================
+
+def factor_estacional_batch(codigos_sinonimo, anios=3):
+    """Calcula factores estacionales en batch. Retorna dict {cs: {mes: factor}}."""
+    if not codigos_sinonimo:
+        return {}
+
+    desde = (date.today() - relativedelta(years=anios)).replace(month=1, day=1)
+    filtro = ",".join(f"'{c}'" for c in codigos_sinonimo)
+
+    sql = f"""
+        SELECT a.codigo_sinonimo,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
+               MONTH(v.fecha) AS mes
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.codigo_sinonimo IN ({filtro})
+          AND v.fecha >= '{desde}'
+        GROUP BY a.codigo_sinonimo, MONTH(v.fecha)
+    """
+    df = query_df(sql)
+    if df.empty:
+        return {cs: {m: 1.0 for m in range(1, 13)} for cs in codigos_sinonimo}
+
+    resultados = {}
+    for cs in codigos_sinonimo:
+        df_cs = df[df['codigo_sinonimo'].str.strip() == cs]
+        if df_cs.empty:
+            resultados[cs] = {m: 1.0 for m in range(1, 13)}
+            continue
+
+        ventas_mes = {}
+        for _, r in df_cs.iterrows():
+            ventas_mes[int(r['mes'])] = float(r['cant'] or 0)
+
+        media = sum(ventas_mes.values()) / max(len(ventas_mes), 1)
+        if media <= 0:
+            resultados[cs] = {m: 1.0 for m in range(1, 13)}
+        else:
+            resultados[cs] = {m: round(ventas_mes.get(m, media) / media, 3)
+                              for m in range(1, 13)}
+
+    return resultados
+
+
+# ============================================================================
+# PEDIDOS PENDIENTES (stock en tránsito)
+# ============================================================================
+
+@st.cache_data(ttl=120)
+def obtener_pendientes():
+    """Obtiene todos los pedidos pendientes (estado V) como stock en tránsito."""
+    sql = f"""
+        SELECT p1.articulo, a.codigo_sinonimo,
+               SUM(p1.cantidad) AS cant_pendiente,
+               SUM(p1.cantidad * p1.precio) AS monto_pendiente,
+               p2.cuenta, RTRIM(p2.denominacion) AS proveedor
+        FROM msgestionC.dbo.pedico2 p2
+        JOIN msgestionC.dbo.pedico1 p1
+             ON p1.empresa = p2.empresa AND p1.numero = p2.numero AND p1.codigo = p2.codigo
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = p1.articulo
+        WHERE p2.codigo = 8 AND p2.estado = 'V'
+        GROUP BY p1.articulo, a.codigo_sinonimo, p2.cuenta, p2.denominacion
+    """
+    return query_df(sql)
+
+
+def pendientes_por_sinonimo(df_pend):
+    """Agrupa pendientes por codigo_sinonimo."""
+    if df_pend.empty:
+        return {}
+    df_pend['codigo_sinonimo'] = df_pend['codigo_sinonimo'].str.strip()
+    grp = df_pend.groupby('codigo_sinonimo').agg(
+        cant_pendiente=('cant_pendiente', 'sum'),
+        monto_pendiente=('monto_pendiente', 'sum')
+    ).to_dict('index')
+    return grp
+
+
+# ============================================================================
+# PRECIOS DE VENTA (para cálculo ROI)
+# ============================================================================
+
+def obtener_precios_venta_batch(codigos_sinonimo):
+    """Obtiene precio promedio de venta ponderado por cantidad, últimos 6 meses."""
+    if not codigos_sinonimo:
+        return {}
+    filtro = ",".join(f"'{c}'" for c in codigos_sinonimo)
+    sql = f"""
+        SELECT a.codigo_sinonimo,
+               SUM(v.monto_facturado) / NULLIF(SUM(
+                 CASE WHEN v.operacion='+' THEN v.cantidad
+                      WHEN v.operacion='-' THEN -v.cantidad END), 0) AS precio_venta_prom
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.codigo_sinonimo IN ({filtro})
+          AND v.fecha >= DATEADD(month, -6, GETDATE())
+          AND v.monto_facturado > 0
+        GROUP BY a.codigo_sinonimo
+    """
+    df = query_df(sql)
+    result = {}
+    for _, r in df.iterrows():
+        cs = r['codigo_sinonimo'].strip()
+        pv = float(r['precio_venta_prom']) if r['precio_venta_prom'] else 0
+        result[cs] = round(pv, 2)
+    return result
+
+
+# ============================================================================
+# ANÁLISIS GLOBAL: carga todos los productos activos con stock o ventas
+# ============================================================================
+
+@st.cache_data(ttl=300)
+def cargar_resumen_marcas():
+    """
+    Resumen rápido por marca: stock total, ventas 12m, cant productos.
+    Query liviana para el overview.
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql = f"""
+        SELECT a.marca, a.proveedor,
+               SUM(ISNULL(s.stk, 0)) AS stock_total,
+               SUM(ISNULL(v.vtas, 0)) AS ventas_12m,
+               COUNT(DISTINCT LEFT(a.codigo_sinonimo, 10)) AS productos
+        FROM msgestion01art.dbo.articulo a
+        LEFT JOIN (
+            SELECT articulo, SUM(stock_actual) AS stk
+            FROM msgestionC.dbo.stock
+            WHERE deposito IN {DEPOS_SQL}
+            GROUP BY articulo
+        ) s ON s.articulo = a.codigo
+        LEFT JOIN (
+            SELECT articulo,
+                   SUM(CASE WHEN operacion='+' THEN cantidad
+                            WHEN operacion='-' THEN -cantidad END) AS vtas
+            FROM msgestionC.dbo.ventas1
+            WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
+            GROUP BY articulo
+        ) v ON v.articulo = a.codigo
+        WHERE a.estado = 'V'
+          AND LEN(a.codigo_sinonimo) >= 10
+          AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
+          AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
+        GROUP BY a.marca, a.proveedor
+    """
+    return query_df(sql)
+
+
+@st.cache_data(ttl=300)
+def cargar_productos_por_marca(marca_codigo):
+    """
+    Carga productos (CSR nivel 10) de UNA marca con stock o ventas 12m.
+    Mucho más rápido que cargar todo de golpe.
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               MAX(a.descripcion_1) AS descripcion,
+               MAX(a.marca) AS marca,
+               MAX(a.proveedor) AS proveedor,
+               MAX(a.subrubro) AS subrubro,
+               MAX(a.precio_fabrica) AS precio_fabrica,
+               SUM(ISNULL(s.stk, 0)) AS stock_total,
+               SUM(ISNULL(v.vtas, 0)) AS ventas_12m
+        FROM msgestion01art.dbo.articulo a
+        LEFT JOIN (
+            SELECT articulo, SUM(stock_actual) AS stk
+            FROM msgestionC.dbo.stock
+            WHERE deposito IN {DEPOS_SQL}
+            GROUP BY articulo
+        ) s ON s.articulo = a.codigo
+        LEFT JOIN (
+            SELECT articulo,
+                   SUM(CASE WHEN operacion='+' THEN cantidad
+                            WHEN operacion='-' THEN -cantidad END) AS vtas
+            FROM msgestionC.dbo.ventas1
+            WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
+            GROUP BY articulo
+        ) v ON v.articulo = a.codigo
+        WHERE a.estado = 'V' AND a.marca = {int(marca_codigo)}
+          AND LEN(a.codigo_sinonimo) >= 10
+          AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
+          AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['csr'] = df['csr'].str.strip()
+    df['descripcion'] = df['descripcion'].str.strip()
+    df['stock_total'] = df['stock_total'].astype(float)
+    df['ventas_12m'] = df['ventas_12m'].astype(float)
+    return df
+
+
+@st.cache_data(ttl=300)
+def cargar_productos_por_proveedor(proveedor_num):
+    """Carga productos de UN proveedor."""
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               MAX(a.descripcion_1) AS descripcion,
+               MAX(a.marca) AS marca,
+               MAX(a.proveedor) AS proveedor,
+               MAX(a.subrubro) AS subrubro,
+               MAX(a.precio_fabrica) AS precio_fabrica,
+               SUM(ISNULL(s.stk, 0)) AS stock_total,
+               SUM(ISNULL(v.vtas, 0)) AS ventas_12m
+        FROM msgestion01art.dbo.articulo a
+        LEFT JOIN (
+            SELECT articulo, SUM(stock_actual) AS stk
+            FROM msgestionC.dbo.stock
+            WHERE deposito IN {DEPOS_SQL}
+            GROUP BY articulo
+        ) s ON s.articulo = a.codigo
+        LEFT JOIN (
+            SELECT articulo,
+                   SUM(CASE WHEN operacion='+' THEN cantidad
+                            WHEN operacion='-' THEN -cantidad END) AS vtas
+            FROM msgestionC.dbo.ventas1
+            WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
+            GROUP BY articulo
+        ) v ON v.articulo = a.codigo
+        WHERE a.estado = 'V' AND a.proveedor = {int(proveedor_num)}
+          AND LEN(a.codigo_sinonimo) >= 10
+          AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
+          AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['csr'] = df['csr'].str.strip()
+    df['descripcion'] = df['descripcion'].str.strip()
+    df['stock_total'] = df['stock_total'].astype(float)
+    df['ventas_12m'] = df['ventas_12m'].astype(float)
+    return df
+
+
+@st.cache_data(ttl=600)
+def cargar_marcas_dict():
+    """Dict de marcas: {codigo: descripcion}."""
+    sql = "SELECT codigo, RTRIM(ISNULL(descripcion,'')) AS desc1 FROM msgestion01art.dbo.marcas"
+    df = query_df(sql)
+    return {int(r['codigo']): (r['desc1'] or '').strip() for _, r in df.iterrows()} if not df.empty else {}
+
+
+@st.cache_data(ttl=600)
+def cargar_proveedores_dict():
+    """Dict de proveedores: {numero: denominacion}."""
+    sql = "SELECT numero, RTRIM(ISNULL(denominacion,'')) AS nombre FROM msgestionC.dbo.proveedores WHERE motivo_baja='A'"
+    df = query_df(sql)
+    return {int(r['numero']): (r['nombre'] or '').strip() for _, r in df.iterrows()} if not df.empty else {}
+
+
+# ============================================================================
+# PROYECCIÓN WATERFALL
+# ============================================================================
+
+def proyectar_waterfall(vel_diaria, stock_disponible, factores_est, ventanas=VENTANAS_DIAS):
+    """
+    Proyecta stock a futuro en ventanas de días.
+
+    vel_diaria: velocidad real diaria ajustada (sin estacionalidad, ya corregida por quiebre)
+    stock_disponible: stock_actual + pendientes
+    factores_est: dict {mes: factor}
+    ventanas: [15, 30, 45, 60]
+
+    Retorna: [
+        {dias: 15, stock_proyectado: X, ventas_proyectadas: Y, status: 'rojo/amarillo/verde'},
+        ...
+    ]
+    """
+    hoy = date.today()
+    resultado = []
+
+    for dias in ventanas:
+        # Calcular ventas proyectadas en la ventana
+        ventas_ventana = 0
+        for d in range(dias):
+            fecha = hoy + timedelta(days=d)
+            mes = fecha.month
+            factor = factores_est.get(mes, 1.0)
+            ventas_ventana += vel_diaria * factor
+
+        stock_proj = stock_disponible - ventas_ventana
+
+        # Semáforo
+        if stock_proj <= 0:
+            status = 'rojo'
+        elif stock_proj < ventas_ventana * 0.3:  # menos de 30% de margen
+            status = 'amarillo'
+        else:
+            status = 'verde'
+
+        resultado.append({
+            'dias': dias,
+            'ventas_proy': round(ventas_ventana, 1),
+            'stock_proy': round(stock_proj, 1),
+            'status': status,
+        })
+
+    return resultado
+
+
+def calcular_dias_cobertura(vel_diaria, stock_disponible, factores_est, max_dias=120):
+    """Calcula en cuántos días se agota el stock."""
+    if vel_diaria <= 0:
+        return max_dias  # no se vende → cobertura infinita
+
+    hoy = date.today()
+    stock_restante = stock_disponible
+
+    for d in range(1, max_dias + 1):
+        fecha = hoy + timedelta(days=d)
+        factor = factores_est.get(fecha.month, 1.0)
+        stock_restante -= vel_diaria * factor
+        if stock_restante <= 0:
+            return d
+
+    return max_dias
+
+
+def calcular_roi(precio_costo, precio_venta, vel_diaria, factores_est,
+                 cantidad_pedir, stock_disponible):
+    """
+    Calcula ROI y días de recupero de inversión.
+
+    Lógica:
+    - Inversión = precio_costo × cantidad_pedir
+    - Venta diaria proyectada = vel_diaria × factor_estacional
+    - Margen diario = venta_diaria × (precio_venta - precio_costo) / precio_venta
+    - Días recupero = Inversión / margen_diario
+    - ROI = (venta_60d - inversión) / inversión × 100
+    """
+    if precio_costo <= 0 or cantidad_pedir <= 0 or vel_diaria <= 0:
+        return {'dias_recupero': 999, 'roi_60d': 0, 'inversion': 0, 'margen_pct': 0}
+
+    inversion = precio_costo * cantidad_pedir
+
+    if precio_venta <= 0:
+        precio_venta = precio_costo * 2  # fallback 100% markup
+
+    margen_unitario = precio_venta - precio_costo
+    margen_pct = margen_unitario / precio_venta * 100
+
+    # Ventas proyectadas a 60 días con estacionalidad
+    hoy = date.today()
+    venta_acum = 0
+    ingreso_acum = 0
+    dias_recupero = 999
+
+    stock_nuevo = stock_disponible + cantidad_pedir
+
+    for d in range(1, 121):  # hasta 120 días
+        fecha = hoy + timedelta(days=d)
+        factor = factores_est.get(fecha.month, 1.0)
+        venta_dia = min(vel_diaria * factor, stock_nuevo - venta_acum)
+        if venta_dia <= 0:
+            break
+
+        venta_acum += venta_dia
+        ingreso_acum += venta_dia * margen_unitario
+
+        if ingreso_acum >= inversion and dias_recupero == 999:
+            dias_recupero = d
+
+    # ROI a 60 días
+    venta_60d = 0
+    for d in range(1, 61):
+        fecha = hoy + timedelta(days=d)
+        factor = factores_est.get(fecha.month, 1.0)
+        venta_60d += vel_diaria * factor
+
+    ingreso_60d = min(venta_60d, cantidad_pedir) * precio_venta
+    roi_60d = ((ingreso_60d - inversion) / inversion * 100) if inversion > 0 else 0
+
+    return {
+        'dias_recupero': dias_recupero,
+        'roi_60d': round(roi_60d, 1),
+        'inversion': round(inversion, 0),
+        'margen_pct': round(margen_pct, 1),
+        'ingreso_60d': round(ingreso_60d, 0),
+    }
+
+
+# ============================================================================
+# ANÁLISIS COMPLETO POR PRODUCTO
+# ============================================================================
+
+def analizar_producto_detalle(csr, df_pendientes):
+    """
+    Análisis completo de un CSR: talles, quiebre, waterfall, ROI.
+    """
+    # Obtener talles
+    sql = f"""
+        SELECT a.codigo, a.codigo_sinonimo, a.descripcion_1, a.descripcion_5 AS talle,
+               a.precio_fabrica, a.descuento, a.proveedor, a.marca,
+               ISNULL((SELECT SUM(s.stock_actual) FROM msgestionC.dbo.stock s
+                       WHERE s.articulo = a.codigo AND s.deposito IN {DEPOS_SQL}), 0) AS stock_actual
+        FROM msgestion01art.dbo.articulo a
+        WHERE a.codigo_sinonimo LIKE '{csr}%'
+          AND LEN(a.codigo_sinonimo) > 10
+          AND a.estado = 'V'
+        ORDER BY a.descripcion_5
+    """
+    df_talles = query_df(sql)
+    if df_talles.empty:
+        return pd.DataFrame()
+
+    # Ventas últimos 12 meses por talle
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql_v = f"""
+        SELECT a.codigo_sinonimo, a.descripcion_5 AS talle,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS ventas_12m
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE a.codigo_sinonimo LIKE '{csr}%'
+          AND v.fecha >= '{desde}' AND v.codigo NOT IN {EXCL_VENTAS}
+        GROUP BY a.codigo_sinonimo, a.descripcion_5
+    """
+    df_v = query_df(sql_v)
+
+    # Merge
+    df_talles['codigo_sinonimo'] = df_talles['codigo_sinonimo'].str.strip()
+    if not df_v.empty:
+        df_v['codigo_sinonimo'] = df_v['codigo_sinonimo'].str.strip()
+        df_talles = pd.merge(df_talles, df_v[['codigo_sinonimo', 'ventas_12m']],
+                             on='codigo_sinonimo', how='left')
+    else:
+        df_talles['ventas_12m'] = 0
+
+    df_talles['ventas_12m'] = df_talles['ventas_12m'].fillna(0).astype(float)
+    df_talles['stock_actual'] = df_talles['stock_actual'].astype(float)
+
+    # Pendientes por talle
+    pend_dict = pendientes_por_sinonimo(df_pendientes)
+    df_talles['pendiente'] = df_talles['codigo_sinonimo'].map(
+        lambda x: pend_dict.get(x, {}).get('cant_pendiente', 0)
+    )
+
+    return df_talles
+
+
+# ============================================================================
+# INSERTAR PEDIDO EN ERP
+# ============================================================================
+
+def insertar_pedido_produccion(proveedor_id, empresa, renglones_df,
+                                observaciones="", fecha_entrega=None):
+    """Inserta pedido en producción usando paso4."""
+    from paso4_insertar_pedido import insertar_pedido
+
+    prov = PROVEEDORES.get(proveedor_id, {})
+    if not prov:
+        try:
+            provs_bd = listar_proveedores_activos()
+            prov = provs_bd.get(proveedor_id, {})
+            if prov:
+                pricing = obtener_pricing_proveedor(proveedor_id)
+                prov.update(pricing)
+        except Exception:
+            pass
+
+    nombre = prov.get("nombre", f"Proveedor #{proveedor_id}")
+    fecha_hoy = date.today()
+
+    cabecera = {
+        "empresa": empresa,
+        "cuenta": proveedor_id,
+        "denominacion": nombre,
+        "fecha_comprobante": fecha_hoy,
+        "fecha_entrega": fecha_entrega or (fecha_hoy + timedelta(days=30)),
+        "observaciones": observaciones,
+    }
+
+    renglones = []
+    for _, r in renglones_df.iterrows():
+        qty = int(r.get('pedir', 0))
+        if qty > 0:
+            renglones.append({
+                "articulo": int(r['codigo']),
+                "descripcion": str(r['descripcion_1'])[:60] + " " + str(r.get('talle', '')),
+                "codigo_sinonimo": str(r['codigo_sinonimo']),
+                "cantidad": qty,
+                "precio": float(r.get('precio_fabrica', 0)),
+            })
+
+    if not renglones:
+        return None, "No hay renglones con cantidad > 0"
+
+    numero = insertar_pedido(cabecera, renglones, dry_run=False)
+    return numero, f"Pedido #{numero} insertado OK" if numero else "Error al insertar"
+
+
+# ============================================================================
+# LOG
+# ============================================================================
+
+def guardar_log(entry):
+    log = cargar_log()
+    log.append(entry)
+    with open(LOG_FILE, 'w') as f:
+        json.dump(log, f, indent=2, default=str)
+
+def cargar_log():
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+
+# ============================================================================
+# UI: DASHBOARD GLOBAL
+# ============================================================================
+
+def render_semaforo(status):
+    if status == 'rojo':
+        return '<span class="semaforo-rojo">SIN STOCK</span>'
+    elif status == 'amarillo':
+        return '<span class="semaforo-amarillo">BAJO</span>'
+    return '<span class="semaforo-verde">OK</span>'
+
+
+def render_dashboard():
+    """Pantalla principal: dashboard global con todos los productos."""
+
+    st.title("🔄 Reposición Inteligente")
+    st.caption("Waterfall ROI · Presupuesto como driver · Velocidad real con quiebre")
+
+    # ── SIDEBAR ──
+    st.sidebar.header("Filtros")
+
+    marcas_dict = cargar_marcas_dict()
+    provs_dict = cargar_proveedores_dict()
+
+    # Resumen por marca (query rápida)
+    with st.spinner("Cargando resumen..."):
+        df_resumen = cargar_resumen_marcas()
+
+    if df_resumen.empty:
+        st.warning("No se encontraron productos con stock o ventas recientes.")
+        return
+
+    # Enriquecer resumen con nombres
+    df_resumen['marca_desc'] = df_resumen['marca'].map(
+        lambda x: marcas_dict.get(int(x), f"#{int(x)}") if pd.notna(x) else "Sin marca"
+    )
+    df_resumen['prov_nombre'] = df_resumen['proveedor'].map(
+        lambda x: provs_dict.get(int(x), f"#{int(x)}") if pd.notna(x) else "Sin prov"
+    )
+
+    # Filtros sidebar: selección de marca O proveedor para drill-down
+    modo_filtro = st.sidebar.radio("Filtrar por", ["Marca", "Proveedor"], horizontal=True)
+
+    if modo_filtro == "Marca":
+        # Top marcas por ventas
+        top_marcas = df_resumen.groupby(['marca', 'marca_desc']).agg(
+            ventas=('ventas_12m', 'sum'), stock=('stock_total', 'sum'), prods=('productos', 'sum')
+        ).reset_index().sort_values('ventas', ascending=False)
+        top_marcas = top_marcas[top_marcas['ventas'] > 10]
+
+        opciones_marca = top_marcas.apply(
+            lambda r: f"{r['marca_desc']} ({int(r['ventas'])} vtas)", axis=1
+        ).tolist()
+        codigos_marca = top_marcas['marca'].tolist()
+
+        sel_idx = st.sidebar.selectbox("Marca", range(len(opciones_marca)),
+                                        format_func=lambda i: opciones_marca[i],
+                                        key="marca_filtro")
+        marca_sel_codigo = int(codigos_marca[sel_idx])
+
+        with st.spinner(f"Cargando productos de {opciones_marca[sel_idx].split(' (')[0]}..."):
+            df_f = cargar_productos_por_marca(marca_sel_codigo)
+    else:
+        # Top proveedores por ventas
+        top_provs = df_resumen.groupby(['proveedor', 'prov_nombre']).agg(
+            ventas=('ventas_12m', 'sum'), stock=('stock_total', 'sum'), prods=('productos', 'sum')
+        ).reset_index().sort_values('ventas', ascending=False)
+        top_provs = top_provs[top_provs['ventas'] > 10]
+
+        opciones_prov = top_provs.apply(
+            lambda r: f"{r['prov_nombre']} ({int(r['ventas'])} vtas)", axis=1
+        ).tolist()
+        codigos_prov = top_provs['proveedor'].tolist()
+
+        sel_idx_p = st.sidebar.selectbox("Proveedor", range(len(opciones_prov)),
+                                          format_func=lambda i: opciones_prov[i],
+                                          key="prov_filtro")
+        prov_sel_codigo = int(codigos_prov[sel_idx_p])
+
+        with st.spinner(f"Cargando productos de {opciones_prov[sel_idx_p].split(' (')[0]}..."):
+            df_f = cargar_productos_por_proveedor(prov_sel_codigo)
+
+    min_ventas = st.sidebar.number_input("Ventas mínimas 12m", value=5, min_value=0)
+
+    presupuesto = st.sidebar.number_input(
+        "Presupuesto disponible ($)", value=5_000_000, step=500_000,
+        format="%d", help="El optimizador sugiere qué comprar primero dentro de este presupuesto"
+    )
+
+    if df_f.empty:
+        st.info("No hay productos con los filtros seleccionados.")
+        return
+
+    # Enriquecer productos
+    df_f['marca_desc'] = df_f['marca'].map(
+        lambda x: marcas_dict.get(int(x), f"#{int(x)}") if pd.notna(x) else "Sin marca"
+    )
+    df_f['prov_nombre'] = df_f['proveedor'].map(
+        lambda x: provs_dict.get(int(x), f"#{int(x)}") if pd.notna(x) else "Sin prov"
+    )
+
+    # Aplicar filtro de ventas mínimas
+    df_f = df_f[df_f['ventas_12m'] >= min_ventas]
+
+    if df_f.empty:
+        st.info("No hay productos con los filtros seleccionados.")
+        return
+
+    st.sidebar.markdown(f"**{len(df_f)} productos**")
+
+    # ── TABS ──
+    tab_dashboard, tab_waterfall, tab_optimizar, tab_pedido, tab_historial = st.tabs([
+        "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
+        "🛒 Armar Pedido", "📋 Historial"
+    ])
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 1: DASHBOARD GLOBAL
+    # ══════════════════════════════════════════════════════════════
+    with tab_dashboard:
+        # Velocidad simple (sin quiebre detallado, para overview rápido)
+        df_f['vel_mes'] = df_f['ventas_12m'] / 12
+        df_f['vel_dia'] = df_f['vel_mes'] / 30
+        df_f['dias_stock'] = np.where(
+            df_f['vel_dia'] > 0,
+            df_f['stock_total'] / df_f['vel_dia'],
+            999
+        )
+        df_f['urgencia'] = pd.cut(
+            df_f['dias_stock'],
+            bins=[-1, 15, 30, 60, 999],
+            labels=['CRITICO', 'BAJO', 'MEDIO', 'OK']
+        )
+
+        # KPIs globales
+        c1, c2, c3, c4, c5 = st.columns(5)
+        criticos = len(df_f[df_f['urgencia'] == 'CRITICO'])
+        bajos = len(df_f[df_f['urgencia'] == 'BAJO'])
+        c1.metric("Productos filtrados", len(df_f))
+        c2.metric("CRITICOS (<15d)", criticos)
+        c3.metric("BAJOS (15-30d)", bajos)
+        c4.metric("Stock total (pares)", f"{int(df_f['stock_total'].sum()):,}")
+        c5.metric("Ventas 12m (pares)", f"{int(df_f['ventas_12m'].sum()):,}")
+
+        st.divider()
+
+        # Resumen rápido de la selección
+        st.subheader("Resumen de la selección")
+
+        resumen_data = df_f.groupby('marca_desc').agg(
+            productos=('csr', 'count'),
+            stock=('stock_total', 'sum'),
+            ventas=('ventas_12m', 'sum'),
+            criticos=('urgencia', lambda x: (x == 'CRITICO').sum()),
+            bajos=('urgencia', lambda x: (x == 'BAJO').sum()),
+        ).reset_index().sort_values('criticos', ascending=False)
+
+        resumen_data['dias_prom'] = np.where(
+            resumen_data['ventas'] > 0,
+            (resumen_data['stock'] / (resumen_data['ventas'] / 365)).round(0),
+            999
+        )
+
+        st.dataframe(
+            resumen_data,
+            column_config={
+                'marca_desc': st.column_config.TextColumn('Marca'),
+                'productos': st.column_config.NumberColumn('Productos'),
+                'stock': st.column_config.NumberColumn('Stock', format="%d"),
+                'ventas': st.column_config.NumberColumn('Ventas 12m', format="%d"),
+                'criticos': st.column_config.NumberColumn('Criticos', format="%d"),
+                'bajos': st.column_config.NumberColumn('Bajos', format="%d"),
+                'dias_prom': st.column_config.NumberColumn('Dias Stock', format="%d"),
+            },
+            use_container_width=True, hide_index=True,
+        )
+
+        st.divider()
+
+        # Top productos más urgentes
+        st.subheader("Top 30 — Productos más urgentes")
+        df_top = df_f.nsmallest(30, 'dias_stock')[
+            ['descripcion', 'marca_desc', 'prov_nombre', 'stock_total',
+             'ventas_12m', 'vel_mes', 'dias_stock', 'urgencia']
+        ].copy()
+        df_top['dias_stock'] = df_top['dias_stock'].round(0).astype(int)
+        df_top['vel_mes'] = df_top['vel_mes'].round(1)
+
+        st.dataframe(
+            df_top,
+            column_config={
+                'descripcion': st.column_config.TextColumn('Producto', width=280),
+                'marca_desc': 'Marca',
+                'prov_nombre': 'Proveedor',
+                'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
+                'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                'vel_mes': st.column_config.NumberColumn('Vel/mes', format="%.1f"),
+                'dias_stock': st.column_config.NumberColumn('Dias', format="%d"),
+                'urgencia': 'Urgencia',
+            },
+            use_container_width=True, hide_index=True,
+        )
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 2: WATERFALL DETALLADO
+    # ══════════════════════════════════════════════════════════════
+    with tab_waterfall:
+        st.subheader("🌊 Proyección Waterfall por Producto")
+        st.caption("Seleccioná un producto para ver la proyección a 15/30/45/60 días con quiebre real")
+
+        # Selector de producto
+        df_f_sorted = df_f.sort_values('dias_stock')
+        opciones = df_f_sorted.apply(
+            lambda r: f"{r['descripcion'][:50]} | {r['marca_desc']} | Stock:{int(r['stock_total'])} | Vtas:{int(r['ventas_12m'])}",
+            axis=1
+        ).tolist()
+        csrs = df_f_sorted['csr'].tolist()
+
+        if not opciones:
+            st.info("No hay productos para analizar.")
+        else:
+            idx = st.selectbox("Producto", range(len(opciones)),
+                               format_func=lambda i: opciones[i],
+                               key="wf_producto")
+            csr_sel = csrs[idx]
+
+            if st.button("🔍 Analizar waterfall", type="primary", key="btn_wf"):
+                with st.spinner("Analizando quiebre + estacionalidad..."):
+                    # Quiebre
+                    quiebre = analizar_quiebre_batch([csr_sel])
+                    q = quiebre.get(csr_sel, {})
+
+                    # Estacionalidad
+                    factores = factor_estacional_batch([csr_sel])
+                    f_est = factores.get(csr_sel, {m: 1.0 for m in range(1, 13)})
+
+                    # Pendientes
+                    df_pend = obtener_pendientes()
+                    pend = pendientes_por_sinonimo(df_pend)
+                    cant_pend = pend.get(csr_sel, {}).get('cant_pendiente', 0)
+
+                    # Precios
+                    precios_v = obtener_precios_venta_batch([csr_sel])
+                    precio_venta = precios_v.get(csr_sel, 0)
+
+                    stock_actual = q.get('stock_actual', 0)
+                    vel_real = q.get('vel_real', 0)
+                    vel_diaria = vel_real / 30
+
+                    stock_disponible = stock_actual + cant_pend
+
+                    # Waterfall
+                    wf = proyectar_waterfall(vel_diaria, stock_disponible, f_est)
+                    dias_cob = calcular_dias_cobertura(vel_diaria, stock_disponible, f_est)
+
+                    # Guardar en session
+                    st.session_state['wf_data'] = {
+                        'csr': csr_sel, 'quiebre': q, 'factores': f_est,
+                        'waterfall': wf, 'dias_cobertura': dias_cob,
+                        'stock_disponible': stock_disponible, 'cant_pend': cant_pend,
+                        'vel_diaria': vel_diaria, 'precio_venta': precio_venta,
+                    }
+
+            # Mostrar resultados
+            if 'wf_data' in st.session_state and st.session_state['wf_data'].get('csr') == csr_sel:
+                data = st.session_state['wf_data']
+                q = data['quiebre']
+                wf = data['waterfall']
+
+                # KPIs
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Vel real / mes", f"{q.get('vel_real', 0):.1f} pares")
+                col2.metric("Quiebre", f"{q.get('pct_quiebre', 0):.0f}%",
+                            help="% de meses sin stock")
+                col3.metric("Stock disponible", f"{data['stock_disponible']:.0f}",
+                            help=f"Stock: {q.get('stock_actual',0):.0f} + Pendiente: {data['cant_pend']:.0f}")
+                col4.metric("Cobertura", f"{data['dias_cobertura']} días")
+
+                st.divider()
+
+                # Waterfall visual
+                st.markdown("#### Proyección de stock")
+                cols = st.columns(4)
+                for i, w in enumerate(wf):
+                    with cols[i]:
+                        status_html = render_semaforo(w['status'])
+                        st.markdown(f"**{w['dias']} días**", unsafe_allow_html=True)
+                        st.markdown(status_html, unsafe_allow_html=True)
+                        st.metric(f"Stock en {w['dias']}d",
+                                  f"{w['stock_proy']:.0f}",
+                                  delta=f"-{w['ventas_proy']:.0f} vendidos")
+
+                # Gráfico waterfall
+                st.divider()
+                df_wf = pd.DataFrame(wf)
+                df_wf['label'] = df_wf['dias'].astype(str) + 'd'
+
+                # Agregar punto 0 (hoy)
+                df_chart = pd.DataFrame([
+                    {'label': 'Hoy', 'stock_proy': data['stock_disponible'], 'dias': 0}
+                ])
+                df_chart = pd.concat([df_chart, df_wf[['label', 'stock_proy', 'dias']]])
+                df_chart = df_chart.set_index('label')
+
+                st.area_chart(df_chart['stock_proy'], color='#1976d2')
+
+                # Tabla de estacionalidad
+                st.divider()
+                st.markdown("#### Factores de estacionalidad")
+                meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                                 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                f_est = data['factores']
+                cols_e = st.columns(12)
+                for i in range(12):
+                    factor = f_est.get(i + 1, 1.0)
+                    color = "🔴" if factor < 0.5 else ("🟡" if factor < 0.8 else "🟢")
+                    cols_e[i].markdown(f"**{meses_nombres[i]}**\n\n{color} {factor:.2f}")
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 3: OPTIMIZADOR DE PRESUPUESTO
+    # ══════════════════════════════════════════════════════════════
+    with tab_optimizar:
+        st.subheader("💰 Optimizador de Compras por ROI")
+        st.caption(f"Presupuesto: **${presupuesto:,.0f}** — Ranking por días de recupero de inversión")
+
+        if st.button("🚀 Calcular ranking ROI", type="primary", key="btn_roi"):
+            with st.spinner("Calculando quiebre, estacionalidad y ROI para todos los productos..."):
+                # Limitar a productos con ventas significativas
+                df_roi = df_f[df_f['ventas_12m'] >= max(min_ventas, 5)].copy()
+
+                if len(df_roi) > 200:
+                    df_roi = df_roi.nsmallest(200, 'dias_stock')
+
+                csrs_list = df_roi['csr'].tolist()
+
+                # Batch analysis
+                quiebres = analizar_quiebre_batch(csrs_list)
+                factores_all = factor_estacional_batch(csrs_list)
+                precios_v = obtener_precios_venta_batch(csrs_list)
+                df_pend = obtener_pendientes()
+                pend_dict = pendientes_por_sinonimo(df_pend)
+
+                rows = []
+                for _, prod in df_roi.iterrows():
+                    csr = prod['csr']
+                    q = quiebres.get(csr, {})
+                    f_est = factores_all.get(csr, {m: 1.0 for m in range(1, 13)})
+
+                    vel_real = q.get('vel_real', 0)
+                    vel_diaria = vel_real / 30
+                    stock_actual = q.get('stock_actual', prod['stock_total'])
+                    cant_pend = pend_dict.get(csr, {}).get('cant_pendiente', 0)
+                    stock_disp = stock_actual + cant_pend
+
+                    # Cobertura actual
+                    dias_cob = calcular_dias_cobertura(vel_diaria, stock_disp, f_est)
+
+                    # Necesidad: cubrir 60 días
+                    necesidad_60d = 0
+                    hoy = date.today()
+                    for d in range(60):
+                        fecha = hoy + timedelta(days=d)
+                        necesidad_60d += vel_diaria * f_est.get(fecha.month, 1.0)
+
+                    pedir = max(0, round(necesidad_60d - stock_disp))
+
+                    if pedir <= 0:
+                        continue
+
+                    precio_costo = float(prod['precio_fabrica'] or 0)
+                    if precio_costo <= 0:
+                        continue
+
+                    precio_venta = precios_v.get(csr, precio_costo * 2)
+
+                    roi = calcular_roi(precio_costo, precio_venta, vel_diaria, f_est,
+                                       pedir, stock_disp)
+
+                    rows.append({
+                        'csr': csr,
+                        'descripcion': prod['descripcion'][:50],
+                        'marca': prod['marca_desc'],
+                        'proveedor': prod['prov_nombre'],
+                        'stock': int(stock_actual),
+                        'pendiente': int(cant_pend),
+                        'vel_real': round(vel_real, 1),
+                        'quiebre': q.get('pct_quiebre', 0),
+                        'dias_cob': dias_cob,
+                        'pedir': pedir,
+                        'precio_costo': round(precio_costo, 0),
+                        'inversion': roi['inversion'],
+                        'dias_recupero': roi['dias_recupero'],
+                        'roi_60d': roi['roi_60d'],
+                        'margen': roi['margen_pct'],
+                    })
+
+                if not rows:
+                    st.info("No se encontraron productos que necesiten reposición.")
+                else:
+                    df_ranking = pd.DataFrame(rows)
+                    df_ranking = df_ranking.sort_values('dias_recupero')
+
+                    # Optimización de presupuesto (greedy por ROI)
+                    df_ranking['acum_inversion'] = df_ranking['inversion'].cumsum()
+                    df_ranking['dentro_presupuesto'] = df_ranking['acum_inversion'] <= presupuesto
+
+                    st.session_state['df_ranking'] = df_ranking
+
+        # Mostrar ranking
+        if 'df_ranking' in st.session_state:
+            df_ranking = st.session_state['df_ranking']
+
+            dentro = df_ranking[df_ranking['dentro_presupuesto']]
+            fuera = df_ranking[~df_ranking['dentro_presupuesto']]
+
+            # KPIs del presupuesto
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Productos a comprar", len(dentro))
+            c2.metric("Inversión total", f"${dentro['inversion'].sum():,.0f}")
+            c3.metric("Pares a pedir", f"{int(dentro['pedir'].sum()):,}")
+            c4.metric("Recupero prom.", f"{dentro['dias_recupero'].mean():.0f} días"
+                       if len(dentro) > 0 else "N/A")
+
+            st.divider()
+
+            st.markdown("#### Dentro del presupuesto")
+            st.dataframe(
+                dentro.drop(columns=['acum_inversion', 'dentro_presupuesto', 'csr']),
+                column_config={
+                    'descripcion': st.column_config.TextColumn('Producto', width=200),
+                    'marca': 'Marca',
+                    'proveedor': 'Proveedor',
+                    'stock': st.column_config.NumberColumn('Stock', format="%d"),
+                    'pendiente': st.column_config.NumberColumn('Pend.', format="%d"),
+                    'vel_real': st.column_config.NumberColumn('Vel/mes', format="%.1f"),
+                    'quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
+                    'dias_cob': st.column_config.NumberColumn('Cob. días', format="%d"),
+                    'pedir': st.column_config.NumberColumn('Pedir', format="%d"),
+                    'precio_costo': st.column_config.NumberColumn('P.Costo', format="$%.0f"),
+                    'inversion': st.column_config.NumberColumn('Inversión', format="$%.0f"),
+                    'dias_recupero': st.column_config.NumberColumn('Recup. días', format="%d"),
+                    'roi_60d': st.column_config.NumberColumn('ROI 60d', format="%.1f%%"),
+                    'margen': st.column_config.NumberColumn('Margen%', format="%.1f%%"),
+                },
+                use_container_width=True, hide_index=True,
+            )
+
+            if len(fuera) > 0:
+                with st.expander(f"Fuera del presupuesto ({len(fuera)} productos)"):
+                    st.dataframe(
+                        fuera.drop(columns=['acum_inversion', 'dentro_presupuesto', 'csr']),
+                        use_container_width=True, hide_index=True,
+                    )
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 4: ARMAR PEDIDO
+    # ══════════════════════════════════════════════════════════════
+    with tab_pedido:
+        st.subheader("🛒 Armar y enviar pedido")
+
+        if 'df_ranking' not in st.session_state:
+            st.info("Primero calculá el ranking ROI en la pestaña 'Optimizar Compra'.")
+        else:
+            df_rank = st.session_state['df_ranking']
+            dentro = df_rank[df_rank['dentro_presupuesto']].copy()
+
+            if dentro.empty:
+                st.warning("No hay productos dentro del presupuesto.")
+            else:
+                # Agrupar por proveedor
+                provs = dentro['proveedor'].unique()
+                prov_pedido = st.selectbox("Proveedor para el pedido", sorted(provs),
+                                           key="prov_pedido_sel")
+
+                df_prov = dentro[dentro['proveedor'] == prov_pedido].copy()
+
+                st.markdown(f"**{len(df_prov)} productos** — "
+                            f"**{int(df_prov['pedir'].sum())} pares** — "
+                            f"**${df_prov['inversion'].sum():,.0f}**")
+
+                # Para cada producto, cargar talles
+                if st.button("📋 Cargar detalle por talle", type="primary", key="btn_talles"):
+                    with st.spinner("Cargando talles..."):
+                        df_pend = obtener_pendientes()
+                        all_talles = []
+                        for _, prod in df_prov.iterrows():
+                            df_t = analizar_producto_detalle(prod['csr'], df_pend)
+                            if not df_t.empty:
+                                ventas_total = df_t['ventas_12m'].sum()
+                                for _, t in df_t.iterrows():
+                                    pct = t['ventas_12m'] / ventas_total * 100 if ventas_total > 0 else 0
+                                    pedir_talle = max(0, round(prod['pedir'] * pct / 100))
+                                    all_talles.append({
+                                        'csr': prod['csr'],
+                                        'descripcion_1': prod['descripcion'],
+                                        'codigo': int(t['codigo']),
+                                        'codigo_sinonimo': t['codigo_sinonimo'],
+                                        'talle': t.get('talle', ''),
+                                        'stock': int(t['stock_actual']),
+                                        'pendiente': int(t.get('pendiente', 0)),
+                                        'ventas_12m': int(t['ventas_12m']),
+                                        'pct': round(pct, 1),
+                                        'precio_fabrica': float(t.get('precio_fabrica', 0)),
+                                        'pedir': pedir_talle,
+                                    })
+
+                        if all_talles:
+                            st.session_state['df_talles_pedido'] = pd.DataFrame(all_talles)
+
+                # Editar cantidades
+                if 'df_talles_pedido' in st.session_state:
+                    df_tp = st.session_state['df_talles_pedido'].copy()
+
+                    st.divider()
+                    st.markdown("#### Editá las cantidades por talle")
+
+                    df_edit = st.data_editor(
+                        df_tp[['descripcion_1', 'talle', 'stock', 'pendiente',
+                               'ventas_12m', 'pct', 'precio_fabrica', 'pedir']],
+                        column_config={
+                            'descripcion_1': st.column_config.TextColumn('Producto', disabled=True, width=200),
+                            'talle': st.column_config.TextColumn('Talle', disabled=True),
+                            'stock': st.column_config.NumberColumn('Stock', disabled=True),
+                            'pendiente': st.column_config.NumberColumn('Pend.', disabled=True),
+                            'ventas_12m': st.column_config.NumberColumn('Vtas 12m', disabled=True),
+                            'pct': st.column_config.NumberColumn('% Talle', disabled=True, format="%.1f%%"),
+                            'precio_fabrica': st.column_config.NumberColumn('Precio', disabled=True, format="$%.0f"),
+                            'pedir': st.column_config.NumberColumn('PEDIR', min_value=0, max_value=999),
+                        },
+                        use_container_width=True, hide_index=True,
+                        key="edit_talles"
+                    )
+
+                    # Actualizar cantidades
+                    df_tp['pedir'] = df_edit['pedir'].values
+
+                    total_pares = int(df_tp['pedir'].sum())
+                    total_monto = (df_tp['pedir'] * df_tp['precio_fabrica']).sum()
+
+                    st.markdown(f"### Total: {total_pares} pares — ${total_monto:,.0f}")
+
+                    # Observaciones
+                    empresa = st.selectbox("Empresa", ["H4", "CALZALINDO"], key="empresa_sel")
+                    fecha_ent = st.date_input("Fecha entrega", date.today() + timedelta(days=30),
+                                              key="fecha_ent")
+                    obs = st.text_area("Observaciones",
+                                       f"Pedido automático reposición inteligente. "
+                                       f"Presupuesto ${presupuesto:,.0f}. "
+                                       f"Análisis waterfall 60d + quiebre + ROI.",
+                                       key="obs_pedido")
+
+                    st.divider()
+
+                    # Buscar proveedor ID
+                    prov_id = None
+                    for num, p in provs_dict.items():
+                        if p.strip() == prov_pedido.strip():
+                            prov_id = num
+                            break
+
+                    col_ins, col_email = st.columns(2)
+
+                    with col_ins:
+                        if total_pares > 0 and prov_id:
+                            if st.button("⚡ INSERTAR EN ERP", type="primary",
+                                         use_container_width=True, key="btn_insert"):
+                                with st.spinner("Insertando..."):
+                                    try:
+                                        numero, msg = insertar_pedido_produccion(
+                                            prov_id, empresa, df_tp, obs, fecha_ent)
+                                        if numero:
+                                            st.success(f"✅ {msg}")
+                                            st.session_state['ultimo_pedido'] = numero
+                                            guardar_log({
+                                                'fecha': str(datetime.now()),
+                                                'numero': numero,
+                                                'proveedor': prov_pedido,
+                                                'prov_id': prov_id,
+                                                'empresa': empresa,
+                                                'pares': total_pares,
+                                                'monto': total_monto,
+                                                'presupuesto': presupuesto,
+                                                'estado': 'insertado',
+                                                'email_enviado': False,
+                                                'confirmado': False,
+                                            })
+                                            st.balloons()
+                                        else:
+                                            st.error(f"❌ {msg}")
+                                    except Exception as e:
+                                        st.error(f"❌ Error: {e}")
+                        else:
+                            st.info("No hay pares para pedir o proveedor no encontrado.")
+
+                    with col_email:
+                        st.markdown("#### 📧 Email proveedor")
+                        email_dest = st.text_input("Email", key="email_prov",
+                                                    placeholder="ventas@proveedor.com")
+                        num_ped = st.session_state.get('ultimo_pedido', '---')
+
+                        if st.button("📤 ENVIAR EMAIL", use_container_width=True,
+                                     disabled=not email_dest or num_ped == '---',
+                                     key="btn_email"):
+                            from app_pedido_auto import enviar_email_proveedor
+                            ok, msg = enviar_email_proveedor(prov_id, num_ped, df_tp, email_dest)
+                            if ok:
+                                st.success(f"✅ {msg}")
+                            else:
+                                st.error(f"❌ {msg}")
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 5: HISTORIAL
+    # ══════════════════════════════════════════════════════════════
+    with tab_historial:
+        st.subheader("📋 Historial de pedidos")
+        log = cargar_log()
+        if not log:
+            st.info("No hay pedidos registrados todavía.")
+        else:
+            df_log = pd.DataFrame(log).sort_values('fecha', ascending=False)
+            st.dataframe(
+                df_log,
+                column_config={
+                    'monto': st.column_config.NumberColumn(format="$%.0f"),
+                    'presupuesto': st.column_config.NumberColumn(format="$%.0f"),
+                    'email_enviado': st.column_config.CheckboxColumn("Email"),
+                    'confirmado': st.column_config.CheckboxColumn("Confirmado"),
+                },
+                use_container_width=True, hide_index=True,
+            )
+
+            # Marcar como confirmado
+            pendientes = [e for e in log if not e.get('confirmado', False)]
+            if pendientes:
+                nums = [e.get('numero') for e in pendientes if e.get('numero')]
+                if nums:
+                    confirmar = st.selectbox("Marcar como confirmado:", nums, key="confirm_sel")
+                    if st.button("✅ Confirmar recepción", key="btn_confirm"):
+                        for entry in log:
+                            if entry.get('numero') == confirmar:
+                                entry['confirmado'] = True
+                                entry['fecha_confirmacion'] = str(datetime.now())
+                        with open(LOG_FILE, 'w') as f:
+                            json.dump(log, f, indent=2, default=str)
+                        st.success(f"Pedido #{confirmar} confirmado.")
+                        st.rerun()
+
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
+if __name__ == "__main__":
+    render_dashboard()

@@ -1,0 +1,155 @@
+{{extend 'layout.html'}}
+{{response.title = 'Inicio'}}
+
+<style>
+.modulo-card {
+    background: #fff; border-radius: 10px; padding: 25px; text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-top: 4px solid #007bff;
+    min-height: 160px;
+    display: flex; flex-direction: column; justify-content: center;
+}
+.modulo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+.modulo-card .icono { font-size: 36px; color: #007bff; margin-bottom: 10px; }
+.modulo-card h4 { margin: 0 0 5px; font-size: 16px; }
+.modulo-card p { margin: 0; font-size: 12px; color: #888; }
+.modulo-card.verde { border-top-color: #28a745; }
+.modulo-card.verde .icono { color: #28a745; }
+.modulo-card.rojo { border-top-color: #dc3545; }
+.modulo-card.rojo .icono { color: #dc3545; }
+.modulo-card.naranja { border-top-color: #fd7e14; }
+.modulo-card.naranja .icono { color: #fd7e14; }
+.modulo-card.morado { border-top-color: #6f42c1; }
+.modulo-card.morado .icono { color: #6f42c1; }
+.modulo-card.disabled { opacity: 0.4; pointer-events: none; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <div style="margin-bottom: 20px;">
+        <h3 style="margin: 0;">Bienvenido, {{=auth.user.first_name or 'Usuario'}}</h3>
+        <p class="text-muted">
+            Roles: {{=', '.join([r.replace('informes_','') for r in roles]) if roles else 'Sin roles asignados - contacta al admin'}}
+        </p>
+    </div>
+
+    <div class="row">
+        {{if puede_ver('ranking_consolidado.rank_marcas'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('ranking_consolidado','rank_marcas')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card" style="border-top-color:#17a2b8;">
+                    <div class="icono" style="color:#17a2b8;"><i class="glyphicon glyphicon-stats"></i></div>
+                    <h4>Ranking Marcas</h4>
+                    <p>Compras + ventas + stock + quiebre + pedidos</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('calce_financiero.dashboard'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('calce_financiero','dashboard')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card rojo">
+                    <div class="icono"><i class="glyphicon glyphicon-usd"></i></div>
+                    <h4>Calce Financiero</h4>
+                    <p>Compromisos vs Recupero por industria</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('reportes.negociacion_plazos'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('reportes','negociacion_plazos')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card naranja">
+                    <div class="icono"><i class="glyphicon glyphicon-handshake"></i></div>
+                    <h4>Negociacion Plazos</h4>
+                    <p>Plazos sugeridos por proveedor/marca</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('reportes.pedidos'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('reportes','pedidos')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card">
+                    <div class="icono"><i class="glyphicon glyphicon-list-alt"></i></div>
+                    <h4>Notas de Pedido</h4>
+                    <p>Cumplimiento de pedidos a proveedores</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('reportes.recupero'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('reportes','recupero')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card verde">
+                    <div class="icono"><i class="glyphicon glyphicon-refresh"></i></div>
+                    <h4>Recupero Live</h4>
+                    <p>Dias de recupero en tiempo real</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('reportes.recupero_inversion'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('reportes','recupero_inversion')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card morado">
+                    <div class="icono"><i class="glyphicon glyphicon-stats"></i></div>
+                    <h4>Recupero Historico</h4>
+                    <p>Analisis de inversion y sell-through</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('informes_productividad.dashboard'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('informes_productividad','dashboard')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card" style="border-top-color:#20c997;">
+                    <div class="icono" style="color:#20c997;"><i class="glyphicon glyphicon-user"></i></div>
+                    <h4>Productividad</h4>
+                    <p>Dashboard vendedores, incentivos y estacionalidad</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('agrupadores.index'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('agrupadores','index')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card">
+                    <div class="icono"><i class="glyphicon glyphicon-th-large"></i></div>
+                    <h4>Agrupadores</h4>
+                    <p>Gestionar agrupadores de rubros/marcas</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if es_admin:}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('admin_roles','index')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card rojo">
+                    <div class="icono"><i class="glyphicon glyphicon-lock"></i></div>
+                    <h4>Admin Roles</h4>
+                    <p>Gestionar accesos y permisos</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+    </div>
+
+    {{if not roles:}}
+    <div class="alert alert-warning" style="margin-top: 20px;">
+        <strong>Sin acceso:</strong> Tu usuario no tiene roles asignados para esta app.
+        Contacta al administrador para que te asigne un rol.
+    </div>
+    {{pass}}
+</div>

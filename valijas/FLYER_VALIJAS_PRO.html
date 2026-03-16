@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Flyer Valijas GO - Calzalindo</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    margin: 0 auto;
+    font-family: 'Montserrat', sans-serif;
+    background: #111;
+  }
+
+  .flyer {
+    width: 1080px;
+    height: 1920px;
+    background: linear-gradient(170deg, #0a0a12 0%, #0d1117 20%, #111827 50%, #0f172a 80%, #020617 100%);
+    position: relative;
+    overflow: hidden;
+    color: white;
+  }
+
+  /* Background effects */
+  .bg-glow-1 {
+    position: absolute;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(234,179,8,0.06) 0%, transparent 70%);
+    top: -200px; right: -200px;
+  }
+  .bg-glow-2 {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 70%);
+    bottom: 300px; left: -200px;
+  }
+  .bg-glow-3 {
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(168,85,247,0.04) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+  }
+
+  /* Subtle grid */
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 45px 55px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .brand-name {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+  .badge-off {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    padding: 10px 28px;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 20px rgba(220,38,38,0.3);
+  }
+
+  /* Title */
+  .title-block {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .title-pre {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 8px;
+  }
+  .title-main {
+    font-family: 'Playfair Display', serif;
+    font-size: 76px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .title-sizes {
+    font-size: 22px;
+    font-weight: 700;
+    color: #eab308;
+    letter-spacing: 3px;
+  }
+
+  /* Hero image area */
+  .hero-image {
+    width: 100%;
+    height: 520px;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #1e293b, #334155);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .hero-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hero-image .drop-hint {
+    text-align: center;
+    opacity: 0.3;
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .hero-image .drop-hint strong {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .hero-image.has-image .drop-hint { display: none; }
+
+  /* Features strip */
+  .features-strip {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .feat-chip {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+  }
+  .feat-chip .icon { font-size: 24px; margin-bottom: 6px; }
+  .feat-chip .label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+  }
+
+  /* Price block */
+  .price-block {
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 28px 40px;
+    text-align: center;
+    margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .price-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(234,179,8,0.03), transparent, rgba(234,179,8,0.02));
+  }
+  .price-block * { position: relative; }
+  .price-old {
+    font-size: 24px;
+    color: #64748b;
+    text-decoration: line-through;
+    font-weight: 400;
+    margin-bottom: 2px;
+  }
+  .price-main {
+    font-size: 80px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .price-transfer {
+    font-size: 24px;
+    font-weight: 700;
+    color: #22c55e;
+    margin-bottom: 12px;
+  }
+  .price-cuotas {
+    display: inline-block;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 10px 30px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+  }
+
+  /* Color swatches */
+  .colors-row {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin-bottom: 18px;
+  }
+  .color-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .color-dot {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  .color-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  /* Shipping */
+  .shipping {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .shipping span {
+    display: inline-block;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    padding: 14px 45px;
+    border-radius: 60px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 20px rgba(22,163,74,0.25);
+  }
+
+  /* CTA */
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .cta-wa {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #25d366;
+    padding: 16px 35px;
+    border-radius: 60px;
+    font-size: 20px;
+    font-weight: 800;
+    color: white;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(37,211,102,0.3);
+  }
+  .cta-wa svg { width: 26px; height: 26px; fill: white; }
+  .cta-web {
+    padding: 16px 35px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 60px;
+    font-size: 20px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+  }
+
+  /* Footer */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    opacity: 0.3;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  /* Drag and drop overlay */
+  .hero-image.dragover {
+    border: 3px dashed #eab308;
+    background: rgba(234,179,8,0.05);
+  }
+
+  /* Instructions panel (hidden when printing/screenshotting) */
+  .instructions {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 15px 25px;
+    z-index: 100;
+    max-width: 600px;
+    text-align: center;
+    font-size: 14px;
+    color: #94a3b8;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .instructions strong { color: #eab308; }
+  .instructions .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 18px;
+  }
+
+  @media print {
+    .instructions { display: none !important; }
+    body { margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="instructions" id="instructions">
+  <span class="close-btn" onclick="this.parentElement.style.display='none'">&times;</span>
+  <strong>Arrastra una foto del set de valijas sobre el area gris</strong><br>
+  Despues hace click derecho > "Guardar imagen" o captura de pantalla (Cmd+Shift+4 en Mac)
+</div>
+
+<div class="flyer" id="flyer">
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+  <div class="bg-glow-3"></div>
+  <div class="bg-grid"></div>
+
+  <div class="content">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="brand-name">Calzalindo</div>
+      <div class="badge-off">20% OFF</div>
+    </div>
+
+    <!-- Title -->
+    <div class="title-block">
+      <div class="title-pre">Set de 3 Valijas Rigidas</div>
+      <div class="title-main">Valijas GO</div>
+      <div class="title-sizes">17" + 19" + 21" &bull; 8 Ruedas 360&deg;</div>
+    </div>
+
+    <!-- Hero Image (drag & drop) -->
+    <div class="hero-image" id="heroImage">
+      <div class="drop-hint">
+        <strong>Arrastra aqui la foto del set</strong>
+        (Rosa Gold, Negro, Rosa o Rojo)
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="features-strip">
+      <div class="feat-chip">
+        <div class="icon">&#128274;</div>
+        <div class="label">Cierre<br>Combinacion</div>
+      </div>
+      <div class="feat-chip">
+        <div class="icon">&#128260;</div>
+        <div class="label">8 Ruedas<br>360&deg;</div>
+      </div>
+      <div class="feat-chip">
+        <div class="icon">&#128170;</div>
+        <div class="label">ABS<br>Rigido</div>
+      </div>
+      <div class="feat-chip">
+        <div class="icon">&#129718;</div>
+        <div class="label">Super<br>Liviana</div>
+      </div>
+      <div class="feat-chip">
+        <div class="icon">&#128092;</div>
+        <div class="label">Interior<br>Organizado</div>
+      </div>
+    </div>
+
+    <!-- Price -->
+    <div class="price-block">
+      <div class="price-old">$249.999</div>
+      <div class="price-main">$199.999</div>
+      <div class="price-transfer">$159.999 por transferencia</div>
+      <div class="price-cuotas">6 cuotas sin inter&eacute;s de $33.333</div>
+    </div>
+
+    <!-- Colors -->
+    <div class="colors-row">
+      <div class="color-item">
+        <div class="color-dot" style="background:#1a1a1a;"></div>
+        <div class="color-label">Negro</div>
+      </div>
+      <div class="color-item">
+        <div class="color-dot" style="background:linear-gradient(135deg,#c9967a,#dbb7a0);"></div>
+        <div class="color-label">Rosa Gold</div>
+      </div>
+      <div class="color-item">
+        <div class="color-dot" style="background:#e91e8c;"></div>
+        <div class="color-label">Rosa</div>
+      </div>
+      <div class="color-item">
+        <div class="color-dot" style="background:#b91c1c;"></div>
+        <div class="color-label">Rojo</div>
+      </div>
+    </div>
+
+    <!-- Shipping -->
+    <div class="shipping">
+      <span>ENVIO GRATIS A TODO EL PAIS</span>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-row">
+      <a class="cta-wa" href="https://wa.me/5493462676300">
+        <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Pedilo ahora
+      </a>
+      <a class="cta-web" href="https://calzalindo.com.ar">calzalindo.com.ar</a>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span>Garantia de cambio incluida</span>
+      <span>Calzalindo &bull; Venado Tuerto &bull; +20 a&ntilde;os</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const hero = document.getElementById('heroImage');
+
+  // Drag and drop
+  hero.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    hero.classList.add('dragover');
+  });
+  hero.addEventListener('dragleave', () => {
+    hero.classList.remove('dragover');
+  });
+  hero.addEventListener('drop', (e) => {
+    e.preventDefault();
+    hero.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        hero.innerHTML = '<img src="' + ev.target.result + '" alt="Valijas GO">';
+        hero.classList.add('has-image');
+        // Hide instructions
+        const inst = document.getElementById('instructions');
+        if (inst) inst.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Also allow click to select file
+  hero.addEventListener('click', () => {
+    if (hero.classList.contains('has-image')) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          hero.innerHTML = '<img src="' + ev.target.result + '" alt="Valijas GO">';
+          hero.classList.add('has-image');
+          const inst = document.getElementById('instructions');
+          if (inst) inst.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,432 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 15px;
+}
+.kpi-card .valor {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+.kpi-card .etiqueta {
+    font-size: 12px;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    margin-top: 5px;
+}
+.kpi-card.rojo .valor { color: #e74c3c; }
+.kpi-card.verde .valor { color: #27ae60; }
+.kpi-card.azul .valor { color: #2980b9; }
+.kpi-card.naranja .valor { color: #f39c12; }
+
+.filtros-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+}
+.filtros-panel .form-group { margin-bottom: 0; }
+
+.tabla-reporte {
+    font-size: 13px;
+}
+.tabla-reporte thead th {
+    background: #2c3e50;
+    color: white;
+    font-size: 11px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+.tabla-reporte thead th:hover { background: #34495e; }
+.tabla-reporte thead th .sort-icon { font-size: 9px; margin-left: 3px; opacity: 0.5; }
+.tabla-reporte thead th.sorted-asc .sort-icon,
+.tabla-reporte thead th.sorted-desc .sort-icon { opacity: 1; }
+.tabla-reporte thead tr.filtro-row-prov th {
+    background: #ecf0f1;
+    padding: 3px 4px;
+    position: sticky;
+    top: 30px;
+    z-index: 9;
+    cursor: default;
+}
+.tabla-reporte thead tr.filtro-row-prov input,
+.tabla-reporte thead tr.filtro-row-prov select {
+    width: 100%;
+    font-size: 11px;
+    padding: 2px 4px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+}
+.tabla-reporte td { vertical-align: middle; }
+
+.badge-semaforo {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.badge-completo { background: #d4edda; color: #155724; }
+.badge-parcial { background: #fff3cd; color: #856404; }
+.badge-pendiente { background: #f8d7da; color: #721c24; }
+.badge-sin-recibir { background: #f8d7da; color: #721c24; }
+.badge-casi-completo { background: #cce5ff; color: #004085; }
+.badge-vencido { background: #721c24; color: white; }
+
+.seccion-titulo {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 25px 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #3498db;
+}
+</style>
+
+<h2>
+    <i class="glyphicon glyphicon-list-alt"></i> Notas de Pedido - Cumplimiento
+    <button id="btn-sync" class="btn btn-warning btn-sm pull-right" onclick="syncDatos()" title="Fuerza refresco de datos desde produccion">
+        <i class="glyphicon glyphicon-refresh" id="sync-icon"></i> Actualizar datos
+    </button>
+    <small class="pull-right" style="margin-right:15px; margin-top:8px; color:#95a5a6; font-size:12px;">
+        Carga: {{=elapsed}}s
+    </small>
+</h2>
+
+<script>
+function syncDatos() {
+    var btn = document.getElementById('btn-sync');
+    var icon = document.getElementById('sync-icon');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="glyphicon glyphicon-refresh" style="animation:spin 1s linear infinite"></i> Sincronizando...';
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '{{=URL("reportes", "sync_pedidos")}}', true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            try {
+                var resp = JSON.parse(xhr.responseText);
+                if (resp.ok) {
+                    btn.className = 'btn btn-success btn-sm pull-right';
+                    btn.innerHTML = '<i class="glyphicon glyphicon-ok"></i> Datos actualizados';
+                    setTimeout(function(){ location.reload(); }, 800);
+                } else {
+                    btn.className = 'btn btn-danger btn-sm pull-right';
+                    btn.innerHTML = '<i class="glyphicon glyphicon-exclamation-sign"></i> ' + resp.msg;
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                btn.className = 'btn btn-danger btn-sm pull-right';
+                btn.innerHTML = '<i class="glyphicon glyphicon-exclamation-sign"></i> Error';
+                btn.disabled = false;
+            }
+        }
+    };
+    xhr.send();
+}
+</script>
+<style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+
+<!-- FILTROS -->
+<div class="filtros-panel">
+    <form method="GET" action="{{=URL('reportes', 'pedidos')}}" class="form-inline">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Industria</label>
+                    <select name="industria" class="form-control input-sm" style="width:100%">
+                        <option value="">-- Todas --</option>
+                        {{for i in industrias:}}
+                        <option value="{{=i}}" {{if i == filtro_industria:}}selected{{pass}}>{{=i}}</option>
+                        {{pass}}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Proveedor</label>
+                    <select name="proveedor" class="form-control input-sm" style="width:100%">
+                        <option value="">-- Todos --</option>
+                        {{for p in proveedores_lista:}}
+                        <option value="{{=p}}" {{if p == filtro_proveedor:}}selected{{pass}}>{{=p}}</option>
+                        {{pass}}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select name="estado" class="form-control input-sm" style="width:100%">
+                        <option value="">-- Todos --</option>
+                        {{for e in estados:}}
+                        <option value="{{=e}}" {{if e == filtro_estado:}}selected{{pass}}>{{=e}}</option>
+                        {{pass}}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label>&nbsp;</label><br/>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="glyphicon glyphicon-filter"></i> Filtrar
+                </button>
+                <a href="{{=URL('reportes', 'pedidos')}}" class="btn btn-default btn-sm">
+                    <i class="glyphicon glyphicon-remove"></i> Limpiar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- KPIs -->
+<div class="row">
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card azul">
+            <div class="valor">{{=kpi.get('total_pedidos', 0)}}</div>
+            <div class="etiqueta">Pedidos</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card">
+            <div class="valor">{{="{:,.0f}".format(kpi.get('unidades_pedidas', 0) or 0).replace(",",".")}}</div>
+            <div class="etiqueta">Uds. Pedidas</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card verde">
+            <div class="valor">{{="{:,.0f}".format(kpi.get('unidades_recibidas', 0) or 0).replace(",",".")}}</div>
+            <div class="etiqueta">Uds. Recibidas</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card naranja">
+            <div class="valor">{{="{:,.0f}".format(kpi.get('unidades_pendientes', 0) or 0).replace(",",".")}}</div>
+            <div class="etiqueta">Uds. Pendientes</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card">
+            <div class="valor">{{=kpi.get('pct_cumplimiento', 0)}}%</div>
+            <div class="etiqueta">Cumplimiento</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card rojo">
+            <div class="valor">{{=kpi.get('lineas_vencidas', 0)}}</div>
+            <div class="etiqueta">Líneas Vencidas</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="kpi-card azul">
+            <div class="valor">{{=formato_moneda(kpi.get('monto_total', 0))}}</div>
+            <div class="etiqueta">Monto Total Pedido</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="kpi-card rojo">
+            <div class="valor">{{=formato_moneda(kpi.get('monto_pendiente', 0))}}</div>
+            <div class="etiqueta">Monto Pendiente</div>
+        </div>
+    </div>
+</div>
+
+<!-- TABLA PROVEEDORES -->
+<div class="seccion-titulo">
+    <i class="glyphicon glyphicon-th-list"></i> Resumen por Proveedor
+</div>
+
+<div class="table-responsive" style="max-height:60vh; overflow-y:auto;">
+    <table class="table table-striped table-hover table-condensed tabla-reporte" id="tabla-proveedores">
+        <thead>
+            <tr>
+                <th data-pcol="0" data-ptype="str" onclick="sortProv(this)">Proveedor <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="1" data-ptype="str" onclick="sortProv(this)">Industria <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="2" data-ptype="str" onclick="sortProv(this)">Marca <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="3" data-ptype="num" class="text-right" onclick="sortProv(this)">Arts. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="4" data-ptype="num" class="text-right" onclick="sortProv(this)">Pedido <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="5" data-ptype="num" class="text-right" onclick="sortProv(this)">Recibido <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="6" data-ptype="num" class="text-right" onclick="sortProv(this)">Pendiente <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="7" data-ptype="num" class="text-right" onclick="sortProv(this)">% Cumpl. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="8" data-ptype="num" class="text-right" onclick="sortProv(this)">Monto Pend. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="9" data-ptype="num" class="text-center" onclick="sortProv(this)">Vencidas <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-pcol="10" data-ptype="str" class="text-center" onclick="sortProv(this)">Estado <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th style="cursor:default;"></th>
+            </tr>
+            <tr class="filtro-row-prov">
+                <th><input type="text" data-pcol="0" onkeyup="filtrarProv()" placeholder="Proveedor..."></th>
+                <th><input type="text" data-pcol="1" onkeyup="filtrarProv()" placeholder="Industria..."></th>
+                <th><input type="text" data-pcol="2" onkeyup="filtrarProv()" placeholder="Marca..."></th>
+                <th></th><th></th><th></th><th></th><th></th><th></th><th></th>
+                <th><select data-pcol="10" onchange="filtrarProv()">
+                    <option value="">Todos</option>
+                    <option value="SIN RECIBIR">SIN RECIBIR</option>
+                    <option value="PARCIAL">PARCIAL</option>
+                    <option value="CASI COMPLETO">CASI COMPLETO</option>
+                    <option value="COMPLETO">COMPLETO</option>
+                </select></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="prov-body">
+            {{for r in proveedores:}}
+            {{semaforo = r['semaforo']}}
+            {{clase = 'badge-' + semaforo.lower().replace(' ', '-')}}
+            <tr data-psort="{{=r['proveedor']}}|{{=r['industria']}}|{{=r.get('marca','')}}|{{=r['articulos']}}|{{=r['pedido']}}|{{=r['recibido']}}|{{=r['pendiente']}}|{{=r['pct_cumplido']}}|{{=r['monto_pendiente']}}|{{=r.get('vencidas',0) or 0}}|{{=semaforo}}">
+                <td><strong>{{=r['proveedor']}}</strong></td>
+                <td>{{=r['industria']}}</td>
+                <td style="font-size:11px;">{{=r.get('marca','')}}</td>
+                <td class="text-right">{{=r['articulos']}}</td>
+                <td class="text-right">{{="{:,.0f}".format(r['pedido'] or 0).replace(",",".")}}</td>
+                <td class="text-right">{{="{:,.0f}".format(r['recibido'] or 0).replace(",",".")}}</td>
+                <td class="text-right">{{="{:,.0f}".format(r['pendiente'] or 0).replace(",",".")}}</td>
+                <td class="text-right">{{=r['pct_cumplido']}}%</td>
+                <td class="text-right">{{=formato_moneda(r['monto_pendiente'])}}</td>
+                <td class="text-center">
+                    {{if r['vencidas'] and r['vencidas'] > 0:}}
+                    <span class="badge-semaforo badge-vencido">{{=r['vencidas']}}</span>
+                    {{else:}}
+                    -
+                    {{pass}}
+                </td>
+                <td class="text-center">
+                    <span class="badge-semaforo {{=clase}}">{{=semaforo}}</span>
+                </td>
+                <td>
+                    <a href="{{=URL('reportes', 'pedidos_detalle', vars=dict(proveedor=url_safe(r['proveedor'])))}}"
+                       class="btn btn-xs btn-default" title="Ver detalle">
+                        <i class="glyphicon glyphicon-zoom-in"></i>
+                    </a>
+                </td>
+            </tr>
+            {{pass}}
+        </tbody>
+    </table>
+</div>
+
+<script>
+/* ---- SORT PROVEEDORES ---- */
+var sortDirProv = {};
+function sortProv(th) {
+    var col = parseInt(th.getAttribute('data-pcol'));
+    var tipo = th.getAttribute('data-ptype');
+    var dir = sortDirProv[col] === 'asc' ? 'desc' : 'asc';
+    sortDirProv[col] = dir;
+    var ths = th.parentNode.querySelectorAll('th');
+    ths.forEach(function(t){ t.className = t.className.replace(/sorted-\w+/g,'').trim(); });
+    th.className = (th.className + ' sorted-' + dir).trim();
+    var tbody = document.getElementById('prov-body');
+    var rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+        var da = (a.getAttribute('data-psort') || '').split('|');
+        var db = (b.getAttribute('data-psort') || '').split('|');
+        var va = da[col] || '', vb = db[col] || '';
+        if (tipo === 'num') {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+        } else {
+            va = va.toLowerCase();
+            vb = vb.toLowerCase();
+        }
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(function(r){ tbody.appendChild(r); });
+}
+
+/* ---- FILTRO PROVEEDORES ---- */
+function filtrarProv() {
+    var filtros = {};
+    var inputs = document.querySelectorAll('.filtro-row-prov input, .filtro-row-prov select');
+    inputs.forEach(function(inp) {
+        var col = parseInt(inp.getAttribute('data-pcol'));
+        var val = (inp.value || '').toLowerCase().trim();
+        if (val) filtros[col] = val;
+    });
+    var rows = document.querySelectorAll('#prov-body tr');
+    rows.forEach(function(tr) {
+        var data = (tr.getAttribute('data-psort') || '').split('|');
+        var visible = true;
+        for (var col in filtros) {
+            var cellVal = (data[parseInt(col)] || '').toLowerCase();
+            if (cellVal.indexOf(filtros[col]) === -1) {
+                visible = false;
+                break;
+            }
+        }
+        tr.style.display = visible ? '' : 'none';
+    });
+}
+</script>
+
+<!-- ALERTAS VENCIDAS -->
+{{if vencidas:}}
+<div class="seccion-titulo">
+    <i class="glyphicon glyphicon-warning-sign" style="color:#e74c3c"></i> Entregas Vencidas
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-condensed tabla-reporte">
+        <thead>
+            <tr>
+                <th>Proveedor</th>
+                <th>Artículo</th>
+                <th>Descripción</th>
+                <th class="text-right">Pedido</th>
+                <th class="text-right">Pendiente</th>
+                <th class="text-center">F. Entrega</th>
+                <th class="text-center" style="color:#e74c3c">Días Vencido</th>
+                <th class="text-right">Monto Pend.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{for r in vencidas:}}
+            <tr>
+                <td>{{=r['proveedor']}}</td>
+                <td>{{=r['articulo']}}</td>
+                <td>{{=r['descripcion'][:40] if r['descripcion'] else ''}}</td>
+                <td class="text-right">{{=r['cant_pedida']}}</td>
+                <td class="text-right">{{=r['cant_pendiente']}}</td>
+                <td class="text-center">{{=str(r['fecha_entrega'])[:10] if r['fecha_entrega'] else '-'}}</td>
+                <td class="text-center">
+                    <span class="badge-semaforo badge-vencido">{{=r['dias_vencido']}} días</span>
+                </td>
+                <td class="text-right">{{=formato_moneda(r['monto_pendiente'])}}</td>
+            </tr>
+            {{pass}}
+        </tbody>
+    </table>
+</div>
+{{pass}}
+
+<!-- ANTIGÜEDAD -->
+{{if antiguedad:}}
+<div class="seccion-titulo">
+    <i class="glyphicon glyphicon-time"></i> Antigüedad de Pedidos Pendientes
+</div>
+
+<div class="row">
+    {{for r in antiguedad:}}
+    <div class="col-md-2 col-sm-4">
+        <div class="kpi-card">
+            <div class="valor" style="font-size:20px">{{=formato_moneda(r['monto'])}}</div>
+            <div class="etiqueta">{{=r['rango']}}</div>
+            <div style="font-size:11px; color:#95a5a6">{{=r['lineas']}} líneas / {{="{:,.0f}".format(r['unidades'] or 0).replace(",",".")}} uds.</div>
+        </div>
+    </div>
+    {{pass}}
+</div>
+{{pass}}

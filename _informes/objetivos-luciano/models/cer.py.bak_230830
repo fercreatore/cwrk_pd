@@ -1,0 +1,53 @@
+import requests, datetime
+
+
+### Este token hay que pedirlo acá y dura un año, este vence aprox. 30/09/23:
+### https://estadisticasbcra.com/api/documentacion
+token_bcra = 'BEARER eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTY2ODczNTksInR5cGUiOiJleHRlcm5hbCIsInVzZXIiOiJvbWljcm9udnRAZ21haWwuY29tIn0.g8dlI76HEvDljYon0tOguogZrOES5sKC4yI7bvcpZMZp4ahkfB3v5RFQaBEDbe1GA9PLdN-zPJfwOdQ6RYClAA'
+
+
+def cer_update():
+	# tabla en sqlite, para uso de objetivos e informes
+	ultimo_update=db().select(db.cer.fecha).last().fecha
+	if ultimo_update<request.now.date():
+		api_call='https://api.estadisticasbcra.com/cer'
+		result = requests.get(api_call, headers={'Authorization': token_bcra}).json()
+
+		for row in result:
+			db.cer.update_or_insert(
+				fecha=row['d'],
+				coef=row['v'])
+
+
+					
+
+	# tabla en mssql, para consultas externas
+	ultimo_update=db1().select(db1.omicron_cer.fecha).last().fecha
+	if ultimo_update<request.now.date():
+		api_call='https://api.estadisticasbcra.com/cer'
+		result = requests.get(api_call, headers={'Authorization': token_bcra}).json()
+
+		for row in result:
+			db1.omicron_cer.update_or_insert(
+				fecha=row['d'],
+				coef=row['v'])
+
+
+def cer_get_today(monto,fecha):
+	cer_update()
+	cer_fecha=db(db.cer.fecha<=fecha).select(db.cer.coef, orderby=~db.cer.fecha).first()
+	cer_hoy=db(db.cer.fecha<=datetime.date.today()).select(db.cer.coef, orderby=~db.cer.fecha).first()
+	monto_ajustado=float(cer_hoy.coef)*float(monto)/float(cer_fecha.coef)
+	return monto_ajustado
+
+
+###generador de api_call
+# import requests
+	# import urllib.parse
+
+	# def get_api_call(ids, **kwargs):
+	#     API_BASE_URL = "https://apis.datos.gob.ar/series/api/"
+	#     kwargs["ids"] = ",".join(ids)
+	#     return "{}{}?{}".format(API_BASE_URL, "series", urllib.parse.urlencode(kwargs))
+
+	

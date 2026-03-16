@@ -1,0 +1,76 @@
+{{extend 'layout.html'}}
+
+<style>
+.dias-pos { color: #28a745; font-weight: bold; }
+.dias-neg { color: #dc3545; font-weight: bold; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+
+    <h3>
+        <a href="{{=URL('reportes','recupero', vars=dict(vista='proveedor'))}}" class="btn btn-default btn-sm">
+            <i class="glyphicon glyphicon-arrow-left"></i> Volver
+        </a>
+        &nbsp; Detalle OPs - {{=proveedor_nombre}} <small>(cod: {{=proveedor_cod}})</small>
+    </h3>
+    <hr>
+
+    <!-- Stock del proveedor -->
+    {{if stock:}}
+    <div class="panel panel-success">
+        <div class="panel-heading"><strong><i class="glyphicon glyphicon-th-list"></i> Stock Actual de este Proveedor (excl. depo 199)</strong></div>
+        <div class="panel-body" style="padding:0;">
+            <table class="table table-condensed" style="font-size:12px; margin:0;">
+                <thead><tr style="background:#d4edda;"><th>Marca</th><th class="text-right">Articulos</th><th class="text-right">Stock Total</th></tr></thead>
+                <tbody>
+                    {{for s in stock:}}
+                    <tr>
+                        <td><strong>{{=s.get('marca','?')}}</strong></td>
+                        <td class="text-right">{{=s.get('articulos', 0)}}</td>
+                        <td class="text-right">{{='{:,.0f}'.format(float(s.get('stock_total', 0))).replace(',','.')}}</td>
+                    </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{pass}}
+
+    <!-- OPs detalle -->
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <strong><i class="glyphicon glyphicon-list-alt"></i> Ordenes de Pago</strong>
+            <span class="pull-right text-muted">{{=len(ops)}} registros</span>
+        </div>
+        <div class="panel-body" style="padding:0; overflow-x:auto;">
+            <table class="table table-condensed table-striped table-hover" style="font-size:12px; margin:0;">
+                <thead>
+                    <tr style="background:#343a40; color:white;">
+                        <th>Nro OP</th><th>Sucursal</th><th>Fecha OP</th><th>Fecha Golpe</th>
+                        <th class="text-right">Dias Recupero</th><th class="text-right">Importe</th><th class="text-right">Importe x Dias</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{for r in ops:}}
+                    <tr>
+                        <td>{{=r.get('nro_op','')}}</td>
+                        <td>{{=r.get('sucursal','')}}</td>
+                        <td>{{=str(r.get('fecha_op',''))[:10]}}</td>
+                        <td>{{=str(r.get('fecha_golpe_efectivo',''))[:10]}}</td>
+                        <td class="text-right">
+                            {{dias = int(r.get('dias_recupero', 0) or 0)}}
+                            <strong class="{{'dias-pos' if dias >= 0 else 'dias-neg'}}">{{='{:+d}'.format(dias)}}</strong>
+                        </td>
+                        <td class="text-right">{{=formato_moneda(r.get('importe', 0))}}</td>
+                        <td class="text-right">
+                            {{ixd = float(r.get('importe_x_dias', 0) or 0)}}
+                            <span class="{{'dias-pos' if ixd >= 0 else 'dias-neg'}}">{{=formato_moneda(ixd)}}</span>
+                        </td>
+                    </tr>
+                    {{pass}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>

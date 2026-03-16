@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.calzalindo.reconectar</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/fernandocalaianov/Desktop/cowork_pedidos/_sync_tools/reconectar_auto.sh</string>
+    </array>
+
+    <!-- Se dispara cuando cambia la configuración de red -->
+    <key>WatchPaths</key>
+    <array>
+        <string>/Library/Preferences/SystemConfiguration/NetworkInterfaces.plist</string>
+        <string>/Library/Preferences/SystemConfiguration/com.apple.airport.preferences.plist</string>
+    </array>
+
+    <!-- También cada 5 minutos como fallback por si WatchPaths no lo pilla -->
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/reconectar_auto_stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/reconectar_auto_stderr.log</string>
+
+    <!-- No reintentar si falla -->
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>

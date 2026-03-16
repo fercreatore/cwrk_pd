@@ -1,0 +1,132 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-mini { background: #f8f9fa; border-radius: 6px; padding: 12px; text-align: center; border-left: 3px solid #337ab7; }
+.kpi-mini h3 { margin: 0; font-size: 20px; }
+.kpi-mini small { color: #666; font-size: 11px; }
+.badge-banda { padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #fff; }
+.banda-Elite { background: #27ae60; }
+.banda-Excelente { background: #2ecc71; }
+.banda-MuyBueno { background: #3498db; }
+.banda-Bueno { background: #f39c12; }
+.banda-Aceptable { background: #e67e22; }
+.banda-Insuficiente { background: #e74c3c; }
+.table-mensual th { font-size: 11px; background: #34495e; color: #fff; }
+.table-mensual td { font-size: 12px; }
+.factor-up { color: #27ae60; font-weight: bold; }
+.factor-down { color: #e74c3c; font-weight: bold; }
+</style>
+
+<a href="{{=URL('informes_productividad','dashboard')}}" class="btn btn-default btn-sm">&laquo; Volver al Dashboard</a>
+
+<h2>{{=nombre}} <small>Código: {{=cod_vendedor}}</small></h2>
+
+<!-- KPIs del vendedor -->
+<div class="row" style="margin-top:15px;">
+    <div class="col-md-2"><div class="kpi-mini"><h3>${{='{:,.0f}'.format(sueldo)}}</h3><small>Sueldo promedio/mes</small></div></div>
+    <div class="col-md-2"><div class="kpi-mini"><h3>${{='{:,.0f}'.format(total_venta)}}</h3><small>Venta 12 meses</small></div></div>
+    <div class="col-md-2"><div class="kpi-mini"><h3>${{='{:,.0f}'.format(total_margen)}}</h3><small>Margen 12 meses</small></div></div>
+    <div class="col-md-2"><div class="kpi-mini"><h3>{{='{:.1f}%'.format(total_margen/total_venta*100) if total_venta > 0 else '0%'}}</h3><small>% Margen promedio</small></div></div>
+    <div class="col-md-2"><div class="kpi-mini"><h3>{{='{:.1f}x'.format(total_venta/sueldo) if sueldo > 0 else 'S/D'}}</h3><small>Productividad 12m</small></div></div>
+    <div class="col-md-2"><div class="kpi-mini"><h3>${{='{:,.0f}'.format(total_incentivo)}}</h3><small>Incentivo simulado 12m</small></div></div>
+</div>
+
+<!-- Gráfico evolución -->
+<div id="chart-evolucion" style="width:100%; height:350px; margin-top:20px;"></div>
+
+<!-- Tabla mensual -->
+<h4 style="margin-top:25px; border-bottom: 2px solid #337ab7; padding-bottom:8px;">Evolución Mensual</h4>
+<div class="table-responsive">
+<table class="table table-condensed table-striped table-mensual">
+<thead>
+<tr>
+    <th>Mes</th>
+    <th style="text-align:right">Venta $</th>
+    <th style="text-align:right">Venta CER $</th>
+    <th style="text-align:right">Costo $</th>
+    <th style="text-align:right">Margen $</th>
+    <th style="text-align:right">% Margen</th>
+    <th style="text-align:right">Tickets</th>
+    <th style="text-align:right">Pares/Tkt</th>
+    <th style="text-align:center">Productividad</th>
+    <th style="text-align:center">Banda</th>
+    <th style="text-align:center">Factor Est.</th>
+    <th style="text-align:right">Comisión Ajustada $</th>
+    <th style="text-align:right">Turnos</th>
+    <th style="text-align:right">Conversión</th>
+</tr>
+</thead>
+<tbody>
+{{for m in meses:}}
+<tr>
+    <td><strong>{{=m['mes_label']}}</strong></td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['venta'])}}</td>
+    <td style="text-align:right; color:#888;">{{='{:,.0f}'.format(m['venta_cer'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['costo'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['margen'])}}</td>
+    <td style="text-align:right; {{='color:#27ae60' if m['pct_margen'] >= 0.45 else 'color:#e74c3c' if m['pct_margen'] < 0.35 else ''}}">
+        {{='{:.1f}%'.format(m['pct_margen'] * 100)}}
+    </td>
+    <td style="text-align:right">{{=m['tickets']}}</td>
+    <td style="text-align:right">{{='{:.1f}'.format(m['pares_ticket'])}}</td>
+    <td style="text-align:center; font-weight:bold; {{='color:#27ae60' if m['productividad'] >= 5 else 'color:#e74c3c' if m['productividad'] < 2 else 'color:#f39c12'}}">
+        {{='{:.1f}x'.format(m['productividad']) if m['productividad'] > 0 else 'S/D'}}
+    </td>
+    <td style="text-align:center"><span class="badge-banda banda-{{=m['banda'].replace(' ','')}}">{{=m['banda']}}</span></td>
+    <td style="text-align:center" class="{{='factor-up' if m['factor_estacional'] > 1.0 else 'factor-down' if m['factor_estacional'] < 1.0 else ''}}">
+        {{='{:.1f}'.format(m['factor_estacional'])}}
+    </td>
+    <td style="text-align:right; font-weight:bold">{{='{:,.0f}'.format(m['comision_ajustada'])}}</td>
+    <td style="text-align:right">{{=m['turnos'] if m['turnos'] > 0 else '-'}}</td>
+    <td style="text-align:right">{{='{:.0f}%'.format(m['conversion']*100) if m['conversion'] is not None else '-'}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+</div>
+
+<!-- Referencia bandas -->
+<div class="row" style="margin-top:20px;">
+    <div class="col-md-6">
+        <h5>Bandas de Margen</h5>
+        <table class="table table-condensed table-bordered" style="font-size:12px;">
+        <tr><th>Margen &ge;</th><th>Comisión</th><th>Banda</th></tr>
+        {{for umbral, comision, nombre in bandas:}}
+        <tr><td>{{='{:.0f}%'.format(umbral*100)}}</td><td>{{='{:.1f}%'.format(comision*100)}}</td>
+        <td><span class="badge-banda banda-{{=nombre.replace(' ','')}}">{{=nombre}}</span></td></tr>
+        {{pass}}
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h5>Factores Estacionales</h5>
+        <table class="table table-condensed table-bordered" style="font-size:12px;">
+        <tr><th>Mes</th><th>Factor</th><th>Efecto</th></tr>
+        {{meses_nombres = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'} }}
+        {{for k,v in sorted(factor_estacional.items()):}}
+        <tr><td>{{=meses_nombres.get(k,k)}}</td>
+            <td class="{{='factor-up' if v > 1.0 else 'factor-down' if v < 1.0 else ''}}">{{=v}}</td>
+            <td>{{='Premia venta baja' if v > 1.0 else 'Modera pico' if v < 1.0 else 'Neutral'}}</td></tr>
+        {{pass}}
+        </table>
+    </div>
+</div>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script>
+Highcharts.chart('chart-evolucion', {
+    chart: { type: 'column' },
+    title: { text: 'Evolución Mensual — {{=nombre}}' },
+    xAxis: { categories: [{{for m in meses:}}'{{=m["mes_label"]}}',{{pass}}] },
+    yAxis: [
+        { title: { text: 'Monto ($)' }, labels: { format: '${value:,.0f}' } },
+        { title: { text: '% Margen' }, opposite: true, min: 0, max: 70, labels: { format: '{value}%' } }
+    ],
+    tooltip: { shared: true },
+    series: [
+        { name: 'Venta', data: [{{for m in meses:}}{{='{:.0f}'.format(m['venta'])}},{{pass}}], color: '#337ab7' },
+        { name: 'Margen', data: [{{for m in meses:}}{{='{:.0f}'.format(m['margen'])}},{{pass}}], color: '#27ae60' },
+        { name: 'Comisión Ajust.', data: [{{for m in meses:}}{{='{:.0f}'.format(m['comision_ajustada'])}},{{pass}}], color: '#e67e22', type: 'line' },
+        { name: '% Margen', data: [{{for m in meses:}}{{='{:.1f}'.format(m['pct_margen']*100)}},{{pass}}], color: '#e74c3c', type: 'spline', yAxis: 1 }
+    ]
+});
+</script>

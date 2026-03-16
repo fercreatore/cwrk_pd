@@ -1,0 +1,15 @@
+# -*- coding: utf-8 -*-
+
+db1.define_table('pedico2',
+	Field('codigo'),
+	Field('letra'),
+	Field('sucursal'),
+	Field('numero'),
+	Field('orden'),
+	Field('deposito'),
+	Field('cuenta'),
+	Field('denominacion'),
+	Field('fecha_comprobante'),
+	Field('importe_neto'),
+	primarykey=['codigo','letra','sucursal','numero','orden','orden'],
+	migrate=False)

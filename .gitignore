@@ -1,0 +1,50 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Office lock files
+.~lock.*
+~$*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Logs
+*.log
+sync_watch.log
+
+# Large binaries (Excel, ZIP, etc) — track only in _excel_pedidos/ if needed
+*.xlsx
+*.zip
+*.docx
+
+# Allow specific docs
+!_docs/*.docx
+!_excel_pedidos/*.xlsx
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Heavy binary directories (PDFs, catálogos, imágenes de proveedores)
+compras/
+_archivo/
+valijas/imagenes/
+*.pdf
+!_docs/*.pdf
+
+# Embedded repos
+clz_wpu/
+
+# Sensitive
+.env
+credentials.json

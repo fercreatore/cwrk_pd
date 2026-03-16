@@ -1,0 +1,838 @@
+{{extend 'layout.html'}}
+{{response.title = 'Detalle Pedidos - ' + proveedor}}
+
+<style>
+.tabla-detalle {
+    font-size: 12px;
+}
+.tabla-detalle thead th {
+    background: #2c3e50;
+    color: white;
+    font-size: 11px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+.tabla-detalle thead th:hover { background: #34495e; }
+.tabla-detalle thead th .sort-icon { font-size: 9px; margin-left: 3px; opacity: 0.5; }
+.tabla-detalle thead th.sorted-asc .sort-icon,
+.tabla-detalle thead th.sorted-desc .sort-icon { opacity: 1; }
+.tabla-detalle thead tr.filtro-row th {
+    background: #ecf0f1;
+    padding: 3px 4px;
+    position: sticky;
+    top: 30px;
+    z-index: 9;
+    cursor: default;
+}
+.tabla-detalle thead tr.filtro-row input,
+.tabla-detalle thead tr.filtro-row select {
+    width: 100%;
+    font-size: 11px;
+    padding: 2px 4px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+}
+.tabla-detalle td { vertical-align: middle; }
+.badge-semaforo {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+.badge-completo { background: #d4edda; color: #155724; }
+.badge-parcial { background: #fff3cd; color: #856404; }
+.badge-pendiente { background: #f8d7da; color: #721c24; }
+.badge-sin-recibir { background: #f8d7da; color: #721c24; }
+.badge-casi-completo { background: #cce5ff; color: #004085; }
+.badge-vencido { background: #721c24; color: white; }
+.nota-pedido-tag {
+    font-family: monospace;
+    font-size: 11px;
+    background: #eef2f7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+/* Remito panel */
+.remito-panel {
+    background: #f0f7ff;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin: 15px 0;
+    display: none;
+}
+.remito-panel.visible { display: block; }
+.remito-panel h4 {
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+.remito-panel .form-group { margin-bottom: 8px; }
+.remito-panel label { font-size: 12px; font-weight: 600; }
+.remito-items-table {
+    font-size: 12px;
+    margin-top: 10px;
+}
+.remito-items-table th {
+    background: #3498db;
+    color: white;
+    font-size: 11px;
+}
+.remito-items-table input[type="number"] {
+    width: 70px;
+    text-align: right;
+    font-size: 12px;
+    padding: 2px 5px;
+}
+.remito-items-table input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+.remito-items-table thead th {
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.remito-items-table thead th:hover { opacity: 0.85; }
+.remito-items-table thead th .sort-icon { font-size: 9px; margin-left: 3px; opacity: 0.5; }
+.remito-items-table thead th.sorted-asc .sort-icon,
+.remito-items-table thead th.sorted-desc .sort-icon { opacity: 1; }
+.remito-items-table thead tr.filtro-row-remito th {
+    background: #d6eaf8;
+    padding: 3px 4px;
+    position: sticky;
+    top: 32px;
+    z-index: 9;
+    cursor: default;
+}
+.remito-items-table thead tr.filtro-row-remito input {
+    width: 100%;
+    font-size: 11px;
+    padding: 2px 4px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+}
+.btn-remito {
+    margin-right: 5px;
+}
+.remito-resultado {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+}
+.remito-resultado.ok { display: block; background: #d4edda; color: #155724; }
+.remito-resultado.error { display: block; background: #f8d7da; color: #721c24; }
+</style>
+
+<h3>
+    <a href="{{=URL('reportes', 'pedidos')}}" class="btn btn-default btn-sm" style="margin-right:8px;">
+        <i class="glyphicon glyphicon-arrow-left"></i>
+    </a>
+    <i class="glyphicon glyphicon-list-alt"></i>
+    {{=proveedor}}
+    <small style="color:#95a5a6;"> - {{=len(detalle)}} lineas</small>
+    {{if puede_remito:}}
+    <button class="btn btn-success btn-sm pull-right btn-remito" onclick="toggleRemito(7)" title="Crear remito de ingreso">
+        <i class="glyphicon glyphicon-import"></i> Remito Ingreso
+    </button>
+    <button class="btn btn-warning btn-sm pull-right btn-remito" onclick="toggleRemito(36)" title="Crear remito de devolucion">
+        <i class="glyphicon glyphicon-export"></i> Remito Devolucion
+    </button>
+    {{pass}}
+</h3>
+
+<!-- PANEL REMITO -->
+{{if puede_remito:}}
+<div id="remito-panel" class="remito-panel">
+    <h4>
+        <i class="glyphicon glyphicon-file"></i>
+        <span id="remito-titulo">Nuevo Remito de Ingreso</span>
+        <button class="btn btn-default btn-xs pull-right" onclick="cerrarRemito()">
+            <i class="glyphicon glyphicon-remove"></i>
+        </button>
+    </h4>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label>Proveedor</label>
+                <input type="text" id="rem-proveedor" class="form-control input-sm" value="{{=proveedor}}" readonly
+                    style="background:#eee;">
+                <input type="hidden" id="rem-cuenta" value="{{=cuenta_proveedor}}">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label>PV (Sucursal)</label>
+                <input type="number" id="rem-sucursal" class="form-control input-sm" value="1" min="0">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label>Nro Remito</label>
+                <input type="number" id="rem-numero" class="form-control input-sm" value="" min="1"
+                    placeholder="Nro del proveedor">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label>Deposito</label>
+                <select id="rem-deposito" class="form-control input-sm">
+                    <option value="11" selected>11 - Deposito Principal</option>
+                    <option value="0">0 - General</option>
+                    <option value="5">5 - Deposito 5</option>
+                    {{if usuario_admin:}}
+                    <option value="1">1 - Deposito 1</option>
+                    <option value="2">2 - Deposito 2</option>
+                    <option value="8">8 - Deposito 8</option>
+                    <option value="9">9 - Deposito 9</option>
+                    <option value="14">14 - Deposito 14</option>
+                    <option value="199">199 - Deposito 199</option>
+                    {{pass}}
+                </select>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="rem-fecha" class="form-control input-sm">
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="margin-top:5px;">
+        <div class="col-md-12">
+            <button class="btn btn-default btn-xs" onclick="seleccionarPendientes()">
+                <i class="glyphicon glyphicon-check"></i> Seleccionar pendientes
+            </button>
+            <button class="btn btn-default btn-xs" onclick="deseleccionarTodos()">
+                <i class="glyphicon glyphicon-unchecked"></i> Deseleccionar todos
+            </button>
+        </div>
+    </div>
+
+    <!-- REPARTO ABI / H4 -->
+    <div class="row" style="margin-top:8px;">
+        <div class="col-md-12">
+            <div style="display:inline-block; background:#eaf2f8; border:1px solid #aed6f1; border-radius:6px; padding:6px 14px;">
+                <span style="font-size:12px; font-weight:700; margin-right:8px;">Reparto:</span>
+                <span style="color:#2980b9; font-weight:600;">ABI</span>
+                <input type="number" id="rem-pct-clz" value="100" min="0" max="100"
+                    style="width:55px; text-align:center; font-weight:bold; font-size:13px; margin:0 2px;"
+                    onchange="onCambioPct('CLZ')">
+                <span style="font-size:12px;">%</span>
+                <span style="margin:0 8px; color:#999;">|</span>
+                <span style="color:#8e44ad; font-weight:600;">H4</span>
+                <input type="number" id="rem-pct-h4" value="0" min="0" max="100"
+                    style="width:55px; text-align:center; font-weight:bold; font-size:13px; margin:0 2px;"
+                    onchange="onCambioPct('H4')">
+                <span style="font-size:12px;">%</span>
+                <button class="btn btn-xs btn-default" onclick="setPctRapido(100,0)" style="margin-left:10px;">100/0</button>
+                <button class="btn btn-xs btn-default" onclick="setPctRapido(0,100)">0/100</button>
+                <button class="btn btn-xs btn-default" onclick="setPctRapido(50,50)">50/50</button>
+                <button class="btn btn-xs btn-default" onclick="setPctRapido(70,30)">70/30</button>
+                <button class="btn btn-xs btn-default" onclick="setPctRapido(30,70)">30/70</button>
+            </div>
+            <span id="rem-resumen" style="margin-left:15px; font-size:12px; color:#7f8c8d;"></span>
+        </div>
+    </div>
+
+    <!-- ENTREGA PARCIAL -->
+    <div class="row" style="margin-top:5px;">
+        <div class="col-md-12">
+            <div style="display:inline-block; background:#fef9e7; border:1px solid #f9e79f; border-radius:6px; padding:6px 14px;">
+                <span style="font-size:12px; font-weight:700; margin-right:8px;">% Entrega:</span>
+                <input type="number" id="rem-pct-entrega" value="100" min="0" max="100"
+                    style="width:55px; text-align:center; font-weight:bold; font-size:13px; margin:0 2px;"
+                    onchange="aplicarEntrega()">
+                <span style="font-size:12px;">%</span>
+                <button class="btn btn-xs btn-default" onclick="setPctEntrega(100)" style="margin-left:10px;">100%</button>
+                <button class="btn btn-xs btn-default" onclick="setPctEntrega(75)">75%</button>
+                <button class="btn btn-xs btn-default" onclick="setPctEntrega(50)">50%</button>
+                <button class="btn btn-xs btn-default" onclick="setPctEntrega(25)">25%</button>
+                <span style="margin-left:10px; font-size:11px; color:#7f8c8d;">(aplica a todos, despues podes ajustar por articulo)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-condensed remito-items-table" id="remito-items-table">
+            <thead>
+                <tr>
+                    <th style="width:30px; cursor:default;"><input type="checkbox" id="chk-todos" onchange="toggleTodos(this)"></th>
+                    <th data-rcol="1" data-rtype="num" onclick="sortRemito(this)">NP <span class="sort-icon">&#9650;&#9660;</span></th>
+                    <th data-rcol="2" data-rtype="num" onclick="sortRemito(this)">Articulo <span class="sort-icon">&#9650;&#9660;</span></th>
+                    <th data-rcol="3" data-rtype="str" onclick="sortRemito(this)">Descripcion <span class="sort-icon">&#9650;&#9660;</span></th>
+                    <th data-rcol="4" data-rtype="num" class="text-right" onclick="sortRemito(this)">Pedido <span class="sort-icon">&#9650;&#9660;</span></th>
+                    <th data-rcol="5" data-rtype="num" class="text-right" onclick="sortRemito(this)">Recibido <span class="sort-icon">&#9650;&#9660;</span></th>
+                    <th data-rcol="6" data-rtype="num" class="text-right" onclick="sortRemito(this)">Pendiente <span class="sort-icon">&#9650;&#9660;</span></th>
+                    <th class="text-right" style="background:#e67e22; cursor:default;">Entrega</th>
+                    <th data-rcol="8" data-rtype="num" class="text-right" onclick="sortRemito(this)">Precio <span class="sort-icon">&#9650;&#9660;</span></th>
+                    <th class="text-right" style="background:#2980b9; cursor:default;">ABI</th>
+                    <th class="text-right" style="background:#8e44ad; cursor:default;">H4</th>
+                </tr>
+                <tr class="filtro-row-remito">
+                    <th></th>
+                    <th><input type="text" data-rcol="1" onkeyup="filtrarRemito()" placeholder="NP"></th>
+                    <th><input type="text" data-rcol="2" onkeyup="filtrarRemito()" placeholder="Art."></th>
+                    <th><input type="text" data-rcol="3" onkeyup="filtrarRemito()" placeholder="Desc..."></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="remito-items">
+                {{for r in detalle:}}
+                {{
+pend = int(r.get('cant_pendiente') or 0)
+art = r.get('articulo', 0)
+np = r.get('nota_pedido', 0)
+}}
+                {{if pend > 0:}}
+                <tr data-articulo="{{=art}}" data-descripcion="{{=(r.get('descripcion') or '')[:60]}}"
+                    data-precio="{{=r.get('precio_unitario') or 0}}" data-pendiente="{{=pend}}"
+                    data-ped-sucursal="{{=r.get('ped_sucursal') or 0}}"
+                    data-ped-numero="{{=np}}"
+                    data-ped-orden="{{=r.get('ped_orden') or 0}}"
+                    data-ped-renglon="{{=r.get('ped_renglon') or 0}}"
+                    data-rsort="{{=np}}|{{=art}}|{{=(r.get('descripcion') or '')[:60]}}|{{=r.get('cant_pedida',0)}}|{{=r.get('cant_recibida',0)}}|{{=pend}}||{{=r.get('precio_unitario') or 0}}||">
+                    <td><input type="checkbox" class="chk-item" onchange="actualizarResumen()" checked></td>
+                    <td class="text-center" style="font-size:11px; font-family:monospace;">{{=np}}</td>
+                    <td>{{=art}}</td>
+                    <td>{{=(r.get('descripcion') or '')[:40]}}</td>
+                    <td class="text-right">{{=r.get('cant_pedida', 0)}}</td>
+                    <td class="text-right">{{=r.get('cant_recibida', 0)}}</td>
+                    <td class="text-right"><strong>{{=pend}}</strong></td>
+                    <td class="text-right">
+                        <input type="number" class="cant-entrega" value="{{=pend}}" min="0"
+                            style="border-color:#e67e22; width:70px;" onchange="onCambioEntrega(this)">
+                    </td>
+                    <td class="text-right">{{="{:,.0f}".format(r.get('precio_unitario') or 0).replace(",",".")}}</td>
+                    <td class="text-right">
+                        <input type="number" class="cant-clz" value="{{=pend}}" min="0"
+                            style="border-color:#2980b9;" onchange="actualizarResumen()">
+                    </td>
+                    <td class="text-right">
+                        <input type="number" class="cant-h4" value="0" min="0"
+                            style="border-color:#8e44ad;" onchange="actualizarResumen()">
+                    </td>
+                </tr>
+                {{pass}}
+                {{pass}}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <button id="btn-crear-remito" class="btn btn-primary" onclick="crearRemito()">
+                <i class="glyphicon glyphicon-ok"></i> Crear Remito
+            </button>
+            <button class="btn btn-default" onclick="cerrarRemito()">Cancelar</button>
+            <div id="remito-resultado" class="remito-resultado"></div>
+        </div>
+    </div>
+</div>
+{{pass}}
+
+<div style="margin-top:15px; max-height:75vh; overflow-y:auto;">
+    <table class="table table-striped table-hover table-condensed tabla-detalle" id="tabla-detalle">
+        <thead>
+            <tr>
+                <th data-col="0" data-type="num" onclick="sortTabla(this)">NP <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="1" data-type="num" onclick="sortTabla(this)">Articulo <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="2" data-type="str" onclick="sortTabla(this)">Descripcion <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="3" data-type="str" onclick="sortTabla(this)">Talle <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="4" data-type="str" onclick="sortTabla(this)">Marca <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="5" data-type="str" onclick="sortTabla(this)">Subrubro <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="6" data-type="num" class="text-right" onclick="sortTabla(this)">Pedido <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="7" data-type="num" class="text-right" onclick="sortTabla(this)">Recibido <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="8" data-type="num" class="text-right" onclick="sortTabla(this)">Pend. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="9" data-type="num" class="text-center" onclick="sortTabla(this)">% <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="10" data-type="num" class="text-right" onclick="sortTabla(this)">$ Unit. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="11" data-type="num" class="text-right" onclick="sortTabla(this)">M.Ped. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="12" data-type="num" class="text-right" onclick="sortTabla(this)">M.Pend. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="13" data-type="str" class="text-center" onclick="sortTabla(this)">F.Ped. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="14" data-type="str" class="text-center" onclick="sortTabla(this)">F.Ent. <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="15" data-type="num" class="text-center" onclick="sortTabla(this)">Dias <span class="sort-icon">&#9650;&#9660;</span></th>
+                <th data-col="16" data-type="str" class="text-center" onclick="sortTabla(this)">Estado <span class="sort-icon">&#9650;&#9660;</span></th>
+            </tr>
+            <tr class="filtro-row">
+                <th><input type="text" data-col="0" onkeyup="filtrarTabla()" placeholder="NP"></th>
+                <th><input type="text" data-col="1" onkeyup="filtrarTabla()" placeholder="Art."></th>
+                <th><input type="text" data-col="2" onkeyup="filtrarTabla()" placeholder="Desc..."></th>
+                <th><input type="text" data-col="3" onkeyup="filtrarTabla()" placeholder="Talle"></th>
+                <th><input type="text" data-col="4" onkeyup="filtrarTabla()" placeholder="Marca"></th>
+                <th><input type="text" data-col="5" onkeyup="filtrarTabla()" placeholder="Subrub."></th>
+                <th></th><th></th><th></th><th></th><th></th><th></th><th></th>
+                <th></th><th></th><th></th>
+                <th><select data-col="16" onchange="filtrarTabla()">
+                    <option value="">Todos</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="PARCIAL">PARCIAL</option>
+                    <option value="COMPLETO">COMPLETO</option>
+                </select></th>
+            </tr>
+        </thead>
+        <tbody id="detalle-body">
+            {{for r in detalle:}}
+            {{
+est = (r.get('estado_cumplimiento') or 'PENDIENTE').upper()
+clase = 'badge-' + est.lower().replace(' ', '-')
+vencido = (r.get('alerta_vencimiento') or '') == 'VENCIDO'
+monto_ped = float(r.get('monto_pedido') or 0)
+monto_pend = float(r.get('monto_pendiente') or 0)
+talle = r.get('talle', '')
+}}
+            <tr {{if vencido:}}style="background:#fff5f5;"{{pass}}
+                data-sort="{{=r.get('nota_pedido',0)}}|{{=r.get('articulo','')}}|{{=(r.get('descripcion') or '')[:35]}}|{{=talle}}|{{=r.get('marca','')}}|{{=r.get('subrubro_desc','')}}|{{=r.get('cant_pedida',0)}}|{{=r.get('cant_recibida',0)}}|{{=r.get('cant_pendiente',0)}}|{{=r.get('pct_cumplido',0)}}|{{=r.get('precio_unitario',0)}}|{{=monto_ped}}|{{=monto_pend}}|{{=str(r.get('fecha_pedido',''))[:10]}}|{{=str(r.get('fecha_entrega',''))[:10]}}|{{=r.get('dias_desde_pedido','')}}|{{=est}}">
+                <td style="font-size:11px;">{{=r.get('nota_pedido', '-')}}</td>
+                <td>{{=r.get('articulo', '')}}</td>
+                <td>{{=(r.get('descripcion') or '')[:35]}}</td>
+                <td class="text-center"><strong>{{=talle}}</strong></td>
+                <td>{{=r.get('marca', '')}}</td>
+                <td>{{=r.get('subrubro_desc', '')}}</td>
+                <td class="text-right">{{="{:,.0f}".format(r.get('cant_pedida') or 0).replace(",",".")}}</td>
+                <td class="text-right">{{="{:,.0f}".format(r.get('cant_recibida') or 0).replace(",",".")}}</td>
+                <td class="text-right"><strong>{{="{:,.0f}".format(r.get('cant_pendiente') or 0).replace(",",".")}}</strong></td>
+                <td class="text-center">{{=r.get('pct_cumplido', 0)}}%</td>
+                <td class="text-right">{{="{:,.0f}".format(r.get('precio_unitario') or 0).replace(",",".")}}</td>
+                <td class="text-right">
+                    {{if monto_ped >= 1000000:}}
+                    <strong>{{="{:,.1f}M".format(monto_ped / 1000000).replace(",",".")}}</strong>
+                    {{elif monto_ped >= 1000:}}
+                    <strong>{{="{:,.0f}k".format(monto_ped / 1000).replace(",",".")}}</strong>
+                    {{else:}}
+                    <strong>{{="{:,.0f}".format(monto_ped).replace(",",".")}}</strong>
+                    {{pass}}
+                </td>
+                <td class="text-right">
+                    {{if monto_pend >= 1000000:}}
+                    <span style="color:#e74c3c;">{{="{:,.1f}M".format(monto_pend / 1000000).replace(",",".")}}</span>
+                    {{elif monto_pend >= 1000:}}
+                    <span style="color:#e74c3c;">{{="{:,.0f}k".format(monto_pend / 1000).replace(",",".")}}</span>
+                    {{elif monto_pend > 0:}}
+                    <span style="color:#e74c3c;">{{="{:,.0f}".format(monto_pend).replace(",",".")}}</span>
+                    {{else:}}
+                    -
+                    {{pass}}
+                </td>
+                <td class="text-center" style="font-size:11px;">{{=str(r.get('fecha_pedido',''))[:10]}}</td>
+                <td class="text-center" style="font-size:11px;">
+                    {{if vencido:}}<span style="color:#e74c3c; font-weight:bold;">{{pass}}
+                    {{=str(r.get('fecha_entrega',''))[:10]}}
+                    {{if vencido:}}</span>{{pass}}
+                </td>
+                <td class="text-center">{{=r.get('dias_desde_pedido', '')}}</td>
+                <td class="text-center">
+                    <span class="badge-semaforo {{=clase}}">{{=est}}</span>
+                    {{if vencido:}}<br><span class="badge-semaforo badge-vencido" style="margin-top:2px;">VENCIDO</span>{{pass}}
+                </td>
+            </tr>
+            {{pass}}
+            {{if not detalle:}}
+            <tr><td colspan="17" class="text-center text-muted" style="padding:30px;">Sin datos para este proveedor</td></tr>
+            {{pass}}
+        </tbody>
+    </table>
+</div>
+
+<script>
+/* ---- SORT ---- */
+var sortDir = {};
+function sortTabla(th) {
+    var col = parseInt(th.getAttribute('data-col'));
+    var tipo = th.getAttribute('data-type');
+    var dir = sortDir[col] === 'asc' ? 'desc' : 'asc';
+    sortDir[col] = dir;
+    // Reset classes
+    var ths = th.parentNode.querySelectorAll('th');
+    ths.forEach(function(t){ t.className = t.className.replace(/sorted-\w+/g,'').trim(); });
+    th.className = (th.className + ' sorted-' + dir).trim();
+    var tbody = document.getElementById('detalle-body');
+    var rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+        var da = (a.getAttribute('data-sort') || '').split('|');
+        var db = (b.getAttribute('data-sort') || '').split('|');
+        var va = da[col] || '', vb = db[col] || '';
+        if (tipo === 'num') {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+        } else {
+            va = va.toLowerCase();
+            vb = vb.toLowerCase();
+        }
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(function(r){ tbody.appendChild(r); });
+}
+
+/* ---- FILTRO ---- */
+function filtrarTabla() {
+    var filtros = {};
+    var inputs = document.querySelectorAll('.filtro-row input, .filtro-row select');
+    inputs.forEach(function(inp) {
+        var col = parseInt(inp.getAttribute('data-col'));
+        var val = (inp.value || '').toLowerCase().trim();
+        if (val) filtros[col] = val;
+    });
+    var rows = document.querySelectorAll('#detalle-body tr');
+    rows.forEach(function(tr) {
+        var data = (tr.getAttribute('data-sort') || '').split('|');
+        var visible = true;
+        for (var col in filtros) {
+            var cellVal = (data[parseInt(col)] || '').toLowerCase();
+            if (cellVal.indexOf(filtros[col]) === -1) {
+                visible = false;
+                break;
+            }
+        }
+        tr.style.display = visible ? '' : 'none';
+    });
+}
+</script>
+
+{{if puede_remito:}}
+<script>
+/* ---- SORT REMITO ---- */
+var sortDirRemito = {};
+function sortRemito(th) {
+    var col = parseInt(th.getAttribute('data-rcol'));
+    var tipo = th.getAttribute('data-rtype');
+    var dir = sortDirRemito[col] === 'asc' ? 'desc' : 'asc';
+    sortDirRemito[col] = dir;
+    var ths = th.parentNode.querySelectorAll('th');
+    ths.forEach(function(t){ t.className = t.className.replace(/sorted-\w+/g,'').trim(); });
+    th.className = (th.className + ' sorted-' + dir).trim();
+    var tbody = document.getElementById('remito-items');
+    var rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+        var da = (a.getAttribute('data-rsort') || '').split('|');
+        var db = (b.getAttribute('data-rsort') || '').split('|');
+        var va = da[col - 1] || '', vb = db[col - 1] || '';
+        if (tipo === 'num') {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+        } else {
+            va = va.toLowerCase();
+            vb = vb.toLowerCase();
+        }
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(function(r){ tbody.appendChild(r); });
+}
+
+/* ---- FILTRO REMITO ---- */
+function filtrarRemito() {
+    var filtros = {};
+    var inputs = document.querySelectorAll('.filtro-row-remito input');
+    inputs.forEach(function(inp) {
+        var col = parseInt(inp.getAttribute('data-rcol'));
+        var val = (inp.value || '').toLowerCase().trim();
+        if (val) filtros[col] = val;
+    });
+    var rows = document.querySelectorAll('#remito-items tr');
+    rows.forEach(function(tr) {
+        var data = (tr.getAttribute('data-rsort') || '').split('|');
+        var visible = true;
+        for (var col in filtros) {
+            var cellVal = (data[parseInt(col) - 1] || '').toLowerCase();
+            if (cellVal.indexOf(filtros[col]) === -1) {
+                visible = false;
+                break;
+            }
+        }
+        tr.style.display = visible ? '' : 'none';
+    });
+}
+
+var tipoRemito = 7;
+
+function toggleRemito(tipo) {
+    tipoRemito = tipo;
+    var panel = document.getElementById('remito-panel');
+    var titulo = document.getElementById('remito-titulo');
+    if (tipo == 7) {
+        titulo.innerHTML = 'Nuevo Remito de Ingreso (cod. 7)';
+        panel.style.borderColor = '#27ae60';
+        panel.style.background = '#f0fff0';
+    } else {
+        titulo.innerHTML = 'Nuevo Remito de Devolucion (cod. 36)';
+        panel.style.borderColor = '#f39c12';
+        panel.style.background = '#fff8f0';
+    }
+    panel.className = 'remito-panel visible';
+    var hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('rem-fecha').value = hoy;
+
+    // Auto-asignar numero de remito (ultimo+1)
+    var cuenta = document.getElementById('rem-cuenta').value;
+    if (cuenta) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '{{=URL("reportes", "remito_ultimo_numero")}}?cuenta=' + cuenta, true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    var resp = JSON.parse(xhr.responseText);
+                    if (resp.ok) {
+                        document.getElementById('rem-numero').value = resp.siguiente;
+                    }
+                } catch(e) {}
+            }
+        };
+        xhr.send();
+    }
+
+    // Resetear % entrega a 100
+    document.getElementById('rem-pct-entrega').value = 100;
+    aplicarEntrega();
+}
+
+function cerrarRemito() {
+    document.getElementById('remito-panel').className = 'remito-panel';
+    document.getElementById('remito-resultado').className = 'remito-resultado';
+}
+
+function seleccionarPendientes() {
+    var rows = document.querySelectorAll('#remito-items tr');
+    rows.forEach(function(tr) {
+        var pend = parseInt(tr.getAttribute('data-pendiente') || 0);
+        var chk = tr.querySelector('.chk-item');
+        if (pend > 0) { chk.checked = true; }
+    });
+    aplicarEntrega();
+}
+
+function deseleccionarTodos() {
+    var checks = document.querySelectorAll('.chk-item');
+    checks.forEach(function(c) { c.checked = false; });
+    actualizarResumen();
+}
+
+function toggleTodos(master) {
+    var checks = document.querySelectorAll('.chk-item');
+    checks.forEach(function(c) { c.checked = master.checked; });
+    actualizarResumen();
+}
+
+// --- REPARTO PORCENTUAL ---
+function onCambioPct(cual) {
+    var clzI = document.getElementById('rem-pct-clz');
+    var h4I = document.getElementById('rem-pct-h4');
+    var c = parseInt(clzI.value) || 0;
+    var h = parseInt(h4I.value) || 0;
+    if (cual === 'CLZ') { h4I.value = Math.max(0, 100 - c); }
+    else { clzI.value = Math.max(0, 100 - h); }
+    aplicarReparto();
+}
+
+function setPctRapido(c, h) {
+    document.getElementById('rem-pct-clz').value = c;
+    document.getElementById('rem-pct-h4').value = h;
+    aplicarReparto();
+}
+
+// --- ENTREGA PARCIAL ---
+function setPctEntrega(pct) {
+    document.getElementById('rem-pct-entrega').value = pct;
+    aplicarEntrega();
+}
+
+function aplicarEntrega() {
+    var pctEnt = parseInt(document.getElementById('rem-pct-entrega').value) || 0;
+    var rows = document.querySelectorAll('#remito-items tr');
+    rows.forEach(function(tr) {
+        var pend = parseInt(tr.getAttribute('data-pendiente') || 0);
+        var chk = tr.querySelector('.chk-item');
+        if (chk && chk.checked && pend > 0) {
+            var entrega = Math.round(pend * pctEnt / 100);
+            tr.querySelector('.cant-entrega').value = entrega;
+        }
+    });
+    aplicarReparto();
+}
+
+function onCambioEntrega(input) {
+    // Override manual por articulo, solo recalcular CLZ/H4
+    aplicarReparto();
+}
+
+function aplicarReparto() {
+    var pctClz = parseInt(document.getElementById('rem-pct-clz').value) || 0;
+    var pctH4 = parseInt(document.getElementById('rem-pct-h4').value) || 0;
+    var rows = document.querySelectorAll('#remito-items tr');
+    var idxImpar = 0; // contador para alternar redondeo en impares
+    rows.forEach(function(tr) {
+        var chk = tr.querySelector('.chk-item');
+        var entrega = parseInt(tr.querySelector('.cant-entrega').value) || 0;
+        if (chk && chk.checked && entrega > 0) {
+            var exactoClz = entrega * pctClz / 100;
+            var paraClz, paraH4;
+            if (exactoClz === Math.floor(exactoClz)) {
+                // Division exacta, sin redondeo
+                paraClz = exactoClz;
+            } else {
+                // Impar: alternar redondeo entre CLZ y H4
+                if (idxImpar % 2 === 0) {
+                    paraClz = Math.ceil(exactoClz);
+                } else {
+                    paraClz = Math.floor(exactoClz);
+                }
+                idxImpar++;
+            }
+            paraH4 = entrega - paraClz;
+            tr.querySelector('.cant-clz').value = paraClz;
+            tr.querySelector('.cant-h4').value = paraH4;
+        }
+    });
+    actualizarResumen();
+}
+
+function actualizarResumen() {
+    var rows = document.querySelectorAll('#remito-items tr');
+    var totalItems = 0, totalCant = 0, totalMonto = 0;
+    var sumClz = 0, sumH4 = 0;
+    rows.forEach(function(tr) {
+        var chk = tr.querySelector('.chk-item');
+        if (chk && chk.checked) {
+            var cClz = parseInt(tr.querySelector('.cant-clz').value) || 0;
+            var cH4 = parseInt(tr.querySelector('.cant-h4').value) || 0;
+            var cant = cClz + cH4;
+            var precio = parseFloat(tr.getAttribute('data-precio') || 0);
+            if (cant > 0) {
+                totalItems++;
+                totalCant += cant;
+                totalMonto += cant * precio;
+                sumClz += cClz;
+                sumH4 += cH4;
+            }
+        }
+    });
+    var txt = totalItems + ' arts, ' + totalCant + ' uds, $' +
+        totalMonto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    if (sumClz > 0 && sumH4 > 0) {
+        txt += ' &mdash; <span style="color:#2980b9;">ABI: ' + sumClz + '</span> / <span style="color:#8e44ad;">H4: ' + sumH4 + '</span>';
+    } else if (sumH4 > 0) {
+        txt += ' <span style="color:#8e44ad;">(todo H4)</span>';
+    } else if (sumClz > 0) {
+        txt += ' <span style="color:#2980b9;">(todo ABI)</span>';
+    }
+    document.getElementById('rem-resumen').innerHTML = '<strong>' + txt + '</strong>';
+}
+
+function crearRemito() {
+    var cuenta = parseInt(document.getElementById('rem-cuenta').value) || 0;
+    var sucPv = parseInt(document.getElementById('rem-sucursal').value) || 0;
+    var numRem = parseInt(document.getElementById('rem-numero').value) || 0;
+    var deposito = parseInt(document.getElementById('rem-deposito').value) || 0;
+    var fecha = document.getElementById('rem-fecha').value;
+
+    if (!cuenta) { alert('No se encontro la cuenta del proveedor'); return; }
+    if (!numRem) { alert('Ingresa el numero de remito del proveedor'); return; }
+    if (!fecha) { alert('Ingresa la fecha del remito'); return; }
+
+    // Recopilar items seleccionados con cantidades CLZ/H4
+    var items = [];
+    var rows = document.querySelectorAll('#remito-items tr');
+    rows.forEach(function(tr) {
+        var chk = tr.querySelector('.chk-item');
+        if (chk && chk.checked) {
+            var cClz = parseInt(tr.querySelector('.cant-clz').value) || 0;
+            var cH4 = parseInt(tr.querySelector('.cant-h4').value) || 0;
+            if (cClz > 0 || cH4 > 0) {
+                items.push({
+                    articulo: parseInt(tr.getAttribute('data-articulo')) || 0,
+                    descripcion: tr.getAttribute('data-descripcion') || '',
+                    cant_clz: cClz,
+                    cant_h4: cH4,
+                    precio: parseFloat(tr.getAttribute('data-precio')) || 0,
+                    ped_sucursal: parseInt(tr.getAttribute('data-ped-sucursal')) || 0,
+                    ped_numero: parseInt(tr.getAttribute('data-ped-numero')) || 0,
+                    ped_orden: parseInt(tr.getAttribute('data-ped-orden')) || 0,
+                    ped_renglon: parseInt(tr.getAttribute('data-ped-renglon')) || 0
+                });
+            }
+        }
+    });
+
+    if (items.length == 0) {
+        alert('Selecciona al menos un articulo con cantidad > 0');
+        return;
+    }
+
+    var tipoDesc = tipoRemito == 7 ? 'INGRESO' : 'DEVOLUCION';
+    var totClz = 0, totH4 = 0;
+    items.forEach(function(i) { totClz += i.cant_clz; totH4 += i.cant_h4; });
+    var reparto = '';
+    if (totClz > 0 && totH4 > 0) reparto = '\nReparto: ABI=' + totClz + ' uds / H4=' + totH4 + ' uds';
+    else if (totH4 > 0) reparto = '\nDestino: todo H4 (' + totH4 + ' uds)';
+    else reparto = '\nDestino: todo Calzalindo (' + totClz + ' uds)';
+
+    if (!confirm('Crear remito de ' + tipoDesc + '?\n\n' +
+        'PV: ' + sucPv + ' - Nro: ' + numRem + '\n' +
+        'Items: ' + items.length + reparto + '\n' +
+        'Fecha: ' + fecha)) {
+        return;
+    }
+
+    var btn = document.getElementById('btn-crear-remito');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="glyphicon glyphicon-refresh" style="animation:spin 1s linear infinite"></i> Creando...';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '{{=URL("reportes", "remito_crear")}}', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="glyphicon glyphicon-ok"></i> Crear Remito';
+            var res = document.getElementById('remito-resultado');
+            try {
+                var resp = JSON.parse(xhr.responseText);
+                if (resp.ok) {
+                    res.className = 'remito-resultado ok';
+                    res.innerHTML = '<strong><i class="glyphicon glyphicon-ok-circle"></i> ' + resp.msg + '</strong>';
+                } else {
+                    res.className = 'remito-resultado error';
+                    res.innerHTML = '<strong><i class="glyphicon glyphicon-exclamation-sign"></i> Error:</strong> ' + resp.msg;
+                }
+            } catch(e) {
+                res.className = 'remito-resultado error';
+                res.innerHTML = '<strong>Error:</strong> ' + xhr.responseText.substring(0, 200);
+            }
+        }
+    };
+    xhr.send(JSON.stringify({
+        tipo: tipoRemito,
+        sucursal_pv: sucPv,
+        numero_remito: numRem,
+        deposito: deposito,
+        cuenta: cuenta,
+        fecha: fecha,
+        items: items
+    }));
+}
+</script>
+<style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{{pass}}

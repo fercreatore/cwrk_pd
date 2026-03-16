@@ -1,0 +1,97 @@
+{{extend 'layout.html'}}
+
+<style>
+.indice-alto { background: #d5f5e3; font-weight: bold; }
+.indice-bajo { background: #fadbd8; font-weight: bold; }
+.table-est th { font-size: 12px; background: #2c3e50; color: #fff; }
+.table-est td { font-size: 12px; }
+</style>
+
+<a href="{{=URL('informes_productividad','dashboard')}}" class="btn btn-default btn-sm">&laquo; Volver al Dashboard</a>
+
+<h2>Análisis de Estacionalidad <small>Últimos 12 meses</small></h2>
+
+<div class="row" style="margin-top:15px;">
+    <div class="col-md-4">
+        <div style="background:#f8f9fa; padding:15px; border-radius:8px; border-left:4px solid #337ab7;">
+            <h3 style="margin:0">${{='{:,.0f}'.format(promedio_mensual)}}</h3>
+            <small>Venta mensual promedio</small>
+        </div>
+    </div>
+</div>
+
+<div id="chart-estacionalidad" style="width:100%; height:400px; margin-top:20px;"></div>
+
+<h4 style="margin-top:25px; border-bottom:2px solid #337ab7; padding-bottom:8px;">Detalle Mensual</h4>
+<table class="table table-condensed table-striped table-est">
+<thead>
+<tr>
+    <th>Mes</th>
+    <th style="text-align:right">Venta $</th>
+    <th style="text-align:right">Costo $</th>
+    <th style="text-align:right">Margen $</th>
+    <th style="text-align:right">% Margen</th>
+    <th style="text-align:right">Tickets</th>
+    <th style="text-align:right">Pares</th>
+    <th style="text-align:center">Índice Estacional</th>
+    <th style="text-align:center">Factor Propuesto</th>
+    <th>Interpretación</th>
+</tr>
+</thead>
+<tbody>
+{{for m in meses:}}
+<tr class="{{='indice-alto' if m['indice_estacional'] > 1.15 else 'indice-bajo' if m['indice_estacional'] < 0.85 else ''}}">
+    <td><strong>{{=m['label']}}</strong></td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['venta'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['costo'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['margen'])}}</td>
+    <td style="text-align:right">{{='{:.1f}%'.format(m['pct_margen'] * 100)}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['tickets'])}}</td>
+    <td style="text-align:right">{{='{:,.0f}'.format(m['pares'])}}</td>
+    <td style="text-align:center; font-weight:bold; {{='color:#27ae60' if m['indice_estacional'] > 1.1 else 'color:#e74c3c' if m['indice_estacional'] < 0.9 else ''}}">
+        {{='{:.2f}'.format(m['indice_estacional'])}}
+    </td>
+    <td style="text-align:center">{{=m['factor_propuesto']}}</td>
+    <td>
+        {{if m['indice_estacional'] > 1.15:}}
+        Mes PICO — factor bajo ({{=m['factor_propuesto']}}) para no sobrepagar
+        {{elif m['indice_estacional'] < 0.85:}}
+        Mes VALLE — factor alto ({{=m['factor_propuesto']}}) para incentivar esfuerzo
+        {{else:}}
+        Mes normal
+        {{pass}}
+    </td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+
+<div class="panel panel-info" style="margin-top:20px;">
+<div class="panel-heading"><strong>Cómo funciona el Factor Estacional</strong></div>
+<div class="panel-body" style="font-size:13px;">
+    <p>El factor estacional ajusta las comisiones para que vender en meses difíciles (OI: Mar-Ago) se premie más que vender en diciembre cuando la venta fluye sola.</p>
+    <p><strong>Fórmula:</strong> Comisión Final = Venta x % Comisión (según banda de margen) x Factor Estacional</p>
+    <p>Ejemplo: Un vendedor que vende $5M en marzo con 48% margen → Comisión = $5M x 4% x 1.3 = $260,000</p>
+    <p>El mismo vendedor vendiendo $5M en diciembre → Comisión = $5M x 4% x 0.8 = $160,000</p>
+</div>
+</div>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script>
+Highcharts.chart('chart-estacionalidad', {
+    chart: { type: 'column' },
+    title: { text: 'Estacionalidad de Ventas — Últimos 12 meses' },
+    xAxis: { categories: [{{for m in meses:}}'{{=m["label"]}}',{{pass}}] },
+    yAxis: [
+        { title: { text: 'Monto ($)' }, labels: { format: '${value:,.0f}' } },
+        { title: { text: 'Índice' }, opposite: true, plotLines: [{ value: 1.0, color: '#333', width: 2, dashStyle: 'dot', label: { text: 'Promedio (1.0)' } }] }
+    ],
+    tooltip: { shared: true },
+    series: [
+        { name: 'Venta', data: [{{for m in meses:}}{{='{:.0f}'.format(m['venta'])}},{{pass}}], color: '#337ab7' },
+        { name: 'Margen', data: [{{for m in meses:}}{{='{:.0f}'.format(m['margen'])}},{{pass}}], color: '#27ae60' },
+        { name: 'Índice Estacional', data: [{{for m in meses:}}{{='{:.2f}'.format(m['indice_estacional'])}},{{pass}}], type: 'spline', yAxis: 1, color: '#e74c3c', lineWidth: 3 },
+        { name: 'Factor Propuesto', data: [{{for m in meses:}}{{=m['factor_propuesto']}},{{pass}}], type: 'spline', yAxis: 1, color: '#f39c12', dashStyle: 'dash' }
+    ]
+});
+</script>
