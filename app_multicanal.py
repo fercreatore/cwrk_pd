@@ -43,9 +43,17 @@ st.set_page_config(
 # ── Conexión DB ──
 def get_db():
     """Conexión a SQL Server (ERP) — Driver 17 para compatibilidad con SQL Server 2012."""
-    if 'db_conn' not in st.session_state or st.session_state.db_conn is None:
-        import pyodbc
-        conn_str = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=192.168.2.111;DATABASE=msgestion01art;UID=am;PWD=dl;Encrypt=no;"
+    import pyodbc
+    conn_str = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=192.168.2.111;DATABASE=msgestion01art;UID=am;PWD=dl;Encrypt=no;"
+    conn = st.session_state.get('db_conn')
+    # Verificar que la conexión existente siga viva
+    if conn is not None:
+        try:
+            conn.execute("SELECT 1")
+        except Exception:
+            conn = None
+            st.session_state.db_conn = None
+    if conn is None:
         try:
             st.session_state.db_conn = pyodbc.connect(conn_str, timeout=10)
         except Exception as e:

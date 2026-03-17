@@ -52,12 +52,18 @@ class TiendaNubeClient:
             'Content-Type': 'application/json',
         })
 
-    def _get(self, endpoint: str, params: dict = None) -> dict | list:
-        url = f'{self.base_url}/{endpoint}'
-        r = self._session.get(url, params=params, timeout=30)
+    def _handle_rate_limit(self, r):
+        """Si la respuesta es 429, espera el tiempo indicado por Retry-After."""
         if r.status_code == 429:
             retry = int(r.headers.get('Retry-After', 5))
             time.sleep(retry)
+            return True
+        return False
+
+    def _get(self, endpoint: str, params: dict = None) -> dict | list:
+        url = f'{self.base_url}/{endpoint}'
+        r = self._session.get(url, params=params, timeout=30)
+        if self._handle_rate_limit(r):
             r = self._session.get(url, params=params, timeout=30)
         r.raise_for_status()
         return r.json()
@@ -65,12 +71,16 @@ class TiendaNubeClient:
     def _post(self, endpoint: str, data: dict) -> dict:
         url = f'{self.base_url}/{endpoint}'
         r = self._session.post(url, json=data, timeout=30)
+        if self._handle_rate_limit(r):
+            r = self._session.post(url, json=data, timeout=30)
         r.raise_for_status()
         return r.json()
 
     def _put(self, endpoint: str, data: dict) -> dict:
         url = f'{self.base_url}/{endpoint}'
         r = self._session.put(url, json=data, timeout=30)
+        if self._handle_rate_limit(r):
+            r = self._session.put(url, json=data, timeout=30)
         r.raise_for_status()
         return r.json()
 
