@@ -675,11 +675,12 @@ elif pagina == '🔄 Sincronización':
         with tab_stock:
             st.subheader('Stock ERP → TiendaNube')
             st.markdown('Compara el stock real del ERP con lo publicado en TN y actualiza las diferencias.')
-            if st.button('Ejecutar sync stock (dry run)', key='btn_sync_stock'):
+
+            def _ejecutar_sync_stock(dry_run_mode):
                 with st.spinner('Sincronizando stock...'):
                     try:
                         from multicanal.sync_stock import sincronizar_stock
-                        reporte = sincronizar_stock(dry_run=True)
+                        reporte = sincronizar_stock(dry_run=dry_run_mode)
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
@@ -687,11 +688,11 @@ elif pagina == '🔄 Sincronización':
                             c1.metric('Productos TN', reporte['total_productos'])
                             c2.metric('Variantes con SKU', reporte['total_variantes'])
                             c3.metric('Sin cambio', reporte['sin_cambio'])
-                            c4.metric('A actualizar', len(reporte['actualizados']))
+                            c4.metric('Actualizados' if not dry_run_mode else 'A actualizar',
+                                      len(reporte['actualizados']))
 
                             if reporte['actualizados']:
-                                import pandas as _pd
-                                df_cambios = _pd.DataFrame([{
+                                df_cambios = pd.DataFrame([{
                                     'SKU': a['sku'],
                                     'Producto': a['nombre'][:30],
                                     'Stock TN': a['stock_tn_anterior'],
@@ -699,22 +700,36 @@ elif pagina == '🔄 Sincronización':
                                 } for a in reporte['actualizados']])
                                 st.dataframe(df_cambios, use_container_width=True, hide_index=True)
 
+                            if not dry_run_mode and reporte['actualizados']:
+                                st.success(f"{len(reporte['actualizados'])} variantes actualizadas en TiendaNube.")
+
                             if reporte['errores']:
                                 for err in reporte['errores']:
                                     st.error(err)
                     except Exception as e:
                         st.error(f'Error: {e}')
 
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button('Dry run (solo ver cambios)', key='btn_sync_stock'):
+                    _ejecutar_sync_stock(dry_run_mode=True)
+            with col_btn2:
+                confirmar_stock = st.checkbox('Confirmo que quiero actualizar stock en TN', key='conf_stock')
+                if st.button('Ejecutar sync real', key='btn_sync_stock_real',
+                             type='primary', disabled=not confirmar_stock):
+                    _ejecutar_sync_stock(dry_run_mode=False)
+
         with tab_precios:
             st.subheader('Precios ERP → TiendaNube')
             st.markdown('Calcula precios desde el costo ERP con la regla del canal TN y actualiza diferencias.')
             tolerancia = st.slider('Tolerancia (%)', 0.0, 10.0, 2.0, 0.5,
                                    help='Ignora diferencias menores a este porcentaje')
-            if st.button('Ejecutar sync precios (dry run)', key='btn_sync_precios'):
+
+            def _ejecutar_sync_precios(dry_run_mode):
                 with st.spinner('Sincronizando precios...'):
                     try:
                         from multicanal.sync_precios import sincronizar_precios
-                        reporte = sincronizar_precios(dry_run=True, tolerancia_pct=tolerancia)
+                        reporte = sincronizar_precios(dry_run=dry_run_mode, tolerancia_pct=tolerancia)
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
@@ -722,11 +737,11 @@ elif pagina == '🔄 Sincronización':
                             c1.metric('Productos TN', reporte['total_productos'])
                             c2.metric('SKUs con costo', reporte['skus_con_costo'])
                             c3.metric('Sin cambio', reporte['sin_cambio'])
-                            c4.metric('A actualizar', len(reporte['actualizados']))
+                            c4.metric('Actualizados' if not dry_run_mode else 'A actualizar',
+                                      len(reporte['actualizados']))
 
                             if reporte['actualizados']:
-                                import pandas as _pd
-                                df_precios = _pd.DataFrame([{
+                                df_precios = pd.DataFrame([{
                                     'SKU': a['sku'],
                                     'Producto': a['nombre'][:25],
                                     'Costo ERP': f"${a['costo_erp']:,.0f}",
@@ -737,21 +752,35 @@ elif pagina == '🔄 Sincronización':
                                 } for a in reporte['actualizados']])
                                 st.dataframe(df_precios, use_container_width=True, hide_index=True)
 
+                            if not dry_run_mode and reporte['actualizados']:
+                                st.success(f"{len(reporte['actualizados'])} precios actualizados en TiendaNube.")
+
                             if reporte['errores']:
                                 for err in reporte['errores']:
                                     st.error(err)
                     except Exception as e:
                         st.error(f'Error: {e}')
 
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button('Dry run (solo ver cambios)', key='btn_sync_precios'):
+                    _ejecutar_sync_precios(dry_run_mode=True)
+            with col_btn2:
+                confirmar_precios = st.checkbox('Confirmo que quiero actualizar precios en TN', key='conf_precios')
+                if st.button('Ejecutar sync real', key='btn_sync_precios_real',
+                             type='primary', disabled=not confirmar_precios):
+                    _ejecutar_sync_precios(dry_run_mode=False)
+
         with tab_facturar:
             st.subheader('Facturar órdenes TiendaNube → ERP')
-            st.markdown('Procesa órdenes pagadas de TN e inserta facturas B en el ERP.')
+            st.markdown('Procesa órdenes pagadas de TN e inserta facturas B en el ERP (ventas2+ventas1) y descuenta stock.')
             dias_facturar = st.slider('Últimos N días', 1, 30, 7, key='dias_fact')
-            if st.button('Ejecutar facturación (dry run)', key='btn_facturar'):
+
+            def _ejecutar_facturacion(dry_run_mode):
                 with st.spinner('Procesando órdenes...'):
                     try:
                         from multicanal.facturador_tn import sincronizar_ordenes_tn
-                        reporte = sincronizar_ordenes_tn(dry_run=True, dias_atras=dias_facturar)
+                        reporte = sincronizar_ordenes_tn(dry_run=dry_run_mode, dias_atras=dias_facturar)
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
@@ -759,24 +788,39 @@ elif pagina == '🔄 Sincronización':
                             c1.metric('Órdenes encontradas', reporte['ordenes_encontradas'])
                             c2.metric('Ya procesadas', reporte['ya_procesadas'])
                             procesadas = reporte.get('procesadas', [])
-                            c3.metric('Nuevas a facturar', len(procesadas) if isinstance(procesadas, list) else 0)
+                            n_proc = len(procesadas) if isinstance(procesadas, list) else 0
+                            c3.metric('Facturadas' if not dry_run_mode else 'Nuevas a facturar', n_proc)
 
                             if isinstance(procesadas, list) and procesadas:
-                                import pandas as _pd
-                                df_fact = _pd.DataFrame([{
+                                df_fact = pd.DataFrame([{
                                     'Orden TN': p['order_number'],
                                     'Fecha': p['fecha'],
                                     'Cliente': p['cliente'][:25],
                                     'Items': p['renglones'],
                                     'Total': f"${p['total']:,.0f}",
+                                    **({"Factura": f"B {p.get('numero_factura', '-')}"} if not dry_run_mode else {}),
                                 } for p in procesadas])
                                 st.dataframe(df_fact, use_container_width=True, hide_index=True)
+
+                            if not dry_run_mode and n_proc > 0:
+                                total_fact = sum(p['total'] for p in procesadas)
+                                st.success(f"{n_proc} órdenes facturadas. Total: ${total_fact:,.0f}")
 
                             if reporte.get('errores'):
                                 for err in reporte['errores']:
                                     st.error(err)
                     except Exception as e:
                         st.error(f'Error: {e}')
+
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button('Dry run (solo ver)', key='btn_facturar'):
+                    _ejecutar_facturacion(dry_run_mode=True)
+            with col_btn2:
+                confirmar_fact = st.checkbox('Confirmo insertar facturas en el ERP', key='conf_facturar')
+                if st.button('Facturar real', key='btn_facturar_real',
+                             type='primary', disabled=not confirmar_fact):
+                    _ejecutar_facturacion(dry_run_mode=False)
 
 
 # ══════════════════════════════════════════════════
@@ -928,7 +972,7 @@ elif pagina == '📦 Catálogo ERP':
                 df = df[mask]
 
             st.dataframe(
-                df[['codigo', 'codigo_barra', 'descripcion_1', 'descripcion_2', 'marca', 'precio_costo', 'stock_d1', 'stock_h4']],
+                df[['codigo', 'sinonimo', 'codigo_barra', 'descripcion_1', 'descripcion_2', 'marca', 'precio_costo', 'stock_d1', 'stock_h4']],
                 use_container_width=True,
                 hide_index=True,
             )
