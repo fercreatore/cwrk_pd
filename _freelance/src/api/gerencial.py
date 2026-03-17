@@ -14,7 +14,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date
+from dateutil.relativedelta import relativedelta
 from db import query, execute, execute_returning_id
+from .topes_mono import TOPES_MONO
 
 router = APIRouter()
 
@@ -32,18 +34,11 @@ class AltaVendedorIn(BaseModel):
     canon_mensual: float = 0
 
 
-TOPES_MONO = {
-    'A': 10300000, 'B': 15300000, 'C': 20200000, 'D': 25200000,
-    'E': 29600000, 'F': 37000000, 'G': 44400000, 'H': 55300000,
-    'I': 66400000, 'J': 82100000, 'K': 108400000,
-}
-
-
 @router.get("/dashboard")
 async def dashboard(meses: int = 1):
     """KPIs globales de la red de vendedores freelance."""
     hoy = date.today()
-    primer_dia = date(hoy.year, hoy.month, 1)
+    primer_dia = date(hoy.year, hoy.month, 1) - relativedelta(months=max(0, meses - 1))
 
     vendedores = query(
         "SELECT COUNT(*) AS total FROM vendedor_freelance WHERE activo = 1",
@@ -224,7 +219,7 @@ async def ahorro_vs_empleado(anio: int = None, mes: int = None):
         },
         "nota": "En el modelo freelance, H4 no paga sueldo ni cargas. "
                 "El fee lo paga el cliente directamente al vendedor. "
-                "El ahorro de H4 es el 100%% del costo laboral anterior.",
+                "El ahorro de H4 es el 100% del costo laboral anterior.",
         "detalle": comparacion,
     }
 
@@ -232,13 +227,56 @@ async def ahorro_vs_empleado(anio: int = None, mes: int = None):
 @router.get("/vendedores")
 async def lista_vendedores():
     """Lista de todos los vendedores freelance con metricas resumidas."""
+    hoy = date.today()
+    primer_dia_mes = date(hoy.year, hoy.month, 1)
+
     sql = """
-        SELECT vf.*, vj.descripcion AS nombre
+        SELECT vf.id, vf.codigo_atrib, vf.viajante_cod, vf.cuit,
+               vf.razon_social, vf.categoria_mono, vf.cuota_mono,
+               vf.fee_pct_std, vf.fee_pct_premium, vf.instagram, vf.whatsapp,
+               vf.canon_mensual, vf.activo, vf.fecha_inicio,
+               vj.descripcion AS nombre,
+               ISNULL(va_mes.ops, 0) AS operaciones_mes,
+               ISNULL(va_mes.total_producto, 0) AS venta_mes,
+               ISNULL(va_mes.total_fee, 0) AS fee_mes,
+               ISNULL(va_mes.pares, 0) AS pares_mes
         FROM omicronvt.dbo.vendedor_freelance vf
         JOIN msgestionC.dbo.viajantes vj ON vj.codigo = vf.viajante_cod
+        LEFT JOIN (
+            SELECT vendedor_id,
+                   COUNT(*) AS ops,
+                   SUM(monto_producto) AS total_producto,
+                   SUM(fee_monto) AS total_fee,
+                   SUM(cant_pares) AS pares
+            FROM omicronvt.dbo.venta_atribucion
+            WHERE fecha >= ?
+            GROUP BY vendedor_id
+        ) va_mes ON va_mes.vendedor_id = vf.id
         ORDER BY vf.activo DESC, vj.descripcion
     """
-    return {"vendedores": query(sql, 'omicronvt')}
+    rows = query(sql, 'omicronvt', (str(primer_dia_mes),))
+
+    return {
+        "vendedores": [
+            {
+                "codigo_atrib": r.get('codigo_atrib', ''),
+                "nombre": (r.get('nombre') or '').strip(),
+                "activo": bool(r.get('activo')),
+                "categoria_mono": r.get('categoria_mono', ''),
+                "fee_pct_std": float(r.get('fee_pct_std') or 0),
+                "instagram": r.get('instagram', ''),
+                "whatsapp": r.get('whatsapp', ''),
+                "fecha_inicio": str(r.get('fecha_inicio', '')),
+                "metricas_mes": {
+                    "operaciones": int(r.get('operaciones_mes') or 0),
+                    "venta": float(r.get('venta_mes') or 0),
+                    "fee": float(r.get('fee_mes') or 0),
+                    "pares": int(r.get('pares_mes') or 0),
+                },
+            }
+            for r in rows
+        ]
+    }
 
 
 @router.post("/alta_vendedor")
