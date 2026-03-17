@@ -84,8 +84,8 @@
 
     function toggleCode() {
         const section = document.getElementById('code-section');
-        section.style.display = section.style.display === 'none' ? 'block' : 'block';
-        document.getElementById('codigo').focus();
+        section.style.display = section.style.display === 'block' ? 'none' : 'block';
+        if (section.style.display === 'block') document.getElementById('codigo').focus();
     }
 
     async function loginEmail() {
