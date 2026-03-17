@@ -661,16 +661,23 @@ elif pagina == '🛒 Tienda Nube':
 # PÁGINA: Sincronización
 # ══════════════════════════════════════════════════
 elif pagina == '🔄 Sincronización':
-    st.title('🔄 Sincronización ERP ↔ TiendaNube')
-    st.markdown('Ejecutá la sincronización de stock y precios entre el ERP y TiendaNube.')
+    st.title('🔄 Sincronización ERP ↔ Canales')
+    st.markdown('Ejecutá la sincronización de stock/precios y facturación automática.')
 
     from multicanal.tiendanube import cargar_config as tn_cargar_config
     tn_cfg = tn_cargar_config()
 
-    if not tn_cfg.get('store_id') or not tn_cfg.get('access_token'):
-        st.warning('Configurá las credenciales de TiendaNube en la pestaña "Tienda Nube" primero.')
+    has_tn = bool(tn_cfg.get('store_id') and tn_cfg.get('access_token'))
+
+    from multicanal.facturador_ml import cargar_config as ml_cargar_config
+    ml_cfg = ml_cargar_config()
+    has_ml = bool(ml_cfg.get('access_token') and ml_cfg.get('user_id'))
+
+    if not has_tn and not has_ml:
+        st.warning('Configurá credenciales de TiendaNube o MercadoLibre primero.')
     else:
-        tab_stock, tab_precios, tab_facturar = st.tabs(['Sync Stock', 'Sync Precios', 'Facturar Órdenes'])
+        tabs_nombres = ['Sync Stock', 'Sync Precios', 'Facturar TN', 'Facturar ML']
+        tab_stock, tab_precios, tab_facturar, tab_facturar_ml = st.tabs(tabs_nombres)
 
         with tab_stock:
             st.subheader('Stock ERP → TiendaNube')
@@ -821,6 +828,79 @@ elif pagina == '🔄 Sincronización':
                 if st.button('Facturar real', key='btn_facturar_real',
                              type='primary', disabled=not confirmar_fact):
                     _ejecutar_facturacion(dry_run_mode=False)
+
+        with tab_facturar_ml:
+            st.subheader('Facturar órdenes MercadoLibre → ERP')
+            st.markdown('Procesa órdenes pagadas de ML e inserta facturas B en el ERP (depósito 1).')
+
+            if not has_ml:
+                st.warning('Configurá las credenciales de MercadoLibre.')
+                st.markdown("""
+                **Para configurar:**
+                1. Obtener `access_token` de ML (OAuth2)
+                2. Obtener `user_id` de tu cuenta vendedor
+                3. Guardar en `multicanal/mercadolibre_config.json`:
+                ```json
+                {"access_token": "APP_USR-...", "user_id": "123456789"}
+                ```
+                """)
+                with st.expander('Configurar credenciales ML'):
+                    ml_token = st.text_input('Access Token ML', type='password', key='ml_token')
+                    ml_user = st.text_input('User ID ML', key='ml_user')
+                    if st.button('Guardar credenciales ML', key='btn_save_ml'):
+                        if ml_token and ml_user:
+                            from multicanal.facturador_ml import guardar_config as ml_guardar_config
+                            ml_guardar_config(ml_token, ml_user)
+                            st.success('Credenciales ML guardadas.')
+                            st.rerun()
+            else:
+                dias_facturar_ml = st.slider('Últimos N días', 1, 30, 7, key='dias_fact_ml')
+
+                def _ejecutar_facturacion_ml(dry_run_mode):
+                    with st.spinner('Procesando órdenes ML...'):
+                        try:
+                            from multicanal.facturador_ml import sincronizar_ordenes_ml
+                            reporte = sincronizar_ordenes_ml(dry_run=dry_run_mode, dias_atras=dias_facturar_ml)
+                            if reporte.get('error'):
+                                st.error(reporte['error'])
+                            else:
+                                c1, c2, c3 = st.columns(3)
+                                c1.metric('Órdenes encontradas', reporte['ordenes_encontradas'])
+                                c2.metric('Ya procesadas', reporte['ya_procesadas'])
+                                procesadas = reporte.get('procesadas', [])
+                                n_proc = len(procesadas) if isinstance(procesadas, list) else 0
+                                c3.metric('Facturadas' if not dry_run_mode else 'Nuevas a facturar', n_proc)
+
+                                if isinstance(procesadas, list) and procesadas:
+                                    df_ml = pd.DataFrame([{
+                                        'Orden ML': p['order_id'],
+                                        'Fecha': p['fecha'],
+                                        'Cliente': p['cliente'][:25],
+                                        'Items': p['renglones'],
+                                        'Total': f"${p['total']:,.0f}",
+                                        **({"Factura": f"B {p.get('numero_factura', '-')}"} if not dry_run_mode else {}),
+                                    } for p in procesadas])
+                                    st.dataframe(df_ml, use_container_width=True, hide_index=True)
+
+                                if not dry_run_mode and n_proc > 0:
+                                    total_fact = sum(p['total'] for p in procesadas)
+                                    st.success(f"{n_proc} órdenes ML facturadas. Total: ${total_fact:,.0f}")
+
+                                if reporte.get('errores'):
+                                    for err in reporte['errores']:
+                                        st.error(err)
+                        except Exception as e:
+                            st.error(f'Error: {e}')
+
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    if st.button('Dry run (solo ver)', key='btn_facturar_ml'):
+                        _ejecutar_facturacion_ml(dry_run_mode=True)
+                with col_btn2:
+                    confirmar_ml = st.checkbox('Confirmo insertar facturas ML en el ERP', key='conf_facturar_ml')
+                    if st.button('Facturar real', key='btn_facturar_ml_real',
+                                 type='primary', disabled=not confirmar_ml):
+                        _ejecutar_facturacion_ml(dry_run_mode=False)
 
 
 # ══════════════════════════════════════════════════
