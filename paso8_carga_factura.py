@@ -459,6 +459,11 @@ def _cargar_colores_db():
             "BEIGE": "15", "ROSA": "19", "PLATA": "20", "CAMEL": "22",
             "COBRE": "23", "NUDE": "25", "CELESTE": "28", "ORO": "29",
             "BORDO": "30", "AMARILLO": "35", "SUELA": "41", "MULTICOLOR": "51",
+            # Reebok colores compuestos conocidos
+            "BLANCO/CELESTE": "01", "AZUL/BLANCO": "05",
+            "NEGRO/NEGRO/GRIS": "10", "GRIS/NEGRO/LILA": "13",
+            "GRIS/NEGRO/ROSA": "13", "BEIGE/BEIGE": "15", "GRIS/GRIS/AP": "39",
+            "CREMA": "15", "TOPO": "13", "MENTA": "14",
         })
     _COLORES_CACHE_LOADED = True
 
