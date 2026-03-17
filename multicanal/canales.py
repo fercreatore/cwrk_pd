@@ -50,7 +50,7 @@ class CanalTiendaNube(CanalBase):
         self.token = token
         self.store_id = store_id
         self.headers = {
-            'Authorization': 'bearer %s' % token,
+            'Authentication': 'bearer %s' % token,
             'User-Agent': 'CLZ Multicanal (calzalindo)',
             'Content-Type': 'application/json',
         }
