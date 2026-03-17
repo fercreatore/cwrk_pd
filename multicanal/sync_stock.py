@@ -46,24 +46,20 @@ def conectar_erp():
 
 def obtener_stock_erp(conn, codigos_sinonimo: list) -> dict:
     """
-    Dado un listado de SKUs (codigo_sinonimo), devuelve un dict {sku: stock_total}.
-
-    Hace JOIN articulo (por codigo_sinonimo) con stock (por articulo=codigo),
-    filtrando depósito IN (0, 1) y sumando stock_actual.
-
-    SKUs que no existen en el ERP no aparecen en el resultado.
+    Dado un listado de SKUs, devuelve un dict {sku: stock_total}.
+    Busca por codigo_sinonimo primero, fallback por codigo_barra.
     """
     if not codigos_sinonimo:
         return {}
 
     resultado = {}
 
-    # Procesar en lotes de 500 para no exceder límite de parámetros SQL
     BATCH = 500
     for i in range(0, len(codigos_sinonimo), BATCH):
         lote = codigos_sinonimo[i:i + BATCH]
         placeholders = ",".join(["?"] * len(lote))
 
+        # Buscar por codigo_sinonimo
         query = f"""
             SELECT
                 a.codigo_sinonimo,
@@ -84,6 +80,28 @@ def obtener_stock_erp(conn, codigos_sinonimo: list) -> dict:
             stock = int(row[1])
             if sku:
                 resultado[sku] = stock
+
+        # Fallback: buscar por codigo_barra
+        no_encontrados = [s for s in lote if s not in resultado]
+        if no_encontrados:
+            placeholders2 = ",".join(["?"] * len(no_encontrados))
+            query2 = f"""
+                SELECT
+                    a.codigo_barra,
+                    ISNULL(SUM(s.stock_actual), 0) AS stock_total
+                FROM msgestion01art.dbo.articulo a
+                LEFT JOIN msgestionC.dbo.stock s
+                    ON s.articulo = a.codigo
+                    AND s.deposito IN (0, 1)
+                WHERE a.codigo_barra IN ({placeholders2})
+                GROUP BY a.codigo_barra
+            """
+            cursor.execute(query2, no_encontrados)
+            for row in cursor.fetchall():
+                barra = str(row[0]).strip() if row[0] else ''
+                stock = int(row[1])
+                if barra and barra not in resultado:
+                    resultado[barra] = stock
 
     return resultado
 

@@ -185,7 +185,10 @@ def conectar_erp_art():
 
 
 def buscar_articulos_por_sku(conn_art, skus: list) -> dict:
-    """Busca artículos en el ERP por codigo_sinonimo. Retorna {sku: {codigo, descripcion, precio_costo}}."""
+    """
+    Busca artículos por codigo_sinonimo, fallback por codigo_barra.
+    Retorna {sku_original: {codigo, descripcion, precio_costo, codigo_sinonimo}}.
+    """
     if not skus:
         return {}
 
@@ -194,6 +197,8 @@ def buscar_articulos_por_sku(conn_art, skus: list) -> dict:
     for i in range(0, len(skus), BATCH):
         lote = skus[i:i + BATCH]
         placeholders = ",".join(["?"] * len(lote))
+
+        # Buscar por codigo_sinonimo
         query = f"""
             SELECT codigo, descripcion_1, precio_costo, codigo_sinonimo
             FROM msgestion01art.dbo.articulo
@@ -211,6 +216,27 @@ def buscar_articulos_por_sku(conn_art, skus: list) -> dict:
                     'precio_costo': float(row[2] or 0),
                     'codigo_sinonimo': sku,
                 }
+
+        # Fallback: buscar por codigo_barra
+        no_encontrados = [s for s in lote if s not in resultado]
+        if no_encontrados:
+            placeholders2 = ",".join(["?"] * len(no_encontrados))
+            query2 = f"""
+                SELECT codigo, descripcion_1, precio_costo, codigo_sinonimo, codigo_barra
+                FROM msgestion01art.dbo.articulo
+                WHERE codigo_barra IN ({placeholders2})
+            """
+            cursor.execute(query2, no_encontrados)
+            for row in cursor.fetchall():
+                barra = str(row[4]).strip() if row[4] else ''
+                sinonimo = row[3].strip() if row[3] else ''
+                if barra and barra not in resultado:
+                    resultado[barra] = {
+                        'codigo': int(row[0]),
+                        'descripcion': (row[1] or '').strip(),
+                        'precio_costo': float(row[2] or 0),
+                        'codigo_sinonimo': sinonimo or barra,
+                    }
     return resultado
 
 
