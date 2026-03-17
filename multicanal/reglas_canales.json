@@ -1,0 +1,67 @@
+{
+  "mercadolibre_premium": {
+    "canal": "mercadolibre_premium",
+    "descripcion": "MercadoLibre Premium (gold_pro)",
+    "comision": 0.16,
+    "comision_pago": 0.0,
+    "iva": 0.21,
+    "margen_objetivo": 0.4,
+    "recargo": 0.0,
+    "redondeo": 100,
+    "precio_minimo": 0.0,
+    "activo": true,
+    "notas": "Envío gratis incluido en comisión. ML retiene comisión del pago."
+  },
+  "mercadolibre_clasica": {
+    "canal": "mercadolibre_clasica",
+    "descripcion": "MercadoLibre Clásica (gold_special)",
+    "comision": 0.11,
+    "comision_pago": 0.0,
+    "iva": 0.21,
+    "margen_objetivo": 0.4,
+    "recargo": 0.0,
+    "redondeo": 100,
+    "precio_minimo": 0.0,
+    "activo": true,
+    "notas": "Envío a cargo del comprador."
+  },
+  "tiendanube": {
+    "canal": "tiendanube",
+    "descripcion": "Tienda Nube + MercadoPago",
+    "comision": 0.025,
+    "comision_pago": 0.045,
+    "iva": 0.21,
+    "margen_objetivo": 0.4,
+    "recargo": 0.0,
+    "redondeo": 100,
+    "precio_minimo": 0.0,
+    "activo": true,
+    "notas": "Comisión TN plan básico + MercadoPago."
+  },
+  "meta": {
+    "canal": "meta",
+    "descripcion": "Facebook + Instagram + WhatsApp",
+    "comision": 0.0,
+    "comision_pago": 0.045,
+    "iva": 0.21,
+    "margen_objetivo": 0.4,
+    "recargo": 0.0,
+    "redondeo": 100,
+    "precio_minimo": 0.0,
+    "activo": true,
+    "notas": "Sin comisión de plataforma. Pago por transferencia o MP."
+  },
+  "local": {
+    "canal": "local",
+    "descripcion": "Venta en mostrador / local",
+    "comision": 0.0,
+    "comision_pago": 0.0,
+    "iva": 0.21,
+    "margen_objetivo": 0.4,
+    "recargo": 0.0,
+    "redondeo": 100,
+    "precio_minimo": 0.0,
+    "activo": true,
+    "notas": "Precio de lista del ERP."
+  }
+}
