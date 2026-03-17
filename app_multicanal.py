@@ -396,7 +396,7 @@ elif pagina == '🛒 Tienda Nube':
         try:
             tn = TiendaNubeClient(store_id=tn_store, access_token=tn_token)
 
-            tab_ordenes, tab_productos, tab_sync = st.tabs(['Ordenes', 'Productos TN', 'Sync ERP'])
+            tab_ordenes, tab_productos, tab_publicar, tab_sync = st.tabs(['Ordenes', 'Productos TN', 'Publicar producto', 'Sync ERP'])
 
             # ── TAB: Órdenes ──
             with tab_ordenes:
@@ -485,6 +485,131 @@ elif pagina == '🛒 Tienda Nube':
                             st.error(f'Error API: {e}')
                     except Exception as e:
                         st.error(f'Error: {e}')
+
+            # ── TAB: Publicar producto ──
+            with tab_publicar:
+                st.subheader('Publicar producto del ERP en TiendaNube')
+                st.markdown('Seleccioná un artículo del ERP para publicarlo en TiendaNube con precio calculado automáticamente.')
+
+                conn_pub = get_db()
+                if conn_pub:
+                    # Buscar artículos del ERP con stock y sinonimo
+                    sql_pub = """
+                        SELECT TOP 200 a.codigo, a.codigo_sinonimo, a.descripcion_1, a.descripcion_2,
+                            a.precio_costo, a.moneda,
+                            m.descripcion as marca,
+                            ISNULL((SELECT SUM(stock_actual) FROM msgestionC.dbo.stock
+                                    WHERE articulo=a.codigo AND deposito IN (0,1)), 0) as stock_total
+                        FROM msgestion01art.dbo.articulo a
+                        LEFT JOIN msgestion01art.dbo.marcas m ON m.codigo=a.marca
+                        WHERE a.estado IN ('V','U') AND a.precio_costo > 0
+                        AND a.codigo_sinonimo IS NOT NULL AND a.codigo_sinonimo <> ''
+                        AND ISNULL((SELECT SUM(stock_actual) FROM msgestionC.dbo.stock
+                                    WHERE articulo=a.codigo AND deposito IN (0,1)), 0) > 0
+                        ORDER BY a.codigo DESC
+                    """
+                    try:
+                        df_pub = pd.read_sql(sql_pub, conn_pub)
+                    except Exception as e:
+                        st.error(f'Error SQL: {e}')
+                        df_pub = pd.DataFrame()
+
+                    if not df_pub.empty:
+                        # Filtro de búsqueda
+                        buscar = st.text_input('Buscar artículo por descripción o SKU', key='pub_buscar')
+                        df_filtrado = df_pub
+                        if buscar:
+                            mask = df_filtrado.apply(
+                                lambda row: buscar.lower() in
+                                f"{row.get('descripcion_1','')} {row.get('descripcion_2','')} {row.get('codigo_sinonimo','')}".lower(),
+                                axis=1
+                            )
+                            df_filtrado = df_filtrado[mask]
+
+                        if not df_filtrado.empty:
+                            codigo_pub = st.selectbox(
+                                'Seleccionar artículo',
+                                df_filtrado['codigo'].tolist(),
+                                format_func=lambda x: (
+                                    f"{x} — {df_filtrado[df_filtrado['codigo']==x].iloc[0]['descripcion_1']} "
+                                    f"{df_filtrado[df_filtrado['codigo']==x].iloc[0].get('descripcion_2','')} "
+                                    f"(SKU: {df_filtrado[df_filtrado['codigo']==x].iloc[0]['codigo_sinonimo']})"
+                                ),
+                                key='pub_sel'
+                            )
+
+                            if codigo_pub:
+                                art = df_filtrado[df_filtrado['codigo'] == codigo_pub].iloc[0]
+                                costo = float(art['precio_costo'])
+                                stock = int(art['stock_total'])
+                                sku = art['codigo_sinonimo']
+
+                                # Calcular precio TN
+                                from multicanal.precios import calcular_precio_canal, REGLAS_DEFAULT
+                                regla_tn = st.session_state.reglas.get('tiendanube', REGLAS_DEFAULT.get('tiendanube'))
+                                precio_calc = calcular_precio_canal(costo, regla_tn)
+                                precio_sugerido = precio_calc.get('precio_venta', 0)
+
+                                st.info(f"**{art['descripcion_1']} {art.get('descripcion_2','')}** | "
+                                        f"Marca: {art.get('marca','-')} | Costo: ${costo:,.0f} | Stock: {stock}")
+
+                                st.divider()
+                                col_p1, col_p2 = st.columns(2)
+
+                                with col_p1:
+                                    nombre_pub = st.text_input('Nombre del producto',
+                                        value=f"{art['descripcion_1']} {art.get('descripcion_2','')}".strip(),
+                                        key='pub_nombre')
+                                    descripcion_pub = st.text_area('Descripción',
+                                        value=f"{art['descripcion_1']} {art.get('descripcion_2','')}",
+                                        height=100, key='pub_desc')
+
+                                with col_p2:
+                                    precio_pub = st.number_input('Precio de venta ($)',
+                                        value=float(precio_sugerido), step=100.0, key='pub_precio')
+                                    stock_pub = st.number_input('Stock a publicar',
+                                        value=stock, min_value=0, step=1, key='pub_stock')
+                                    sku_pub = st.text_input('SKU (codigo_sinonimo)', value=sku, key='pub_sku')
+
+                                if precio_sugerido > 0:
+                                    margen = precio_calc.get('margen_real', 0)
+                                    ganancia = precio_calc.get('ganancia_neta', 0)
+                                    st.caption(f'Precio sugerido: ${precio_sugerido:,.0f} '
+                                              f'(margen {margen}%, ganancia ${ganancia:,.0f})')
+
+                                st.divider()
+                                if st.button('Publicar en TiendaNube', type='primary', key='btn_publicar'):
+                                    if not nombre_pub or not sku_pub:
+                                        st.error('Completá nombre y SKU.')
+                                    elif precio_pub <= 0:
+                                        st.error('El precio debe ser mayor a 0.')
+                                    else:
+                                        with st.spinner('Publicando en TiendaNube...'):
+                                            try:
+                                                resultado = tn.crear_producto(
+                                                    nombre=nombre_pub,
+                                                    variantes=[{
+                                                        'price': str(precio_pub),
+                                                        'stock': stock_pub,
+                                                        'sku': sku_pub,
+                                                    }],
+                                                    descripcion=descripcion_pub,
+                                                )
+                                                prod_id = resultado.get('id', '')
+                                                url = resultado.get('canonical_url', '')
+                                                st.success(f'Producto publicado. ID: {prod_id}')
+                                                if url:
+                                                    st.markdown(f'[Ver en TiendaNube]({url})')
+                                            except requests.exceptions.HTTPError as e:
+                                                st.error(f'Error API TiendaNube: {e}')
+                                            except Exception as e:
+                                                st.error(f'Error: {e}')
+                        else:
+                            st.info('No se encontraron artículos con ese filtro.')
+                    else:
+                        st.warning('No hay artículos con stock y SKU en el ERP.')
+                else:
+                    st.warning('Sin conexión al ERP.')
 
             # ── TAB: Sync ERP ──
             with tab_sync:
