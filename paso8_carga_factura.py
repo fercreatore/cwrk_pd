@@ -306,13 +306,49 @@ def construir_sinonimo(modelo: str, color_code: str, talle: str,
 
     # Prioridad 3: fallback — limpiar el modelo
     if not cod_prov:
-        cod_prov = modelo.upper().strip()
-        # Quitar prefijos comunes que no son parte del código de producto
+        mod_clean = modelo.upper().strip()
+
+        # Para Reebok (656) y similares: el modelo viene como "RBK1100033358"
+        # (código largo del proveedor), no sirve para 5 chars. Intentar generar
+        # un código de 5 chars desde la descripción del producto.
+        is_long_ref = False
         for prefix in ["RBK-", "RBK", "WKC", "WK-", "WK"]:
-            if cod_prov.startswith(prefix):
-                cod_prov = cod_prov[len(prefix):]
+            if mod_clean.startswith(prefix):
+                stripped = mod_clean[len(prefix):].replace("-", "").replace(" ", "")
+                if len(stripped) > 5:
+                    is_long_ref = True  # es un código largo del proveedor
+                else:
+                    mod_clean = stripped
                 break
-        cod_prov = cod_prov.replace("-", "").replace(" ", "")
+
+        if is_long_ref and descripcion:
+            # Generar abreviatura de 5 chars desde la descripción
+            # Ej: "FLEXAGON ENERGY TR 4" → "FETR4"
+            desc_parts = descripcion.upper().split()
+            # Tomar primera letra de cada palabra + números
+            abbr = ""
+            for part in desc_parts:
+                part_clean = part.strip("()-/,.")
+                if not part_clean:
+                    continue
+                if part_clean.isdigit():
+                    abbr += part_clean
+                elif part_clean.isalpha():
+                    abbr += part_clean[0]
+                else:
+                    abbr += part_clean[0]
+            cod_prov = abbr[:5] if abbr else mod_clean[:5]
+            log.info(f"  cod5 generado desde descripcion: '{cod_prov}' ← '{descripcion[:40]}'")
+        elif not is_long_ref:
+            cod_prov = mod_clean.replace("-", "").replace(" ", "")
+        else:
+            # Último recurso: tomar los últimos 5 chars del código largo
+            stripped = mod_clean
+            for prefix in ["RBK-", "RBK", "WKC", "WK-", "WK"]:
+                if stripped.startswith(prefix):
+                    stripped = stripped[len(prefix):]
+                    break
+            cod_prov = stripped.replace("-", "").replace(" ", "")[:5]
 
     # Pad/truncar a 5 caracteres
     # CONVENCIÓN DB: right-pad con ceros (ljust), NO left-pad (zfill)
