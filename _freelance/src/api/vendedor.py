@@ -15,6 +15,7 @@ Endpoints:
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, date
 from db import query, execute
+from .topes_mono import TOPES_MONO
 
 router = APIRouter()
 
@@ -354,11 +355,6 @@ async def proyeccion_monotributo(cod: str):
     fee_pct = float(vend.get('fee_pct_std') or 0.05)
     facturacion_anual_est = venta_anual * fee_pct
 
-    TOPES_MONO = {
-        'A': 10300000, 'B': 15300000, 'C': 20200000, 'D': 25200000,
-        'E': 29600000, 'F': 37000000, 'G': 44400000, 'H': 55300000,
-        'I': 66400000, 'J': 82100000, 'K': 108400000,
-    }
     cat = vend.get('categoria_mono', 'D')
     tope = TOPES_MONO.get(cat, 25200000)
 
