@@ -313,6 +313,21 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
                 WHERE articulo = ? AND deposito = ?
             """, det['cantidad'], det['articulo'], det['deposito'])
 
+        # Marcar estado_stock='V' para evitar doble descuento por batch ERP
+        cursor.execute("""
+            UPDATE msgestion03.dbo.ventas2
+            SET estado_stock = 'V'
+            WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ? AND orden = ?
+        """, cabecera['codigo'], cabecera['letra'], cabecera['sucursal'],
+            cabecera['numero'], cabecera['orden'])
+
+        cursor.execute("""
+            UPDATE msgestion03.dbo.ventas1
+            SET estado_stock = 'V'
+            WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ? AND orden = ?
+        """, cabecera['codigo'], cabecera['letra'], cabecera['sucursal'],
+            cabecera['numero'], cabecera['orden'])
+
         conn.commit()
     except Exception:
         conn.rollback()
