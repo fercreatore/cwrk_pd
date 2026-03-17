@@ -50,7 +50,7 @@ CONN_STRING_ART = (
 )
 
 # Parámetros fijos para factura B consumidor final
-EMPRESA = 'H4'
+# Empresa H4 → base msgestion03 (la tabla no tiene columna 'empresa')
 CODIGO = 1          # factura
 LETRA = 'B'         # consumidor final
 SUCURSAL = 1
@@ -140,11 +140,10 @@ def obtener_siguiente_numero(conn) -> int:
     cursor.execute("""
         SELECT ISNULL(MAX(numero), 0) + 1
         FROM msgestion03.dbo.ventas2
-        WHERE empresa = ?
-          AND codigo = ?
+        WHERE codigo = ?
           AND letra = ?
           AND sucursal = ?
-    """, EMPRESA, CODIGO, LETRA, SUCURSAL)
+    """, CODIGO, LETRA, SUCURSAL)
     row = cursor.fetchone()
     return int(row[0])
 
@@ -157,12 +156,11 @@ def obtener_siguiente_orden(conn, fecha_comprobante: str) -> int:
     cursor.execute("""
         SELECT ISNULL(MAX(orden), 0) + 1
         FROM msgestion03.dbo.ventas2
-        WHERE empresa = ?
-          AND codigo = ?
+        WHERE codigo = ?
           AND letra = ?
           AND sucursal = ?
           AND CONVERT(date, fecha_comprobante) = CONVERT(date, ?)
-    """, EMPRESA, CODIGO, LETRA, SUCURSAL, fecha_comprobante)
+    """, CODIGO, LETRA, SUCURSAL, fecha_comprobante)
     row = cursor.fetchone()
     return int(row[0])
 
@@ -182,10 +180,10 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
 
     try:
         # --- INSERT ventas2 (cabecera) ---
-        # Campos reales de msgestion03.dbo.ventas2
+        # Campos reales de msgestion03.dbo.ventas2 (NO tiene columna 'empresa')
         cursor.execute("""
             INSERT INTO msgestion03.dbo.ventas2 (
-                empresa, codigo, letra, sucursal, numero, orden,
+                codigo, letra, sucursal, numero, orden,
                 deposito, cuenta, denominacion, cuenta_cc,
                 fecha_comprobante, fecha_proceso, fecha_contable,
                 monto_general, importe_neto_ge, monto_exento,
@@ -196,7 +194,7 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
                 financiacion_general, monto_financiacion,
                 iva1, monto_iva1, percepcion
             ) VALUES (
-                ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?,
@@ -208,7 +206,6 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
                 ?, ?, ?
             )
         """,
-            cabecera['empresa'],
             cabecera['codigo'],
             cabecera['letra'],
             cabecera['sucursal'],
@@ -234,28 +231,28 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
             0, 0,  # descuento_general, monto_descuento
             0, 0,  # bonificacion_general, monto_bonificacion
             0, 0,  # financiacion_general, monto_financiacion
-            0, 0,  # iva1, monto_iva1
+            21, None,  # iva1=21%, monto_iva1=NULL (factura B, IVA incluido)
             0,      # percepcion
         )
 
         # --- INSERT ventas1 (detalles) ---
+        # NO tiene columna 'empresa'
         for det in detalles:
             cursor.execute("""
                 INSERT INTO msgestion03.dbo.ventas1 (
-                    empresa, codigo, letra, sucursal, numero, orden,
+                    codigo, letra, sucursal, numero, orden,
                     renglon, articulo, descripcion,
                     precio, cantidad, total_item, unidades, deposito,
                     operacion, estado, estado_stock,
                     precio_costo, codigo_sinonimo, fecha
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
                     ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     ?, ?, ?,
                     ?, ?, ?
                 )
             """,
-                det['empresa'],
                 det['codigo'],
                 det['letra'],
                 det['sucursal'],
@@ -276,6 +273,14 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
                 det['codigo_sinonimo'],
                 det['fecha'],
             )
+
+        # --- Descontar stock por cada línea de venta ---
+        for det in detalles:
+            cursor.execute("""
+                UPDATE msgestion03.dbo.stock
+                SET stock_actual = stock_actual - ?
+                WHERE articulo = ? AND deposito = ?
+            """, det['cantidad'], det['articulo'], det['deposito'])
 
         conn.commit()
 
@@ -320,7 +325,6 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
     monto_general = float(orden.get('total', 0))
 
     cabecera = {
-        'empresa': EMPRESA,
         'codigo': CODIGO,
         'letra': LETRA,
         'sucursal': SUCURSAL,
@@ -364,7 +368,6 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
         renglon += 1
         total_item = round(precio * cantidad, 2)
         detalles.append({
-            'empresa': EMPRESA,
             'codigo': CODIGO,
             'letra': LETRA,
             'sucursal': SUCURSAL,
@@ -380,7 +383,7 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
             'deposito': DEPOSITO,
             'operacion': '+',
             'estado': ESTADO,
-            'estado_stock': 'S',
+            'estado_stock': 'N',
             'precio_costo': art['precio_costo'],
             'codigo_sinonimo': sku,
             'fecha': fecha_comprobante,
