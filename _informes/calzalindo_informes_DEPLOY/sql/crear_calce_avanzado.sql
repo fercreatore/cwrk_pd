@@ -599,7 +599,7 @@ BEGIN
     OUTER APPLY (
         SELECT
             COUNT(DISTINCT s.articulo) AS uds,
-            SUM(s.stock_actual * a.costo) AS costo
+            SUM(s.stock_actual * a.precio_costo) AS costo
         FROM msgestionC.dbo.stock s
         JOIN msgestion01art.dbo.articulo a ON s.articulo = a.codigo
         LEFT JOIN map_subrubro_industria ind ON a.subrubro = ind.subrubro
@@ -619,7 +619,7 @@ BEGIN
     OUTER APPLY (
         SELECT
             COUNT(DISTINCT s.articulo) AS uds,
-            SUM(s.stock_actual * a.costo) AS costo
+            SUM(s.stock_actual * a.precio_costo) AS costo
         FROM msgestionC.dbo.stock s
         JOIN msgestion01art.dbo.articulo a ON s.articulo = a.codigo
         LEFT JOIN map_subrubro_industria ind ON a.subrubro = ind.subrubro

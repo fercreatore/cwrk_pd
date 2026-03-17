@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Ejecuta crear_calce_avanzado.sql en el servidor 112 (replica).
-Separa por GO y ejecuta cada batch.
+Separa por GO y ejecuta cada batch. Usa pyodbc con OpenSSL legacy config.
 """
 import pyodbc
 import sys
@@ -12,10 +12,9 @@ SQL_FILE = os.path.join(os.path.dirname(__file__),
 
 CONN_STR = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.2.112,1433;"
+    "SERVER=192.168.2.111,1433;"
     "DATABASE=omicronvt;"
     "UID=am;PWD=dl;"
-    "TrustServerCertificate=yes;"
 )
 
 def main():
@@ -34,7 +33,6 @@ def main():
             current = []
         else:
             current.append(line)
-    # ultimo batch sin GO final
     if current:
         batch = '\n'.join(current).strip()
         if batch:
@@ -51,7 +49,7 @@ def main():
         print(f"\n--- Batch {i}/{len(batches)}: {first_line}")
         try:
             cursor.execute(batch)
-            # Consumir todos los resultsets (para PRINT y SELECT)
+            # Consumir todos los resultsets
             while True:
                 try:
                     rows = cursor.fetchall()
@@ -59,14 +57,13 @@ def main():
                         for row in rows:
                             print("  ", row)
                 except pyodbc.ProgrammingError:
-                    pass  # no result set (DDL, UPDATE, etc)
+                    pass
                 if not cursor.nextset():
                     break
             print("  OK")
         except Exception as e:
             print(f"  ERROR: {e}")
-            # Continuar con el siguiente batch si es posible
-            if "CREATE PROCEDURE" in batch or "DROP" in batch:
+            if "CREATE PROCEDURE" in batch or "DROP" in batch or "CREATE TABLE" in batch:
                 print("  (continuando...)")
             else:
                 print("  ABORTANDO.")

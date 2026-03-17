@@ -1,0 +1,197 @@
+INSTRUCCIONES PARA CLAUDE CODE — Cambios en app_carga.py y app_h4.py
+======================================================================
+Fecha: 16 de marzo de 2026
+Contexto: Mejorar UX de la app de carga (Streamlit en puerto 8503)
+
+IMPORTANTE: detectar_proveedor_por_texto() en proveedores_db.py ya busca
+en denominacion + nombre_fantasia + marcas via _construir_indice_busqueda().
+NO hace falta tocar proveedores_db.py.
+
+======================================================================
+CAMBIO 1: app_h4.py — Fix link puerto 8502 a 8503
+======================================================================
+
+Buscar donde dice puerto 8502 en el link de "Carga Facturas".
+Cambiar a 8503. Tanto en el st.info como en el href/link.
+
+Ejemplo:
+  st.info("La funcionalidad de carga está disponible en `app_carga.py` (puerto 8503).")
+  Link: http://192.168.2.112:8503
+
+
+======================================================================
+CAMBIO 2: app_carga.py — Default tipo comprobante
+======================================================================
+
+Buscar donde se define tipo_default. Cambiar a:
+
+  tipo_default = 2  # NP por defecto (Nota de Pedido, no Factura)
+
+
+======================================================================
+CAMBIO 3: app_carga.py — Nueva funcion _detectar_proveedor_por_articulos
+======================================================================
+
+Agregar ANTES de la funcion _procesar_excel_auto():
+
+def _detectar_proveedor_por_articulos(codigos: list) -> dict | None:
+    """
+    Dado una lista de codigos de articulo (modelo/referencia del Excel),
+    busca en la BD cual es el proveedor que tiene esos articulos.
+    Retorna dict con config del proveedor o None.
+    """
+    if not codigos:
+        return None
+    try:
+        muestra = codigos[:10]
+        placeholders = ",".join(["?"] * len(muestra))
+        sql = f"""
+            SELECT TOP 1 a.proveedor, COUNT(*) as hits
+            FROM msgestion01art.dbo.articulo a
+            WHERE a.descripcion_1 IN ({placeholders})
+               OR CAST(a.codigo AS VARCHAR) IN ({placeholders})
+            GROUP BY a.proveedor
+            ORDER BY hits DESC
+        """
+        params = muestra + muestra
+        from proveedores_db import _get_conn, obtener_pricing_proveedor, listar_proveedores_activos
+        with _get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+            if row and row.proveedor:
+                provs = listar_proveedores_activos()
+                prov_base = provs.get(row.proveedor)
+                if prov_base:
+                    prov = dict(prov_base)
+                    pricing = obtener_pricing_proveedor(row.proveedor)
+                    prov.update(pricing)
+                    prov["_fuente"] = "articulos BD"
+                    return prov
+    except Exception as e:
+        import logging
+        logging.getLogger("app_carga").warning(f"Error detectando proveedor por articulos: {e}")
+    return None
+
+
+======================================================================
+CAMBIO 4: app_carga.py — Auto-deteccion proveedor en _procesar_excel_auto
+======================================================================
+
+Dentro de _procesar_excel_auto(), al final del bloque de formato horizontal
+(donde hace st.session_state["prov_detectado"] = None y return None, None),
+reemplazar esas 2 lineas por:
+
+        # -- Detectar proveedor desde filename y/o codigos de articulo --
+        prov = None
+        # 1) Por nombre de archivo (ej: "PEDIDO JUANA VA.xlsx")
+        #    detectar_proveedor_por_texto busca en denominacion, nombre_fantasia y marcas
+        if PROVEEDORES_DB_DISPONIBLE:
+            prov = detectar_proveedor_por_texto(filename)
+        # 2) Si no matcheo, buscar por codigos de articulo en la BD
+        if not prov and PROVEEDORES_DB_DISPONIBLE and articulos:
+            codigos = [a["modelo"] for a in articulos if a.get("modelo") and a["modelo"] != "SIN_MODELO"]
+            if codigos:
+                prov = _detectar_proveedor_por_articulos(codigos)
+        if prov:
+            prov["_fuente"] = f"Excel ({prov.get('_fuente', 'auto')})"
+        st.session_state["prov_detectado"] = prov
+        return None, prov
+
+
+======================================================================
+CAMBIO 5: app_carga.py — Selectbox proveedor arranca vacio
+======================================================================
+
+Buscar el bloque del selectbox de proveedor (dentro del else de "if prov_detectado").
+Es el que tiene index=0. Reemplazar TODO el bloque desde "if opciones_prov:"
+hasta "marca_default = prov_config.get('marca', 0)" por:
+
+    if opciones_prov:
+        prov_label = st.sidebar.selectbox(
+            "Proveedor",
+            sorted(opciones_prov.keys()),
+            index=None,
+            placeholder="Seleccionar proveedor...",
+            help=f"Escribi para buscar -- {len(opciones_prov)} proveedores disponibles",
+        )
+        if prov_label:
+            prov_id = opciones_prov[prov_label]
+        else:
+            prov_id = None
+    else:
+        proveedores_lista = {v["nombre"]: k for k, v in PROVEEDORES.items()}
+        prov_nombre_fb = st.sidebar.selectbox("Proveedor (config)", sorted(proveedores_lista.keys()),
+                                              index=None, placeholder="Seleccionar proveedor...")
+        prov_id = proveedores_lista.get(prov_nombre_fb) if prov_nombre_fb else None
+
+    if prov_id:
+        prov_info = provs_data.get(prov_id, {})
+        prov_nombre = prov_info.get("nombre", "")
+        prov_config = PROVEEDORES.get(prov_id)
+        if not prov_config:
+            pricing = obtener_pricing_proveedor(prov_id)
+            prov_config = {"nombre": prov_nombre, **pricing}
+        marca_default = prov_config.get("marca", 0)
+    else:
+        prov_info = {}
+        prov_nombre = ""
+        prov_config = {}
+        marca_default = 0
+        st.sidebar.info("Carga un archivo para detectar el proveedor automaticamente, o selecciona uno de la lista.")
+
+
+======================================================================
+CAMBIO 6: app_carga.py — Guard en sidebar info proveedor
+======================================================================
+
+Buscar el bloque "# Mostrar info del proveedor" con st.sidebar.markdown
+que muestra Nro, CUIT, etc. Envolverlo con:
+
+    if prov_id:
+        st.sidebar.markdown(...)
+        st.sidebar.markdown(...)
+
+(solo mostrar si hay proveedor seleccionado)
+
+
+======================================================================
+CAMBIO 7: app_carga.py — Guards en botones Verificar/Procesar
+======================================================================
+
+En los botones de accion (Verificar Articulos y PROCESAR), agregar
+validacion de que prov_id no sea None antes de ejecutar:
+
+        with col_btn1:
+            if CARGA_DISPONIBLE and st.button("Verificar Articulos", ...):
+                if not prov_id:
+                    st.error("Selecciona un proveedor antes de verificar.")
+                else:
+                    _verificar_articulos(prov_id, marca_default)
+
+        with col_btn2:
+            ...
+            if CARGA_DISPONIBLE and st.button(btn_label, ...):
+                if not prov_id:
+                    st.error("Selecciona un proveedor antes de procesar.")
+                else:
+                    _procesar(prov_id, prov_nombre, marca_default, nro_factura,
+                              fecha_factura, tipo_code, modo_test)
+
+
+======================================================================
+NOTA SOBRE DETECCION POR NOMBRE DE ARCHIVO
+======================================================================
+
+detectar_proveedor_por_texto() ya busca en 3 fuentes via _construir_indice_busqueda():
+  1. denominacion (razon social) - completa + primera palabra si >= 4 chars
+  2. nombre_fantasia - split por - y /, con blacklist de contactos
+  3. marcas (de tabla articulo JOIN marcas, con >= 10 articulos)
+
+Ejemplo: "PEDIDO JUANA VA.xlsx"
+  - "JUANA VA" matchea fantasia del proveedor 938 (55.COM Grupo)
+  - Proveedor 11 con "contacto:juana" queda excluido por blacklist
+  - Proveedor 979 "JUANA Y SUS HERMANAS SRL" matchea "JUANA" (4 chars)
+    pero pierde contra "JUANA VA" (7 chars) por scoring
+
+NO TOCAR proveedores_db.py - ya esta bien.

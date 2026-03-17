@@ -88,6 +88,8 @@ if 'reglas' not in st.session_state:
 st.sidebar.title('📡 Multicanal')
 pagina = st.sidebar.radio('Navegación', [
     '🏠 Dashboard',
+    '📊 Análisis ML',
+    '🛒 Tienda Nube',
     '💰 Simulador de precios',
     '⚙️ Configurar canales',
     '📦 Catálogo ERP',
@@ -134,6 +136,390 @@ if pagina == '🏠 Dashboard':
             if 'error' not in r
         ])
         st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+# ══════════════════════════════════════════════════
+# PÁGINA: Análisis ML
+# ══════════════════════════════════════════════════
+elif pagina == '📊 Análisis ML':
+    st.title('📊 Análisis de Ventas MercadoLibre')
+    st.markdown('Ventas del depósito 1 (ML) — H4 SRL (msgestion03). Datos en vivo del ERP.')
+
+    conn = get_db()
+    if conn:
+        meses_atras = st.sidebar.slider('Meses de historia', 3, 24, 12)
+        comision_ml = st.sidebar.number_input('Comisión ML (%)', value=16.0, step=0.5) / 100
+        cotiz_usd = st.sidebar.number_input('Cotización USD ($)', value=1170.0, step=10.0,
+                                             help='Para artículos importados con costo en dólares (moneda=1)')
+        st.sidebar.caption(f'70 artículos en USD en el ERP. Costo se convierte a $ × {cotiz_usd:,.0f}')
+
+        # Expresión SQL para costo real en pesos (convierte USD si moneda=1)
+        costo_pesos = f"CASE WHEN a.moneda = 1 THEN a.precio_costo * {cotiz_usd} ELSE a.precio_costo END"
+
+        # ── Ventas mensuales ──
+        sql_mensual = f"""
+            SELECT
+                FORMAT(v2.fecha_comprobante, 'yyyy-MM') as mes,
+                COUNT(DISTINCT CAST(v2.numero AS VARCHAR) + '-' + CAST(v2.sucursal AS VARCHAR)) as facturas,
+                SUM(v1.cantidad) as pares,
+                SUM(v1.total_item) as facturacion,
+                SUM(v1.cantidad * ({costo_pesos})) as costo_total,
+                CASE WHEN SUM(v1.total_item) > 0
+                    THEN ROUND((SUM(v1.total_item) - SUM(v1.cantidad * ({costo_pesos}))) / SUM(v1.total_item) * 100, 1)
+                    ELSE 0 END as margen_bruto_pct
+            FROM msgestion03.dbo.ventas2 v2
+            JOIN msgestion03.dbo.ventas1 v1
+                ON v1.numero = v2.numero AND v1.codigo = v2.codigo AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+            LEFT JOIN msgestion01art.dbo.articulo a ON a.codigo = v1.articulo
+            WHERE v2.codigo NOT IN (7, 36)
+            AND v1.deposito = 1
+            AND v2.fecha_comprobante >= DATEADD(MONTH, -{meses_atras}, GETDATE())
+            AND v1.operacion = '+'
+            GROUP BY FORMAT(v2.fecha_comprobante, 'yyyy-MM')
+            ORDER BY mes
+        """
+        try:
+            df_mensual = pd.read_sql(sql_mensual, conn)
+        except Exception as e:
+            st.error(f"Error: {e}")
+            df_mensual = pd.DataFrame()
+
+        if not df_mensual.empty:
+            df_mensual['margen_neto_ml'] = (df_mensual['margen_bruto_pct'] - comision_ml * 100).round(1)
+            df_mensual['ticket_promedio'] = (df_mensual['facturacion'] / df_mensual['pares']).round(0)
+
+            # KPIs
+            total_fact = df_mensual['facturacion'].sum()
+            total_pares = df_mensual['pares'].sum()
+            total_costo = df_mensual['costo_total'].sum()
+            margen_global = round((total_fact - total_costo) / total_fact * 100, 1) if total_fact > 0 else 0
+
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric('Facturación total', f"${total_fact:,.0f}")
+            c2.metric('Pares vendidos', f"{total_pares:,.0f}")
+            c3.metric('Margen bruto', f"{margen_global}%")
+            c4.metric('Margen neto ML', f"{margen_global - comision_ml*100:.1f}%")
+
+            st.divider()
+
+            # Tabla mensual
+            st.subheader('Evolución mensual')
+            df_show = df_mensual.copy()
+            df_show.columns = ['Mes', 'Facturas', 'Pares', 'Facturación', 'Costo', 'Margen bruto %', 'Margen neto ML %', 'Ticket prom']
+            st.dataframe(df_show, use_container_width=True, hide_index=True)
+
+            # Gráficos
+            col_g1, col_g2 = st.columns(2)
+            with col_g1:
+                st.subheader('Facturación mensual')
+                chart_fact = df_mensual[['mes', 'facturacion']].set_index('mes')
+                st.bar_chart(chart_fact)
+            with col_g2:
+                st.subheader('Margen % mensual')
+                chart_margen = df_mensual[['mes', 'margen_bruto_pct', 'margen_neto_ml']].set_index('mes')
+                chart_margen.columns = ['Bruto', 'Neto ML']
+                st.line_chart(chart_margen)
+
+            st.divider()
+
+            # ── Distribución de markup ──
+            st.subheader('Distribución de markup')
+            sql_markup = f"""
+                SELECT
+                    CASE
+                        WHEN ({costo_pesos}) <= 100 THEN '1. SIN COSTO'
+                        WHEN v1.precio / ({costo_pesos}) < 1.5 THEN '2. BAJO (<1.5x)'
+                        WHEN v1.precio / ({costo_pesos}) < 2.0 THEN '3. AJUSTADO (1.5-2x)'
+                        WHEN v1.precio / ({costo_pesos}) < 2.5 THEN '4. NORMAL (2-2.5x)'
+                        WHEN v1.precio / ({costo_pesos}) < 3.0 THEN '5. BUENO (2.5-3x)'
+                        ELSE '6. ALTO (3x+)'
+                    END as rango,
+                    COUNT(*) as ventas,
+                    SUM(v1.cantidad) as pares,
+                    SUM(v1.total_item) as facturacion,
+                    ROUND(AVG(v1.precio), 0) as pvta_prom,
+                    ROUND(AVG({costo_pesos}), 0) as costo_prom
+                FROM msgestion03.dbo.ventas2 v2
+                JOIN msgestion03.dbo.ventas1 v1
+                    ON v1.numero = v2.numero AND v1.codigo = v2.codigo AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+                LEFT JOIN msgestion01art.dbo.articulo a ON a.codigo = v1.articulo
+                WHERE v2.codigo NOT IN (7, 36) AND v1.deposito = 1
+                AND v2.fecha_comprobante >= DATEADD(MONTH, -{meses_atras}, GETDATE())
+                AND v1.operacion = '+' AND a.precio_costo > 0
+                GROUP BY CASE
+                    WHEN ({costo_pesos}) <= 100 THEN '1. SIN COSTO'
+                    WHEN v1.precio / ({costo_pesos}) < 1.5 THEN '2. BAJO (<1.5x)'
+                    WHEN v1.precio / ({costo_pesos}) < 2.0 THEN '3. AJUSTADO (1.5-2x)'
+                    WHEN v1.precio / ({costo_pesos}) < 2.5 THEN '4. NORMAL (2-2.5x)'
+                    WHEN v1.precio / ({costo_pesos}) < 3.0 THEN '5. BUENO (2.5-3x)'
+                    ELSE '6. ALTO (3x+)'
+                END
+                ORDER BY rango
+            """
+            try:
+                df_markup = pd.read_sql(sql_markup, conn)
+                df_markup.columns = ['Rango', 'Ventas', 'Pares', 'Facturación', 'Pvta prom', 'Costo prom']
+                st.dataframe(df_markup, use_container_width=True, hide_index=True)
+
+                # Alerta de sin costo
+                sin_costo = df_markup[df_markup['Rango'] == '1. SIN COSTO']
+                if not sin_costo.empty:
+                    st.warning(f"**{int(sin_costo.iloc[0]['Pares'])} pares** vendidos SIN COSTO REAL cargado "
+                               f"(${sin_costo.iloc[0]['Facturación']:,.0f} facturados). Actualizar precio_costo en el ERP.")
+
+                bajo = df_markup[df_markup['Rango'].isin(['2. BAJO (<1.5x)', '3. AJUSTADO (1.5-2x)'])]
+                if not bajo.empty:
+                    pares_bajo = int(bajo['Pares'].sum())
+                    fact_bajo = bajo['Facturación'].sum()
+                    st.warning(f"**{pares_bajo} pares** con markup < 2x (${fact_bajo:,.0f}). "
+                               f"Margen neto ML < 34%. Revisar precios.")
+            except Exception as e:
+                st.error(f"Error markup: {e}")
+
+            st.divider()
+
+            # ── TOP productos con peor margen ──
+            st.subheader('Productos con menor margen neto ML')
+            st.caption(f'Margen neto = margen bruto - {comision_ml*100:.0f}% comisión ML. Solo productos con 10+ pares vendidos.')
+            sql_peor = f"""
+                SELECT TOP 30
+                    v1.articulo as codigo,
+                    a.descripcion_1,
+                    CASE WHEN a.moneda = 1 THEN 'USD' ELSE '$' END as moneda,
+                    SUM(v1.cantidad) as pares,
+                    SUM(v1.total_item) as facturacion,
+                    ROUND(AVG(v1.precio), 0) as pvta,
+                    ROUND(AVG({costo_pesos}), 0) as costo,
+                    CASE WHEN AVG(v1.precio) > 0
+                        THEN ROUND((AVG(v1.precio) - AVG({costo_pesos})) / AVG(v1.precio) * 100, 1)
+                        ELSE 0 END as margen_bruto,
+                    CASE WHEN AVG(v1.precio) > 0
+                        THEN ROUND((AVG(v1.precio) - AVG({costo_pesos})) / AVG(v1.precio) * 100 - {comision_ml*100}, 1)
+                        ELSE 0 END as margen_neto_ml,
+                    ROUND(AVG(v1.precio) / NULLIF(AVG({costo_pesos}), 0), 2) as markup_x
+                FROM msgestion03.dbo.ventas2 v2
+                JOIN msgestion03.dbo.ventas1 v1
+                    ON v1.numero = v2.numero AND v1.codigo = v2.codigo AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+                LEFT JOIN msgestion01art.dbo.articulo a ON a.codigo = v1.articulo
+                WHERE v2.codigo NOT IN (7, 36) AND v1.deposito = 1
+                AND v2.fecha_comprobante >= DATEADD(MONTH, -{meses_atras}, GETDATE())
+                AND v1.operacion = '+' AND ({costo_pesos}) > 1000
+                GROUP BY v1.articulo, a.descripcion_1, CASE WHEN a.moneda = 1 THEN 'USD' ELSE '$' END
+                HAVING SUM(v1.cantidad) >= 10
+                ORDER BY margen_bruto ASC
+            """
+            try:
+                df_peor = pd.read_sql(sql_peor, conn)
+                df_peor.columns = ['Código', 'Descripción', 'Mon', 'Pares', 'Facturación', 'P.Venta', 'Costo $', 'Margen bruto %', 'Margen neto ML %', 'Markup x']
+                st.dataframe(df_peor, use_container_width=True, hide_index=True)
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+            st.divider()
+
+            # ── TOP productos más vendidos ──
+            st.subheader('TOP productos más vendidos en ML')
+            sql_top = f"""
+                SELECT TOP 30
+                    v1.articulo as codigo,
+                    a.descripcion_1,
+                    CASE WHEN a.moneda = 1 THEN 'USD' ELSE '$' END as moneda,
+                    SUM(v1.cantidad) as pares,
+                    SUM(v1.total_item) as facturacion,
+                    ROUND(AVG(v1.precio), 0) as pvta,
+                    ROUND(AVG({costo_pesos}), 0) as costo,
+                    CASE WHEN AVG(v1.precio) > 0
+                        THEN ROUND((AVG(v1.precio) - AVG({costo_pesos})) / AVG(v1.precio) * 100 - {comision_ml*100}, 1)
+                        ELSE 0 END as margen_neto_ml,
+                    ROUND(AVG(v1.precio) / NULLIF(AVG({costo_pesos}), 0), 2) as markup_x
+                FROM msgestion03.dbo.ventas2 v2
+                JOIN msgestion03.dbo.ventas1 v1
+                    ON v1.numero = v2.numero AND v1.codigo = v2.codigo AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+                LEFT JOIN msgestion01art.dbo.articulo a ON a.codigo = v1.articulo
+                WHERE v2.codigo NOT IN (7, 36) AND v1.deposito = 1
+                AND v2.fecha_comprobante >= DATEADD(MONTH, -{meses_atras}, GETDATE())
+                AND v1.operacion = '+' AND ({costo_pesos}) > 1000
+                GROUP BY v1.articulo, a.descripcion_1, CASE WHEN a.moneda = 1 THEN 'USD' ELSE '$' END
+                HAVING SUM(v1.cantidad) >= 5
+                ORDER BY pares DESC
+            """
+            try:
+                df_top = pd.read_sql(sql_top, conn)
+                df_top.columns = ['Código', 'Descripción', 'Mon', 'Pares', 'Facturación', 'P.Venta', 'Costo $', 'Margen neto ML %', 'Markup x']
+
+                # Colorear margen
+                st.dataframe(df_top, use_container_width=True, hide_index=True)
+
+                # Resumen
+                if not df_top.empty:
+                    st.caption(f"TOP 30: {int(df_top['Pares'].sum())} pares, "
+                               f"${df_top['Facturación'].sum():,.0f} facturados, "
+                               f"margen neto ML promedio: {df_top['Margen neto ML %'].mean():.1f}%")
+            except Exception as e:
+                st.error(f"Error: {e}")
+        else:
+            st.warning('No se encontraron datos de ventas.')
+    else:
+        st.error('No hay conexión a SQL Server. Verificá VPN y credenciales.')
+
+
+# ══════════════════════════════════════════════════
+# PÁGINA: Tienda Nube
+# ══════════════════════════════════════════════════
+elif pagina == '🛒 Tienda Nube':
+    st.title('🛒 Tienda Nube — Calzalindo')
+
+    from multicanal.tiendanube import TiendaNubeClient, guardar_config, cargar_config
+
+    # Config
+    tn_config = cargar_config()
+    with st.sidebar.expander('Credenciales TN', expanded=not tn_config):
+        tn_store = st.text_input('Store ID', value=tn_config.get('store_id', ''), type='default')
+        tn_token = st.text_input('Access Token', value=tn_config.get('access_token', ''), type='password')
+        if st.button('Guardar credenciales'):
+            if tn_store and tn_token:
+                guardar_config(tn_store, tn_token)
+                st.success('Guardado')
+                st.rerun()
+
+    if tn_store and tn_token:
+        try:
+            tn = TiendaNubeClient(store_id=tn_store, access_token=tn_token)
+
+            tab_ordenes, tab_productos, tab_sync = st.tabs(['Ordenes', 'Productos TN', 'Sync ERP'])
+
+            # ── TAB: Órdenes ──
+            with tab_ordenes:
+                st.subheader('Órdenes recientes')
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    filtro_estado = st.selectbox('Estado pago', ['paid', 'pending', 'all'], index=0)
+                with col_f2:
+                    dias = st.slider('Últimos N días', 1, 90, 30)
+
+                from datetime import timedelta
+                fecha_min = (datetime.now() - timedelta(days=dias)).strftime('%Y-%m-%dT00:00:00')
+
+                with st.spinner('Consultando Tienda Nube...'):
+                    try:
+                        ordenes = tn.listar_todas_ordenes(
+                            payment_status=filtro_estado if filtro_estado != 'all' else None,
+                            created_at_min=fecha_min,
+                            max_pages=10,
+                        )
+                        if ordenes:
+                            lineas = tn.mapear_sku_a_erp(ordenes)
+                            df_ord = pd.DataFrame(lineas)
+
+                            # KPIs
+                            c1, c2, c3, c4 = st.columns(4)
+                            c1.metric('Órdenes', len(ordenes))
+                            c2.metric('Items', len(df_ord))
+                            c3.metric('Unidades', int(df_ord['cantidad'].sum()))
+                            total_tn = df_ord['precio'].mul(df_ord['cantidad']).sum()
+                            c4.metric('Facturación', f"${total_tn:,.0f}")
+
+                            st.dataframe(
+                                df_ord[['order_number', 'fecha', 'estado_pago', 'sku', 'nombre', 'cantidad', 'precio']],
+                                use_container_width=True, hide_index=True,
+                            )
+
+                            # SKUs sin vincular
+                            sin_sku = df_ord[df_ord['sku'] == '']
+                            if not sin_sku.empty:
+                                st.warning(f"**{len(sin_sku)} items SIN SKU** — no se pueden vincular al ERP. "
+                                           f"Cargá el SKU en TN (= codigo_sinonimo del ERP).")
+                        else:
+                            st.info('No hay órdenes en el período.')
+                    except requests.exceptions.HTTPError as e:
+                        if e.response is not None and e.response.status_code == 401:
+                            st.error('Token inválido o expirado. Revisá las credenciales en el sidebar.')
+                        else:
+                            st.error(f'Error API: {e}')
+                    except Exception as e:
+                        st.error(f'Error: {e}')
+
+            # ── TAB: Productos TN ──
+            with tab_productos:
+                st.subheader('Productos publicados en Tienda Nube')
+                pagina_tn = st.number_input('Página', value=1, min_value=1, step=1, key='tn_page')
+
+                with st.spinner('Cargando productos...'):
+                    try:
+                        prods = tn.listar_productos(page=int(pagina_tn), per_page=50)
+                        if prods:
+                            filas = []
+                            for p in prods:
+                                nombre = p.get('name', {}).get('es', str(p.get('name', '')))
+                                for v in p.get('variants', []):
+                                    filas.append({
+                                        'ID': p['id'],
+                                        'Nombre': nombre,
+                                        'SKU': v.get('sku', ''),
+                                        'Precio': float(v.get('price', 0)),
+                                        'Stock': v.get('stock', 0),
+                                        'Variante': ' / '.join(
+                                            val.get('es', str(val)) if isinstance(val, dict) else str(val)
+                                            for val in v.get('values', [])
+                                        ),
+                                    })
+                            df_prods = pd.DataFrame(filas)
+                            st.dataframe(df_prods, use_container_width=True, hide_index=True)
+                            st.caption(f'{len(prods)} productos, {len(filas)} variantes')
+                        else:
+                            st.info('No hay productos en esta página.')
+                    except requests.exceptions.HTTPError as e:
+                        if e.response is not None and e.response.status_code == 401:
+                            st.error('Token inválido. Revisá las credenciales.')
+                        else:
+                            st.error(f'Error API: {e}')
+                    except Exception as e:
+                        st.error(f'Error: {e}')
+
+            # ── TAB: Sync ERP ──
+            with tab_sync:
+                st.subheader('Vincular productos TN con ERP')
+                st.markdown("""
+                **Cómo funciona:**
+                1. El campo `SKU` en Tienda Nube debe coincidir con `codigo_sinonimo` del ERP
+                2. Cuando una orden se paga, el sistema busca el artículo por SKU y baja stock
+                3. Los precios se calculan automáticamente con las reglas de canal configuradas
+                """)
+
+                conn = get_db()
+                if conn:
+                    st.markdown('---')
+                    st.caption('Artículos del ERP con sinonimo (potencialmente vinculables)')
+                    sql_vinc = """
+                        SELECT TOP 100 a.codigo, a.codigo_sinonimo, a.descripcion_1,
+                            a.precio_costo, a.moneda,
+                            ISNULL((SELECT SUM(stock_actual) FROM msgestionC.dbo.stock WHERE articulo=a.codigo), 0) as stock_total
+                        FROM msgestion01art.dbo.articulo a
+                        WHERE a.estado IN ('V','U') AND a.precio_costo > 0
+                        AND a.codigo_sinonimo IS NOT NULL AND a.codigo_sinonimo <> ''
+                        AND ISNULL((SELECT SUM(stock_actual) FROM msgestionC.dbo.stock WHERE articulo=a.codigo), 0) > 0
+                        ORDER BY a.codigo DESC
+                    """
+                    try:
+                        df_erp = pd.read_sql(sql_vinc, conn)
+                        st.dataframe(df_erp, use_container_width=True, hide_index=True)
+                        st.caption(f'{len(df_erp)} artículos con stock y sinonimo')
+                    except Exception as e:
+                        st.error(f'Error SQL: {e}')
+                else:
+                    st.warning('Sin conexión al ERP.')
+
+        except Exception as e:
+            st.error(f'Error inicializando cliente TN: {e}')
+    else:
+        st.info('Configurá Store ID y Access Token en el sidebar para conectar con Tienda Nube.')
+        st.markdown("""
+        **Para obtener las credenciales:**
+        1. Entrá a [partners.tiendanube.com](https://partners.tiendanube.com)
+        2. Creá una app privada (nombre: "Calzalindo Sync")
+        3. Permisos: `read_products`, `write_products`, `read_orders`, `write_orders`
+        4. Instalala en tu tienda → te da `store_id` + `access_token`
+        """)
 
 
 # ══════════════════════════════════════════════════

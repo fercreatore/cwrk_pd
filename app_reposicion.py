@@ -13,7 +13,7 @@ Modelo:
   6. Presupuesto como driver → optimizador que sugiere qué comprar primero
 
 EJECUTAR:
-  streamlit run app_reposicion.py
+  streamlit run app_reposicion.py --server.port 8503
 
 Autor: Cowork + Claude — Marzo 2026
 """
@@ -32,6 +32,9 @@ from config import (
     EMPRESA_DEFAULT, calcular_precios, get_conn_string
 )
 from proveedores_db import obtener_pricing_proveedor, listar_proveedores_activos
+
+# PostgreSQL para embeddings (detección de sustitutos)
+PG_CONN_STRING = "postgresql://guille:Martes13%23@200.58.109.125:5432/clz_productos"
 
 # ============================================================================
 # CONSTANTES
@@ -73,7 +76,9 @@ st.markdown("""
     .kpi-box { background: #f8f9fa; border-radius: 8px; padding: 16px;
                border-left: 4px solid #1976d2; margin-bottom: 8px; }
     .waterfall-header { font-size: 13px; font-weight: 600; color: #555; }
-    div[data-testid="stMetric"] { background: #f0f2f6; border-radius: 8px; padding: 10px; }
+    div[data-testid="stMetric"] { background: #262730; border-radius: 8px; padding: 10px; }
+    div[data-testid="stMetric"] label { color: #fafafa !important; }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] { color: #ffffff !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -736,6 +741,357 @@ def insertar_pedido_produccion(proveedor_id, empresa, renglones_df,
 # LOG
 # ============================================================================
 
+# ============================================================================
+# V2: MAPA DE SURTIDO POR CATEGORÍA
+# ============================================================================
+
+SUBRUBRO_DESC = {}  # se carga lazy
+
+@st.cache_data(ttl=600)
+def cargar_subrubro_desc():
+    """Carga descripciones de subrubro desde msgestion01."""
+    sql = "SELECT codigo, RTRIM(descripcion) AS desc1 FROM msgestion01.dbo.subrubro"
+    df = query_df(sql)
+    return {int(r['codigo']): r['desc1'].strip() for _, r in df.iterrows()} if not df.empty else {}
+
+
+RUBRO_GENERO = {1: 'DAMAS', 3: 'HOMBRES', 4: 'NIÑOS', 5: 'NIÑAS', 6: 'UNISEX'}
+
+
+@st.cache_data(ttl=300)
+def cargar_mapa_surtido():
+    """
+    Mapa de surtido: demanda, stock y cobertura por género × categoría (subrubro).
+    Incluye pirámide de precios (3 franjas por categoría).
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql = f"""
+        SELECT
+            a.rubro AS genero_cod,
+            a.subrubro AS sub_cod,
+            COUNT(DISTINCT LEFT(a.codigo_sinonimo, 10)) AS modelos,
+            SUM(ISNULL(s.stk, 0)) AS stock_total,
+            SUM(ISNULL(v.vtas, 0)) AS ventas_12m,
+            MIN(CASE WHEN a.precio_fabrica > 0 THEN a.precio_fabrica END) AS precio_min,
+            MAX(a.precio_fabrica) AS precio_max,
+            AVG(CASE WHEN a.precio_fabrica > 0 THEN a.precio_fabrica END) AS precio_avg
+        FROM msgestion01art.dbo.articulo a
+        LEFT JOIN (
+            SELECT articulo, SUM(stock_actual) AS stk
+            FROM msgestionC.dbo.stock WHERE deposito IN {DEPOS_SQL}
+            GROUP BY articulo
+        ) s ON s.articulo = a.codigo
+        LEFT JOIN (
+            SELECT articulo,
+                   SUM(CASE WHEN operacion='+' THEN cantidad
+                            WHEN operacion='-' THEN -cantidad END) AS vtas
+            FROM msgestionC.dbo.ventas1
+            WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
+            GROUP BY articulo
+        ) v ON v.articulo = a.codigo
+        WHERE a.estado = 'V'
+          AND a.rubro IN (1,3,4,5,6)
+          AND a.subrubro IS NOT NULL AND a.subrubro > 0
+          AND LEN(a.codigo_sinonimo) >= 10
+          AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
+          AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
+        GROUP BY a.rubro, a.subrubro
+        HAVING SUM(ISNULL(v.vtas, 0)) > 0
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['genero'] = df['genero_cod'].map(RUBRO_GENERO).fillna('OTRO')
+    sub_desc = cargar_subrubro_desc()
+    df['categoria'] = df['sub_cod'].map(sub_desc).fillna('?')
+    df['vel_diaria'] = df['ventas_12m'] / 365
+    df['cobertura_dias'] = np.where(
+        df['vel_diaria'] > 0,
+        df['stock_total'] / df['vel_diaria'],
+        999
+    ).astype(int)
+    df['urgencia'] = pd.cut(
+        df['cobertura_dias'],
+        bins=[-1, 30, 60, 120, 9999],
+        labels=['CRITICO', 'BAJO', 'MEDIO', 'OK']
+    )
+    return df.sort_values('ventas_12m', ascending=False)
+
+
+@st.cache_data(ttl=300)
+def cargar_piramide_precios(genero_cod, subrubro_cod):
+    """
+    Pirámide de precios: divide modelos de una categoría en 3 franjas
+    (económica, media, premium) y muestra stock/demanda de cada una.
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               MAX(a.descripcion_1) AS descripcion,
+               MAX(a.marca) AS marca,
+               MAX(a.proveedor) AS proveedor,
+               MAX(a.precio_fabrica) AS precio_fabrica,
+               SUM(ISNULL(s.stk, 0)) AS stock_total,
+               SUM(ISNULL(v.vtas, 0)) AS ventas_12m
+        FROM msgestion01art.dbo.articulo a
+        LEFT JOIN (
+            SELECT articulo, SUM(stock_actual) AS stk
+            FROM msgestionC.dbo.stock WHERE deposito IN {DEPOS_SQL}
+            GROUP BY articulo
+        ) s ON s.articulo = a.codigo
+        LEFT JOIN (
+            SELECT articulo,
+                   SUM(CASE WHEN operacion='+' THEN cantidad
+                            WHEN operacion='-' THEN -cantidad END) AS vtas
+            FROM msgestionC.dbo.ventas1
+            WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
+            GROUP BY articulo
+        ) v ON v.articulo = a.codigo
+        WHERE a.estado = 'V' AND a.rubro = {genero_cod} AND a.subrubro = {subrubro_cod}
+          AND LEN(a.codigo_sinonimo) >= 10
+          AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
+          AND a.precio_fabrica > 0
+          AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df, {}
+
+    df['csr'] = df['csr'].str.strip()
+    df['descripcion'] = df['descripcion'].str.strip()
+    df['stock_total'] = df['stock_total'].astype(float)
+    df['ventas_12m'] = df['ventas_12m'].astype(float)
+    df['precio_fabrica'] = df['precio_fabrica'].astype(float)
+
+    # Dividir en 3 franjas por percentiles
+    try:
+        df['franja'] = pd.qcut(df['precio_fabrica'], q=3,
+                                labels=['ECONOMICA', 'MEDIA', 'PREMIUM'],
+                                duplicates='drop')
+    except ValueError:
+        df['franja'] = 'UNICA'
+
+    # Resumen por franja
+    resumen = df.groupby('franja', observed=True).agg(
+        modelos=('csr', 'count'),
+        stock=('stock_total', 'sum'),
+        ventas=('ventas_12m', 'sum'),
+        precio_min=('precio_fabrica', 'min'),
+        precio_max=('precio_fabrica', 'max'),
+    ).to_dict('index')
+
+    # Agregar cobertura a cada franja
+    for franja, datos in resumen.items():
+        vel = datos['ventas'] / 365 if datos['ventas'] > 0 else 0
+        datos['cobertura_dias'] = int(datos['stock'] / vel) if vel > 0 else 999
+
+    return df, resumen
+
+
+# ============================================================================
+# V2: ANÁLISIS POR TALLE (drill-down dentro de categoría)
+# ============================================================================
+
+@st.cache_data(ttl=300)
+def cargar_talles_categoria(genero_cod, subrubro_cod):
+    """
+    Análisis por talle individual dentro de una categoría (género × subrubro).
+    Usa descripcion_5 como talle principal, últimos 2 del sinónimo como fallback.
+    Retorna DataFrame con: talle, modelos, stock, ventas_12m, cobertura_dias, urgencia.
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql = f"""
+        SELECT
+            COALESCE(
+                NULLIF(RTRIM(a.descripcion_5), ''),
+                CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
+                     THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
+            ) AS talle,
+            COUNT(DISTINCT a.codigo) AS modelos,
+            SUM(ISNULL(s.stk, 0)) AS stock,
+            SUM(ISNULL(v.vtas, 0)) AS vtas_12m
+        FROM msgestion01art.dbo.articulo a
+        LEFT JOIN (
+            SELECT articulo, SUM(stock_actual) AS stk
+            FROM msgestionC.dbo.stock WHERE deposito IN {DEPOS_SQL}
+            GROUP BY articulo
+        ) s ON s.articulo = a.codigo
+        LEFT JOIN (
+            SELECT articulo,
+                   SUM(CASE WHEN operacion='+' THEN cantidad
+                            WHEN operacion='-' THEN -cantidad END) AS vtas
+            FROM msgestionC.dbo.ventas1
+            WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
+            GROUP BY articulo
+        ) v ON v.articulo = a.codigo
+        WHERE a.estado = 'V'
+          AND a.rubro = {genero_cod}
+          AND a.subrubro = {subrubro_cod}
+          AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
+        GROUP BY COALESCE(
+            NULLIF(RTRIM(a.descripcion_5), ''),
+            CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
+                 THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
+        )
+        HAVING COALESCE(
+            NULLIF(RTRIM(a.descripcion_5), ''),
+            CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
+                 THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
+        ) IS NOT NULL
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    # Intentar ordenar numéricamente
+    df['talle_num'] = pd.to_numeric(df['talle'], errors='coerce')
+    df = df.sort_values('talle_num', na_position='last').drop(columns='talle_num')
+
+    df['vel_diaria'] = df['vtas_12m'] / 365
+    cob_raw = np.where(
+        df['vel_diaria'] > 0,
+        df['stock'] / df['vel_diaria'],
+        np.where(df['stock'] > 0, 9999, 0)
+    )
+    df['cob_dias'] = np.nan_to_num(cob_raw, nan=0, posinf=9999, neginf=0).astype(int)
+    df['urgencia'] = df['cob_dias'].apply(
+        lambda d: 'CRITICO' if d <= 30 else ('BAJO' if d <= 60 else ('MEDIO' if d <= 120 else 'OK'))
+    )
+    # Caso especial: tiene demanda pero 0 stock = CRITICO
+    df.loc[(df['vtas_12m'] > 0) & (df['stock'] == 0), 'urgencia'] = 'CRITICO'
+    df.loc[(df['vtas_12m'] > 0) & (df['stock'] == 0), 'cob_dias'] = 0
+
+    return df.reset_index(drop=True)
+
+
+# ============================================================================
+# V2: DETECCIÓN DE SUSTITUTOS (embeddings PostgreSQL)
+# ============================================================================
+
+def get_pg_conn():
+    """Conexión a PostgreSQL para embeddings."""
+    try:
+        import psycopg2
+        return psycopg2.connect(PG_CONN_STRING)
+    except Exception as e:
+        st.warning(f"Sin conexión a PostgreSQL (sustitutos no disponibles): {e}")
+        return None
+
+
+def buscar_sustitutos_embedding(codigo_mg, subrubro_cod, top_n=5):
+    """
+    Dado un artículo (por codigo de MS Gestión), busca los top_n más similares
+    en la misma categoría (subrubro) usando embeddings.
+
+    Link: producto_variantes.codigo_mg → productos.id (via producto_id)
+    """
+    conn = get_pg_conn()
+    if not conn:
+        return []
+
+    try:
+        cur = conn.cursor()
+        # Encontrar el producto_id via variante
+        cur.execute("""
+            SELECT DISTINCT p.id
+            FROM producto_variantes pv
+            JOIN productos p ON p.id = pv.producto_id
+            WHERE pv.codigo_mg = %s AND p.embedding IS NOT NULL
+            LIMIT 1
+        """, (codigo_mg,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return []
+
+        prod_id = row[0]
+
+        # Buscar sustitutos en el mismo subrubro
+        cur.execute("""
+            SELECT p.id, p.nombre, p.familia_id, p.activo,
+                   1 - (p.embedding <=> ref.embedding) AS similitud
+            FROM productos p, productos ref
+            WHERE ref.id = %s
+              AND p.id != ref.id
+              AND p.embedding IS NOT NULL
+              AND p.subrubro_id = (SELECT id FROM prod_subrubros WHERE codigo_mg = %s LIMIT 1)
+              AND p.activo = true
+            ORDER BY p.embedding <=> ref.embedding
+            LIMIT %s
+        """, (prod_id, subrubro_cod, top_n))
+
+        resultados = []
+        for r in cur.fetchall():
+            # Obtener un codigo_mg de las variantes de este producto
+            cur.execute(
+                "SELECT codigo_mg FROM producto_variantes WHERE producto_id = %s AND codigo_mg IS NOT NULL LIMIT 1",
+                (r[0],)
+            )
+            var = cur.fetchone()
+            cod_mg = var[0] if var else None
+
+            resultados.append({
+                'pg_id': r[0],
+                'nombre': r[1],
+                'familia_id': r[2],
+                'activo': r[3],
+                'similitud': round(r[4], 4),
+                'codigo_mg': cod_mg,
+            })
+
+        conn.close()
+        return resultados
+    except Exception as e:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return []
+
+
+def buscar_sustitutos_activos_con_stock(codigo_mg, subrubro_cod):
+    """
+    Busca sustitutos por embedding Y verifica si tienen stock en SQL Server.
+    Retorna solo los que tienen stock > 0.
+    """
+    sustitutos = buscar_sustitutos_embedding(codigo_mg, subrubro_cod)
+    if not sustitutos:
+        return []
+
+    codigos = [s['codigo_mg'] for s in sustitutos if s['codigo_mg']]
+    if not codigos:
+        return []
+
+    filtro = ",".join(str(c) for c in codigos)
+    sql = f"""
+        SELECT a.codigo, RTRIM(a.descripcion_1) AS desc1,
+               a.precio_fabrica,
+               ISNULL(SUM(s.stock_actual), 0) AS stock
+        FROM msgestion01art.dbo.articulo a
+        LEFT JOIN msgestionC.dbo.stock s ON s.articulo = a.codigo AND s.deposito IN {DEPOS_SQL}
+        WHERE a.codigo IN ({filtro}) AND a.estado = 'V'
+        GROUP BY a.codigo, a.descripcion_1, a.precio_fabrica
+        HAVING ISNULL(SUM(s.stock_actual), 0) > 0
+    """
+    df = query_df(sql)
+
+    resultado = []
+    for s in sustitutos:
+        if not s['codigo_mg']:
+            continue
+        match = df[df['codigo'] == s['codigo_mg']]
+        if not match.empty:
+            r = match.iloc[0]
+            s['stock'] = int(r['stock'])
+            s['precio_fabrica'] = float(r['precio_fabrica'] or 0)
+            s['desc_mg'] = r['desc1']
+            resultado.append(s)
+
+    return resultado
+
+
 def guardar_log(entry):
     log = cargar_log()
     log.append(entry)
@@ -860,10 +1216,270 @@ def render_dashboard():
     st.sidebar.markdown(f"**{len(df_f)} productos**")
 
     # ── TABS ──
-    tab_dashboard, tab_waterfall, tab_optimizar, tab_pedido, tab_historial = st.tabs([
-        "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
+    tab_surtido, tab_dashboard, tab_waterfall, tab_optimizar, tab_pedido, tab_historial = st.tabs([
+        "🗺️ Mapa Surtido", "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
         "🛒 Armar Pedido", "📋 Historial"
     ])
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 0: MAPA DE SURTIDO POR CATEGORÍA (V2)
+    # ══════════════════════════════════════════════════════════════
+    with tab_surtido:
+        st.subheader("Mapa de Surtido por Categoria")
+        st.caption("Cobertura por genero x subrubro. Rojo = menos de 30 dias. Drill-down a piramide de precios y sustitutos.")
+
+        with st.spinner("Cargando mapa de surtido..."):
+            df_mapa = cargar_mapa_surtido()
+
+        if df_mapa.empty:
+            st.warning("No se pudo cargar el mapa de surtido.")
+        else:
+            # KPIs globales del surtido
+            c1, c2, c3, c4 = st.columns(4)
+            criticos_cat = len(df_mapa[df_mapa['urgencia'] == 'CRITICO'])
+            bajos_cat = len(df_mapa[df_mapa['urgencia'] == 'BAJO'])
+            c1.metric("Categorias activas", len(df_mapa))
+            c2.metric("CRITICAS (<30d)", criticos_cat)
+            c3.metric("BAJAS (30-60d)", bajos_cat)
+            c4.metric("Stock total (pares)", f"{int(df_mapa['stock_total'].sum()):,}")
+
+            st.divider()
+
+            # Filtros
+            fc1, fc2, fc3 = st.columns(3)
+            with fc1:
+                generos_disp = sorted(df_mapa['genero'].unique())
+                genero_filtro = st.multiselect("Filtrar genero", generos_disp,
+                                                default=generos_disp, key="surtido_genero")
+            df_vis = df_mapa[df_mapa['genero'].isin(genero_filtro)].copy()
+            with fc2:
+                cats_disp = sorted(df_vis['categoria'].unique())
+                cat_filtro = st.multiselect("Filtrar categoria", cats_disp,
+                                             default=cats_disp, key="surtido_cat")
+            df_vis = df_vis[df_vis['categoria'].isin(cat_filtro)].copy()
+            with fc3:
+                urgencias_disp = sorted(df_vis['urgencia'].dropna().unique())
+                urg_filtro = st.multiselect("Filtrar urgencia", urgencias_disp,
+                                             default=urgencias_disp, key="surtido_urg")
+            df_vis = df_vis[df_vis['urgencia'].isin(urg_filtro)].copy()
+
+            # Tabla principal
+            st.dataframe(
+                df_vis[['genero', 'categoria', 'modelos', 'stock_total', 'ventas_12m',
+                        'cobertura_dias', 'urgencia', 'precio_min', 'precio_max']],
+                column_config={
+                    'genero': st.column_config.TextColumn('Genero', width=90),
+                    'categoria': st.column_config.TextColumn('Categoria', width=180),
+                    'modelos': st.column_config.NumberColumn('Modelos', format="%d"),
+                    'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
+                    'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                    'cobertura_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
+                    'urgencia': 'Urgencia',
+                    'precio_min': st.column_config.NumberColumn('P.Min', format="$%.0f"),
+                    'precio_max': st.column_config.NumberColumn('P.Max', format="$%.0f"),
+                },
+                use_container_width=True, hide_index=True,
+            )
+
+            st.divider()
+
+            # ── DRILL-DOWN: selección de categoría ──
+            st.subheader("Drill-down por categoria")
+
+            opciones_cat = df_vis.apply(
+                lambda r: f"{r['genero']} > {r['categoria']} ({int(r['ventas_12m'])} vtas, cob {r['cobertura_dias']}d)",
+                axis=1
+            ).tolist()
+
+            if opciones_cat:
+                idx_cat = st.selectbox("Categoria", range(len(opciones_cat)),
+                                        format_func=lambda i: opciones_cat[i],
+                                        key="piramide_cat")
+                row_cat = df_vis.iloc[idx_cat]
+                genero_sel = int(row_cat['genero_cod'])
+                sub_sel = int(row_cat['sub_cod'])
+
+                # ── ANÁLISIS POR TALLE ──
+                st.markdown("#### Cobertura por talle")
+                st.caption("Cada talle individual con su semaforo. Rojo = stock 0 con demanda o menos de 30 dias.")
+
+                with st.spinner("Cargando talles..."):
+                    df_talles = cargar_talles_categoria(genero_sel, sub_sel)
+
+                if not df_talles.empty:
+                    # Semáforo visual rápido en columnas
+                    criticos_t = df_talles[df_talles['urgencia'] == 'CRITICO']
+                    bajos_t = df_talles[df_talles['urgencia'] == 'BAJO']
+                    tc1, tc2, tc3 = st.columns(3)
+                    tc1.metric("Talles criticos", len(criticos_t))
+                    tc2.metric("Talles bajos", len(bajos_t))
+                    tc3.metric("Total talles", len(df_talles))
+
+                    if not criticos_t.empty:
+                        talles_crit_str = ", ".join(criticos_t['talle'].tolist())
+                        st.error(f"TALLES SIN COBERTURA: {talles_crit_str}")
+
+                    # Tabla de talles
+                    def color_urgencia(val):
+                        colors = {'CRITICO': 'background-color: #ff4b4b; color: white',
+                                  'BAJO': 'background-color: #ffa726; color: white',
+                                  'MEDIO': 'background-color: #ffee58; color: black',
+                                  'OK': 'background-color: #66bb6a; color: white'}
+                        return colors.get(val, '')
+
+                    st.dataframe(
+                        df_talles[['talle', 'modelos', 'stock', 'vtas_12m', 'cob_dias', 'urgencia']].style.applymap(
+                            color_urgencia, subset=['urgencia']
+                        ),
+                        column_config={
+                            'talle': st.column_config.TextColumn('Talle', width=60),
+                            'modelos': st.column_config.NumberColumn('Modelos', format="%d"),
+                            'stock': st.column_config.NumberColumn('Stock', format="%d"),
+                            'vtas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                            'cob_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
+                            'urgencia': 'Urgencia',
+                        },
+                        use_container_width=True, hide_index=True,
+                    )
+                else:
+                    st.info("Sin datos de talle para esta categoria.")
+
+                st.divider()
+
+                # ── PIRÁMIDE DE PRECIOS ──
+                st.markdown("#### Piramide de precios")
+
+                if st.button("Analizar piramide + sustitutos", type="primary", key="btn_piramide"):
+                    with st.spinner("Cargando piramide de precios..."):
+                        df_pir, resumen_franjas = cargar_piramide_precios(genero_sel, sub_sel)
+
+                        if df_pir.empty:
+                            st.info("No hay datos suficientes para esta categoria.")
+                        else:
+                            st.session_state['piramide_data'] = {
+                                'df': df_pir, 'resumen': resumen_franjas,
+                                'genero_cod': genero_sel, 'sub_cod': sub_sel,
+                                'cat_nombre': f"{row_cat['genero']} > {row_cat['categoria']}"
+                            }
+
+                # Mostrar pirámide si hay datos
+                if 'piramide_data' in st.session_state:
+                    pdata = st.session_state['piramide_data']
+                    df_pir = pdata['df']
+                    resumen_franjas = pdata['resumen']
+
+                    st.markdown(f"#### {pdata['cat_nombre']}")
+
+                    # Semáforo por franja
+                    cols_fr = st.columns(len(resumen_franjas))
+                    for i, (franja, datos) in enumerate(resumen_franjas.items()):
+                        cob = datos['cobertura_dias']
+                        if cob < 30:
+                            color = "🔴"
+                            estado = "CRITICO"
+                        elif cob < 60:
+                            color = "🟡"
+                            estado = "BAJO"
+                        else:
+                            color = "🟢"
+                            estado = "OK"
+
+                        with cols_fr[i]:
+                            st.markdown(f"**{franja}** {color}")
+                            st.markdown(f"${datos['precio_min']:,.0f} - ${datos['precio_max']:,.0f}")
+                            st.metric("Cobertura", f"{cob} dias")
+                            st.caption(f"{datos['modelos']} modelos | {int(datos['stock'])} stock | {int(datos['ventas'])} vtas")
+
+                    st.divider()
+
+                    # Tabla detallada por modelo
+                    marcas_d = cargar_marcas_dict()
+                    df_pir['marca_desc'] = df_pir['marca'].map(
+                        lambda x: marcas_d.get(int(x), f"#{int(x)}") if pd.notna(x) else "?"
+                    )
+                    df_pir['vel_dia'] = df_pir['ventas_12m'] / 365
+                    df_pir['cob_dias'] = np.where(
+                        df_pir['vel_dia'] > 0,
+                        df_pir['stock_total'] / df_pir['vel_dia'],
+                        999
+                    ).astype(int)
+
+                    st.dataframe(
+                        df_pir[['descripcion', 'marca_desc', 'franja', 'precio_fabrica',
+                                'stock_total', 'ventas_12m', 'cob_dias']].sort_values('cob_dias'),
+                        column_config={
+                            'descripcion': st.column_config.TextColumn('Producto', width=250),
+                            'marca_desc': 'Marca',
+                            'franja': 'Franja',
+                            'precio_fabrica': st.column_config.NumberColumn('Precio', format="$%.0f"),
+                            'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
+                            'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                            'cob_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
+                        },
+                        use_container_width=True, hide_index=True,
+                    )
+
+                    # ── Sustitutos por embedding ──
+                    st.divider()
+                    st.subheader("Deteccion de sustitutos (IA)")
+                    st.caption("Selecciona un modelo para buscar sustitutos similares por embedding")
+
+                    # Mostrar solo los más urgentes (baja cobertura)
+                    df_urgentes = df_pir[df_pir['cob_dias'] < 60].sort_values('cob_dias')
+                    if df_urgentes.empty:
+                        st.success("Todos los modelos de esta categoria tienen buena cobertura (>60 dias).")
+                    else:
+                        opciones_sust = df_urgentes.apply(
+                            lambda r: f"{r['descripcion'][:45]} | {r['marca_desc']} | Stock:{int(r['stock_total'])} | Cob:{r['cob_dias']}d",
+                            axis=1
+                        ).tolist()
+                        codigos_sust = df_urgentes['csr'].tolist()
+
+                        idx_sust = st.selectbox("Modelo urgente", range(len(opciones_sust)),
+                                                 format_func=lambda i: opciones_sust[i],
+                                                 key="sust_modelo")
+
+                        if st.button("Buscar sustitutos", key="btn_sust"):
+                            csr_sust = codigos_sust[idx_sust]
+                            # Obtener un codigo MG del CSR
+                            sql_cod = f"""
+                                SELECT TOP 1 a.codigo FROM msgestion01art.dbo.articulo a
+                                WHERE LEFT(a.codigo_sinonimo, 10) = '{csr_sust}'
+                                  AND a.estado = 'V'
+                            """
+                            df_cod = query_df(sql_cod)
+                            if not df_cod.empty:
+                                codigo_mg = int(df_cod.iloc[0]['codigo'])
+                                with st.spinner("Buscando sustitutos por embedding..."):
+                                    sust = buscar_sustitutos_activos_con_stock(
+                                        codigo_mg, pdata['sub_cod']
+                                    )
+                                    if sust:
+                                        st.markdown("**Sustitutos activos con stock:**")
+                                        df_sust = pd.DataFrame(sust)
+                                        st.dataframe(
+                                            df_sust[['desc_mg', 'similitud', 'stock', 'precio_fabrica']],
+                                            column_config={
+                                                'desc_mg': st.column_config.TextColumn('Sustituto', width=280),
+                                                'similitud': st.column_config.NumberColumn('Similitud', format="%.2f"),
+                                                'stock': st.column_config.NumberColumn('Stock', format="%d"),
+                                                'precio_fabrica': st.column_config.NumberColumn('Precio', format="$%.0f"),
+                                            },
+                                            use_container_width=True, hide_index=True,
+                                        )
+
+                                        # Veredicto
+                                        st.info(
+                                            f"Hay {len(sust)} sustitutos activos con stock. "
+                                            f"Antes de reponer este modelo, evalua si los sustitutos cubren la demanda."
+                                        )
+                                    else:
+                                        st.warning(
+                                            "No se encontraron sustitutos activos con stock. "
+                                            "Este modelo necesita reposicion."
+                                        )
+                            else:
+                                st.error("No se encontro el codigo del producto.")
 
     # ══════════════════════════════════════════════════════════════
     # TAB 1: DASHBOARD GLOBAL

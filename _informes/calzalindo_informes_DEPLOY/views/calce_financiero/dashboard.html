@@ -662,6 +662,175 @@
     </div>
     {{pass}}
 
+    <!-- ================================================================= -->
+    <!-- DEUDA COMPLETA: FUNNEL + PAGOS POR MEDIO -->
+    <!-- ================================================================= -->
+    {{if funnel_deuda:}}
+    <div class="panel panel-danger panel-calce" style="margin-top: 20px;">
+        <div class="panel-heading">
+            <strong><i class="glyphicon glyphicon-warning-sign"></i> Deuda Completa con Proveedores — Pelicula Financiera</strong>
+            <span class="badge" style="background:#dc3545;">CRITICO</span>
+        </div>
+        <div class="panel-body" style="padding: 15px;">
+            <!-- FUNNEL KPIs -->
+            <div class="kpi-row">
+                <div class="kpi-card azul">
+                    <h5>COMPROMETIDO (PEDIDOS)</h5>
+                    <div class="valor">{{=fmt(kpi_comp.get('total_monto', 0))}}</div>
+                    <div class="sub">Notas de pedido vigentes</div>
+                </div>
+                <div class="kpi-card naranja" style="border-top-color: #e67e22;">
+                    <h5>REMITOS SIN FACTURAR</h5>
+                    <div class="valor">{{=fmt(funnel_deuda.get('remitos_sin_facturar', 0))}}</div>
+                    <div class="sub">{{=funnel_deuda.get('remitos_cant', 0)}} remitos pendientes</div>
+                </div>
+                <div class="kpi-card rojo">
+                    <h5>DEUDA NETA REAL</h5>
+                    <div class="valor">{{=fmt(funnel_deuda.get('saldo_vivo', 0))}}</div>
+                    <div class="sub">{{=funnel_deuda.get('facturas_cant', 0)}} proveedores con saldo</div>
+                </div>
+                <div class="kpi-card" style="border-top-color: #27ae60;">
+                    <h5>PAGO SEMANAL PROM.</h5>
+                    {{if pagos_recientes:}}
+                    {{prom_sem = sum(float(p.get('total', 0)) for p in pagos_recientes) / len(pagos_recientes)}}
+                    <div class="valor" style="color:#27ae60;">{{=fmt(prom_sem)}}</div>
+                    <div class="sub">Ultimas {{=len(pagos_recientes)}} semanas</div>
+                    {{else:}}
+                    <div class="valor" style="color:#27ae60;">$ 0</div>
+                    <div class="sub">Sin datos</div>
+                    {{pass}}
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- TOP PROVEEDORES POR DEUDA -->
+                <div class="col-md-7">
+                    {{if deuda_proveedores:}}
+                    <h5 style="margin-top:0;"><strong>Top Proveedores por Saldo Vivo</strong></h5>
+                    <table class="table table-condensed tabla-matriz" style="font-size: 11px;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Proveedor</th>
+                                <th style="text-align:right;">Saldo Vivo</th>
+                                <th style="text-align:center;">Comp.</th>
+                                <th style="width:30%;">% del Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{for i, dp in enumerate(deuda_proveedores):}}
+                            <tr>
+                                <td>{{=i+1}}</td>
+                                <td>{{=html(dp.get('proveedor', ''))}}</td>
+                                <td style="text-align:right; font-weight:bold;">{{=fmt(dp.get('saldo_vivo', 0))}}</td>
+                                <td style="text-align:center;">{{=dp.get('comprobantes', 0)}}</td>
+                                <td>
+                                    {{pct_d = dp.get('saldo_vivo', 0) * 100.0 / funnel_deuda.get('saldo_vivo', 1) if funnel_deuda.get('saldo_vivo', 0) > 0 else 0}}
+                                    <div class="barra-progreso">
+                                        <div class="barra-fill" style="width:{{=min(pct_d, 100)}}%; background:{{='#dc3545' if pct_d > 10 else '#fd7e14' if pct_d > 5 else '#28a745'}};"></div>
+                                    </div>
+                                    <small>{{="%.1f" % pct_d}}%</small>
+                                </td>
+                            </tr>
+                        {{pass}}
+                        </tbody>
+                    </table>
+                    {{pass}}
+                </div>
+
+                <!-- PAGOS POR MEDIO -->
+                <div class="col-md-5">
+                    {{if pagos_por_medio:}}
+                    <h5 style="margin-top:0;"><strong>Pagos Ultimos 6 Meses por Medio</strong></h5>
+                    <table class="table table-condensed" style="font-size: 11px;">
+                        <thead>
+                            <tr style="background:#343a40; color:#fff;">
+                                <th>Medio de Pago</th>
+                                <th style="text-align:right;">Total</th>
+                                <th style="text-align:center;">Cant</th>
+                                <th style="width:25%;">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{_total_pagos = sum(p.get('total_pagado', 0) for p in pagos_por_medio)}}
+                        {{for pm in pagos_por_medio:}}
+                            <tr>
+                                <td>
+                                    {{_cod = pm.get('cod_medio', 0)}}
+                                    {{if _cod == 1:}}
+                                        <span style="color:#007bff;"><i class="glyphicon glyphicon-transfer"></i></span>
+                                    {{elif _cod == 14:}}
+                                        <span style="color:#28a745;"><i class="glyphicon glyphicon-usd"></i></span>
+                                    {{elif _cod == 3:}}
+                                        <span style="color:#fd7e14;"><i class="glyphicon glyphicon-file"></i></span>
+                                    {{else:}}
+                                        <span style="color:#6c757d;"><i class="glyphicon glyphicon-credit-card"></i></span>
+                                    {{pass}}
+                                    {{=pm.get('medio_pago', '')}}
+                                </td>
+                                <td style="text-align:right; font-weight:bold;">{{=fmt(pm.get('total_pagado', 0))}}</td>
+                                <td style="text-align:center;">{{=pm.get('cant', 0)}}</td>
+                                <td>
+                                    {{_pct_p = pm.get('total_pagado', 0) * 100.0 / _total_pagos if _total_pagos > 0 else 0}}
+                                    <div class="barra-progreso">
+                                        <div class="barra-fill" style="width:{{=min(_pct_p, 100)}}%; background:#007bff;"></div>
+                                    </div>
+                                    <small>{{="%.1f" % _pct_p}}%</small>
+                                </td>
+                            </tr>
+                        {{pass}}
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight:bold; background:#f1f1f1;">
+                                <td>TOTAL</td>
+                                <td style="text-align:right;">{{=fmt(_total_pagos)}}</td>
+                                <td style="text-align:center;">{{=sum(p.get('cant', 0) for p in pagos_por_medio)}}</td>
+                                <td>100%</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    {{pass}}
+
+                    {{if pagos_recientes:}}
+                    <h5><strong>Pagos por Semana (ult. 4 semanas)</strong></h5>
+                    <table class="table table-condensed" style="font-size: 11px;">
+                        <thead>
+                            <tr style="background:#343a40; color:#fff;">
+                                <th>Sem</th>
+                                <th style="text-align:right;">Total</th>
+                                <th style="text-align:center;">Ops</th>
+                                <th style="text-align:center;">Provs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{for pr in pagos_recientes:}}
+                            <tr>
+                                <td>{{=pr.get('semana', '')}}</td>
+                                <td style="text-align:right; font-weight:bold;">{{=fmt(pr.get('total', 0))}}</td>
+                                <td style="text-align:center;">{{=pr.get('cant', 0)}}</td>
+                                <td style="text-align:center;">{{=pr.get('proveedores', 0)}}</td>
+                            </tr>
+                        {{pass}}
+                        </tbody>
+                    </table>
+                    {{pass}}
+                </div>
+            </div>
+
+            <!-- ALERTA RESUMEN -->
+            <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:10px; margin-top:10px; font-size:12px;">
+                <strong><i class="glyphicon glyphicon-exclamation-sign" style="color:#856404;"></i> Resumen:</strong>
+                Remitos sin factura: <strong>{{=fmt(funnel_deuda.get('remitos_sin_facturar', 0))}}</strong> |
+                <span style="color:#c0392b; font-weight:bold;">Deuda neta real: {{=fmt(funnel_deuda.get('saldo_vivo', 0))}}</span>
+                ({{=funnel_deuda.get('facturas_cant', 0)}} proveedores) |
+                {{if pagos_recientes:}}
+                Ritmo de pago: <strong>{{=fmt(sum(float(p.get('total', 0)) for p in pagos_recientes) / len(pagos_recientes))}}/sem</strong>
+                {{pass}}
+            </div>
+        </div>
+    </div>
+    {{pass}}
+
     <!-- LEYENDA -->
     <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 12px; color: #666;">
         <strong>Como leer este informe:</strong>

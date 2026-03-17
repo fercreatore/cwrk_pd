@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub", "--dsn", "postgresql://guille:Martes13%23@200.58.109.125:5432/clz_productos"]
+    },
+    "n8n": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--streamableHttp",
+        "https://n8n.calzalindo.com.ar/mcp-server/http",
+        "--header",
+        "authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmNTQwMWRmYy05YjI1LTRhZmUtOGIzNC1kOTMxYTM2ZTg5ODYiLCJpc3MiOiJuOG4iLCJhdWQiOiJtY3Atc2VydmVyLWFwaSIsImp0aSI6IjQ0MDk4ODk4LTg2MDMtNDc4NC1hMDgyLWRlZDVlZTE5YzE3ZiIsImlhdCI6MTc3MzcxNDgyN30.9ERddhdk3SbUz6_ps8lCSyLunXjxi-goKJYBlsJZVVE"
+      ]
+    }
+  }
+}

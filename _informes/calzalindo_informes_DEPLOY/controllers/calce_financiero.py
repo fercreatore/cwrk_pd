@@ -609,6 +609,134 @@ def dashboard():
         except:
             pass
 
+    # =========================================================================
+    # BLOQUE 12: FUNNEL DE DEUDA COMPLETA
+    # Pedidos → Remitos sin facturar → Facturas impagas → Saldo vivo
+    # =========================================================================
+    funnel_deuda = {}
+    deuda_proveedores = []
+    if dbC:
+        try:
+            # Remitos de compra sin facturar (codigo=4, estado_cc='0' o '1')
+            sql_remitos = """
+            SELECT COUNT(*) as cant,
+                   ISNULL(SUM(monto_general), 0) as total
+            FROM compras2
+            WHERE codigo = 4
+              AND estado = 'V'
+              AND ISNULL(estado_cc, '0') IN ('0', '1')
+              AND fecha_comprobante >= '2025-01-01'
+            """
+            r_rem = dbC.executesql(sql_remitos, as_dict=True)
+            if r_rem:
+                funnel_deuda['remitos_sin_facturar'] = float(r_rem[0].get('total') or 0)
+                funnel_deuda['remitos_cant'] = int(r_rem[0].get('cant') or 0)
+
+            # Saldo NETO por proveedor (debe - haber real)
+            # Resuelve: OP sin vincular a facturas individuales
+            # Si un proveedor tiene debe=$50M y haber=$50M, saldo=0 (cancelado)
+            sql_saldo_neto = """
+            SELECT COUNT(*) as proveedores_con_deuda,
+                   ISNULL(SUM(saldo_neto), 0) as saldo_vivo
+            FROM (
+                SELECT numero_cuenta,
+                       SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) as saldo_neto
+                FROM moviprov1
+                GROUP BY numero_cuenta
+                HAVING SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) > 100
+            ) neto
+            """
+            r_sal = dbC.executesql(sql_saldo_neto, as_dict=True)
+            if r_sal:
+                funnel_deuda['saldo_vivo'] = float(r_sal[0].get('saldo_vivo') or 0)
+                funnel_deuda['facturas_cant'] = int(r_sal[0].get('proveedores_con_deuda') or 0)
+                funnel_deuda['facturas_impagas'] = funnel_deuda['saldo_vivo']
+
+            # Top 15 proveedores por saldo NETO (debe - haber)
+            sql_deuda_prov = """
+            SELECT TOP 15
+                p.numero as prov_id,
+                RTRIM(p.denominacion) as proveedor,
+                SUM(CASE WHEN m.operacion = '+'
+                    THEN (m.importe_pesos - m.importe_can_pesos)
+                    ELSE -(m.importe_pesos - m.importe_can_pesos) END) as saldo_vivo,
+                SUM(CASE WHEN m.operacion = '+' THEN 1 ELSE 0 END) as comprobantes
+            FROM moviprov1 m
+            JOIN proveedores p ON m.numero_cuenta = p.numero
+            GROUP BY p.numero, p.denominacion
+            HAVING SUM(CASE WHEN m.operacion = '+'
+                        THEN (m.importe_pesos - m.importe_can_pesos)
+                        ELSE -(m.importe_pesos - m.importe_can_pesos) END) > 1000
+            ORDER BY SUM(CASE WHEN m.operacion = '+'
+                        THEN (m.importe_pesos - m.importe_can_pesos)
+                        ELSE -(m.importe_pesos - m.importe_can_pesos) END) DESC
+            """
+            deuda_proveedores = [{k: _clean(v) for k, v in _fix_row(r).items()}
+                                 for r in dbC.executesql(sql_deuda_prov, as_dict=True)]
+        except:
+            pass
+
+    # =========================================================================
+    # BLOQUE 13: PAGOS POR MEDIO (ultimos 6 meses)
+    # Cheque, Transferencia, Efectivo, NC, etc.
+    # =========================================================================
+    pagos_por_medio = []
+    pagos_recientes = []
+    if dbC:
+        try:
+            sql_pagos_medio = """
+            SELECT
+                CASE m2.codigo_cancelacion
+                    WHEN 1 THEN 'Cheque/Transferencia'
+                    WHEN 2 THEN 'OP Compensacion'
+                    WHEN 3 THEN 'Nota de Credito'
+                    WHEN 4 THEN 'ND Contable'
+                    WHEN 14 THEN 'Efectivo'
+                    WHEN 15 THEN 'Debito Bancario'
+                    ELSE 'Otro (Cod ' + CAST(m2.codigo_cancelacion AS VARCHAR) + ')'
+                END as medio_pago,
+                m2.codigo_cancelacion as cod_medio,
+                COUNT(*) as cant,
+                SUM(m2.importe_can_pesos) as total_pagado
+            FROM moviprov2 m2
+            WHERE m2.fecha_cancelacion >= DATEADD(MONTH, -6, GETDATE())
+              AND m2.fecha_cancelacion <= GETDATE()
+              AND m2.fecha_cancelacion IS NOT NULL
+            GROUP BY m2.codigo_cancelacion
+            ORDER BY SUM(m2.importe_can_pesos) DESC
+            """
+            pagos_por_medio = [{k: _clean(v) for k, v in r.items()}
+                               for r in dbC.executesql(sql_pagos_medio, as_dict=True)]
+        except:
+            pass
+
+        try:
+            # Pagos mas recientes (ultimas 4 semanas, por semana)
+            # Excluir cheques diferidos a futuro con <= GETDATE()
+            sql_pagos_sem = """
+            SELECT
+                'S' + CAST(DATEPART(ISO_WEEK, m2.fecha_cancelacion) AS VARCHAR) as semana,
+                MIN(m2.fecha_cancelacion) as desde,
+                MAX(m2.fecha_cancelacion) as hasta,
+                COUNT(*) as cant,
+                SUM(m2.importe_can_pesos) as total,
+                COUNT(DISTINCT m2.numero_cuenta) as proveedores
+            FROM moviprov2 m2
+            WHERE m2.fecha_cancelacion >= DATEADD(WEEK, -4, GETDATE())
+              AND m2.fecha_cancelacion <= GETDATE()
+              AND m2.fecha_cancelacion IS NOT NULL
+            GROUP BY DATEPART(ISO_WEEK, m2.fecha_cancelacion)
+            ORDER BY DATEPART(ISO_WEEK, m2.fecha_cancelacion) DESC
+            """
+            pagos_recientes = [{k: _clean(v) for k, v in r.items()}
+                               for r in dbC.executesql(sql_pagos_sem, as_dict=True)]
+        except:
+            pass
+
     # Integrar presupuesto en la matriz
     presup_dict = {p['industria']: p for p in presupuesto}
     for m in matriz_lista:
@@ -704,6 +832,11 @@ def dashboard():
         roi_proveedores=[{k: _clean(v) for k, v in r.items()} for r in roi_proveedores],
         capital_trabajo=capital_trabajo,
         enriquecedores=enriquecedores,
+        # Deuda completa + pagos
+        funnel_deuda=funnel_deuda,
+        deuda_proveedores=deuda_proveedores,
+        pagos_por_medio=pagos_por_medio,
+        pagos_recientes=pagos_recientes,
         # Filtros
         industrias=[_fix_encoding(r['v']) for r in industrias],
         temporadas=[_fix_encoding(r['v']) for r in temporadas],

@@ -81,6 +81,16 @@ def pedidos():
     import time as _time
     _t0 = _time.time()
 
+    # Auto-sync: refrescar cache cada 10 minutos automaticamente
+    def _do_sync():
+        db_omicronvt.executesql("EXEC omicronvt.dbo.sp_sync_pedidos")
+        db_omicronvt.commit()
+        return True
+    try:
+        cache.ram('pedidos_sync', _do_sync, time_expire=600)
+    except:
+        pass  # si falla el sync, usar cache vieja
+
     industria = request.vars.industria or ''
     proveedor = request.vars.proveedor or ''
     estado = request.vars.estado or ''
@@ -1788,19 +1798,8 @@ def remito_crear():
         return json.dumps(dict(ok=False, msg='Proveedor no encontrado'))
     prov = prov[0]
 
-    # Calcular siguiente orden (buscar en ambas empresas)
-    sql_orden = """
-    SELECT ISNULL(MAX(orden), 0) + 1 AS next_orden
-    FROM msgestionC.dbo.compras2
-    WHERE codigo = {cod}
-      AND letra = 'R' AND sucursal = {suc} AND numero = {num}
-    """.format(cod=tipo, suc=sucursal_pv, num=numero_remito)
-    next_orden = int(_ejecutar_sql_gestionC(sql_orden)[0]['next_orden'])
-
     operacion = '+' if tipo == 7 else '-'
-    # serie se define por empresa dentro del loop de destinos:
-    #   CALZALINDO (msg01) → YYMM (ej '2603')
-    #   H4 (msg03) → ' ' (espacio)
+    serie = ''  # Serie vacia por ahora — pendiente implementar YYMM+seq 8 digitos
     usuario = auth.user.email[:10] if auth.user and auth.user.email else 'WEB'
     usr_movi = 'WB'  # 2 chars para movi_stock
 
@@ -1837,28 +1836,16 @@ def remito_crear():
 
     try:
         for empresa, base, dest_items in destinos:
-            # ---- SERIE SECUENCIAL (lote) ----
-            # CALZALINDO: YYMM + secuencial 4 digitos (ej: 26030001, 26030002, ...)
-            #   Busca MAX serie del mes actual en compras1 y suma 1
-            # H4: igual pero con prefijo YYMM
-            # Ambas empresas usan serie secuencial para rastrear cada remito como lote
-            yymm = datetime.now().strftime('%y%m')
-            sql_max_serie = """
-            SELECT MAX(serie) AS max_serie
-            FROM {b}.dbo.compras1
-            WHERE serie LIKE '{yymm}%' AND LEN(RTRIM(serie)) = 8
-              AND codigo IN (7, 36)
-            """.format(b=base, yymm=yymm)
-            res_serie = db_omicronvt.executesql(sql_max_serie, as_dict=True)
-            max_serie = (res_serie[0]['max_serie'] or '') if res_serie else ''
-            if max_serie and len(max_serie.strip()) == 8:
-                try:
-                    seq = int(max_serie.strip()[4:]) + 1
-                except:
-                    seq = 1
-            else:
-                seq = 1
-            serie = '{yymm}{seq:04d}'.format(yymm=yymm, seq=seq)
+            # ---- ORDEN POR EMPRESA ----
+            # Calcular next_orden dentro del loop para que cada empresa
+            # obtenga su propio orden (evita duplicados en vista msgestionC)
+            sql_orden = """
+            SELECT ISNULL(MAX(orden), 0) + 1 AS next_orden
+            FROM {b}.dbo.compras2
+            WHERE codigo = {cod}
+              AND letra = 'R' AND sucursal = {suc} AND numero = {num}
+            """.format(b=base, cod=tipo, suc=sucursal_pv, num=numero_remito)
+            next_orden = int(db_omicronvt.executesql(sql_orden, as_dict=True)[0]['next_orden'])
 
             # Calcular total para esta cabecera
             total_monto = 0.0
@@ -2013,17 +2000,35 @@ GETDATE(), '{usr}', 'INFORMES-WEB'".format(
             # movi_stock con operacion '+'/'-' ya le dice al ERP que sume/reste.
 
         # ---- INSERT pedico1_entregas + UPDATE pedico1.cantidad_entregada ----
-        # Vincular entregas con los renglones del pedido (en AMBAS bases)
+        # El pedido existe en AMBAS bases (msgestion01 y msgestion03) con datos identicos.
+        # Hay que actualizar en AMBAS para que la cache de pendientes se sincronice bien.
+        # Cada item trae la cantidad TOTAL entregada (cant_clz + cant_h4 sumadas por articulo).
+        _ambas_bases = ['msgestion01', 'msgestion03']
+
+        # Consolidar entregas por articulo (un item puede estar en CLZ y H4)
+        _entregas_por_renglon = {}
         for empresa, base, dest_items in destinos:
             for it in dest_items:
                 ps = int(it.get('ped_sucursal', 0))
                 pn = int(it.get('ped_numero', 0))
                 po = int(it.get('ped_orden', 0))
                 pr = int(it.get('ped_renglon', 0))
-                cant_ent = int(it.get('cantidad', 0))
                 if ps == 0 and pn == 0:
-                    continue  # Sin datos de pedido, saltar
+                    continue
+                key = (ps, pn, po, pr)
+                if key not in _entregas_por_renglon:
+                    _entregas_por_renglon[key] = dict(
+                        articulo=int(it.get('articulo', 0)),
+                        precio=float(it.get('precio', 0)),
+                        cantidad=0)
+                _entregas_por_renglon[key]['cantidad'] += int(it.get('cantidad', 0))
 
+        for (ps, pn, po, pr), info in _entregas_por_renglon.items():
+            cant_ent = info['cantidad']
+            monto_ent = round(info['precio'] * cant_ent, 2)
+            art = info['articulo']
+
+            for b in _ambas_bases:
                 # UPSERT pedico1_entregas (si ya hay entrega parcial, acumular)
                 sql_pe = """
                 IF EXISTS (SELECT 1 FROM {b}.dbo.pedico1_entregas
@@ -2044,8 +2049,8 @@ GETDATE(), '{usr}', 'INFORMES-WEB'".format(
                         8, 'X', {ps}, {pn}, {po},
                         {pr}, {art}, {cant}, {dep}, '{fecha}'
                     )
-                """.format(b=base, ps=ps, pn=pn, po=po, pr=pr,
-                           art=int(it.get('articulo', 0)), cant=cant_ent,
+                """.format(b=b, ps=ps, pn=pn, po=po, pr=pr,
+                           art=art, cant=cant_ent,
                            dep=deposito, fecha=fecha)
                 db_omicronvt.executesql(sql_pe)
 
@@ -2057,8 +2062,7 @@ GETDATE(), '{usr}', 'INFORMES-WEB'".format(
                 WHERE codigo = 8 AND letra = 'X'
                   AND sucursal = {ps} AND numero = {pn}
                   AND orden = {po} AND renglon = {pr}
-                """.format(b=base, cant=cant_ent,
-                           monto=round(float(it.get('precio', 0)) * cant_ent, 2),
+                """.format(b=b, cant=cant_ent, monto=monto_ent,
                            ps=ps, pn=pn, po=po, pr=pr)
                 db_omicronvt.executesql(sql_upd)
 
@@ -2079,27 +2083,27 @@ GETDATE(), '{usr}', 'INFORMES-WEB'".format(
             msg_parts.append('{} H4'.format(len(items_h4)))
         reparto = ' (' + ' + '.join(msg_parts) + ')' if len(msg_parts) > 1 else ''
 
-        # Recopilar series usadas para mostrar en el mensaje
-        series_usadas = set()
+        # Recopilar ordenes usadas para el mensaje
+        ordenes_usadas = []
         for empresa, base, dest_items in destinos:
-            # Recalcular la serie que se uso (misma logica que arriba)
-            yymm_msg = datetime.now().strftime('%y%m')
-            sql_s = "SELECT MAX(serie) AS ms FROM {b}.dbo.compras1 WHERE serie LIKE '{y}%' AND LEN(RTRIM(serie))=8 AND codigo IN (7,36)".format(b=base, y=yymm_msg)
-            rs = db_omicronvt.executesql(sql_s, as_dict=True)
-            if rs and rs[0]['ms']:
-                series_usadas.add(rs[0]['ms'].strip())
+            sql_o = """SELECT ISNULL(MAX(orden), 0) AS ult_orden
+            FROM {b}.dbo.compras2
+            WHERE codigo={cod} AND letra='R' AND sucursal={suc} AND numero={num}
+            """.format(b=base, cod=tipo, suc=sucursal_pv, num=numero_remito)
+            rs = db_omicronvt.executesql(sql_o, as_dict=True)
+            if rs:
+                ordenes_usadas.append(int(rs[0]['ult_orden']))
 
-        serie_txt = ', '.join(sorted(series_usadas))
+        orden_txt = '/'.join(str(o) for o in ordenes_usadas) if ordenes_usadas else '?'
 
         return json.dumps(dict(
             ok=True,
-            msg='Remito creado: R {}-{} orden {} ({} items{}) - Lote: {}'.format(
-                sucursal_pv, numero_remito, next_orden, len(items), reparto, serie_txt),
+            msg='Remito creado: R {}-{} orden {} ({} items{})'.format(
+                sucursal_pv, numero_remito, orden_txt, len(items), reparto),
             tipo=tipo,
             sucursal=sucursal_pv,
             numero=numero_remito,
-            orden=next_orden,
-            serie=serie_txt
+            orden=ordenes_usadas[0] if ordenes_usadas else 1
         ))
 
     except Exception as e:
@@ -2213,50 +2217,53 @@ def remito_eliminar():
 
             try:
                 pe_rows = _ejecutar_sql(sql_pe, as_dict=True)
+                # Revertir pedico1 en AMBAS bases (el pedido existe en ambas)
                 for pe in pe_rows:
                     pe_cant = int(pe['cantidad'])
-                    # Descontar de pedico1.cantidad_entregada
-                    sql_upd_ped = """
-                    UPDATE {b}.dbo.pedico1
-                    SET cantidad_entregada = ISNULL(cantidad_entregada, 0) - {cant},
-                        monto_entregado = CASE
-                            WHEN ISNULL(monto_entregado, 0) > 0
-                            THEN monto_entregado - (precio * {cant})
-                            ELSE 0 END
-                    WHERE codigo = {pcod} AND letra = '{pletra}'
-                      AND sucursal = {psuc} AND numero = {pnum}
-                      AND orden = {pord} AND renglon = {preng}
-                    """.format(b=base,
-                               cant=pe_cant,
-                               pcod=int(pe['codigo']),
-                               pletra=pe['letra'].strip(),
-                               psuc=int(pe['sucursal']),
-                               pnum=int(pe['numero']),
-                               pord=int(pe['orden']),
-                               preng=int(pe['renglon']))
-                    db_omicronvt.executesql(sql_upd_ped)
+                    for rev_base in ['msgestion01', 'msgestion03']:
+                        sql_upd_ped = """
+                        UPDATE {b}.dbo.pedico1
+                        SET cantidad_entregada = ISNULL(cantidad_entregada, 0) - {cant},
+                            monto_entregado = CASE
+                                WHEN ISNULL(monto_entregado, 0) > 0
+                                THEN monto_entregado - (precio * {cant})
+                                ELSE 0 END
+                        WHERE codigo = {pcod} AND letra = '{pletra}'
+                          AND sucursal = {psuc} AND numero = {pnum}
+                          AND orden = {pord} AND renglon = {preng}
+                        """.format(b=rev_base,
+                                   cant=pe_cant,
+                                   pcod=int(pe['codigo']),
+                                   pletra=pe['letra'].strip(),
+                                   psuc=int(pe['sucursal']),
+                                   pnum=int(pe['numero']),
+                                   pord=int(pe['orden']),
+                                   preng=int(pe['renglon']))
+                        db_omicronvt.executesql(sql_upd_ped)
 
-                # Borrar las entregas vinculadas
-                sql_del_pe = """
-                DELETE FROM {b}.dbo.pedico1_entregas
-                WHERE fecha_entrega IN (
-                    SELECT CAST(c2.fecha_comprobante AS DATE)
-                    FROM {b}.dbo.compras2 c2
-                    WHERE c2.codigo={cod} AND c2.letra='R'
-                      AND c2.sucursal={suc} AND c2.numero={num} AND c2.orden={ord}
-                )
-                AND articulo IN (
-                    SELECT c1.articulo FROM {b}.dbo.compras1 c1
-                    WHERE c1.codigo={cod} AND c1.letra='R'
-                      AND c1.sucursal={suc} AND c1.numero={num} AND c1.orden={ord}
-                )
-                AND deposito IN (
-                    SELECT c1.deposito FROM {b}.dbo.compras1 c1
-                    WHERE c1.codigo={cod} AND c1.letra='R'
-                      AND c1.sucursal={suc} AND c1.numero={num} AND c1.orden={ord}
-                )
-                """.format(b=base, cod=codigo, suc=sucursal, num=numero, ord=orden)
-                db_omicronvt.executesql(sql_del_pe)
+                # Borrar pedico1_entregas en AMBAS bases
+                for del_base in ['msgestion01', 'msgestion03']:
+                    sql_del_pe = """
+                    DELETE FROM {b}.dbo.pedico1_entregas
+                    WHERE fecha_entrega IN (
+                        SELECT CAST(c2.fecha_comprobante AS DATE)
+                        FROM {base_remito}.dbo.compras2 c2
+                        WHERE c2.codigo={cod} AND c2.letra='R'
+                          AND c2.sucursal={suc} AND c2.numero={num} AND c2.orden={ord}
+                    )
+                    AND articulo IN (
+                        SELECT c1.articulo FROM {base_remito}.dbo.compras1 c1
+                        WHERE c1.codigo={cod} AND c1.letra='R'
+                          AND c1.sucursal={suc} AND c1.numero={num} AND c1.orden={ord}
+                    )
+                    AND deposito IN (
+                        SELECT c1.deposito FROM {base_remito}.dbo.compras1 c1
+                        WHERE c1.codigo={cod} AND c1.letra='R'
+                          AND c1.sucursal={suc} AND c1.numero={num} AND c1.orden={ord}
+                    )
+                    """.format(b=del_base, base_remito=base,
+                               cod=codigo, suc=sucursal, num=numero, ord=orden)
+                    db_omicronvt.executesql(sql_del_pe)
             except:
                 pass  # Si no habia entregas vinculadas, no es critico
 

@@ -1,71 +1,98 @@
-# insertar_comoditas.py
-# Inserta pedido COMODITAS SA — Pantuflas Invierno 2026
-# 468 pares, 5 modelos, 11 colores
-#
-# MODELOS EXISTENTES: 598, 1127, 239 (artículos ya en DB)
-# MODELOS NUEVOS: 1619, 1246 (requieren alta de artículos primero)
-#
-# ANÁLISIS "CAMPEONES":
-#   1127 = #3 modelo Comoditas (261 pares en 3 años)
-#   598  = top seller (236 pares, oculto en grupo NULL)
-#   239  = sólido medio (100 pares)
-#   1619 = NUEVO sin historial
-#   1246 = NUEVO sin historial
-#
-# EJECUTAR EN EL 111:
-#   py -3 insertar_comoditas.py --dry-run     ← solo muestra, no escribe
-#   py -3 insertar_comoditas.py --ejecutar    ← escribe en producción
+#!/usr/bin/env python3
+"""
+insertar_comoditas.py — Pedido COMODITAS pantuflas Invierno 2026
+Self-contained. 468 pares, 5 modelos, 11 colores.
+
+PASO 1: Alta 16 artículos nuevos (1619 y 1246) en msgestion01art
+PASO 2: Pedido de compra en MSGESTION01 (pedico2 + pedico1)
+
+Proveedor activo: 776 (CIRENE SA, ex Comoditas SA — 1076 arts)
+Empresa: H4
+
+MODELOS EXISTENTES: 598, 1127, 239 (artículos ya en DB)
+MODELOS NUEVOS: 1619, 1246 (requieren alta primero)
+
+ANÁLISIS "CAMPEONES":
+  1127 = #3 modelo Comoditas (261 pares en 3 años)
+  598  = top seller (236 pares, oculto en grupo NULL)
+  239  = sólido medio (100 pares)
+  1619 = NUEVO sin historial
+  1246 = NUEVO sin historial
+
+EJECUTAR EN EL 111:
+  py -3 insertar_comoditas.py --dry-run     <- solo muestra
+  py -3 insertar_comoditas.py --ejecutar    <- escribe en produccion
+"""
 
 import sys
 import pyodbc
+import socket
 from datetime import date, datetime
-from paso4_insertar_pedido import insertar_pedido
-from config import CONN_ARTICULOS, CONN_COMPRAS
 
-# ══════════════════════════════════════════════════════════════
-# PARTE 1: ALTA DE ARTÍCULOS NUEVOS (1619 y 1246)
-# ══════════════════════════════════════════════════════════════
+# -- AUTO-DETECT SERVER vs MAC -----------------------------------------
+_hostname = socket.gethostname().upper()
+if _hostname in ("DELL-SVR", "DELLSVR"):
+    SERVIDOR = "localhost"
+    DRIVER = "ODBC Driver 17 for SQL Server"
+    EXTRAS = ""
+else:
+    SERVIDOR = "192.168.2.111"
+    DRIVER = "ODBC Driver 18 for SQL Server"
+    EXTRAS = "TrustServerCertificate=yes;Encrypt=no;"
 
-# Artículos nuevos a crear. Códigos empiezan en 361244 (MAX actual: 361243)
-# Se basan en la estructura de artículos existentes de Comoditas (marca=776, subrubro=60)
+def get_conn(base):
+    return (
+        f"DRIVER={{{DRIVER}}};"
+        f"SERVER={SERVIDOR};"
+        f"DATABASE={base};"
+        f"UID=am;PWD=dl;"
+        f"{EXTRAS}"
+    )
 
-# Referencia: 1127 para 1619 (individual T37-T41), 598 para 1246 (binumeral T36/T38/T40)
-# Utilidades copiadas de artículos existentes de Comoditas:
-#   utilidad_1=100, utilidad_2=124, utilidad_3=60, utilidad_4=45
+# -- CONSTANTES --------------------------------------------------------
+PROVEEDOR = 776          # CIRENE SA (proveedor activo con 1076 arts)
+DENOMINACION = "CIRENE SA"
+MARCA = 776
+BASE_PEDIDO = "MSGESTION01"
+FECHA_COMPROBANTE = date(2026, 3, 14)
+FECHA_ENTREGA = date(2026, 4, 30)  # ~6 semanas
+
+# ======================================================================
+# PARTE 1: ARTÍCULOS NUEVOS (1619 y 1246)
+# Códigos desde 361273 (MAX actual: 361272)
+# ======================================================================
 
 NUEVOS_ARTICULOS = [
     # ── 1619 VERDE — PANTUFLA (individual, talles 37-41) ──
     # grupo "36" = mujer individual 36-41 (mismo que 1127)
-    {"codigo": 361244, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "37", "grupo": "36", "cod_sin": "776161902037", "cod_barra": 776161902037, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361245, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "38", "grupo": "36", "cod_sin": "776161902038", "cod_barra": 776161902038, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361246, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "39", "grupo": "36", "cod_sin": "776161902039", "cod_barra": 776161902039, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361247, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "40", "grupo": "36", "cod_sin": "776161902040", "cod_barra": 776161902040, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361248, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "41", "grupo": "36", "cod_sin": "776161902041", "cod_barra": 776161902041, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361273, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "37", "grupo": "36", "cod_sin": "776161902037", "cod_barra": 776161902037, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361274, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "38", "grupo": "36", "cod_sin": "776161902038", "cod_barra": 776161902038, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361275, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "39", "grupo": "36", "cod_sin": "776161902039", "cod_barra": 776161902039, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361276, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "40", "grupo": "36", "cod_sin": "776161902040", "cod_barra": 776161902040, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361277, "desc1": "1619 VERDE PANTUFLA P/CERRADA", "desc3": "1619 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "41", "grupo": "36", "cod_sin": "776161902041", "cod_barra": 776161902041, "cod_obj": "16190", "precio_fab": 11422},
 
     # ── 1619 GRIS — PANTUFLA (individual, talles 37-41) ──
-    {"codigo": 361249, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "37", "grupo": "36", "cod_sin": "776161901337", "cod_barra": 776161901337, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361250, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "38", "grupo": "36", "cod_sin": "776161901338", "cod_barra": 776161901338, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361251, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "39", "grupo": "36", "cod_sin": "776161901339", "cod_barra": 776161901339, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361252, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "40", "grupo": "36", "cod_sin": "776161901340", "cod_barra": 776161901340, "cod_obj": "16190", "precio_fab": 11422},
-    {"codigo": 361253, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "41", "grupo": "36", "cod_sin": "776161901341", "cod_barra": 776161901341, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361278, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "37", "grupo": "36", "cod_sin": "776161901337", "cod_barra": 776161901337, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361279, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "38", "grupo": "36", "cod_sin": "776161901338", "cod_barra": 776161901338, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361280, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "39", "grupo": "36", "cod_sin": "776161901339", "cod_barra": 776161901339, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361281, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "40", "grupo": "36", "cod_sin": "776161901340", "cod_barra": 776161901340, "cod_obj": "16190", "precio_fab": 11422},
+    {"codigo": 361282, "desc1": "1619 GRIS PANTUFLA P/CERRADA",  "desc3": "1619 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "41", "grupo": "36", "cod_sin": "776161901341", "cod_barra": 776161901341, "cod_obj": "16190", "precio_fab": 11422},
 
     # ── 1246 GRIS — PANTUFLA (binumeral, talles 36/38/40) ──
     # grupo "13" = mujer binumeral (mismo que 598)
-    {"codigo": 361254, "desc1": "1246 GRIS PANTUFLA P/CERRADA",  "desc3": "1246 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "36", "grupo": "13", "cod_sin": "776124601336", "cod_barra": 776124601336, "cod_obj": "12460", "precio_fab": 13929},
-    {"codigo": 361255, "desc1": "1246 GRIS PANTUFLA P/CERRADA",  "desc3": "1246 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "38", "grupo": "13", "cod_sin": "776124601338", "cod_barra": 776124601338, "cod_obj": "12460", "precio_fab": 13929},
-    {"codigo": 361256, "desc1": "1246 GRIS PANTUFLA P/CERRADA",  "desc3": "1246 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "40", "grupo": "13", "cod_sin": "776124601340", "cod_barra": 776124601340, "cod_obj": "12460", "precio_fab": 13929},
+    {"codigo": 361283, "desc1": "1246 GRIS PANTUFLA P/CERRADA",  "desc3": "1246 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "36", "grupo": "13", "cod_sin": "776124601336", "cod_barra": 776124601336, "cod_obj": "12460", "precio_fab": 13929},
+    {"codigo": 361284, "desc1": "1246 GRIS PANTUFLA P/CERRADA",  "desc3": "1246 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "38", "grupo": "13", "cod_sin": "776124601338", "cod_barra": 776124601338, "cod_obj": "12460", "precio_fab": 13929},
+    {"codigo": 361285, "desc1": "1246 GRIS PANTUFLA P/CERRADA",  "desc3": "1246 GRIS PANTU P/CERR", "desc4": "GRIS",   "desc5": "40", "grupo": "13", "cod_sin": "776124601340", "cod_barra": 776124601340, "cod_obj": "12460", "precio_fab": 13929},
 
     # ── 1246 VERDE — PANTUFLA (binumeral, talles 36/38/40) ──
-    {"codigo": 361257, "desc1": "1246 VERDE PANTUFLA P/CERRADA", "desc3": "1246 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "36", "grupo": "13", "cod_sin": "776124602036", "cod_barra": 776124602036, "cod_obj": "12460", "precio_fab": 13929},
-    {"codigo": 361258, "desc1": "1246 VERDE PANTUFLA P/CERRADA", "desc3": "1246 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "38", "grupo": "13", "cod_sin": "776124602038", "cod_barra": 776124602038, "cod_obj": "12460", "precio_fab": 13929},
-    {"codigo": 361259, "desc1": "1246 VERDE PANTUFLA P/CERRADA", "desc3": "1246 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "40", "grupo": "13", "cod_sin": "776124602040", "cod_barra": 776124602040, "cod_obj": "12460", "precio_fab": 13929},
+    {"codigo": 361286, "desc1": "1246 VERDE PANTUFLA P/CERRADA", "desc3": "1246 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "36", "grupo": "13", "cod_sin": "776124602036", "cod_barra": 776124602036, "cod_obj": "12460", "precio_fab": 13929},
+    {"codigo": 361287, "desc1": "1246 VERDE PANTUFLA P/CERRADA", "desc3": "1246 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "38", "grupo": "13", "cod_sin": "776124602038", "cod_barra": 776124602038, "cod_obj": "12460", "precio_fab": 13929},
+    {"codigo": 361288, "desc1": "1246 VERDE PANTUFLA P/CERRADA", "desc3": "1246 VERD PANTU P/CERR", "desc4": "VERDE",  "desc5": "40", "grupo": "13", "cod_sin": "776124602040", "cod_barra": 776124602040, "cod_obj": "12460", "precio_fab": 13929},
 ]
 
 
-def alta_articulos(dry_run=True):
+def alta_articulos(cursor, dry_run=True):
     """Da de alta los artículos nuevos (1619 y 1246) en msgestion01art.dbo.articulo."""
-
-    # Utilidades Comoditas (copiadas de artículos existentes marca 776)
     UTIL_1, UTIL_2, UTIL_3, UTIL_4 = 100, 124, 60, 45
 
     sql = """
@@ -103,211 +130,303 @@ def alta_articulos(dry_run=True):
     """
 
     if dry_run:
-        print("\n[DRY RUN] ═══ ALTA DE ARTÍCULOS NUEVOS ═══")
+        print("\n  [DRY RUN] ALTA DE ARTICULOS NUEVOS:")
         for art in NUEVOS_ARTICULOS:
-            pf = art["precio_fab"]
-            pc = pf  # sin descuento para Comoditas
-            print(f"  {art['codigo']}: {art['desc1']} T{art['desc5']} | ${pf:,.0f} | sin={art['cod_sin']}")
-        print(f"\n  Total: {len(NUEVOS_ARTICULOS)} artículos nuevos a crear")
-        print("  [DRY RUN] Ningún artículo fue creado.\n")
+            print(f"    {art['codigo']}: {art['desc1']} T{art['desc5']} | ${art['precio_fab']:,} | sin={art['cod_sin']}")
+        print(f"    Total: {len(NUEVOS_ARTICULOS)} articulos nuevos")
         return True
 
-    try:
-        conn = pyodbc.connect(CONN_ARTICULOS, timeout=10)
-        conn.autocommit = False
-        cursor = conn.cursor()
-
-        # Verificar que no existan ya
-        codigos = [a["codigo"] for a in NUEVOS_ARTICULOS]
-        placeholders = ",".join(["?"] * len(codigos))
-        cursor.execute(f"SELECT codigo FROM msgestion01art.dbo.articulo WHERE codigo IN ({placeholders})", codigos)
-        existentes = [r[0] for r in cursor.fetchall()]
-        if existentes:
-            print(f"⚠️  Artículos ya existentes: {existentes} — saltando alta")
-            conn.close()
-            return True  # no es error, ya existen
-
+    # Verificar MAX(codigo) en runtime para evitar colisiones
+    cursor.execute("SELECT MAX(codigo) FROM msgestion01art.dbo.articulo")
+    max_actual = cursor.fetchone()[0] or 0
+    primer_codigo = NUEVOS_ARTICULOS[0]["codigo"]
+    if primer_codigo <= max_actual:
+        print(f"  !! MAX(codigo) actual = {max_actual}, primer codigo nuevo = {primer_codigo}")
+        print(f"  !! Los codigos se van a reasignar automaticamente desde {max_actual + 1}")
+        offset = max_actual + 1 - primer_codigo
         for art in NUEVOS_ARTICULOS:
-            pf = art["precio_fab"]
-            pc = pf  # Comoditas sin descuento
-            p1 = round(pc * (1 + UTIL_1 / 100), 2)
-            p2 = round(pc * (1 + UTIL_2 / 100), 2)
-            p3 = round(pc * (1 + UTIL_3 / 100), 2)
-            p4 = round(pc * (1 + UTIL_4 / 100), 2)
+            art["codigo"] = art["codigo"] + offset
+        print(f"  !! Nuevos codigos: {NUEVOS_ARTICULOS[0]['codigo']} a {NUEVOS_ARTICULOS[-1]['codigo']}")
 
-            cursor.execute(sql, (
-                art["codigo"], art["desc1"], art["desc3"], art["desc4"], art["desc5"],
-                art["cod_barra"], art["cod_sin"],
-                art["grupo"],
-                art["cod_obj"],
-                pf, pc, pc,
-                p1, p2, p3, p4,
-                UTIL_1, UTIL_2, UTIL_3, UTIL_4,
-            ))
-            print(f"  ✅ {art['codigo']}: {art['desc1']} T{art['desc5']}", flush=True)
-
-        conn.commit()
-        conn.close()
-        print(f"\n✅ {len(NUEVOS_ARTICULOS)} artículos nuevos creados en msgestion01art")
+    # Verificar que no existan
+    codigos = [a["codigo"] for a in NUEVOS_ARTICULOS]
+    placeholders = ",".join(["?"] * len(codigos))
+    cursor.execute(f"SELECT codigo FROM msgestion01art.dbo.articulo WHERE codigo IN ({placeholders})", codigos)
+    existentes = [r[0] for r in cursor.fetchall()]
+    if existentes:
+        print(f"  !! Articulos ya existentes: {existentes} — saltando alta")
         return True
 
-    except Exception as e:
-        print(f"\n❌ ERROR al crear artículos: {e}")
-        return False
+    for art in NUEVOS_ARTICULOS:
+        pf = art["precio_fab"]
+        pc = pf  # sin descuento para Comoditas
+        p1 = round(pc * (1 + UTIL_1 / 100), 2)
+        p2 = round(pc * (1 + UTIL_2 / 100), 2)
+        p3 = round(pc * (1 + UTIL_3 / 100), 2)
+        p4 = round(pc * (1 + UTIL_4 / 100), 2)
+
+        cursor.execute(sql, (
+            art["codigo"], art["desc1"], art["desc3"], art["desc4"], art["desc5"],
+            art["cod_barra"], art["cod_sin"],
+            art["grupo"],
+            art["cod_obj"],
+            pf, pc, pc,
+            p1, p2, p3, p4,
+            UTIL_1, UTIL_2, UTIL_3, UTIL_4,
+        ))
+
+    print(f"  OK {len(NUEVOS_ARTICULOS)} articulos nuevos creados ({NUEVOS_ARTICULOS[0]['codigo']}-{NUEVOS_ARTICULOS[-1]['codigo']})")
+    return True
 
 
-# ══════════════════════════════════════════════════════════════
+# ======================================================================
 # PARTE 2: PEDIDO DE COMPRA
-# ══════════════════════════════════════════════════════════════
+# ======================================================================
 
-cabecera = {
-    "empresa":           "H4",              # Comoditas compras van a base03
-    "cuenta":            98,                # COMODITAS SA
-    "denominacion":      "COMODITAS SA",
-    "fecha_comprobante": date(2026, 3, 14),
-    "fecha_entrega":     date(2026, 4, 30), # ~6 semanas entrega
-    "observaciones":     "Pedido pantuflas invierno 2026. 468 pares. "
-                         "5 modelos (598, 1127, 1619, 1246, 239). "
-                         "1619 y 1246 son modelos nuevos. "
-                         "239 hombre duplicado a 144 pares.",
-}
+SQL_PEDIDO_CAB = """
+    INSERT INTO {base}.dbo.pedico2 (
+        codigo, letra, sucursal,
+        numero, orden, deposito,
+        cuenta, denominacion,
+        fecha_comprobante, fecha_proceso,
+        observaciones,
+        descuento_general, monto_descuento,
+        bonificacion_general, monto_bonificacion,
+        financiacion_general, monto_financiacion,
+        iva1, monto_iva1, iva2, monto_iva2, monto_impuesto,
+        importe_neto, monto_exento,
+        estado, zona, condicion_iva, numero_cuit, copias,
+        cuenta_y_orden, pack, reintegro, cambio, transferencia,
+        entregador, usuario, campo, sistema_cc, moneda, sector,
+        forma_pago, plan_canje, tipo_vcto_pago, tipo_operacion, tipo_ajuste,
+        medio_pago, cuenta_cc, concurso
+    ) VALUES (
+        8, 'X', 1,
+        ?, 1, 0,
+        ?, ?,
+        ?, ?,
+        ?,
+        0, 0, 0, 0, 0, 0,
+        21, 0, 10.5, 0, 0,
+        0, 0,
+        'V', 6, 'I', '', 1,
+        'N', 'N', 'N', 'N', 'N',
+        0, 'COWORK', 0, 2, 0, 0,
+        0, 'N', 0, 0, 0,
+        ' ', ?, 'N'
+    )
+"""
 
-# ── RENGLONES ────────────────────────────────────────────────
-# Precio = precio unitario de lista del proveedor (sin IVA)
-#
-# ARTÍCULOS EXISTENTES:
-#   598 binumeral (T36/T38/T40) — ROSA, GRIS, NEGRO
-#   1127 individual (T37-T41) — AERO, MANTECA
-#   239 individual (T40-T45) — NEGRO, AZUL (cantidades DUPLICADAS)
-#
-# ARTÍCULOS NUEVOS (creados en PARTE 1):
-#   1619 individual (T37-T41) — VERDE, GRIS
-#   1246 binumeral (T38/T40) — GRIS, VERDE
+SQL_PEDIDO_DET = """
+    INSERT INTO {base}.dbo.pedico1 (
+        codigo, letra, sucursal,
+        numero, orden, renglon,
+        articulo, descripcion, codigo_sinonimo,
+        cantidad, precio,
+        cuenta, fecha, fecha_entrega,
+        estado
+    ) VALUES (8, 'X', 1, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'V')
+"""
 
-renglones = [
+# Renglones: (articulo, descripcion, codigo_sinonimo, cantidad, precio)
+# Los artículos nuevos (1619, 1246) usan los códigos actualizados
+RENGLONES = [
     # ═══ 598 ROSA (binumeral) — 36 pares ═══
-    {"articulo": 264863, "descripcion": "598 ROSA PANTUFLA P/CERRADA C/BASE DET BOTON",  "codigo_sinonimo": "776598001938", "cantidad": 16, "precio": 12904},  # T38
-    {"articulo": 264864, "descripcion": "598 ROSA PANTUFLA P/CERRADA C/BASE DET BOTON",  "codigo_sinonimo": "776598001940", "cantidad": 20, "precio": 12904},  # T40
+    (264863, "598 ROSA PANTUFLA P/CERRADA C/BASE DET BOTON",  "776598001938", 16, 12904),  # T38
+    (264864, "598 ROSA PANTUFLA P/CERRADA C/BASE DET BOTON",  "776598001940", 20, 12904),  # T40
 
     # ═══ 598 GRIS (binumeral) — 36 pares ═══
-    {"articulo": 264860, "descripcion": "598 GRIS PANTUFLA P/CERRADA C/BASE DET BOTON",  "codigo_sinonimo": "776598001338", "cantidad": 16, "precio": 12904},  # T38
-    {"articulo": 264861, "descripcion": "598 GRIS PANTUFLA P/CERRADA C/BASE DET BOTON",  "codigo_sinonimo": "776598001340", "cantidad": 20, "precio": 12904},  # T40
+    (264860, "598 GRIS PANTUFLA P/CERRADA C/BASE DET BOTON",  "776598001338", 16, 12904),  # T38
+    (264861, "598 GRIS PANTUFLA P/CERRADA C/BASE DET BOTON",  "776598001340", 20, 12904),  # T40
 
     # ═══ 598 NEGRO (binumeral) — 36 pares ═══
-    {"articulo": 264854, "descripcion": "598 NEGRO PANTUFLA P/CERRADA C/BASE DET BOTON", "codigo_sinonimo": "776598000038", "cantidad": 16, "precio": 12904},  # T38
-    {"articulo": 264855, "descripcion": "598 NEGRO PANTUFLA P/CERRADA C/BASE DET BOTON", "codigo_sinonimo": "776598000040", "cantidad": 20, "precio": 12904},  # T40
+    (264854, "598 NEGRO PANTUFLA P/CERRADA C/BASE DET BOTON", "776598000038", 16, 12904),  # T38
+    (264855, "598 NEGRO PANTUFLA P/CERRADA C/BASE DET BOTON", "776598000040", 20, 12904),  # T40
 
     # ═══ 1127 AERO (individual) — 36 pares ═══
-    {"articulo": 289994, "descripcion": "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "codigo_sinonimo": "776112700337", "cantidad":  6, "precio": 11565},  # T37
-    {"articulo": 289995, "descripcion": "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "codigo_sinonimo": "776112700338", "cantidad":  8, "precio": 11565},  # T38
-    {"articulo": 289996, "descripcion": "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "codigo_sinonimo": "776112700339", "cantidad":  8, "precio": 11565},  # T39
-    {"articulo": 289997, "descripcion": "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "codigo_sinonimo": "776112700340", "cantidad":  8, "precio": 11565},  # T40
-    {"articulo": 289998, "descripcion": "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "codigo_sinonimo": "776112700341", "cantidad":  6, "precio": 11565},  # T41
+    (289994, "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "776112700337",  6, 11565),  # T37
+    (289995, "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "776112700338",  8, 11565),  # T38
+    (289996, "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "776112700339",  8, 11565),  # T39
+    (289997, "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "776112700340",  8, 11565),  # T40
+    (289998, "1127 AERO PANTUFLA P/CERRADA CUE PELUCHE",      "776112700341",  6, 11565),  # T41
 
     # ═══ 1127 MANTECA (individual) — 36 pares ═══
-    {"articulo": 264908, "descripcion": "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "codigo_sinonimo": "776112701537", "cantidad":  6, "precio": 11565},  # T37
-    {"articulo": 264909, "descripcion": "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "codigo_sinonimo": "776112701538", "cantidad": 10, "precio": 11565},  # T38
-    {"articulo": 264910, "descripcion": "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "codigo_sinonimo": "776112701539", "cantidad":  8, "precio": 11565},  # T39
-    {"articulo": 264911, "descripcion": "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "codigo_sinonimo": "776112701540", "cantidad":  8, "precio": 11565},  # T40
-    {"articulo": 264912, "descripcion": "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "codigo_sinonimo": "776112701541", "cantidad":  4, "precio": 11565},  # T41
+    (264908, "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "776112701537",  6, 11565),  # T37
+    (264909, "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "776112701538", 10, 11565),  # T38
+    (264910, "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "776112701539",  8, 11565),  # T39
+    (264911, "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "776112701540",  8, 11565),  # T40
+    (264912, "1127 MANTECA PANTUFLA P/CERRADA CUE PELUCHE",   "776112701541",  4, 11565),  # T41
 
     # ═══ 1619 VERDE (individual, NUEVO) — 36 pares ═══
-    {"articulo": 361244, "descripcion": "1619 VERDE PANTUFLA P/CERRADA",                 "codigo_sinonimo": "776161902037", "cantidad":  4, "precio": 11422},  # T37
-    {"articulo": 361245, "descripcion": "1619 VERDE PANTUFLA P/CERRADA",                 "codigo_sinonimo": "776161902038", "cantidad":  8, "precio": 11422},  # T38
-    {"articulo": 361246, "descripcion": "1619 VERDE PANTUFLA P/CERRADA",                 "codigo_sinonimo": "776161902039", "cantidad": 10, "precio": 11422},  # T39
-    {"articulo": 361247, "descripcion": "1619 VERDE PANTUFLA P/CERRADA",                 "codigo_sinonimo": "776161902040", "cantidad": 10, "precio": 11422},  # T40
-    {"articulo": 361248, "descripcion": "1619 VERDE PANTUFLA P/CERRADA",                 "codigo_sinonimo": "776161902041", "cantidad":  4, "precio": 11422},  # T41
+    (361273, "1619 VERDE PANTUFLA P/CERRADA",                 "776161902037",  4, 11422),  # T37
+    (361274, "1619 VERDE PANTUFLA P/CERRADA",                 "776161902038",  8, 11422),  # T38
+    (361275, "1619 VERDE PANTUFLA P/CERRADA",                 "776161902039", 10, 11422),  # T39
+    (361276, "1619 VERDE PANTUFLA P/CERRADA",                 "776161902040", 10, 11422),  # T40
+    (361277, "1619 VERDE PANTUFLA P/CERRADA",                 "776161902041",  4, 11422),  # T41
 
     # ═══ 1619 GRIS (individual, NUEVO) — 36 pares ═══
-    {"articulo": 361249, "descripcion": "1619 GRIS PANTUFLA P/CERRADA",                  "codigo_sinonimo": "776161901337", "cantidad":  4, "precio": 11422},  # T37
-    {"articulo": 361250, "descripcion": "1619 GRIS PANTUFLA P/CERRADA",                  "codigo_sinonimo": "776161901338", "cantidad":  8, "precio": 11422},  # T38
-    {"articulo": 361251, "descripcion": "1619 GRIS PANTUFLA P/CERRADA",                  "codigo_sinonimo": "776161901339", "cantidad": 10, "precio": 11422},  # T39
-    {"articulo": 361252, "descripcion": "1619 GRIS PANTUFLA P/CERRADA",                  "codigo_sinonimo": "776161901340", "cantidad": 10, "precio": 11422},  # T40
-    {"articulo": 361253, "descripcion": "1619 GRIS PANTUFLA P/CERRADA",                  "codigo_sinonimo": "776161901341", "cantidad":  4, "precio": 11422},  # T41
+    (361278, "1619 GRIS PANTUFLA P/CERRADA",                  "776161901337",  4, 11422),  # T37
+    (361279, "1619 GRIS PANTUFLA P/CERRADA",                  "776161901338",  8, 11422),  # T38
+    (361280, "1619 GRIS PANTUFLA P/CERRADA",                  "776161901339", 10, 11422),  # T39
+    (361281, "1619 GRIS PANTUFLA P/CERRADA",                  "776161901340", 10, 11422),  # T40
+    (361282, "1619 GRIS PANTUFLA P/CERRADA",                  "776161901341",  4, 11422),  # T41
 
     # ═══ 1246 GRIS (binumeral, NUEVO) — 36 pares ═══
-    {"articulo": 361255, "descripcion": "1246 GRIS PANTUFLA P/CERRADA",                  "codigo_sinonimo": "776124601338", "cantidad": 16, "precio": 13929},  # T38
-    {"articulo": 361256, "descripcion": "1246 GRIS PANTUFLA P/CERRADA",                  "codigo_sinonimo": "776124601340", "cantidad": 20, "precio": 13929},  # T40
+    (361284, "1246 GRIS PANTUFLA P/CERRADA",                  "776124601338", 16, 13929),  # T38
+    (361285, "1246 GRIS PANTUFLA P/CERRADA",                  "776124601340", 20, 13929),  # T40
 
     # ═══ 1246 VERDE (binumeral, NUEVO) — 36 pares ═══
-    {"articulo": 361258, "descripcion": "1246 VERDE PANTUFLA P/CERRADA",                 "codigo_sinonimo": "776124602038", "cantidad": 16, "precio": 13929},  # T38
-    {"articulo": 361259, "descripcion": "1246 VERDE PANTUFLA P/CERRADA",                 "codigo_sinonimo": "776124602040", "cantidad": 20, "precio": 13929},  # T40
+    (361287, "1246 VERDE PANTUFLA P/CERRADA",                 "776124602038", 16, 13929),  # T38
+    (361288, "1246 VERDE PANTUFLA P/CERRADA",                 "776124602040", 20, 13929),  # T40
 
     # ═══ 239 NEGRO (individual, hombre DUPLICADO) — 72 pares ═══
-    {"articulo": 223048, "descripcion": "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "codigo_sinonimo": "776239000041", "cantidad":  8, "precio": 12727},  # T41
-    {"articulo": 223049, "descripcion": "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "codigo_sinonimo": "776239000042", "cantidad": 16, "precio": 12727},  # T42
-    {"articulo": 223050, "descripcion": "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "codigo_sinonimo": "776239000043", "cantidad": 16, "precio": 12727},  # T43
-    {"articulo": 223051, "descripcion": "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "codigo_sinonimo": "776239000044", "cantidad": 16, "precio": 12727},  # T44
-    {"articulo": 223052, "descripcion": "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "codigo_sinonimo": "776239000045", "cantidad": 16, "precio": 12727},  # T45
+    (223048, "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "776239000041",  8, 12727),  # T41
+    (223049, "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "776239000042", 16, 12727),  # T42
+    (223050, "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "776239000043", 16, 12727),  # T43
+    (223051, "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "776239000044", 16, 12727),  # T44
+    (223052, "239 NEGRO PANTUFLA C/PUNTA INT CORDERITO",      "776239000045", 16, 12727),  # T45
 
     # ═══ 239 AZUL (individual, hombre DUPLICADO) — 72 pares ═══
-    {"articulo": 312186, "descripcion": "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "codigo_sinonimo": "776239000241", "cantidad":  8, "precio": 12727},  # T41
-    {"articulo": 312187, "descripcion": "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "codigo_sinonimo": "776239000242", "cantidad": 16, "precio": 12727},  # T42
-    {"articulo": 312188, "descripcion": "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "codigo_sinonimo": "776239000243", "cantidad": 16, "precio": 12727},  # T43
-    {"articulo": 312189, "descripcion": "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "codigo_sinonimo": "776239000244", "cantidad": 16, "precio": 12727},  # T44
-    {"articulo": 312190, "descripcion": "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "codigo_sinonimo": "776239000245", "cantidad": 16, "precio": 12727},  # T45
+    (312186, "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "776239000241",  8, 12727),  # T41
+    (312187, "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "776239000242", 16, 12727),  # T42
+    (312188, "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "776239000243", 16, 12727),  # T43
+    (312189, "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "776239000244", 16, 12727),  # T44
+    (312190, "239 AZUL PANTUFLA C/PUNTA INT CORDERITO",       "776239000245", 16, 12727),  # T45
 ]
 
-# ══════════════════════════════════════════════════════════════
-# MAIN
-# ══════════════════════════════════════════════════════════════
+TOTAL_PARES = sum(r[3] for r in RENGLONES)
+TOTAL_MONTO = sum(r[3] * r[4] for r in RENGLONES)
 
-if __name__ == "__main__":
-    modo = "--dry-run"
-    if len(sys.argv) > 1:
-        modo = sys.argv[1]
 
-    dry_run = modo != "--ejecutar"
+def main():
+    EJECUTAR = "--ejecutar" in sys.argv
+    DRY_RUN = not EJECUTAR
 
-    if dry_run:
-        print("\n⚠️  MODO DRY RUN — no se escribe nada en la base")
-    else:
-        print("\n🚨 MODO EJECUCIÓN REAL — se escribirá en la base")
-        confirmacion = input("   ¿Confirmar? (s/N): ").strip().lower()
-        if confirmacion != "s":
-            print("   Cancelado.")
-            sys.exit(0)
+    print("=" * 65)
+    print(f"PEDIDO COMODITAS (CIRENE SA) — Pantuflas Invierno 2026")
+    print(f"{'EJECUTAR' if EJECUTAR else 'DRY RUN'}")
+    print(f"5 modelos | 11 colores | {len(RENGLONES)} renglones")
+    print(f"{TOTAL_PARES} pares | ${TOTAL_MONTO:,.0f} costo total")
+    print(f"Servidor: {SERVIDOR}")
+    print("=" * 65)
 
-    # ── Resumen del pedido ──
-    total_pares = sum(r["cantidad"] for r in renglones)
-    total_monto = sum(r["cantidad"] * r["precio"] for r in renglones)
-    print(f"\n{'═'*60}")
-    print(f"  PEDIDO COMODITAS SA — Invierno 2026")
-    print(f"  {len(renglones)} renglones | {total_pares} pares | ${total_monto:,.0f}")
-    print(f"{'═'*60}")
-
-    # Detalle por modelo
+    # Detalle por modelo-color
     modelos = {}
-    for r in renglones:
-        mod = r["descripcion"].split()[0]
-        col = r["descripcion"].split()[1]
-        key = f"{mod} {col}"
+    for art, desc, sin, qty, precio in RENGLONES:
+        parts = desc.split()
+        key = f"{parts[0]} {parts[1]}"
         modelos.setdefault(key, 0)
-        modelos[key] += r["cantidad"]
+        modelos[key] += qty
     for k, v in modelos.items():
         print(f"  {k:40s} {v:>4d} pares")
-    print(f"  {'─'*44}")
-    print(f"  {'TOTAL':40s} {total_pares:>4d} pares")
+    print(f"  {'─' * 44}")
+    print(f"  {'TOTAL':40s} {TOTAL_PARES:>4d} pares")
 
-    # ── PASO 1: Alta de artículos nuevos ──
-    print(f"\n{'─'*60}")
-    print("  PASO 1: Alta de artículos nuevos (1619, 1246)")
-    print(f"{'─'*60}")
+    if DRY_RUN:
+        # PASO 1: mostrar artículos nuevos
+        alta_articulos(None, dry_run=True)
 
-    ok = alta_articulos(dry_run=dry_run)
-    if not ok:
-        print("❌ Falló la alta de artículos. Abortando.")
+        # PASO 2: mostrar pedido
+        print(f"\n  [DRY RUN] PEDIDO:")
+        print(f"    {len(RENGLONES)} renglones, {TOTAL_PARES} pares, ${TOTAL_MONTO:,.0f}")
+        print(f"    Proveedor: {PROVEEDOR} ({DENOMINACION})")
+        print(f"    Entrega: {FECHA_ENTREGA}")
+        print(f"\n  DRY RUN — No se inserto nada.")
+        print(f"  Para insertar: py -3 insertar_comoditas.py --ejecutar")
+        return
+
+    # -- EJECUCION REAL ------------------------------------------------
+    confirmacion = input(f"\nInsertar 16 arts nuevos + pedido ({TOTAL_PARES} pares) en {BASE_PEDIDO}? (s/N): ").strip().lower()
+    if confirmacion != "s":
+        print("Cancelado.")
+        sys.exit(0)
+
+    conn = pyodbc.connect(get_conn(BASE_PEDIDO), timeout=30)
+    conn.autocommit = False
+    cursor = conn.cursor()
+
+    try:
+        # PASO 1: Alta artículos nuevos
+        print(f"\n--- PASO 1: Alta articulos nuevos ---")
+        ok = alta_articulos(cursor, dry_run=False)
+        if not ok:
+            print("ERROR al crear articulos. Rollback.")
+            conn.rollback()
+            sys.exit(1)
+
+        # PASO 2: Pedido
+        print(f"\n--- PASO 2: Insertar pedido ---")
+        cursor.execute(f"SELECT ISNULL(MAX(numero), 0) + 1 FROM {BASE_PEDIDO}.dbo.pedico2 WHERE codigo = 8")
+        num_pedido = cursor.fetchone()[0]
+
+        obs = (f"Pedido pantuflas invierno 2026. {TOTAL_PARES} pares. "
+               f"5 modelos (598, 1127, 1619, 1246, 239). "
+               f"1619 y 1246 modelos nuevos. 239 hombre duplicado x2. "
+               f"COWORK {date.today().strftime('%d/%m/%Y')}")
+
+        # Cabecera
+        cursor.execute(
+            SQL_PEDIDO_CAB.format(base=BASE_PEDIDO),
+            num_pedido,
+            PROVEEDOR,
+            DENOMINACION,
+            FECHA_COMPROBANTE,
+            FECHA_COMPROBANTE,
+            obs,
+            PROVEEDOR,
+        )
+        print(f"  OK Cabecera pedico2 #{num_pedido}")
+
+        # Actualizar codigos de articulos nuevos en RENGLONES si fueron reasignados
+        art_map = {a_orig: a_new["codigo"] for a_orig, a_new in
+                   zip([361273,361274,361275,361276,361277,361278,361279,361280,361281,361282,361283,361284,361285,361286,361287,361288],
+                       NUEVOS_ARTICULOS)}
+
+        # Renglones
+        for renglon, (art, desc, sin, qty, precio) in enumerate(RENGLONES, 1):
+            art_real = art_map.get(art, art)  # usa codigo reasignado si aplica
+            cursor.execute(
+                SQL_PEDIDO_DET.format(base=BASE_PEDIDO),
+                num_pedido,
+                renglon,
+                art_real,
+                desc,
+                sin,
+                qty,
+                precio,
+                PROVEEDOR,
+                FECHA_COMPROBANTE,
+                FECHA_ENTREGA,
+            )
+
+        conn.commit()
+        print(f"  OK {len(RENGLONES)} renglones pedico1 insertados")
+
+        # Verificación
+        cursor.execute(
+            f"SELECT COUNT(*), SUM(cantidad) FROM {BASE_PEDIDO}.dbo.pedico1 "
+            f"WHERE numero = ? AND codigo = 8 AND letra = 'X' AND sucursal = 1",
+            num_pedido
+        )
+        row = cursor.fetchone()
+        print(f"\n  Verificacion: {row[0]} renglones, {row[1]} pares en pedido #{num_pedido}")
+
+        print(f"\n{'=' * 65}")
+        print(f"PEDIDO #{num_pedido} INSERTADO OK — {TOTAL_PARES} pares Comoditas")
+        print(f"16 articulos nuevos (1619 + 1246) creados")
+        print(f"{'=' * 65}")
+        print(f"\nVerificar en SSMS:")
+        print(f"  SELECT * FROM msgestionC.dbo.pedico2 WHERE numero = {num_pedido} AND empresa = 'H4'")
+        print(f"  SELECT * FROM msgestionC.dbo.pedico1 WHERE numero = {num_pedido} AND empresa = 'H4'")
+
+    except Exception as e:
+        print(f"\n  ERROR: {e}")
+        conn.rollback()
+        print("  Rollback completo.")
         sys.exit(1)
+    finally:
+        conn.close()
 
-    # ── PASO 2: Insertar pedido ──
-    print(f"\n{'─'*60}")
-    print("  PASO 2: Insertar pedido de compra")
-    print(f"{'─'*60}")
 
-    numero = insertar_pedido(cabecera, renglones, dry_run=dry_run)
-
-    if not dry_run and numero:
-        print(f"\n✅ Verificar en SSMS:")
-        print(f"   SELECT * FROM msgestionC.dbo.pedico2 WHERE numero = {numero} AND empresa = 'H4'")
-        print(f"   SELECT * FROM msgestionC.dbo.pedico1 WHERE numero = {numero} AND empresa = 'H4'")
-        print(f"   -- Debe haber {len(renglones)} renglones, {total_pares} pares")
+if __name__ == "__main__":
+    main()

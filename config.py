@@ -20,10 +20,10 @@ elif _is_windows:
     _LOCAL = False
     _DRIVER = "ODBC Driver 17 for SQL Server"
 else:
-    # Mac / Linux — Driver 18
+    # Mac / Linux — Driver 17 (Driver 18 fuerza TLS 1.2, incompatible con SQL Server 2012)
     SERVIDOR = "192.168.2.111"
     _LOCAL = False
-    _DRIVER = "ODBC Driver 18 for SQL Server"
+    _DRIVER = "ODBC Driver 17 for SQL Server"
 
 # ── CREDENCIALES ─────────────────────────────────────
 USUARIO  = "am"
@@ -47,7 +47,7 @@ def get_conn_string(base):
         f"PWD={PASSWORD};"
     )
     if not _is_windows:
-        conn += "TrustServerCertificate=yes;Encrypt=Optional;"
+        conn += "TrustServerCertificate=yes;Encrypt=no;"
     return conn
 
 CONN_COMPRAS   = get_conn_string(BD_COMPRAS)

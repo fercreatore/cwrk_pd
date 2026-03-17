@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "multicanal",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["OPENSSL_CONF=/Users/fernandocalaianov/Desktop/cowork_pedidos/multicanal/openssl_legacy.cnf", "streamlit", "run", "app_multicanal.py", "--server.port", "8505", "--server.headless", "true"],
+      "port": 8505
+    }
+  ]
+}

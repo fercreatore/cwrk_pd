@@ -13,9 +13,11 @@
 # =============================================================
 
 MOUNT="/Volumes/cowork_111"
+MOUNT_WEB2PY="/Volumes/web2py_111"
 SMB_URL='//administrador:cagr$2011@192.168.2.111/c$/cowork_pedidos'
+SMB_URL_WEB2PY='//administrador:cagr$2011@192.168.2.111/c$/web2py_src/applications/calzalindo_informes'
 SRC="$HOME/Desktop/cowork_pedidos"
-WEB2PY="$MOUNT/../web2py_src/applications/calzalindo_informes"
+WEB2PY="$MOUNT_WEB2PY"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -26,21 +28,34 @@ NC='\033[0m'
 # Extensiones que se sincronizan (código + datos livianos)
 SYNC_EXTS=(*.py *.sql *.json *.md *.txt *.sh *.bat *.cfg *.toml *.plist)
 
-# --- Verificar/montar SMB ---
-montar() {
-    if mount | grep -q "cowork_111"; then
-        echo -e "${GREEN}✓ SMB ya montado${NC}"
+# --- Montar un share SMB (sin sudo) ---
+_montar_share() {
+    local mount_point="$1"
+    local smb_url="$2"
+    local label="$3"
+    if mount | grep -q "$mount_point"; then
+        echo -e "${GREEN}✓ $label ya montado${NC}"
     else
-        echo -e "${YELLOW}Montando SMB...${NC}"
-        sudo mkdir -p "$MOUNT" 2>/dev/null
-        sudo mount_smbfs "$SMB_URL" "$MOUNT"
+        echo -e "${YELLOW}Montando $label...${NC}"
+        mkdir -p "$mount_point" 2>/dev/null
+        mount_smbfs "$smb_url" "$mount_point"
         if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ Montado OK${NC}"
+            echo -e "${GREEN}✓ $label montado OK${NC}"
         else
-            echo -e "${RED}✗ Error montando. ¿Está encendido el servidor?${NC}"
-            exit 1
+            echo -e "${RED}✗ Error montando $label. ¿Está encendido el servidor?${NC}"
+            return 1
         fi
     fi
+}
+
+# --- Verificar/montar SMB (cowork_pedidos) ---
+montar() {
+    _montar_share "$MOUNT" "$SMB_URL" "cowork_pedidos"
+}
+
+# --- Verificar/montar SMB (web2py) ---
+montar_web2py() {
+    _montar_share "$MOUNT_WEB2PY" "$SMB_URL_WEB2PY" "web2py"
 }
 
 build_include_flags() {
@@ -53,11 +68,12 @@ build_include_flags() {
 
 # --- Deploy web2py (calzalindo_informes) ---
 deploy_web2py() {
+    montar_web2py || exit 1
     echo -e "${YELLOW}--- Deploy calzalindo_informes ---${NC}"
-    sudo rsync -av \
+    rsync -av \
         "$SRC/_informes/calzalindo_informes_DEPLOY/" \
         "$WEB2PY/"
-    echo -e "${GREEN}✓ Web2py desplegado. RECORDÁ reiniciar web2py en el servidor.${NC}"
+    echo -e "${GREEN}✓ Web2py desplegado en C:\\web2py_src\\applications\\calzalindo_informes${NC}"
 }
 
 # --- Deploy scripts (pipeline + oneshot) ---
@@ -67,13 +83,13 @@ deploy_scripts() {
 
     # 1) _scripts_oneshot/
     echo -e "${CYAN}  _scripts_oneshot/${NC}"
-    eval sudo rsync -av $INCLUDES --include='*/' --exclude='*' \
+    eval rsync -av $INCLUDES --include='*/' --exclude='*' \
         "\"$SRC/_scripts_oneshot/\"" "\"$MOUNT/_scripts_oneshot/\""
 
     # 2) Raíz (pipeline core) — SOLO archivos de raíz, sin descender a subcarpetas
     #    Excluye explícitamente carpetas grandes que NO son pipeline
     echo -e "${CYAN}  raíz (pipeline core)${NC}"
-    eval sudo rsync -av $INCLUDES \
+    eval rsync -av $INCLUDES \
         --exclude='_*' --exclude='.*' \
         --exclude='clz_wpu/' \
         --exclude='compras/' \
@@ -100,8 +116,8 @@ deploy_archivo() {
         exit 1
     fi
     local DIR=$(dirname "$ARCHIVO")
-    sudo mkdir -p "$MOUNT/$DIR" 2>/dev/null
-    sudo cp "$SRC/$ARCHIVO" "$MOUNT/$ARCHIVO"
+    mkdir -p "$MOUNT/$DIR" 2>/dev/null
+    cp "$SRC/$ARCHIVO" "$MOUNT/$ARCHIVO"
     local SIZE=$(du -sh "$SRC/$ARCHIVO" | cut -f1)
     echo -e "${GREEN}✓ $ARCHIVO ($SIZE) → 111${NC}"
 }
