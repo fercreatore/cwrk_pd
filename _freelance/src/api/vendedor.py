@@ -12,6 +12,7 @@ Endpoints:
   GET  /api/v1/vendedor/{cod}/proyeccion  → Proyeccion vs tope monotributo
   POST /api/v1/vendedor/{cod}/compartir   → Marcar contenido como compartido
 """
+import calendar
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, date
 from db import query, execute
@@ -255,6 +256,10 @@ async def catalogo(cod: str, solo_nuevos: bool = False):
         WHERE vendedor_id = ? AND estado IN ('LISTO', 'COMPARTIDO')
     """
     contenido = query(sql_contenido, 'omicronvt', (vend['id'],))
+
+    if solo_nuevos:
+        skus_compartidos = {c['sku_base'] for c in contenido if c.get('estado') == 'COMPARTIDO'}
+        productos = [p for p in productos if p['sku_base'] not in skus_compartidos]
     contenido_map = {}
     for c in contenido:
         key = c['sku_base']
@@ -359,7 +364,7 @@ async def proyeccion_monotributo(cod: str):
     tope = TOPES_MONO.get(cat, 25200000)
 
     dias_transcurridos = (hoy - primer_dia_anio).days + 1
-    dias_anio = 366 if hoy.year % 4 == 0 else 365
+    dias_anio = 366 if calendar.isleap(hoy.year) else 365
     proyeccion_anual = (facturacion_anual_est / dias_transcurridos * dias_anio) if dias_transcurridos > 0 else 0
 
     pct_usado = facturacion_anual_est / tope * 100 if tope > 0 else 0
