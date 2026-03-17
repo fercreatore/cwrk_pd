@@ -11,18 +11,9 @@ from config import settings
 DRIVER = "{ODBC Driver 17 for SQL Server}"
 
 
-@contextmanager
-def get_db(database: str = None):
-    """
-    Context manager que devuelve un cursor con READ UNCOMMITTED.
-    Retorna filas como diccionarios.
-    Uso:
-        with get_db('omicronvt') as cursor:
-            cursor.execute("SELECT ...")
-            rows = cursor.fetchall()
-    """
+def _build_conn_str(database: str = None) -> str:
     db = database or settings.DB_ANALITICA
-    conn_str = (
+    return (
         f"DRIVER={DRIVER};"
         f"SERVER={settings.DB_SERVER},{settings.DB_PORT};"
         f"DATABASE={db};"
@@ -30,7 +21,18 @@ def get_db(database: str = None):
         f"PWD={settings.DB_PASSWORD};"
         f"Encrypt=no;"
     )
-    conn = pyodbc.connect(conn_str)
+
+
+@contextmanager
+def get_db(database: str = None):
+    """
+    Context manager que devuelve un cursor con READ UNCOMMITTED.
+    Uso:
+        with get_db('omicronvt') as cursor:
+            cursor.execute("SELECT ...")
+            rows = cursor.fetchall()
+    """
+    conn = pyodbc.connect(_build_conn_str(database))
     try:
         cursor = conn.cursor()
         cursor.execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
@@ -45,6 +47,8 @@ def get_db(database: str = None):
 
 def _rows_to_dicts(cursor) -> list:
     """Convierte el resultado de un cursor pyodbc a lista de dicts."""
+    if cursor.description is None:
+        return []
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -67,6 +71,18 @@ def execute(sql: str, database: str = None, params: tuple = None) -> int:
         else:
             cur.execute(sql)
         return cur.rowcount
+
+
+def execute_returning_id(sql: str, database: str = None, params: tuple = None) -> int:
+    """Ejecuta INSERT y retorna el ID generado via SCOPE_IDENTITY()."""
+    with get_db(database) as cur:
+        if params:
+            cur.execute(sql, params)
+        else:
+            cur.execute(sql)
+        cur.execute("SELECT SCOPE_IDENTITY() AS id")
+        row = cur.fetchone()
+        return int(row[0]) if row else None
 
 
 # ── Shortcuts ────────────────────────────────────────────

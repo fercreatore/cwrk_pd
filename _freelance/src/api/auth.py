@@ -134,9 +134,9 @@ def get_codigo_vendedor(user_id: int, email: str) -> Optional[str]:
 
     if viajante_cod:
         rows = query(
-            "SELECT codigo_atrib FROM vendedor_freelance WHERE viajante_cod = %d AND activo = 1"
-            % viajante_cod,
+            "SELECT codigo_atrib FROM vendedor_freelance WHERE viajante_cod = ? AND activo = 1",
             settings.DB_ANALITICA,
+            (viajante_cod,),
         )
         if rows:
             return rows[0]["codigo_atrib"]

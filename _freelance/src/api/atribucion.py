@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-API de Atribución de Ventas.
-Registra qué vendedor generó cada venta y por qué canal.
+API de Atribucion de Ventas.
+Registra que vendedor genero cada venta y por que canal.
 
 Endpoints:
   POST /api/v1/atribucion/registrar       → Registrar atribucion manual
@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date, datetime
-from db import query_omicronvt, execute, get_db
+from db import query, execute, execute_returning_id
 
 router = APIRouter()
 
@@ -25,7 +25,6 @@ class AtribucionIn(BaseModel):
     monto_producto: float
     cant_pares: int = 1
     hora_venta: Optional[str] = None   # HH:MM
-    # Referencia opcional al comprobante del ERP
     empresa: Optional[str] = None
     vta_codigo: Optional[int] = None
     vta_letra: Optional[str] = None
@@ -40,27 +39,26 @@ async def registrar_atribucion(data: AtribucionIn):
     Registra una venta atribuida a un vendedor.
     Calcula automaticamente el fee segun franja horaria.
     """
-    # Buscar vendedor
-    rows = query_omicronvt(
-        "SELECT * FROM vendedor_freelance WHERE codigo_atrib = '%s' AND activo = 1"
-        % data.vendedor_cod
+    rows = query(
+        "SELECT * FROM vendedor_freelance WHERE codigo_atrib = ? AND activo = 1",
+        'omicronvt',
+        (data.vendedor_cod,),
     )
     if not rows:
-        raise HTTPException(404, "Vendedor %s no encontrado" % data.vendedor_cod)
+        raise HTTPException(404, "Vendedor no encontrado")
     vend = rows[0]
 
-    # Determinar fee base (STD o PREMIUM — por ahora STD para todas)
     fee_base = float(vend.get('fee_pct_std') or 0.05)
 
-    # Buscar bonus por franja horaria
     bonus = 0.0
     if data.hora_venta:
         hoy = datetime.now()
-        dia_semana = hoy.isoweekday()  # 1=Lunes
-        bonus_rows = query_omicronvt(
+        dia_semana = hoy.isoweekday()
+        bonus_rows = query(
             "SELECT bonus_fee_pct FROM franjas_incentivo "
-            "WHERE dia_semana = %d AND hora_desde <= '%s' AND hora_hasta > '%s'"
-            % (dia_semana, data.hora_venta, data.hora_venta)
+            "WHERE dia_semana = ? AND hora_desde <= ? AND hora_hasta > ?",
+            'omicronvt',
+            (dia_semana, data.hora_venta, data.hora_venta),
         )
         if bonus_rows:
             bonus = float(bonus_rows[0]['bonus_fee_pct'] or 0)
@@ -68,7 +66,6 @@ async def registrar_atribucion(data: AtribucionIn):
     fee_total = fee_base + bonus
     fee_monto = round(data.monto_producto * fee_total, 2)
 
-    # Insertar atribucion
     sql = """
         INSERT INTO omicronvt.dbo.venta_atribucion (
             empresa, vta_codigo, vta_letra, vta_sucursal, vta_numero, vta_orden,
@@ -77,29 +74,26 @@ async def registrar_atribucion(data: AtribucionIn):
             fee_pct_base, bonus_franja, fee_pct_total, fee_monto,
             estado_factura
         ) VALUES (
-            %s, %s, %s, %s, %s, %s,
-            %d, '%s', GETDATE(), %s,
-            %.2f, %d,
-            %.4f, %.4f, %.4f, %.2f,
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, GETDATE(), ?,
+            ?, ?,
+            ?, ?, ?, ?,
             'PEND'
         )
-    """ % (
-        ("'%s'" % data.empresa) if data.empresa else 'NULL',
-        data.vta_codigo if data.vta_codigo else 'NULL',
-        ("'%s'" % data.vta_letra) if data.vta_letra else 'NULL',
-        data.vta_sucursal if data.vta_sucursal else 'NULL',
-        data.vta_numero if data.vta_numero else 'NULL',
-        data.vta_orden if data.vta_orden else 'NULL',
+    """
+
+    new_id = execute_returning_id(sql, 'omicronvt', (
+        data.empresa,
+        data.vta_codigo,
+        data.vta_letra,
+        data.vta_sucursal,
+        data.vta_numero,
+        data.vta_orden,
         vend['id'], data.canal_origen,
-        ("'%s'" % data.hora_venta) if data.hora_venta else 'NULL',
+        data.hora_venta,
         data.monto_producto, data.cant_pares,
         fee_base, bonus, fee_total, fee_monto,
-    )
-
-    with get_db('omicronvt') as cur:
-        cur.execute(sql)
-        cur.execute("SELECT SCOPE_IDENTITY() AS id")
-        new_id = cur.fetchone()['id']
+    ))
 
     return {
         "id": new_id,
@@ -120,8 +114,7 @@ async def registrar_atribucion(data: AtribucionIn):
 async def sync_desde_viajante(fecha_desde: str = None):
     """
     Sync automatico: toma ventas de ventas1_vendedor que tengan viajante
-    asociado a un vendedor_freelance y crea atribuciones automaticas
-    para las que no existan.
+    asociado a un vendedor_freelance y crea atribuciones automaticas.
     Canal: PRESENCIAL (default para ventas sin tracking de link).
     """
     if not fecha_desde:
@@ -147,8 +140,8 @@ async def sync_desde_viajante(fecha_desde: str = None):
             'PEND'
         FROM omicronvt.dbo.ventas1_vendedor v
         JOIN omicronvt.dbo.vendedor_freelance vf ON vf.viajante_cod = v.viajante AND vf.activo = 1
-        WHERE v.fecha >= '%s'
-          AND v.codigo = 1  -- solo facturas, no NC
+        WHERE v.fecha >= ?
+          AND v.codigo = 1
           AND NOT EXISTS (
               SELECT 1 FROM omicronvt.dbo.venta_atribucion va
               WHERE va.empresa = v.empresa
@@ -159,17 +152,19 @@ async def sync_desde_viajante(fecha_desde: str = None):
           )
         GROUP BY v.empresa, v.codigo, v.letra, v.sucursal, v.numero, v.orden,
                  vf.id, v.fecha, vf.fee_pct_std
-    """ % fecha_desde
+    """
 
-    count = execute(sql, 'omicronvt')
+    count = execute(sql, 'omicronvt', (fecha_desde,))
     return {"sincronizadas": count, "desde": fecha_desde}
 
 
 @router.get("/por_vendedor/{cod}")
 async def por_vendedor(cod: str, mes: int = None, anio: int = None):
     """Atribuciones de un vendedor en un periodo."""
-    rows = query_omicronvt(
-        "SELECT id FROM vendedor_freelance WHERE codigo_atrib = '%s'" % cod
+    rows = query(
+        "SELECT id FROM vendedor_freelance WHERE codigo_atrib = ?",
+        'omicronvt',
+        (cod,),
     )
     if not rows:
         raise HTTPException(404, "Vendedor no encontrado")
@@ -183,16 +178,15 @@ async def por_vendedor(cod: str, mes: int = None, anio: int = None):
         SELECT va.*, vf.codigo_atrib
         FROM omicronvt.dbo.venta_atribucion va
         JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = va.vendedor_id
-        WHERE va.vendedor_id = %d
-          AND YEAR(va.fecha) = %d AND MONTH(va.fecha) = %d
+        WHERE va.vendedor_id = ?
+          AND YEAR(va.fecha) = ? AND MONTH(va.fecha) = ?
         ORDER BY va.fecha DESC
-    """ % (vend_id, a, m)
+    """
 
-    atribs = query_omicronvt(sql)
+    atribs = query(sql, 'omicronvt', (vend_id, a, m))
     total_fee = sum(float(r.get('fee_monto') or 0) for r in atribs)
     total_producto = sum(float(r.get('monto_producto') or 0) for r in atribs)
 
-    # Breakdown por canal
     canales = {}
     for r in atribs:
         c = r.get('canal_origen', 'OTRO')
@@ -228,30 +222,35 @@ async def por_canal(mes: int = None, anio: int = None):
             SUM(fee_monto) AS total_fee,
             COUNT(DISTINCT vendedor_id) AS vendedores
         FROM omicronvt.dbo.venta_atribucion
-        WHERE YEAR(fecha) = %d AND MONTH(fecha) = %d
+        WHERE YEAR(fecha) = ? AND MONTH(fecha) = ?
         GROUP BY canal_origen
         ORDER BY total_producto DESC
-    """ % (a, m)
+    """
 
     return {
         "periodo": "%d-%02d" % (a, m),
-        "canales": query_omicronvt(sql),
+        "canales": query(sql, 'omicronvt', (a, m)),
     }
 
 
 @router.get("/pendientes")
 async def pendientes_factura(cod: str = None):
     """Ventas sin factura de servicio emitida."""
-    where_extra = ""
     if cod:
-        where_extra = " AND vf.codigo_atrib = '%s'" % cod
-
-    sql = """
-        SELECT va.*, vf.codigo_atrib, vf.cuit AS vendedor_cuit
-        FROM omicronvt.dbo.venta_atribucion va
-        JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = va.vendedor_id
-        WHERE va.estado_factura = 'PEND'%s
-        ORDER BY va.fecha DESC
-    """ % where_extra
-
-    return {"pendientes": query_omicronvt(sql)}
+        sql = """
+            SELECT va.*, vf.codigo_atrib, vf.cuit AS vendedor_cuit
+            FROM omicronvt.dbo.venta_atribucion va
+            JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = va.vendedor_id
+            WHERE va.estado_factura = 'PEND' AND vf.codigo_atrib = ?
+            ORDER BY va.fecha DESC
+        """
+        return {"pendientes": query(sql, 'omicronvt', (cod,))}
+    else:
+        sql = """
+            SELECT va.*, vf.codigo_atrib, vf.cuit AS vendedor_cuit
+            FROM omicronvt.dbo.venta_atribucion va
+            JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = va.vendedor_id
+            WHERE va.estado_factura = 'PEND'
+            ORDER BY va.fecha DESC
+        """
+        return {"pendientes": query(sql, 'omicronvt')}

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-API de Liquidación mensual de vendedores freelance.
+API de Liquidacion mensual de vendedores freelance.
 
 Endpoints:
   POST /api/v1/liquidacion/generar        → Genera liquidaciones del mes
@@ -10,7 +10,7 @@ Endpoints:
 """
 from fastapi import APIRouter, HTTPException
 from datetime import date
-from db import query_omicronvt, execute, get_db
+from db import query, execute
 
 router = APIRouter()
 
@@ -25,9 +25,9 @@ async def generar_liquidaciones(anio: int = None, mes: int = None):
     a = anio or hoy.year
     m = mes or hoy.month
 
-    # Obtener todos los vendedores activos
-    vendedores = query_omicronvt(
-        "SELECT * FROM vendedor_freelance WHERE activo = 1"
+    vendedores = query(
+        "SELECT * FROM vendedor_freelance WHERE activo = 1",
+        'omicronvt',
     )
     if not vendedores:
         return {"mensaje": "No hay vendedores freelance activos", "generadas": 0}
@@ -38,7 +38,6 @@ async def generar_liquidaciones(anio: int = None, mes: int = None):
     for vend in vendedores:
         vid = vend['id']
 
-        # Sumar atribuciones del periodo
         sql_atrib = """
             SELECT
                 COUNT(*) AS operaciones,
@@ -47,10 +46,10 @@ async def generar_liquidaciones(anio: int = None, mes: int = None):
                 ISNULL(SUM(fee_monto), 0) AS total_fee,
                 ISNULL(SUM(fee_monto) - SUM(monto_producto * fee_pct_base), 0) AS total_bonus
             FROM omicronvt.dbo.venta_atribucion
-            WHERE vendedor_id = %d
-              AND YEAR(fecha) = %d AND MONTH(fecha) = %d
-        """ % (vid, a, m)
-        atrib = query_omicronvt(sql_atrib)
+            WHERE vendedor_id = ?
+              AND YEAR(fecha) = ? AND MONTH(fecha) = ?
+        """
+        atrib = query(sql_atrib, 'omicronvt', (vid, a, m))
         at = atrib[0] if atrib else {}
 
         total_fee = float(at.get('total_fee') or 0)
@@ -60,60 +59,50 @@ async def generar_liquidaciones(anio: int = None, mes: int = None):
         cuota = float(vend.get('cuota_mono') or 0)
         neto = total_fee - canon - cuota
 
-        # Upsert liquidacion
-        existe = query_omicronvt(
+        existe = query(
             "SELECT id FROM liquidacion_vendedor "
-            "WHERE vendedor_id = %d AND periodo_anio = %d AND periodo_mes = %d"
-            % (vid, a, m)
+            "WHERE vendedor_id = ? AND periodo_anio = ? AND periodo_mes = ?",
+            'omicronvt',
+            (vid, a, m),
         )
 
         if existe:
-            sql_update = """
-                UPDATE omicronvt.dbo.liquidacion_vendedor SET
-                    ventas_producto = %.2f,
-                    cant_operaciones = %d,
-                    cant_pares = %d,
-                    total_fee_base = %.2f,
-                    total_bonus = %.2f,
-                    total_fee = %.2f,
-                    canon_espacio = %.2f,
-                    cuota_mono = %.2f,
-                    neto_estimado = %.2f,
-                    estado = CASE WHEN estado IN ('BORR') THEN 'BORR' ELSE estado END
-                WHERE vendedor_id = %d AND periodo_anio = %d AND periodo_mes = %d
-            """ % (
-                float(at.get('total_producto') or 0),
-                int(at.get('operaciones') or 0),
-                int(at.get('total_pares') or 0),
-                total_fee_base, total_bonus, total_fee,
-                canon, cuota, neto,
-                vid, a, m
-            )
-            execute(sql_update, 'omicronvt')
-        else:
-            sql_insert = """
-                INSERT INTO omicronvt.dbo.liquidacion_vendedor (
-                    vendedor_id, periodo_anio, periodo_mes,
-                    ventas_producto, cant_operaciones, cant_pares,
+            execute(
+                "UPDATE omicronvt.dbo.liquidacion_vendedor SET "
+                "ventas_producto = ?, cant_operaciones = ?, cant_pares = ?, "
+                "total_fee_base = ?, total_bonus = ?, total_fee = ?, "
+                "canon_espacio = ?, cuota_mono = ?, neto_estimado = ?, "
+                "estado = CASE WHEN estado IN ('BORR') THEN 'BORR' ELSE estado END "
+                "WHERE vendedor_id = ? AND periodo_anio = ? AND periodo_mes = ?",
+                'omicronvt',
+                (
+                    float(at.get('total_producto') or 0),
+                    int(at.get('operaciones') or 0),
+                    int(at.get('total_pares') or 0),
                     total_fee_base, total_bonus, total_fee,
-                    canon_espacio, cuota_mono, neto_estimado,
-                    estado
-                ) VALUES (
-                    %d, %d, %d,
-                    %.2f, %d, %d,
-                    %.2f, %.2f, %.2f,
-                    %.2f, %.2f, %.2f,
-                    'BORR'
-                )
-            """ % (
-                vid, a, m,
-                float(at.get('total_producto') or 0),
-                int(at.get('operaciones') or 0),
-                int(at.get('total_pares') or 0),
-                total_fee_base, total_bonus, total_fee,
-                canon, cuota, neto,
+                    canon, cuota, neto,
+                    vid, a, m,
+                ),
             )
-            execute(sql_insert, 'omicronvt')
+        else:
+            execute(
+                "INSERT INTO omicronvt.dbo.liquidacion_vendedor ("
+                "vendedor_id, periodo_anio, periodo_mes, "
+                "ventas_producto, cant_operaciones, cant_pares, "
+                "total_fee_base, total_bonus, total_fee, "
+                "canon_espacio, cuota_mono, neto_estimado, "
+                "estado"
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'BORR')",
+                'omicronvt',
+                (
+                    vid, a, m,
+                    float(at.get('total_producto') or 0),
+                    int(at.get('operaciones') or 0),
+                    int(at.get('total_pares') or 0),
+                    total_fee_base, total_bonus, total_fee,
+                    canon, cuota, neto,
+                ),
+            )
 
         generadas += 1
         resultados.append({
@@ -144,11 +133,11 @@ async def resumen_liquidaciones(anio: int = None, mes: int = None):
         FROM omicronvt.dbo.liquidacion_vendedor l
         JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = l.vendedor_id
         LEFT JOIN msgestionC.dbo.viajantes vj ON vj.codigo = vf.viajante_cod
-        WHERE l.periodo_anio = %d AND l.periodo_mes = %d
+        WHERE l.periodo_anio = ? AND l.periodo_mes = ?
         ORDER BY l.total_fee DESC
-    """ % (a, m)
+    """
 
-    liqs = query_omicronvt(sql)
+    liqs = query(sql, 'omicronvt', (a, m))
 
     totales = {
         "ventas_producto": sum(float(r.get('ventas_producto') or 0) for r in liqs),
@@ -188,30 +177,32 @@ async def liquidacion_vendedor(cod: str, anio: int = None, mes: int = None):
     a = anio or hoy.year
     m = mes or hoy.month
 
-    # Datos del vendedor
-    vrows = query_omicronvt(
+    vrows = query(
         "SELECT vf.*, vj.descripcion AS nombre "
         "FROM vendedor_freelance vf "
         "JOIN msgestionC.dbo.viajantes vj ON vj.codigo = vf.viajante_cod "
-        "WHERE vf.codigo_atrib = '%s'" % cod
+        "WHERE vf.codigo_atrib = ?",
+        'omicronvt',
+        (cod,),
     )
     if not vrows:
         raise HTTPException(404, "Vendedor no encontrado")
     vend = vrows[0]
 
-    # Liquidacion del periodo
-    liq = query_omicronvt(
+    liq = query(
         "SELECT * FROM liquidacion_vendedor "
-        "WHERE vendedor_id = %d AND periodo_anio = %d AND periodo_mes = %d"
-        % (vend['id'], a, m)
+        "WHERE vendedor_id = ? AND periodo_anio = ? AND periodo_mes = ?",
+        'omicronvt',
+        (vend['id'], a, m),
     )
     liq_data = liq[0] if liq else None
 
-    # Detalle de operaciones
-    ops = query_omicronvt(
+    ops = query(
         "SELECT * FROM venta_atribucion "
-        "WHERE vendedor_id = %d AND YEAR(fecha) = %d AND MONTH(fecha) = %d "
-        "ORDER BY fecha" % (vend['id'], a, m)
+        "WHERE vendedor_id = ? AND YEAR(fecha) = ? AND MONTH(fecha) = ? "
+        "ORDER BY fecha",
+        'omicronvt',
+        (vend['id'], a, m),
     )
 
     return {
@@ -255,8 +246,9 @@ async def aprobar_liquidacion(liq_id: int):
     count = execute(
         "UPDATE omicronvt.dbo.liquidacion_vendedor "
         "SET estado = 'APROBADA', fecha_aprobacion = GETDATE() "
-        "WHERE id = %d AND estado = 'BORR'" % liq_id,
-        'omicronvt'
+        "WHERE id = ? AND estado = 'BORR'",
+        'omicronvt',
+        (liq_id,),
     )
     if count == 0:
         raise HTTPException(400, "Liquidacion no encontrada o ya aprobada")

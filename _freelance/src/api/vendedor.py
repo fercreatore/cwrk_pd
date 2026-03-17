@@ -14,21 +14,23 @@ Endpoints:
 """
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, date
-from db import query_omicronvt, query_msgestionC, execute
+from db import query, execute
 
 router = APIRouter()
 
 
 def _get_vendedor(cod: str) -> dict:
     """Obtiene datos del vendedor freelance por codigo de atribucion (V569)."""
-    rows = query_omicronvt(
+    rows = query(
         "SELECT vf.*, v.descripcion AS nombre "
         "FROM vendedor_freelance vf "
         "JOIN msgestionC.dbo.viajantes v ON v.codigo = vf.viajante_cod "
-        "WHERE vf.codigo_atrib = '%s' AND vf.activo = 1" % cod
+        "WHERE vf.codigo_atrib = ? AND vf.activo = 1",
+        'omicronvt',
+        (cod,),
     )
     if not rows:
-        raise HTTPException(status_code=404, detail="Vendedor %s no encontrado" % cod)
+        raise HTTPException(status_code=404, detail="Vendedor no encontrado")
     return rows[0]
 
 
@@ -42,7 +44,6 @@ async def dashboard(cod: str, meses: int = 1):
     hoy = date.today()
     primer_dia_mes = date(hoy.year, hoy.month, 1)
 
-    # Ventas del mes actual desde ventas1_vendedor
     sql_ventas = """
         SELECT
             SUM(total_item) AS venta_total,
@@ -51,17 +52,21 @@ async def dashboard(cod: str, meses: int = 1):
             COUNT(DISTINCT CASE WHEN codigo=1 THEN
                 CAST(sucursal AS VARCHAR) + '-' + CAST(numero AS VARCHAR)
             END) AS tickets,
-            SUM(CASE WHEN CAST(fecha AS DATE) = '%s' THEN total_item ELSE 0 END) AS venta_hoy,
-            SUM(CASE WHEN CAST(fecha AS DATE) = '%s' THEN cantidad ELSE 0 END) AS pares_hoy,
-            SUM(CASE WHEN fecha >= DATEADD(day, -7, '%s') THEN total_item ELSE 0 END) AS venta_semana
+            SUM(CASE WHEN CAST(fecha AS DATE) = ? THEN total_item ELSE 0 END) AS venta_hoy,
+            SUM(CASE WHEN CAST(fecha AS DATE) = ? THEN cantidad ELSE 0 END) AS pares_hoy,
+            SUM(CASE WHEN fecha >= DATEADD(day, -7, ?) THEN total_item ELSE 0 END) AS venta_semana
         FROM omicronvt.dbo.ventas1_vendedor
-        WHERE viajante = %d
+        WHERE viajante = ?
           AND codigo NOT IN (7, 36)
-          AND fecha >= '%s'
-          AND fecha <= '%s'
-    """ % (hoy, hoy, hoy, vend['viajante_cod'], primer_dia_mes, hoy)
+          AND fecha >= ?
+          AND fecha <= ?
+    """
 
-    ventas = query_omicronvt(sql_ventas)
+    ventas = query(sql_ventas, 'omicronvt', (
+        str(hoy), str(hoy), str(hoy),
+        vend['viajante_cod'],
+        str(primer_dia_mes), str(hoy),
+    ))
     v = ventas[0] if ventas else {}
 
     venta_total = float(v.get('venta_total') or 0)
@@ -69,22 +74,20 @@ async def dashboard(cod: str, meses: int = 1):
     pares = int(v.get('pares') or 0)
     tickets = int(v.get('tickets') or 0)
 
-    # Fee estimado del mes
     fee_pct = float(vend.get('fee_pct_std') or 0.05)
     fee_estimado = venta_total * fee_pct
 
-    # Margen
     margen_pct = ((venta_total - costo_total) / venta_total * 100) if venta_total > 0 else 0
 
-    # Ranking del mes (posicion entre todos los vendedores)
     sql_ranking = """
         SELECT viajante, SUM(total_item) AS venta
         FROM omicronvt.dbo.ventas1_vendedor
-        WHERE fecha >= '%s' AND fecha <= '%s'
+        WHERE fecha >= ? AND fecha <= ?
+          AND codigo NOT IN (7, 36)
         GROUP BY viajante
         ORDER BY venta DESC
-    """ % (primer_dia_mes, hoy)
-    ranking_rows = query_omicronvt(sql_ranking)
+    """
+    ranking_rows = query(sql_ranking, 'omicronvt', (str(primer_dia_mes), str(hoy)))
     mi_posicion = 0
     total_vendedores = len(ranking_rows)
     for i, r in enumerate(ranking_rows, 1):
@@ -145,14 +148,14 @@ async def ventas(cod: str, dias: int = 30):
                 CAST(sucursal AS VARCHAR) + '-' + CAST(numero AS VARCHAR)
             END) AS tickets
         FROM omicronvt.dbo.ventas1_vendedor
-        WHERE viajante = %d
+        WHERE viajante = ?
           AND codigo NOT IN (7, 36)
-          AND fecha >= DATEADD(day, -%d, GETDATE())
+          AND fecha >= DATEADD(day, -?, GETDATE())
         GROUP BY CAST(fecha AS DATE)
         ORDER BY dia DESC
-    """ % (vend['viajante_cod'], dias)
+    """
 
-    rows = query_omicronvt(sql)
+    rows = query(sql, 'omicronvt', (vend['viajante_cod'], dias))
     fee_pct = float(vend.get('fee_pct_std') or 0.05)
 
     return {
@@ -189,15 +192,14 @@ async def ranking(cod: str):
         FROM omicronvt.dbo.ventas1_vendedor v1
         LEFT JOIN msgestionC.dbo.viajantes vj ON vj.codigo = v1.viajante
         WHERE v1.codigo NOT IN (7, 36)
-          AND v1.fecha >= '%s' AND v1.fecha <= '%s'
+          AND v1.fecha >= ? AND v1.fecha <= ?
         GROUP BY v1.viajante, vj.descripcion
         HAVING SUM(v1.total_item) > 100000
         ORDER BY venta DESC
-    """ % (primer_dia, hoy)
+    """
 
-    rows = query_omicronvt(sql)
+    rows = query(sql, 'omicronvt', (str(primer_dia), str(hoy)))
 
-    # Marcar cual es el vendedor actual
     vend = _get_vendedor(cod)
     mi_cod = vend['viajante_cod']
 
@@ -226,16 +228,13 @@ async def catalogo(cod: str, solo_nuevos: bool = False):
     """
     vend = _get_vendedor(cod)
 
-    # Productos con contenido comercial
     sql = """
         SELECT cc.id, cc.sku_base, cc.titulo_corto, cc.descripcion_redes,
                cc.hashtags, cc.categoria_fee, cc.foto_principal,
                m.descripcion AS marca,
-               -- Stock disponible (todos los talles de este SKU)
                (SELECT COUNT(*) FROM msgestion01art.dbo.articulo a2
                 WHERE LEFT(a2.descripcion_1, LEN(cc.sku_base)) = cc.sku_base
                   AND a2.stock > 0) AS talles_con_stock,
-               -- Precio minimo y maximo
                (SELECT MIN(a3.precio_1) FROM msgestion01art.dbo.articulo a3
                 WHERE LEFT(a3.descripcion_1, LEN(cc.sku_base)) = cc.sku_base
                   AND a3.precio_1 > 0) AS precio_min,
@@ -247,15 +246,14 @@ async def catalogo(cod: str, solo_nuevos: bool = False):
         WHERE cc.activo = 1
         ORDER BY cc.fecha_modif DESC
     """
-    productos = query_omicronvt(sql)
+    productos = query(sql, 'omicronvt')
 
-    # Contenido ya generado para este vendedor
     sql_contenido = """
         SELECT sku_base, canal, estado, contenido_texto, link_atribucion
         FROM omicronvt.dbo.contenido_generado
-        WHERE vendedor_id = %d AND estado IN ('LISTO', 'COMPARTIDO')
-    """ % vend['id']
-    contenido = query_omicronvt(sql_contenido)
+        WHERE vendedor_id = ? AND estado IN ('LISTO', 'COMPARTIDO')
+    """
+    contenido = query(sql_contenido, 'omicronvt', (vend['id'],))
     contenido_map = {}
     for c in contenido:
         key = c['sku_base']
@@ -307,12 +305,12 @@ async def clientes(cod: str):
     """CRM minimo: clientes del vendedor."""
     vend = _get_vendedor(cod)
 
-    sql = """
-        SELECT * FROM omicronvt.dbo.cliente_vendedor
-        WHERE vendedor_id = %d
-        ORDER BY ultima_compra DESC
-    """ % vend['id']
-    rows = query_omicronvt(sql)
+    rows = query(
+        "SELECT * FROM omicronvt.dbo.cliente_vendedor "
+        "WHERE vendedor_id = ? ORDER BY ultima_compra DESC",
+        'omicronvt',
+        (vend['id'],),
+    )
 
     return {
         "vendedor": cod,
@@ -342,23 +340,20 @@ async def proyeccion_monotributo(cod: str):
     vend = _get_vendedor(cod)
     hoy = date.today()
 
-    # Facturacion anual acumulada (fee del vendedor)
-    # Estimamos desde venta_atribucion si hay datos, sino desde ventas1_vendedor
     primer_dia_anio = date(hoy.year, 1, 1)
 
-    sql = """
-        SELECT SUM(total_item) AS venta_anual
-        FROM omicronvt.dbo.ventas1_vendedor
-        WHERE viajante = %d
-          AND fecha >= '%s'
-    """ % (vend['viajante_cod'], primer_dia_anio)
-    rows = query_omicronvt(sql)
+    rows = query(
+        "SELECT SUM(total_item) AS venta_anual "
+        "FROM omicronvt.dbo.ventas1_vendedor "
+        "WHERE viajante = ? AND fecha >= ?",
+        'omicronvt',
+        (vend['viajante_cod'], str(primer_dia_anio)),
+    )
     venta_anual = float(rows[0]['venta_anual'] or 0) if rows else 0
 
     fee_pct = float(vend.get('fee_pct_std') or 0.05)
     facturacion_anual_est = venta_anual * fee_pct
 
-    # Topes de monotributo 2026
     TOPES_MONO = {
         'A': 10300000, 'B': 15300000, 'C': 20200000, 'D': 25200000,
         'E': 29600000, 'F': 37000000, 'G': 44400000, 'H': 55300000,
@@ -367,7 +362,6 @@ async def proyeccion_monotributo(cod: str):
     cat = vend.get('categoria_mono', 'D')
     tope = TOPES_MONO.get(cat, 25200000)
 
-    # Proyeccion lineal al cierre del anio
     dias_transcurridos = (hoy - primer_dia_anio).days + 1
     dias_anio = 366 if hoy.year % 4 == 0 else 365
     proyeccion_anual = (facturacion_anual_est / dias_transcurridos * dias_anio) if dias_transcurridos > 0 else 0
@@ -375,7 +369,6 @@ async def proyeccion_monotributo(cod: str):
     pct_usado = facturacion_anual_est / tope * 100 if tope > 0 else 0
     pct_proyectado = proyeccion_anual / tope * 100 if tope > 0 else 0
 
-    # Alerta
     if pct_proyectado > 90:
         alerta = "PELIGRO: proyeccion supera 90%% del tope. Considerar subir de categoria."
     elif pct_proyectado > 75:
@@ -405,10 +398,11 @@ async def marcar_compartido(cod: str, contenido_id: int):
     """
     vend = _get_vendedor(cod)
 
-    # Verificar que el contenido pertenece a este vendedor
-    rows = query_omicronvt(
+    rows = query(
         "SELECT id, estado FROM contenido_generado "
-        "WHERE id = %d AND vendedor_id = %d" % (contenido_id, vend['id'])
+        "WHERE id = ? AND vendedor_id = ?",
+        'omicronvt',
+        (contenido_id, vend['id']),
     )
     if not rows:
         raise HTTPException(404, "Contenido no encontrado para este vendedor")
@@ -416,8 +410,9 @@ async def marcar_compartido(cod: str, contenido_id: int):
     execute(
         "UPDATE omicronvt.dbo.contenido_generado "
         "SET estado = 'COMPARTIDO', fecha_compartido = GETDATE() "
-        "WHERE id = %d" % contenido_id,
-        'omicronvt'
+        "WHERE id = ?",
+        'omicronvt',
+        (contenido_id,),
     )
 
     return {

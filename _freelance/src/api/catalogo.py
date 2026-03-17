@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-API del Catálogo Comercial.
+API del Catalogo Comercial.
 Gestiona fotos, descripciones y contenido para redes sociales.
 
 Endpoints:
@@ -14,7 +14,7 @@ Endpoints:
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from db import query_omicronvt, query_articulos, execute, get_db
+from db import query, execute
 from config import settings
 
 router = APIRouter()
@@ -33,9 +33,10 @@ class ContenidoIn(BaseModel):
 async def lista_productos(pagina: int = 1, limite: int = 50, solo_sin_contenido: bool = False):
     """Lista de productos agrupados por SKU base, con estado de contenido comercial."""
 
-    # SKUs base unicos desde articulo (agrupados por primeros 5 chars de descripcion_1)
-    sql = """
-        SELECT TOP %d
+    where_extra = "AND cc.id IS NULL" if solo_sin_contenido else ""
+
+    sql = f"""
+        SELECT TOP {int(limite)}
             LEFT(a.descripcion_1, 5) AS sku_base,
             MIN(a.descripcion_1) AS descripcion,
             m.descripcion AS marca,
@@ -58,29 +59,27 @@ async def lista_productos(pagina: int = 1, limite: int = 50, solo_sin_contenido:
         LEFT JOIN omicronvt.dbo.catalogo_comercial cc ON cc.sku_base = LEFT(a.descripcion_1, 5)
         WHERE a.precio_1 > 0
           AND LEN(a.descripcion_1) >= 5
-          %s
+          {where_extra}
         GROUP BY LEFT(a.descripcion_1, 5), m.descripcion, a.marca,
                  cc.id, cc.titulo_corto, cc.descripcion_redes
         ORDER BY tiene_contenido ASC, marca
-    """ % (
-        limite,
-        "AND cc.id IS NULL" if solo_sin_contenido else "",
-    )
+    """
 
-    return {"productos": query_omicronvt(sql)}
+    return {"productos": query(sql, 'omicronvt')}
 
 
 @router.get("/producto/{sku}")
 async def detalle_producto(sku: str):
     """Detalle completo de un SKU base con todos sus talles y stock."""
 
-    # Info del catalogo comercial
-    cc = query_omicronvt(
-        "SELECT * FROM catalogo_comercial WHERE sku_base = '%s'" % sku
+    cc = query(
+        "SELECT * FROM catalogo_comercial WHERE sku_base = ?",
+        'omicronvt',
+        (sku,),
     )
     contenido = cc[0] if cc else None
 
-    # Talles y stock
+    sku_len = len(sku)
     sql_talles = """
         SELECT a.codigo, a.descripcion_1, a.descripcion_5 AS talle,
                a.precio_1, a.precio_2, a.precio_3, a.precio_4,
@@ -93,11 +92,11 @@ async def detalle_producto(sku: str):
             GROUP BY articulo
         ) s ON s.articulo = a.codigo
         LEFT JOIN msgestionC.dbo.marcas m ON m.codigo = a.marca
-        WHERE LEFT(a.descripcion_1, %d) = '%s'
+        WHERE LEFT(a.descripcion_1, ?) = ?
         ORDER BY a.descripcion_5
-    """ % (len(sku), sku)
+    """
 
-    talles = query_omicronvt(sql_talles)
+    talles = query(sql_talles, 'omicronvt', (sku_len, sku))
 
     return {
         "sku_base": sku,
@@ -116,49 +115,48 @@ async def detalle_producto(sku: str):
 @router.post("/producto/{sku}")
 async def crear_actualizar_contenido(sku: str, data: ContenidoIn):
     """Crear o actualizar contenido comercial de un SKU."""
-    existe = query_omicronvt(
-        "SELECT id FROM catalogo_comercial WHERE sku_base = '%s'" % sku
+    existe = query(
+        "SELECT id FROM catalogo_comercial WHERE sku_base = ?",
+        'omicronvt',
+        (sku,),
     )
 
     if existe:
-        sql = """
-            UPDATE omicronvt.dbo.catalogo_comercial SET
-                titulo_corto = N'%s',
-                descripcion_redes = N'%s',
-                hashtags = N'%s',
-                categoria_fee = '%s',
-                foto_principal = '%s',
-                marca_cod = %s,
-                fecha_modif = GETDATE()
-            WHERE sku_base = '%s'
-        """ % (
-            (data.titulo_corto or '').replace("'", "''"),
-            (data.descripcion_redes or '').replace("'", "''"),
-            (data.hashtags or '').replace("'", "''"),
-            data.categoria_fee,
-            data.foto_principal or '',
-            data.marca_cod if data.marca_cod else 'NULL',
-            sku
+        execute(
+            "UPDATE omicronvt.dbo.catalogo_comercial SET "
+            "titulo_corto = ?, descripcion_redes = ?, hashtags = ?, "
+            "categoria_fee = ?, foto_principal = ?, marca_cod = ?, "
+            "fecha_modif = GETDATE() "
+            "WHERE sku_base = ?",
+            'omicronvt',
+            (
+                data.titulo_corto,
+                data.descripcion_redes or '',
+                data.hashtags or '',
+                data.categoria_fee,
+                data.foto_principal or '',
+                data.marca_cod,
+                sku,
+            ),
         )
-        execute(sql, 'omicronvt')
         return {"sku": sku, "accion": "actualizado"}
     else:
-        sql = """
-            INSERT INTO omicronvt.dbo.catalogo_comercial
-            (sku_base, titulo_corto, descripcion_redes, hashtags, categoria_fee, foto_principal, marca_cod)
-            VALUES (
-                '%s', N'%s', N'%s', N'%s', '%s', '%s', %s
-            )
-        """ % (
-            sku,
-            (data.titulo_corto or '').replace("'", "''"),
-            (data.descripcion_redes or '').replace("'", "''"),
-            (data.hashtags or '').replace("'", "''"),
-            data.categoria_fee,
-            data.foto_principal or '',
-            data.marca_cod if data.marca_cod else 'NULL',
+        execute(
+            "INSERT INTO omicronvt.dbo.catalogo_comercial "
+            "(sku_base, titulo_corto, descripcion_redes, hashtags, "
+            "categoria_fee, foto_principal, marca_cod) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            'omicronvt',
+            (
+                sku,
+                data.titulo_corto,
+                data.descripcion_redes or '',
+                data.hashtags or '',
+                data.categoria_fee,
+                data.foto_principal or '',
+                data.marca_cod,
+            ),
         )
-        execute(sql, 'omicronvt')
         return {"sku": sku, "accion": "creado"}
 
 
@@ -189,7 +187,7 @@ async def pendientes():
         HAVING SUM(CASE WHEN s.stock_actual > 0 THEN 1 ELSE 0 END) > 0
         ORDER BY talles_con_stock DESC
     """
-    return {"pendientes": query_omicronvt(sql)}
+    return {"pendientes": query(sql, 'omicronvt')}
 
 
 @router.post("/generar_contenido/{sku}")
@@ -198,24 +196,24 @@ async def generar_contenido_vendedores(sku: str):
     Genera contenido pre-armado (texto para IG/WA) para cada vendedor activo.
     Cada vendedor obtiene su version personalizada con su link de atribucion.
     """
-    # Info del producto
-    cc = query_omicronvt(
-        "SELECT * FROM catalogo_comercial WHERE sku_base = '%s' AND activo = 1" % sku
+    cc = query(
+        "SELECT * FROM catalogo_comercial WHERE sku_base = ? AND activo = 1",
+        'omicronvt',
+        (sku,),
     )
     if not cc:
         raise HTTPException(404, "Producto sin contenido comercial. Cargarlo primero.")
     prod = cc[0]
 
-    # Vendedores activos
-    vendedores = query_omicronvt(
-        "SELECT * FROM vendedor_freelance WHERE activo = 1"
+    vendedores = query(
+        "SELECT * FROM vendedor_freelance WHERE activo = 1",
+        'omicronvt',
     )
 
     count = 0
     for vend in vendedores:
         link = "%s/%s?v=%s" % (settings.LINK_BASE, sku, vend['codigo_atrib'])
 
-        # Template Instagram
         texto_ig = "%s\n%s\n\n%s\n\nConsultame por disponibilidad y talles\n%s" % (
             prod.get('titulo_corto', sku),
             prod.get('descripcion_redes', ''),
@@ -223,7 +221,6 @@ async def generar_contenido_vendedores(sku: str):
             link,
         )
 
-        # Template WhatsApp
         texto_wa = "*%s*\n%s\n\nLink: %s\n\nEscribime para consultar talles y stock" % (
             prod.get('titulo_corto', sku),
             prod.get('descripcion_redes', ''),
@@ -231,23 +228,20 @@ async def generar_contenido_vendedores(sku: str):
         )
 
         for canal, texto in [('INSTAGRAM', texto_ig), ('WHATSAPP', texto_wa)]:
-            # Solo si no existe ya uno LISTO
-            existe = query_omicronvt(
+            existe = query(
                 "SELECT id FROM contenido_generado "
-                "WHERE sku_base = '%s' AND vendedor_id = %d AND canal = '%s' AND estado = 'LISTO'"
-                % (sku, vend['id'], canal)
+                "WHERE sku_base = ? AND vendedor_id = ? AND canal = ? AND estado = 'LISTO'",
+                'omicronvt',
+                (sku, vend['id'], canal),
             )
             if not existe:
-                sql = """
-                    INSERT INTO omicronvt.dbo.contenido_generado
-                    (sku_base, vendedor_id, canal, contenido_texto, link_atribucion, estado)
-                    VALUES ('%s', %d, '%s', N'%s', '%s', 'LISTO')
-                """ % (
-                    sku, vend['id'], canal,
-                    texto.replace("'", "''"),
-                    link,
+                execute(
+                    "INSERT INTO omicronvt.dbo.contenido_generado "
+                    "(sku_base, vendedor_id, canal, contenido_texto, link_atribucion, estado) "
+                    "VALUES (?, ?, ?, ?, ?, 'LISTO')",
+                    'omicronvt',
+                    (sku, vend['id'], canal, texto, link),
                 )
-                execute(sql, 'omicronvt')
                 count += 1
 
     return {"sku": sku, "contenido_generado": count, "vendedores": len(vendedores)}
@@ -256,6 +250,7 @@ async def generar_contenido_vendedores(sku: str):
 @router.get("/stock/{sku}")
 async def stock_por_talle(sku: str):
     """Stock por talle de un SKU (para que el vendedor consulte disponibilidad)."""
+    sku_len = len(sku)
     sql = """
         SELECT a.descripcion_5 AS talle,
                ISNULL(SUM(s.stock_actual), 0) AS stock,
@@ -266,12 +261,12 @@ async def stock_por_talle(sku: str):
             FROM omicronvt.dbo.stock_por_codigo
             GROUP BY articulo
         ) s ON s.articulo = a.codigo
-        WHERE LEFT(a.descripcion_1, %d) = '%s'
+        WHERE LEFT(a.descripcion_1, ?) = ?
         GROUP BY a.descripcion_5, a.precio_1
         ORDER BY a.descripcion_5
-    """ % (len(sku), sku)
+    """
 
-    talles = query_omicronvt(sql)
+    talles = query(sql, 'omicronvt', (sku_len, sku))
     return {
         "sku": sku,
         "talles": [
