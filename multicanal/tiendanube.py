@@ -47,7 +47,7 @@ class TiendaNubeClient:
     def __post_init__(self):
         self.base_url = f'https://api.tiendanube.com/v1/{self.store_id}'
         self._session.headers.update({
-            'Authentication': f'bearer {self.access_token}',
+            'Authorization': f'bearer {self.access_token}',
             'User-Agent': self.user_agent,
             'Content-Type': 'application/json',
         })
