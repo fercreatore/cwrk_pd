@@ -961,7 +961,11 @@ def _actualizar_precio(codigo: int, linea: LineaFactura, proveedor_id: int):
 # ══════════════════════════════════════════════════════════════════
 
 def crear_pedido_desde_factura(factura: Factura, resultado_procesar: dict,
-                               tipo: str = "NP") -> dict:
+                               tipo: str = "NP", empresa: str = None,
+                               sucursal_remito: int = 0,
+                               numero_remito: int = 0,
+                               deposito: int = 11,
+                               dry_run: bool = False) -> dict:
     """
     Crea un pedido o remito a partir de la factura procesada.
 
@@ -969,61 +973,121 @@ def crear_pedido_desde_factura(factura: Factura, resultado_procesar: dict,
         factura: datos de la factura
         resultado_procesar: resultado de procesar_factura()
         tipo: "NP" = Nota de Pedido, "RM" = Remito
+        empresa: "H4" o "CALZALINDO" (default de config)
+        sucursal_remito: punto de venta del remito proveedor (solo RM)
+        numero_remito: número del remito proveedor (solo RM)
+        deposito: depósito destino (default 11)
+        dry_run: si True, no inserta
 
     Returns:
-        dict con: numero_pedido, exitoso, error
+        dict con: numero, exitoso, error
     """
-    # Importar paso4 para crear pedido
-    try:
-        from paso4_insertar_pedido import insertar_pedido
-        from paso3_calcular_periodo import calcular_periodo
-    except ImportError:
-        log.error("No se pueden importar paso3/paso4")
-        return {"numero_pedido": 0, "exitoso": False, "error": "Módulos no disponibles"}
+    from config import EMPRESA_DEFAULT, PROVEEDORES
+
+    emp = empresa or PROVEEDORES.get(factura.proveedor_id, {}).get("empresa", EMPRESA_DEFAULT)
 
     # Filtrar solo líneas exitosas
     lineas_ok = [l for l in resultado_procesar["lineas_procesadas"]
                  if l.get("codigo_articulo", 0) > 0]
 
     if not lineas_ok:
-        return {"numero_pedido": 0, "exitoso": False, "error": "No hay líneas procesadas"}
+        return {"numero": 0, "exitoso": False, "error": "No hay líneas procesadas"}
 
-    # Calcular período
-    try:
-        periodo = calcular_periodo(factura.fecha, subrubro=52)  # 52 = zapatería deportiva
-    except Exception as e:
-        log.warning(f"Error calculando período: {e}, usando fecha de factura")
-        periodo = {"periodo": factura.fecha.strftime("%Y%m"), "entrega": factura.fecha}
+    # Datos del proveedor
+    prov_cfg = PROVEEDORES.get(factura.proveedor_id, {})
+    denominacion = prov_cfg.get("nombre", factura.proveedor_nombre)
 
-    # Armar estructura de pedido
-    items_pedido = []
-    for linea in lineas_ok:
-        items_pedido.append({
-            "codigo_articulo": linea["codigo_articulo"],
-            "cantidad": linea["cantidad"],
-            "precio_unitario": linea["precio_unitario"],
-            "descuento_1": linea.get("descuento_comercial", 0),
-        })
+    if tipo == "NP":
+        # ── NOTA DE PEDIDO → pedico2/pedico1 ──
+        try:
+            from paso4_insertar_pedido import insertar_pedido
+        except ImportError:
+            return {"numero": 0, "exitoso": False, "error": "Módulo paso4 no disponible"}
 
-    pedido_data = {
-        "proveedor": factura.proveedor_id,
-        "fecha": factura.fecha,
-        "tipo": tipo,
-        "numero_factura": factura.numero_factura,
-        "items": items_pedido,
-        "observaciones": factura.observaciones,
-    }
-
-    try:
-        resultado = insertar_pedido(pedido_data)
-        return {
-            "numero_pedido": resultado.get("numero", 0),
-            "exitoso": resultado.get("ok", False),
-            "error": resultado.get("error", ""),
+        cabecera = {
+            "empresa": emp,
+            "cuenta": factura.proveedor_id,
+            "denominacion": denominacion,
+            "fecha_comprobante": factura.fecha,
+            "observaciones": factura.observaciones or f"Cargado desde app — {factura.numero_factura}",
         }
-    except Exception as e:
-        log.error(f"Error creando pedido: {e}")
-        return {"numero_pedido": 0, "exitoso": False, "error": str(e)}
+        renglones = []
+        for linea in lineas_ok:
+            renglones.append({
+                "articulo": linea["codigo_articulo"],
+                "descripcion": linea.get("descripcion_1") or linea.get("descripcion", ""),
+                "cantidad": linea["cantidad"],
+                "precio": linea["precio_unitario"],
+                "codigo_sinonimo": linea.get("codigo_sinonimo", ""),
+            })
+
+        try:
+            numero = insertar_pedido(cabecera, renglones, dry_run=dry_run)
+            return {
+                "numero": numero or 0,
+                "exitoso": numero is not None and numero > 0,
+                "error": "" if numero else "Error al insertar pedido",
+                "tipo": "NP",
+            }
+        except Exception as e:
+            log.error(f"Error creando pedido: {e}")
+            return {"numero": 0, "exitoso": False, "error": str(e)}
+
+    elif tipo == "RM":
+        # ── REMITO → compras2/compras1/comprasr/movi_stock/stock ──
+        try:
+            from paso9_insertar_remito import insertar_remito
+        except ImportError:
+            return {"numero": 0, "exitoso": False, "error": "Módulo paso9_insertar_remito no disponible"}
+
+        if not sucursal_remito or not numero_remito:
+            # Intentar parsear del número de factura (formato SSSS-NNNNNNNN)
+            nro = factura.numero_factura.replace(" ", "")
+            parts = nro.split("-")
+            if len(parts) == 2:
+                try:
+                    sucursal_remito = sucursal_remito or int(parts[0].lstrip("0") or "0")
+                    numero_remito = numero_remito or int(parts[1].lstrip("0") or "0")
+                except ValueError:
+                    pass
+            if not sucursal_remito or not numero_remito:
+                return {"numero": 0, "exitoso": False,
+                        "error": "Falta sucursal y/o número de remito del proveedor"}
+
+        cabecera = {
+            "empresa": emp,
+            "cuenta": factura.proveedor_id,
+            "denominacion": denominacion,
+            "sucursal_remito": sucursal_remito,
+            "numero_remito": numero_remito,
+            "fecha_comprobante": factura.fecha,
+            "deposito": deposito,
+        }
+        renglones = []
+        for linea in lineas_ok:
+            renglones.append({
+                "articulo": linea["codigo_articulo"],
+                "descripcion": linea.get("descripcion_1") or linea.get("descripcion", ""),
+                "cantidad": linea["cantidad"],
+                "precio": linea["precio_unitario"],
+                "codigo_sinonimo": linea.get("codigo_sinonimo", ""),
+            })
+
+        try:
+            resultado = insertar_remito(cabecera, renglones, dry_run=dry_run)
+            return {
+                "numero": resultado.get("numero", 0),
+                "orden": resultado.get("orden", 0),
+                "exitoso": resultado.get("ok", False),
+                "error": resultado.get("error", ""),
+                "tipo": "RM",
+            }
+        except Exception as e:
+            log.error(f"Error creando remito: {e}")
+            return {"numero": 0, "exitoso": False, "error": str(e)}
+
+    else:
+        return {"numero": 0, "exitoso": False, "error": f"Tipo no soportado: {tipo}"}
 
 
 # ══════════════════════════════════════════════════════════════════
