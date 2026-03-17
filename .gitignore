@@ -17,10 +17,11 @@ venv/
 *.log
 sync_watch.log
 
-# Large binaries (Excel, ZIP, etc) — track only in _excel_pedidos/ if needed
+# Large binaries (Excel, ZIP, CSV, etc) — track only in _excel_pedidos/ if needed
 *.xlsx
 *.zip
 *.docx
+*.csv
 
 # Allow specific docs
 !_docs/*.docx
