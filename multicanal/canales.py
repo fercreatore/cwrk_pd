@@ -192,6 +192,8 @@ class CanalMercadoLibre(CanalBase):
             'listing_type_id': producto.get('tipo_publicacion', 'gold_special'),
             'pictures': [{'source': url} for url in producto.get('imagenes', [])],
         }
+        if producto.get('sku'):
+            data['seller_custom_field'] = producto['sku']
         if producto.get('atributos'):
             data['attributes'] = producto['atributos']
 
@@ -216,8 +218,24 @@ class CanalMercadoLibre(CanalBase):
                          json={'status': 'paused'}, headers=self._headers())
         return {'ok': r.status_code == 200}
 
+    def reactivar(self, id_externo):
+        r = requests.put('https://api.mercadolibre.com/items/%s' % id_externo,
+                         json={'status': 'active'}, headers=self._headers())
+        return {'ok': r.status_code == 200}
+
     def obtener_producto(self, id_externo):
         r = requests.get('https://api.mercadolibre.com/items/%s' % id_externo, headers=self._headers())
         if r.status_code == 200:
             return {'ok': True, 'producto': r.json()}
+        return {'ok': False, 'error': r.text}
+
+    def listar_productos(self, status='active', offset=0, limit=50):
+        """Lista publicaciones del vendedor."""
+        r = requests.get(
+            'https://api.mercadolibre.com/users/%s/items/search' % self.user_id,
+            params={'status': status, 'offset': offset, 'limit': limit},
+            headers=self._headers(),
+        )
+        if r.status_code == 200:
+            return {'ok': True, 'items': r.json().get('results', []), 'total': r.json().get('paging', {}).get('total', 0)}
         return {'ok': False, 'error': r.text}
