@@ -620,6 +620,46 @@ def _buscar_tipo_modelo_base(modelo_upper: str, marca_id: int) -> str:
     return tipo
 
 
+def _historial_proveedor_db(prov_id: int) -> dict:
+    """Obtiene rubro/subrubro/grupo/linea más frecuentes de un proveedor desde la BD."""
+    import pyodbc
+    from config import CONN_COMPRAS
+    from collections import Counter
+    try:
+        conn = pyodbc.connect(CONN_COMPRAS, timeout=10)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT rubro, subrubro, grupo, linea, COUNT(*) as cant
+            FROM msgestion01art.dbo.articulo
+            WHERE proveedor = ? AND estado = 'V'
+              AND rubro IS NOT NULL AND subrubro IS NOT NULL
+            GROUP BY rubro, subrubro, grupo, linea
+            ORDER BY cant DESC
+        """, prov_id)
+        rows = cur.fetchall()
+        conn.close()
+        if not rows:
+            return {}
+        rubros = Counter()
+        subrubros = Counter()
+        grupos = Counter()
+        lineas = Counter()
+        for r in rows:
+            rubros[r.rubro] += r.cant
+            subrubros[r.subrubro] += r.cant
+            grupos[str(r.grupo).strip() if r.grupo else "5"] += r.cant
+            lineas[r.linea] += r.cant
+        return {
+            "default_rubro": rubros.most_common(1)[0][0] if rubros else 1,
+            "default_subrubro": subrubros.most_common(1)[0][0] if subrubros else 52,
+            "default_grupo": grupos.most_common(1)[0][0] if grupos else "5",
+            "default_linea": lineas.most_common(1)[0][0] if lineas else 1,
+        }
+    except Exception as e:
+        log.warning(f"Error obteniendo historial proveedor {prov_id}: {e}")
+        return {}
+
+
 def crear_articulo(linea: LineaFactura, marca_id: int, proveedor_id: int,
                    color_code: str, sinonimo: str) -> int:
     """
@@ -733,6 +773,18 @@ def crear_articulo(linea: LineaFactura, marca_id: int, proveedor_id: int,
                 """)
                 nuevo_codigo = cursor.fetchone()[0] or 1
 
+                # Clasificación: rubro/subrubro/grupo/linea del historial del proveedor
+                _rubro, _subrubro, _grupo, _linea = 1, 52, '5', 1
+                try:
+                    _hist = _historial_proveedor_db(proveedor_id)
+                    if _hist:
+                        _rubro = _hist.get("default_rubro", 1)
+                        _subrubro = _hist.get("default_subrubro", 52)
+                        _grupo = str(_hist.get("default_grupo", "5"))
+                        _linea = _hist.get("default_linea", 1)
+                except Exception:
+                    pass
+
                 # Insertar artículo
                 cursor.execute("""
                     INSERT INTO msgestion01art.dbo.articulo (
@@ -752,15 +804,15 @@ def crear_articulo(linea: LineaFactura, marca_id: int, proveedor_id: int,
                         fecha_hora, fecha_modificacion
                     ) VALUES (
                         ?, ?, ?, ?, ?,
-                        ?, ?, ?, 4, 52,
+                        ?, ?, ?, ?, ?,
                         ?, ?, ?, 0, 0, 0,
                         ?, ?,
                         ?, ?, ?, ?,
                         ?, ?, ?, ?,
-                        1, 'G', 'N', '5',
+                        1, 'G', 'N', ?,
                         21, 10.5, 'G',
                         '1010601', '4010100', '1010601',
-                        1, 'V', ?, 0,
+                        ?, 'V', ?, 0,
                         'S', 'C', 'S',
                         ?, '', 0,
                         GETDATE(), GETDATE(), 'AM', 'A',
@@ -769,14 +821,15 @@ def crear_articulo(linea: LineaFactura, marca_id: int, proveedor_id: int,
                 """, (
                     nuevo_codigo, desc_1, desc_3, color_upper,
                     _tpd5(str(linea.talle)) if _resolver_talle_ok else str(linea.talle),
-                    codigo_barra, sinonimo, marca_id,
+                    codigo_barra, sinonimo, marca_id, _rubro, _subrubro,
                     precios["precio_fabrica"], precios["descuento"], precios["descuento_1"],
                     precios["precio_costo"], precios["precio_sugerido"],
                     precios["precio_1"], precios["precio_2"],
                     precios["precio_3"], precios["precio_4"],
                     prov["utilidad_1"], prov["utilidad_2"],
                     prov["utilidad_3"], prov["utilidad_4"],
-                    proveedor_id,
+                    _grupo,
+                    _linea, proveedor_id,
                     sinonimo[3:8] if len(sinonimo) >= 8 else linea.modelo.upper()[:5],
                 ))
 
