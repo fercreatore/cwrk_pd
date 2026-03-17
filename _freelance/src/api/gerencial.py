@@ -216,7 +216,7 @@ async def ahorro_vs_empleado(anio: int = None, mes: int = None):
                     "mono": mono,
                     "neto_vendedor": round(neto_freelance, 0),
                 },
-                "ahorro_h4": round(costo_empleado, 0),  # TODO el costo desaparece
+                "ahorro_h4": round(costo_empleado, 0),  # 100% del costo laboral (en freelance H4 no paga)
                 "mejora_vendedor": round(mejora_vendedor, 0),
             })
 

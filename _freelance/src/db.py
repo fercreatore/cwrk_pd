@@ -28,6 +28,7 @@ def get_db(database: str = None):
         f"DATABASE={db};"
         f"UID={settings.DB_USER};"
         f"PWD={settings.DB_PASSWORD};"
+        f"Encrypt=no;"
     )
     conn = pyodbc.connect(conn_str)
     try:
@@ -48,17 +49,23 @@ def _rows_to_dicts(cursor) -> list:
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
-def query(sql: str, database: str = None) -> list:
-    """Ejecuta SQL y retorna lista de dicts."""
+def query(sql: str, database: str = None, params: tuple = None) -> list:
+    """Ejecuta SQL y retorna lista de dicts. Soporta parámetros (?, ?, ...)."""
     with get_db(database) as cur:
-        cur.execute(sql)
+        if params:
+            cur.execute(sql, params)
+        else:
+            cur.execute(sql)
         return _rows_to_dicts(cur)
 
 
-def execute(sql: str, database: str = None) -> int:
-    """Ejecuta SQL de escritura y retorna rowcount."""
+def execute(sql: str, database: str = None, params: tuple = None) -> int:
+    """Ejecuta SQL de escritura y retorna rowcount. Soporta parámetros."""
     with get_db(database) as cur:
-        cur.execute(sql)
+        if params:
+            cur.execute(sql, params)
+        else:
+            cur.execute(sql)
         return cur.rowcount
 
 

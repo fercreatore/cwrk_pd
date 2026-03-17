@@ -38,12 +38,15 @@ MYSQL_AUTH = {
 }
 
 
-def query_auth(sql: str) -> list:
+def query_auth(sql: str, params: tuple = None) -> list:
     """Ejecuta query contra MySQL auth y retorna lista de dicts."""
     conn = pymysql.connect(**MYSQL_AUTH)
     try:
         with conn.cursor() as cur:
-            cur.execute(sql)
+            if params:
+                cur.execute(sql, params)
+            else:
+                cur.execute(sql)
             return cur.fetchall()
     finally:
         conn.close()
@@ -109,9 +112,9 @@ def get_user_roles(user_id: int) -> list:
         SELECT g.role
         FROM auth_membership m
         JOIN auth_group g ON g.id = m.group_id
-        WHERE m.user_id = %d
-    """ % user_id
-    rows = query_auth(sql)
+        WHERE m.user_id = %s
+    """
+    rows = query_auth(sql, (user_id,))
     return [r["role"] for r in rows]
 
 
@@ -198,11 +201,11 @@ async def login(data: LoginIn, response: Response):
         SELECT id, email, password, first_name, last_name,
                sucursal, habilitado
         FROM auth_user
-        WHERE LOWER(email) = '%s'
-    """ % email.replace("'", "\\'")
+        WHERE LOWER(email) = %s
+    """
 
     try:
-        rows = query_auth(sql)
+        rows = query_auth(sql, (email,))
     except Exception as e:
         raise HTTPException(500, "Error de conexión a base de autenticación: %s" % str(e))
 

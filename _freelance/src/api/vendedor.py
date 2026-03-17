@@ -14,7 +14,7 @@ Endpoints:
 """
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, date
-from db import query_omicronvt, query_msgestionC
+from db import query_omicronvt, query_msgestionC, execute
 
 router = APIRouter()
 
@@ -56,6 +56,7 @@ async def dashboard(cod: str, meses: int = 1):
             SUM(CASE WHEN fecha >= DATEADD(day, -7, '%s') THEN total_item ELSE 0 END) AS venta_semana
         FROM omicronvt.dbo.ventas1_vendedor
         WHERE viajante = %d
+          AND codigo NOT IN (7, 36)
           AND fecha >= '%s'
           AND fecha <= '%s'
     """ % (hoy, hoy, hoy, vend['viajante_cod'], primer_dia_mes, hoy)
@@ -145,6 +146,7 @@ async def ventas(cod: str, dias: int = 30):
             END) AS tickets
         FROM omicronvt.dbo.ventas1_vendedor
         WHERE viajante = %d
+          AND codigo NOT IN (7, 36)
           AND fecha >= DATEADD(day, -%d, GETDATE())
         GROUP BY CAST(fecha AS DATE)
         ORDER BY dia DESC
@@ -186,7 +188,8 @@ async def ranking(cod: str):
             END) AS tickets
         FROM omicronvt.dbo.ventas1_vendedor v1
         LEFT JOIN msgestionC.dbo.viajantes vj ON vj.codigo = v1.viajante
-        WHERE v1.fecha >= '%s' AND v1.fecha <= '%s'
+        WHERE v1.codigo NOT IN (7, 36)
+          AND v1.fecha >= '%s' AND v1.fecha <= '%s'
         GROUP BY v1.viajante, vj.descripcion
         HAVING SUM(v1.total_item) > 100000
         ORDER BY venta DESC
@@ -391,4 +394,34 @@ async def proyeccion_monotributo(cod: str):
         "alerta": alerta,
         "meses_restantes": 12 - hoy.month,
         "disponible": round(tope - facturacion_anual_est, 0),
+    }
+
+
+@router.post("/{cod}/compartir")
+async def marcar_compartido(cod: str, contenido_id: int):
+    """
+    Marca un contenido generado como compartido por el vendedor.
+    Registra la fecha de compartido para tracking de actividad.
+    """
+    vend = _get_vendedor(cod)
+
+    # Verificar que el contenido pertenece a este vendedor
+    rows = query_omicronvt(
+        "SELECT id, estado FROM contenido_generado "
+        "WHERE id = %d AND vendedor_id = %d" % (contenido_id, vend['id'])
+    )
+    if not rows:
+        raise HTTPException(404, "Contenido no encontrado para este vendedor")
+
+    execute(
+        "UPDATE omicronvt.dbo.contenido_generado "
+        "SET estado = 'COMPARTIDO', fecha_compartido = GETDATE() "
+        "WHERE id = %d" % contenido_id,
+        'omicronvt'
+    )
+
+    return {
+        "contenido_id": contenido_id,
+        "vendedor": cod,
+        "estado": "COMPARTIDO",
     }
