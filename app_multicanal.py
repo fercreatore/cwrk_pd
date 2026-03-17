@@ -99,6 +99,7 @@ pagina = st.sidebar.radio('Navegación', [
     '🏠 Dashboard',
     '📊 Análisis ML',
     '🛒 Tienda Nube',
+    '🔄 Sincronización',
     '💰 Simulador de precios',
     '⚙️ Configurar canales',
     '📦 Catálogo ERP',
@@ -529,6 +530,128 @@ elif pagina == '🛒 Tienda Nube':
         3. Permisos: `read_products`, `write_products`, `read_orders`, `write_orders`
         4. Instalala en tu tienda → te da `store_id` + `access_token`
         """)
+
+
+# ══════════════════════════════════════════════════
+# PÁGINA: Sincronización
+# ══════════════════════════════════════════════════
+elif pagina == '🔄 Sincronización':
+    st.title('🔄 Sincronización ERP ↔ TiendaNube')
+    st.markdown('Ejecutá la sincronización de stock y precios entre el ERP y TiendaNube.')
+
+    from multicanal.tiendanube import cargar_config as tn_cargar_config
+    tn_cfg = tn_cargar_config()
+
+    if not tn_cfg.get('store_id') or not tn_cfg.get('access_token'):
+        st.warning('Configurá las credenciales de TiendaNube en la pestaña "Tienda Nube" primero.')
+    else:
+        tab_stock, tab_precios, tab_facturar = st.tabs(['Sync Stock', 'Sync Precios', 'Facturar Órdenes'])
+
+        with tab_stock:
+            st.subheader('Stock ERP → TiendaNube')
+            st.markdown('Compara el stock real del ERP con lo publicado en TN y actualiza las diferencias.')
+            if st.button('Ejecutar sync stock (dry run)', key='btn_sync_stock'):
+                with st.spinner('Sincronizando stock...'):
+                    try:
+                        from multicanal.sync_stock import sincronizar_stock
+                        reporte = sincronizar_stock(dry_run=True)
+                        if reporte.get('error'):
+                            st.error(reporte['error'])
+                        else:
+                            c1, c2, c3, c4 = st.columns(4)
+                            c1.metric('Productos TN', reporte['total_productos'])
+                            c2.metric('Variantes con SKU', reporte['total_variantes'])
+                            c3.metric('Sin cambio', reporte['sin_cambio'])
+                            c4.metric('A actualizar', len(reporte['actualizados']))
+
+                            if reporte['actualizados']:
+                                import pandas as _pd
+                                df_cambios = _pd.DataFrame([{
+                                    'SKU': a['sku'],
+                                    'Producto': a['nombre'][:30],
+                                    'Stock TN': a['stock_tn_anterior'],
+                                    'Stock ERP': a['stock_nuevo'],
+                                } for a in reporte['actualizados']])
+                                st.dataframe(df_cambios, use_container_width=True, hide_index=True)
+
+                            if reporte['errores']:
+                                for err in reporte['errores']:
+                                    st.error(err)
+                    except Exception as e:
+                        st.error(f'Error: {e}')
+
+        with tab_precios:
+            st.subheader('Precios ERP → TiendaNube')
+            st.markdown('Calcula precios desde el costo ERP con la regla del canal TN y actualiza diferencias.')
+            tolerancia = st.slider('Tolerancia (%)', 0.0, 10.0, 2.0, 0.5,
+                                   help='Ignora diferencias menores a este porcentaje')
+            if st.button('Ejecutar sync precios (dry run)', key='btn_sync_precios'):
+                with st.spinner('Sincronizando precios...'):
+                    try:
+                        from multicanal.sync_precios import sincronizar_precios
+                        reporte = sincronizar_precios(dry_run=True, tolerancia_pct=tolerancia)
+                        if reporte.get('error'):
+                            st.error(reporte['error'])
+                        else:
+                            c1, c2, c3, c4 = st.columns(4)
+                            c1.metric('Productos TN', reporte['total_productos'])
+                            c2.metric('SKUs con costo', reporte['skus_con_costo'])
+                            c3.metric('Sin cambio', reporte['sin_cambio'])
+                            c4.metric('A actualizar', len(reporte['actualizados']))
+
+                            if reporte['actualizados']:
+                                import pandas as _pd
+                                df_precios = _pd.DataFrame([{
+                                    'SKU': a['sku'],
+                                    'Producto': a['nombre'][:25],
+                                    'Costo ERP': f"${a['costo_erp']:,.0f}",
+                                    'Precio TN actual': f"${a['precio_tn_anterior']:,.0f}",
+                                    'Precio correcto': f"${a['precio_correcto']:,.0f}",
+                                    'Diferencia': f"{a['diferencia_pct']:+.1f}%",
+                                    'Margen': f"{a['margen_real']}%",
+                                } for a in reporte['actualizados']])
+                                st.dataframe(df_precios, use_container_width=True, hide_index=True)
+
+                            if reporte['errores']:
+                                for err in reporte['errores']:
+                                    st.error(err)
+                    except Exception as e:
+                        st.error(f'Error: {e}')
+
+        with tab_facturar:
+            st.subheader('Facturar órdenes TiendaNube → ERP')
+            st.markdown('Procesa órdenes pagadas de TN e inserta facturas B en el ERP.')
+            dias_facturar = st.slider('Últimos N días', 1, 30, 7, key='dias_fact')
+            if st.button('Ejecutar facturación (dry run)', key='btn_facturar'):
+                with st.spinner('Procesando órdenes...'):
+                    try:
+                        from multicanal.facturador_tn import sincronizar_ordenes_tn
+                        reporte = sincronizar_ordenes_tn(dry_run=True, dias_atras=dias_facturar)
+                        if reporte.get('error'):
+                            st.error(reporte['error'])
+                        else:
+                            c1, c2, c3 = st.columns(3)
+                            c1.metric('Órdenes encontradas', reporte['ordenes_encontradas'])
+                            c2.metric('Ya procesadas', reporte['ya_procesadas'])
+                            procesadas = reporte.get('procesadas', [])
+                            c3.metric('Nuevas a facturar', len(procesadas) if isinstance(procesadas, list) else 0)
+
+                            if isinstance(procesadas, list) and procesadas:
+                                import pandas as _pd
+                                df_fact = _pd.DataFrame([{
+                                    'Orden TN': p['order_number'],
+                                    'Fecha': p['fecha'],
+                                    'Cliente': p['cliente'][:25],
+                                    'Items': p['renglones'],
+                                    'Total': f"${p['total']:,.0f}",
+                                } for p in procesadas])
+                                st.dataframe(df_fact, use_container_width=True, hide_index=True)
+
+                            if reporte.get('errores'):
+                                for err in reporte['errores']:
+                                    st.error(err)
+                    except Exception as e:
+                        st.error(f'Error: {e}')
 
 
 # ══════════════════════════════════════════════════
