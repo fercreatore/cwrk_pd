@@ -4,19 +4,25 @@ Facturador TiendaNube → ERP MS Gestión.
 Procesa órdenes pagadas de TiendaNube e inserta factura B (ventas2 cabecera +
 ventas1 detalle) en el ERP para registrar la venta y descontar stock.
 
+Soporta múltiples tiendas/empresas:
+  - H4       → INSERT en msgestion03  (default)
+  - ABI      → INSERT en msgestion01  (CALZALINDO)
+
+Lectura de artículos siempre desde msgestion01art (compartida).
+
 USO:
     # Dry run (solo muestra qué se insertaría)
     python -m multicanal.facturador_tn --dry-run
 
-    # Ejecutar facturación real
-    python -m multicanal.facturador_tn
+    # Facturar para ABI/CALZALINDO
+    python -m multicanal.facturador_tn --dry-run --empresa ABI
 
-    # Últimos 3 días
-    python -m multicanal.facturador_tn --dry-run --dias 3
+    # Tienda específica
+    python -m multicanal.facturador_tn --dry-run --tienda otra_tienda
 
     # Desde código
     from multicanal.facturador_tn import sincronizar_ordenes_tn
-    reporte = sincronizar_ordenes_tn(dry_run=True, dias_atras=7)
+    reporte = sincronizar_ordenes_tn(dry_run=True, dias_atras=7, empresa='ABI')
 """
 
 import json
@@ -31,26 +37,38 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from multicanal.tiendanube import TiendaNubeClient, cargar_config
 
 
-# ── Constantes ERP ──
+# ── Routing empresa → base de datos ──
 
-CONN_STRING = (
-    "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.2.111;"
-    "DATABASE=msgestion03;"
-    "UID=am;PWD=dl;"
-    "Encrypt=no;"
-)
+BASES_POR_EMPRESA = {
+    'H4':         'msgestion03',
+    'ABI':        'msgestion01',
+    'CALZALINDO': 'msgestion01',
+}
 
-CONN_STRING_ART = (
-    "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.2.111;"
-    "DATABASE=msgestion01art;"
-    "UID=am;PWD=dl;"
-    "Encrypt=no;"
-)
+def _base_para_empresa(empresa: str) -> str:
+    """Retorna la base de datos destino según la empresa."""
+    empresa_upper = empresa.upper()
+    base = BASES_POR_EMPRESA.get(empresa_upper)
+    if not base:
+        raise ValueError(f"Empresa '{empresa}' no configurada. Opciones: {list(BASES_POR_EMPRESA.keys())}")
+    return base
 
-# Parámetros fijos para factura B consumidor final
-# Empresa H4 → base msgestion03 (la tabla no tiene columna 'empresa')
+
+def _conn_string(base: str) -> str:
+    """Connection string para una base de datos dada."""
+    return (
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        "SERVER=192.168.2.111;"
+        f"DATABASE={base};"
+        "UID=am;PWD=dl;"
+        "Encrypt=no;"
+    )
+
+CONN_STRING_ART = _conn_string('msgestion01art')
+
+
+# ── Parámetros fijos factura B ──
+
 CODIGO = 1          # factura
 LETRA = 'B'         # consumidor final
 SUCURSAL = 1
@@ -60,6 +78,39 @@ CONDICION_IVA = 'C'  # consumidor final
 USUARIO = 'COWORK-TN'
 
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.json')
+
+# ── Multi-tienda TN ──
+# Archivo principal = tiendanube_config.json (default)
+# Tiendas adicionales = tiendanube_config_{nombre}.json
+
+def cargar_config_tienda(nombre_tienda: str = None) -> dict:
+    """Carga config de una tienda TN. None = default."""
+    if nombre_tienda:
+        config_file = os.path.join(os.path.dirname(__file__),
+                                    f'tiendanube_config_{nombre_tienda}.json')
+    else:
+        config_file = os.path.join(os.path.dirname(__file__), 'tiendanube_config.json')
+    if os.path.exists(config_file):
+        with open(config_file) as f:
+            return json.load(f)
+    return {}
+
+
+def guardar_config_tienda(store_id: str, access_token: str, nombre_tienda: str = None,
+                           empresa: str = 'H4'):
+    """Guarda config de una tienda TN."""
+    if nombre_tienda:
+        config_file = os.path.join(os.path.dirname(__file__),
+                                    f'tiendanube_config_{nombre_tienda}.json')
+    else:
+        config_file = os.path.join(os.path.dirname(__file__), 'tiendanube_config.json')
+    with open(config_file, 'w') as f:
+        json.dump({
+            'store_id': store_id,
+            'access_token': access_token,
+            'empresa': empresa,
+            'nombre': nombre_tienda or 'default',
+        }, f, indent=2)
 
 
 # ── Persistencia de órdenes procesadas ──
@@ -80,13 +131,14 @@ def guardar_ordenes_procesadas(registro: dict):
 
 # ── Conexión ERP ──
 
-def conectar_erp():
-    """Abre conexión pyodbc al SQL Server de producción (111) — base msgestion03."""
-    return pyodbc.connect(CONN_STRING, timeout=15)
+def conectar_erp(empresa: str = 'H4'):
+    """Abre conexión pyodbc al SQL Server — base según empresa."""
+    base = _base_para_empresa(empresa)
+    return pyodbc.connect(_conn_string(base), timeout=15)
 
 
 def conectar_erp_art():
-    """Abre conexión pyodbc al SQL Server de producción (111) — base articulos."""
+    """Abre conexión pyodbc al SQL Server — base artículos (compartida)."""
     return pyodbc.connect(CONN_STRING_ART, timeout=15)
 
 
@@ -132,14 +184,12 @@ def buscar_articulos_por_sku(conn_art, skus: list) -> dict:
     return resultado
 
 
-def obtener_siguiente_numero(conn) -> int:
-    """
-    Obtiene el siguiente número de factura (MAX+1) para facturas B suc 1 empresa H4.
-    """
+def obtener_siguiente_numero(conn, base: str) -> int:
+    """Obtiene el siguiente número de factura (MAX+1)."""
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT ISNULL(MAX(numero), 0) + 1
-        FROM msgestion03.dbo.ventas2
+        FROM {base}.dbo.ventas2
         WHERE codigo = ?
           AND letra = ?
           AND sucursal = ?
@@ -148,14 +198,12 @@ def obtener_siguiente_numero(conn) -> int:
     return int(row[0])
 
 
-def obtener_siguiente_orden(conn, fecha_comprobante: str) -> int:
-    """
-    Obtiene la siguiente orden para la fecha dada (MAX+1 del día).
-    """
+def obtener_siguiente_orden(conn, base: str, fecha_comprobante: str) -> int:
+    """Obtiene la siguiente orden para la fecha dada (MAX+1 del día)."""
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT ISNULL(MAX(orden), 0) + 1
-        FROM msgestion03.dbo.ventas2
+        FROM {base}.dbo.ventas2
         WHERE codigo = ?
           AND letra = ?
           AND sucursal = ?
@@ -167,22 +215,20 @@ def obtener_siguiente_orden(conn, fecha_comprobante: str) -> int:
 
 # ── Inserción ERP ──
 
-def insertar_factura(conn, cabecera: dict, detalles: list):
+def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestion03'):
     """
     Inserta ventas2 (cabecera) + ventas1 (detalles) dentro de una transacción.
     Si algo falla, hace rollback completo.
 
-    cabecera: dict con campos de ventas2
-    detalles: lista de dicts con campos de ventas1
+    base: 'msgestion03' (H4) o 'msgestion01' (ABI/CALZALINDO)
     """
     conn.autocommit = False
     cursor = conn.cursor()
 
     try:
         # --- INSERT ventas2 (cabecera) ---
-        # Campos reales de msgestion03.dbo.ventas2 (NO tiene columna 'empresa')
-        cursor.execute("""
-            INSERT INTO msgestion03.dbo.ventas2 (
+        cursor.execute(f"""
+            INSERT INTO {base}.dbo.ventas2 (
                 codigo, letra, sucursal, numero, orden,
                 deposito, cuenta, denominacion, cuenta_cc,
                 fecha_comprobante, fecha_proceso, fecha_contable,
@@ -238,8 +284,8 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
         # --- INSERT ventas1 (detalles) ---
         # NO tiene columna 'empresa'
         for det in detalles:
-            cursor.execute("""
-                INSERT INTO msgestion03.dbo.ventas1 (
+            cursor.execute(f"""
+                INSERT INTO {base}.dbo.ventas1 (
                     codigo, letra, sucursal, numero, orden,
                     renglon, articulo, descripcion,
                     precio, cantidad, total_item, unidades, deposito,
@@ -276,22 +322,22 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
 
         # --- Descontar stock por cada línea de venta ---
         for det in detalles:
-            cursor.execute("""
-                UPDATE msgestion03.dbo.stock
+            cursor.execute(f"""
+                UPDATE {base}.dbo.stock
                 SET stock_actual = stock_actual - ?
                 WHERE articulo = ? AND deposito = ?
             """, det['cantidad'], det['articulo'], det['deposito'])
 
         # Marcar estado_stock='V' para evitar doble descuento por batch ERP
-        cursor.execute("""
-            UPDATE msgestion03.dbo.ventas2
+        cursor.execute(f"""
+            UPDATE {base}.dbo.ventas2
             SET estado_stock = 'V'
             WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ? AND orden = ?
         """, cabecera['codigo'], cabecera['letra'], cabecera['sucursal'],
             cabecera['numero'], cabecera['orden'])
 
-        cursor.execute("""
-            UPDATE msgestion03.dbo.ventas1
+        cursor.execute(f"""
+            UPDATE {base}.dbo.ventas1
             SET estado_stock = 'V'
             WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ? AND orden = ?
         """, cabecera['codigo'], cabecera['letra'], cabecera['sucursal'],
@@ -413,26 +459,31 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
 
 # ── Flujo principal ──
 
-def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7) -> dict:
+def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
+                           empresa: str = 'H4', nombre_tienda: str = None) -> dict:
     """
     Procesa órdenes pagadas de TiendaNube e inserta facturas B en el ERP.
 
     Args:
         dry_run: Si True, solo muestra qué se insertaría sin tocar el ERP.
         dias_atras: Cantidad de días hacia atrás para buscar órdenes.
+        empresa: 'H4' (msgestion03) o 'ABI' (msgestion01/CALZALINDO).
+        nombre_tienda: Nombre de config TN alternativa (None = default).
 
     Returns:
         dict con resumen de procesamiento.
     """
+    base = _base_para_empresa(empresa)
     modo = "DRY RUN" if dry_run else "FACTURACION REAL"
     print(f"\n{'='*60}")
     print(f"  FACTURADOR TiendaNube → ERP [{modo}]")
+    print(f"  Empresa: {empresa} → {base}")
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Buscando órdenes de los últimos {dias_atras} días")
     print(f"{'='*60}\n")
 
     # --- Inicializar cliente TN ---
-    config = cargar_config()
+    config = cargar_config_tienda(nombre_tienda)
     if not config.get('store_id') or not config.get('access_token'):
         print("ERROR: No hay config de TiendaNube. Ejecutar guardar_config() primero.")
         return {'error': 'Sin config TiendaNube'}
@@ -504,7 +555,7 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7) -> dict:
 
     # --- 4. Procesar cada orden ---
     print(f"[4/5] {'Simulando' if dry_run else 'Insertando'} facturas...")
-    conn = conectar_erp() if not dry_run else None
+    conn = conectar_erp(empresa) if not dry_run else None
 
     procesadas = []
     errores = []
@@ -521,8 +572,8 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7) -> dict:
                 numero_factura = 999999
                 orden_dia = 99
             else:
-                numero_factura = obtener_siguiente_numero(conn)
-                orden_dia = obtener_siguiente_orden(conn, fecha_orden)
+                numero_factura = obtener_siguiente_numero(conn, base)
+                orden_dia = obtener_siguiente_orden(conn, base, fecha_orden)
 
             cabecera, detalles, skus_no_enc = construir_factura(
                 orden, articulos_erp, numero_factura, orden_dia
@@ -556,7 +607,7 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7) -> dict:
                 })
             else:
                 try:
-                    insertar_factura(conn, cabecera, detalles)
+                    insertar_factura(conn, cabecera, detalles, base)
                     print(f"  [OK]  Orden #{order_number} → Factura B {SUCURSAL}-{numero_factura} | "
                           f"{renglones} items | ${total:,.0f} | {cliente[:25]}")
                     if skus_no_enc:
@@ -621,9 +672,16 @@ if __name__ == '__main__':
                         help='Solo mostrar qué se insertaría (default: False)')
     parser.add_argument('--dias', type=int, default=7,
                         help='Días hacia atrás para buscar órdenes (default: 7)')
+    parser.add_argument('--empresa', type=str, default='H4',
+                        help='Empresa destino: H4 (msgestion03) o ABI (msgestion01)')
+    parser.add_argument('--tienda', type=str, default=None,
+                        help='Nombre de config TN alternativa (default: tiendanube_config.json)')
     args = parser.parse_args()
 
-    reporte = sincronizar_ordenes_tn(dry_run=args.dry_run, dias_atras=args.dias)
+    reporte = sincronizar_ordenes_tn(
+        dry_run=args.dry_run, dias_atras=args.dias,
+        empresa=args.empresa, nombre_tienda=args.tienda,
+    )
 
     if reporte.get('error'):
         sys.exit(1)

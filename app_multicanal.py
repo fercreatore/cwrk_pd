@@ -781,13 +781,19 @@ elif pagina == '🔄 Sincronización':
         with tab_facturar:
             st.subheader('Facturar órdenes TiendaNube → ERP')
             st.markdown('Procesa órdenes pagadas de TN e inserta facturas B en el ERP (ventas2+ventas1) y descuenta stock.')
-            dias_facturar = st.slider('Últimos N días', 1, 30, 7, key='dias_fact')
+            col_cfg1, col_cfg2 = st.columns(2)
+            with col_cfg1:
+                dias_facturar = st.slider('Últimos N días', 1, 30, 7, key='dias_fact')
+            with col_cfg2:
+                empresa_tn = st.selectbox('Empresa destino', ['H4', 'ABI'], index=0, key='empresa_tn',
+                                          help='H4 → msgestion03 | ABI → msgestion01 (CALZALINDO)')
 
             def _ejecutar_facturacion(dry_run_mode):
                 with st.spinner('Procesando órdenes...'):
                     try:
                         from multicanal.facturador_tn import sincronizar_ordenes_tn
-                        reporte = sincronizar_ordenes_tn(dry_run=dry_run_mode, dias_atras=dias_facturar)
+                        reporte = sincronizar_ordenes_tn(dry_run=dry_run_mode, dias_atras=dias_facturar,
+                                                         empresa=empresa_tn)
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
@@ -854,13 +860,19 @@ elif pagina == '🔄 Sincronización':
                             st.success('Credenciales ML guardadas.')
                             st.rerun()
             else:
-                dias_facturar_ml = st.slider('Últimos N días', 1, 30, 7, key='dias_fact_ml')
+                col_ml1, col_ml2 = st.columns(2)
+                with col_ml1:
+                    dias_facturar_ml = st.slider('Últimos N días', 1, 30, 7, key='dias_fact_ml')
+                with col_ml2:
+                    empresa_ml = st.selectbox('Empresa destino', ['H4', 'ABI'], index=0, key='empresa_ml',
+                                              help='H4 → msgestion03 | ABI → msgestion01')
 
                 def _ejecutar_facturacion_ml(dry_run_mode):
                     with st.spinner('Procesando órdenes ML...'):
                         try:
                             from multicanal.facturador_ml import sincronizar_ordenes_ml
-                            reporte = sincronizar_ordenes_ml(dry_run=dry_run_mode, dias_atras=dias_facturar_ml)
+                            reporte = sincronizar_ordenes_ml(dry_run=dry_run_mode, dias_atras=dias_facturar_ml,
+                                                              empresa=empresa_ml)
                             if reporte.get('error'):
                                 st.error(reporte['error'])
                             else:

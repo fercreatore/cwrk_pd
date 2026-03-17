@@ -4,23 +4,20 @@ Facturador MercadoLibre → ERP MS Gestión.
 Procesa ventas de MercadoLibre (depósito 1) e inserta factura B
 (ventas2 cabecera + ventas1 detalle) en el ERP para registrar la venta.
 
+Soporta múltiples cuentas ML y empresas:
+  - H4       → INSERT en msgestion03  (default)
+  - ABI      → INSERT en msgestion01  (CALZALINDO)
+
+Lectura de artículos siempre desde msgestion01art (compartida).
+
 Las ventas de ML se identifican en el ERP por:
   - deposito = 1 (asignado a ML)
   - usuario = 'COWORK-ML'
 
 USO:
-    # Dry run (solo muestra qué se insertaría)
     python -m multicanal.facturador_ml --dry-run
-
-    # Ejecutar facturación real
-    python -m multicanal.facturador_ml
-
-    # Últimos 3 días
+    python -m multicanal.facturador_ml --dry-run --empresa ABI
     python -m multicanal.facturador_ml --dry-run --dias 3
-
-    # Desde código
-    from multicanal.facturador_ml import sincronizar_ordenes_ml
-    reporte = sincronizar_ordenes_ml(dry_run=True, dias_atras=7)
 
 PREREQUISITOS:
     - Token de MercadoLibre válido (OAuth2, se vence cada 6 horas)
@@ -37,23 +34,31 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# ── Constantes ERP ──
+# ── Routing empresa → base (mismo que facturador_tn) ──
 
-CONN_STRING = (
-    "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.2.111;"
-    "DATABASE=msgestion03;"
-    "UID=am;PWD=dl;"
-    "Encrypt=no;"
-)
+BASES_POR_EMPRESA = {
+    'H4':         'msgestion03',
+    'ABI':        'msgestion01',
+    'CALZALINDO': 'msgestion01',
+}
 
-CONN_STRING_ART = (
-    "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.2.111;"
-    "DATABASE=msgestion01art;"
-    "UID=am;PWD=dl;"
-    "Encrypt=no;"
-)
+def _base_para_empresa(empresa: str) -> str:
+    empresa_upper = empresa.upper()
+    base = BASES_POR_EMPRESA.get(empresa_upper)
+    if not base:
+        raise ValueError(f"Empresa '{empresa}' no configurada. Opciones: {list(BASES_POR_EMPRESA.keys())}")
+    return base
+
+def _conn_string(base: str) -> str:
+    return (
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        "SERVER=192.168.2.111;"
+        f"DATABASE={base};"
+        "UID=am;PWD=dl;"
+        "Encrypt=no;"
+    )
+
+CONN_STRING_ART = _conn_string('msgestion01art')
 
 # Parámetros fijos para factura B consumidor final — depósito 1 (ML)
 CODIGO = 1          # factura
@@ -170,8 +175,9 @@ def extraer_skus_de_orden(orden: dict) -> list:
 
 # ── Conexiones ERP ──
 
-def conectar_erp():
-    return pyodbc.connect(CONN_STRING, timeout=15)
+def conectar_erp(empresa: str = 'H4'):
+    base = _base_para_empresa(empresa)
+    return pyodbc.connect(_conn_string(base), timeout=15)
 
 
 def conectar_erp_art():
@@ -210,21 +216,21 @@ def buscar_articulos_por_sku(conn_art, skus: list) -> dict:
 
 # ── Números de factura ──
 
-def obtener_siguiente_numero(conn) -> int:
+def obtener_siguiente_numero(conn, base: str) -> int:
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT ISNULL(MAX(numero), 0) + 1
-        FROM msgestion03.dbo.ventas2
+        FROM {base}.dbo.ventas2
         WHERE codigo = ? AND letra = ? AND sucursal = ?
     """, CODIGO, LETRA, SUCURSAL)
     return int(cursor.fetchone()[0])
 
 
-def obtener_siguiente_orden(conn, fecha_comprobante: str) -> int:
+def obtener_siguiente_orden(conn, base: str, fecha_comprobante: str) -> int:
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(f"""
         SELECT ISNULL(MAX(orden), 0) + 1
-        FROM msgestion03.dbo.ventas2
+        FROM {base}.dbo.ventas2
         WHERE codigo = ? AND letra = ? AND sucursal = ?
           AND CONVERT(date, fecha_comprobante) = CONVERT(date, ?)
     """, CODIGO, LETRA, SUCURSAL, fecha_comprobante)
@@ -233,14 +239,14 @@ def obtener_siguiente_orden(conn, fecha_comprobante: str) -> int:
 
 # ── Inserción ERP ──
 
-def insertar_factura(conn, cabecera: dict, detalles: list):
+def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestion03'):
     """Inserta ventas2 + ventas1 + descuenta stock dentro de una transacción."""
     conn.autocommit = False
     cursor = conn.cursor()
 
     try:
-        cursor.execute("""
-            INSERT INTO msgestion03.dbo.ventas2 (
+        cursor.execute(f"""
+            INSERT INTO {base}.dbo.ventas2 (
                 codigo, letra, sucursal, numero, orden,
                 deposito, cuenta, denominacion, cuenta_cc,
                 fecha_comprobante, fecha_proceso, fecha_contable,
@@ -281,8 +287,8 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
         )
 
         for det in detalles:
-            cursor.execute("""
-                INSERT INTO msgestion03.dbo.ventas1 (
+            cursor.execute(f"""
+                INSERT INTO {base}.dbo.ventas1 (
                     codigo, letra, sucursal, numero, orden,
                     renglon, articulo, descripcion,
                     precio, cantidad, total_item, unidades, deposito,
@@ -307,22 +313,22 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
 
         # Descontar stock
         for det in detalles:
-            cursor.execute("""
-                UPDATE msgestion03.dbo.stock
+            cursor.execute(f"""
+                UPDATE {base}.dbo.stock
                 SET stock_actual = stock_actual - ?
                 WHERE articulo = ? AND deposito = ?
             """, det['cantidad'], det['articulo'], det['deposito'])
 
         # Marcar estado_stock='V' para evitar doble descuento por batch ERP
-        cursor.execute("""
-            UPDATE msgestion03.dbo.ventas2
+        cursor.execute(f"""
+            UPDATE {base}.dbo.ventas2
             SET estado_stock = 'V'
             WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ? AND orden = ?
         """, cabecera['codigo'], cabecera['letra'], cabecera['sucursal'],
             cabecera['numero'], cabecera['orden'])
 
-        cursor.execute("""
-            UPDATE msgestion03.dbo.ventas1
+        cursor.execute(f"""
+            UPDATE {base}.dbo.ventas1
             SET estado_stock = 'V'
             WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ? AND orden = ?
         """, cabecera['codigo'], cabecera['letra'], cabecera['sucursal'],
@@ -427,13 +433,19 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
 
 # ── Flujo principal ──
 
-def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7) -> dict:
+def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7,
+                           empresa: str = 'H4') -> dict:
     """
     Procesa órdenes pagadas de MercadoLibre e inserta facturas B en el ERP.
+
+    Args:
+        empresa: 'H4' (msgestion03) o 'ABI' (msgestion01/CALZALINDO).
     """
+    base = _base_para_empresa(empresa)
     modo = "DRY RUN" if dry_run else "FACTURACION REAL"
     print(f"\n{'='*60}")
     print(f"  FACTURADOR MercadoLibre → ERP [{modo}]")
+    print(f"  Empresa: {empresa} → {base}")
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Buscando órdenes de los últimos {dias_atras} días")
     print(f"{'='*60}\n")
@@ -499,7 +511,7 @@ def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7) -> dict:
 
     # 4. Procesar cada orden
     print(f"[4/5] {'Simulando' if dry_run else 'Insertando'} facturas...")
-    conn = conectar_erp() if not dry_run else None
+    conn = conectar_erp(empresa) if not dry_run else None
 
     procesadas = []
     errores = []
@@ -513,8 +525,8 @@ def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7) -> dict:
                 numero_factura = 999999
                 orden_dia = 99
             else:
-                numero_factura = obtener_siguiente_numero(conn)
-                orden_dia = obtener_siguiente_orden(conn, fecha_orden)
+                numero_factura = obtener_siguiente_numero(conn, base)
+                orden_dia = obtener_siguiente_orden(conn, base, fecha_orden)
 
             cabecera, detalles, skus_no_enc = construir_factura(
                 orden, articulos_erp, numero_factura, orden_dia
@@ -545,7 +557,7 @@ def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7) -> dict:
                 })
             else:
                 try:
-                    insertar_factura(conn, cabecera, detalles)
+                    insertar_factura(conn, cabecera, detalles, base)
                     print(f"  [OK]  ML {order_id} → Factura B {SUCURSAL}-{numero_factura} | "
                           f"{renglones} items | ${total:,.0f}")
 
@@ -604,9 +616,12 @@ if __name__ == '__main__':
                         help='Solo mostrar qué se insertaría (default: False)')
     parser.add_argument('--dias', type=int, default=7,
                         help='Días hacia atrás para buscar órdenes (default: 7)')
+    parser.add_argument('--empresa', type=str, default='H4',
+                        help='Empresa destino: H4 (msgestion03) o ABI (msgestion01)')
     args = parser.parse_args()
 
-    reporte = sincronizar_ordenes_ml(dry_run=args.dry_run, dias_atras=args.dias)
+    reporte = sincronizar_ordenes_ml(dry_run=args.dry_run, dias_atras=args.dias,
+                                      empresa=args.empresa)
 
     if reporte.get('error'):
         sys.exit(1)
