@@ -50,7 +50,7 @@ class CanalTiendaNube(CanalBase):
         self.token = token
         self.store_id = store_id
         self.headers = {
-            'Authentication': 'bearer %s' % token,
+            'Authorization': 'bearer %s' % token,
             'User-Agent': 'CLZ Multicanal (calzalindo)',
             'Content-Type': 'application/json',
         }
@@ -81,17 +81,19 @@ class CanalTiendaNube(CanalBase):
     def actualizar_precio(self, id_externo, precio, variante_id=None):
         if variante_id:
             url = self._url('products/%s/variants/%s' % (id_externo, variante_id))
+            r = requests.put(url, json={'price': str(precio)}, headers=self.headers)
         else:
             url = self._url('products/%s' % id_externo)
-        r = requests.put(url, json={'variants': [{'price': precio}]}, headers=self.headers)
+            r = requests.put(url, json={'variants': [{'price': str(precio)}]}, headers=self.headers)
         return {'ok': r.status_code == 200, 'detalle': r.text}
 
     def actualizar_stock(self, id_externo, stock, variante_id=None):
         if variante_id:
             url = self._url('products/%s/variants/%s' % (id_externo, variante_id))
+            r = requests.put(url, json={'stock': stock}, headers=self.headers)
         else:
             url = self._url('products/%s' % id_externo)
-        r = requests.put(url, json={'variants': [{'stock': stock}]}, headers=self.headers)
+            r = requests.put(url, json={'variants': [{'stock': stock}]}, headers=self.headers)
         return {'ok': r.status_code == 200, 'detalle': r.text}
 
     def pausar(self, id_externo):

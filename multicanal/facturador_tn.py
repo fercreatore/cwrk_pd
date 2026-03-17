@@ -109,7 +109,7 @@ def buscar_articulos_por_sku(conn_art, skus: list) -> dict:
         query = f"""
             SELECT
                 codigo,
-                descripcion,
+                descripcion_1,
                 precio_costo,
                 codigo_sinonimo
             FROM msgestion01art.dbo.articulo
@@ -182,25 +182,30 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
 
     try:
         # --- INSERT ventas2 (cabecera) ---
+        # Campos reales de msgestion03.dbo.ventas2
         cursor.execute("""
             INSERT INTO msgestion03.dbo.ventas2 (
                 empresa, codigo, letra, sucursal, numero, orden,
                 deposito, cuenta, denominacion, cuenta_cc,
                 fecha_comprobante, fecha_proceso, fecha_contable,
-                monto_general, estado, estado_stock, estado_cc,
+                monto_general, importe_neto_ge, monto_exento,
+                estado, estado_stock, estado_cc,
                 estado_pedidos, condicion_iva, usuario, moneda,
-                concepto_gravado, iva_general, descuento,
-                recargo, impuestos_internos, percepciones_iva,
-                percepciones_iibb, impuestos_varios
+                descuento_general, monto_descuento,
+                bonificacion_general, monto_bonificacion,
+                financiacion_general, monto_financiacion,
+                iva1, monto_iva1, percepcion
             ) VALUES (
                 ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?,
-                ?, ?
+                ?, ?, ?, ?,
+                ?, ?,
+                ?, ?,
+                ?, ?,
+                ?, ?, ?
             )
         """,
             cabecera['empresa'],
@@ -217,6 +222,8 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
             cabecera['fecha_proceso'],
             cabecera['fecha_contable'],
             cabecera['monto_general'],
+            cabecera['monto_general'],  # importe_neto_ge = monto total (B sin IVA discriminado)
+            0,                          # monto_exento
             cabecera['estado'],
             cabecera['estado_stock'],
             cabecera['estado_cc'],
@@ -224,14 +231,11 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
             cabecera['condicion_iva'],
             cabecera['usuario'],
             cabecera['moneda'],
-            cabecera.get('concepto_gravado', 0),
-            cabecera.get('iva_general', 0),
-            cabecera.get('descuento', 0),
-            cabecera.get('recargo', 0),
-            cabecera.get('impuestos_internos', 0),
-            cabecera.get('percepciones_iva', 0),
-            cabecera.get('percepciones_iibb', 0),
-            cabecera.get('impuestos_varios', 0),
+            0, 0,  # descuento_general, monto_descuento
+            0, 0,  # bonificacion_general, monto_bonificacion
+            0, 0,  # financiacion_general, monto_financiacion
+            0, 0,  # iva1, monto_iva1
+            0,      # percepcion
         )
 
         # --- INSERT ventas1 (detalles) ---
@@ -240,13 +244,13 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
                 INSERT INTO msgestion03.dbo.ventas1 (
                     empresa, codigo, letra, sucursal, numero, orden,
                     renglon, articulo, descripcion,
-                    precio, cantidad, unidades, deposito,
+                    precio, cantidad, total_item, unidades, deposito,
                     operacion, estado, estado_stock,
                     precio_costo, codigo_sinonimo, fecha
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?,
                     ?, ?, ?,
-                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
                     ?, ?, ?,
                     ?, ?, ?
                 )
@@ -262,6 +266,7 @@ def insertar_factura(conn, cabecera: dict, detalles: list):
                 det['descripcion'],
                 det['precio'],
                 det['cantidad'],
+                det['total_item'],
                 det['unidades'],
                 det['deposito'],
                 det['operacion'],
@@ -336,14 +341,6 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
         'condicion_iva': CONDICION_IVA,
         'usuario': USUARIO,
         'moneda': 0,
-        'concepto_gravado': monto_general,
-        'iva_general': 0,
-        'descuento': 0,
-        'recargo': 0,
-        'impuestos_internos': 0,
-        'percepciones_iva': 0,
-        'percepciones_iibb': 0,
-        'impuestos_varios': 0,
     }
 
     detalles = []
@@ -365,6 +362,7 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
             continue
 
         renglon += 1
+        total_item = round(precio * cantidad, 2)
         detalles.append({
             'empresa': EMPRESA,
             'codigo': CODIGO,
@@ -377,6 +375,7 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
             'descripcion': art['descripcion'][:50],
             'precio': precio,
             'cantidad': cantidad,
+            'total_item': total_item,
             'unidades': 0,
             'deposito': DEPOSITO,
             'operacion': '+',
@@ -386,6 +385,10 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
             'codigo_sinonimo': sku,
             'fecha': fecha_comprobante,
         })
+
+    # Recalcular monto_general como suma de detalles (sin incluir envío)
+    if detalles:
+        cabecera['monto_general'] = round(sum(d['total_item'] for d in detalles), 2)
 
     return cabecera, detalles, skus_no_encontrados
 
