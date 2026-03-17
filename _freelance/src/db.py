@@ -86,14 +86,14 @@ def execute_returning_id(sql: str, database: str = None, params: tuple = None) -
 
 
 # ── Shortcuts ────────────────────────────────────────────
-def query_omicronvt(sql: str) -> list:
-    return query(sql, settings.DB_ANALITICA)
+def query_omicronvt(sql: str, params: tuple = None) -> list:
+    return query(sql, settings.DB_ANALITICA, params)
 
-def query_msgestionC(sql: str) -> list:
-    return query(sql, settings.DB_COMPRAS)
+def query_msgestionC(sql: str, params: tuple = None) -> list:
+    return query(sql, settings.DB_COMPRAS, params)
 
-def query_articulos(sql: str) -> list:
-    return query(sql, settings.DB_ARTICULOS)
+def query_articulos(sql: str, params: tuple = None) -> list:
+    return query(sql, settings.DB_ARTICULOS, params)
 
-def query_auth(sql: str) -> list:
-    return query(sql, settings.DB_AUTH)
+def query_auth(sql: str, params: tuple = None) -> list:
+    return query(sql, settings.DB_AUTH, params)

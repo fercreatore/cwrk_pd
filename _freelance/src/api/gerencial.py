@@ -203,11 +203,11 @@ async def ahorro_vs_empleado(anio: int = None, mes: int = None):
                 },
                 "modelo_freelance": {
                     "fee_total": round(fee, 0),
-                    "costo_h4": 0,
+                    "costo_h4": round(costo_freelance, 0),
                     "mono": mono,
                     "neto_vendedor": round(neto_freelance, 0),
                 },
-                "ahorro_h4": round(costo_empleado, 0),
+                "ahorro_h4": round(ahorro, 0),
                 "mejora_vendedor": round(mejora_vendedor, 0),
             })
 
@@ -216,8 +216,10 @@ async def ahorro_vs_empleado(anio: int = None, mes: int = None):
         "totales": {
             "costo_modelo_empleado": round(total_costo_empleado, 0),
             "costo_modelo_freelance": round(total_costo_freelance, 0),
-            "ahorro_total": round(total_costo_empleado, 0),
-            "ahorro_pct": 100.0,
+            "ahorro_total": round(total_costo_empleado - total_costo_freelance, 0),
+            "ahorro_pct": round(
+                (total_costo_empleado - total_costo_freelance) / total_costo_empleado * 100, 1
+            ) if total_costo_empleado > 0 else 0,
             "mejora_neto_vendedores": round(total_neto_freelance - total_neto_empleado, 0),
         },
         "nota": "En el modelo freelance, H4 no paga sueldo ni cargas. "

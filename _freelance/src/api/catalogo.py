@@ -34,9 +34,10 @@ async def lista_productos(pagina: int = 1, limite: int = 50, solo_sin_contenido:
     """Lista de productos agrupados por SKU base, con estado de contenido comercial."""
 
     where_extra = "AND cc.id IS NULL" if solo_sin_contenido else ""
+    limite = max(1, min(int(limite), 500))
 
     sql = f"""
-        SELECT TOP {int(limite)}
+        SELECT TOP ({limite})
             LEFT(a.descripcion_1, 5) AS sku_base,
             MIN(a.descripcion_1) AS descripcion,
             m.descripcion AS marca,
