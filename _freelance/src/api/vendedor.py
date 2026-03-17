@@ -371,9 +371,9 @@ async def proyeccion_monotributo(cod: str):
     pct_proyectado = proyeccion_anual / tope * 100 if tope > 0 else 0
 
     if pct_proyectado > 90:
-        alerta = "PELIGRO: proyeccion supera 90%% del tope. Considerar subir de categoria."
+        alerta = "PELIGRO: proyeccion supera 90% del tope. Considerar subir de categoria."
     elif pct_proyectado > 75:
-        alerta = "ATENCION: proyeccion en 75-90%% del tope. Monitorear."
+        alerta = "ATENCION: proyeccion en 75-90% del tope. Monitorear."
     else:
         alerta = None
 

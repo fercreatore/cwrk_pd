@@ -52,8 +52,9 @@ async def registrar_atribucion(data: AtribucionIn):
 
     bonus = 0.0
     if data.hora_venta:
-        hoy = datetime.now()
-        dia_semana = hoy.isoweekday()
+        # Usar la fecha real de la venta (hoy si no se especifica empresa/comprobante)
+        fecha_venta = datetime.now()
+        dia_semana = fecha_venta.isoweekday()
         bonus_rows = query(
             "SELECT bonus_fee_pct FROM franjas_incentivo "
             "WHERE dia_semana = ? AND hora_desde <= ? AND hora_hasta > ?",
@@ -146,6 +147,7 @@ async def sync_desde_viajante(fecha_desde: str = None):
               SELECT 1 FROM omicronvt.dbo.venta_atribucion va
               WHERE va.empresa = v.empresa
                 AND va.vta_codigo = v.codigo
+                AND va.vta_letra = v.letra
                 AND va.vta_sucursal = v.sucursal
                 AND va.vta_numero = v.numero
                 AND va.vta_orden = v.orden
