@@ -43,11 +43,6 @@ GRUPO = "5"
 RUBRO = 1
 ESTADO = "V"
 UTILIDAD_1 = 100  # 100% markup
-UTILIDAD_2 = 124
-UTILIDAD_3 = 60
-UTILIDAD_4 = 45
-SUBRUBRO = 18     # carteras/accesorios
-LINEA = 4         # todo el año
 
 FACTURA = "A 00015-00009639"
 REMITO_PV = 5000  # sucursal del remito (punto de venta)
@@ -119,34 +114,13 @@ ITEMS = [
 
 SQL_ARTICULO = """
     INSERT INTO msgestion01art.dbo.articulo (
-        codigo, descripcion_1, descripcion_3, descripcion_4, descripcion_5,
-        codigo_barra, codigo_sinonimo, tipo_codigo_barra,
-        marca, rubro, subrubro, grupo, proveedor, linea,
+        codigo, codigo_sinonimo,
+        descripcion_1, descripcion_5,
+        proveedor, marca, grupo, rubro,
+        precio_4, utilidad_1,
         codigo_objeto_costo,
-        precio_fabrica, precio_costo, precio_sugerido,
-        precio_1, precio_2, precio_3, precio_4,
-        utilidad_1, utilidad_2, utilidad_3, utilidad_4,
-        alicuota_iva1, alicuota_iva2, tipo_iva,
-        formula, calificacion, estado,
-        descuento, descuento_1, descuento_2, descuento_3, descuento_4,
-        moneda, factura_por_total, numero_maximo, stock,
-        cuenta_compras, cuenta_ventas, cuenta_com_anti,
-        usuario, abm, fecha_alta, fecha_hora
-    ) VALUES (
-        ?, ?, ?, ?, ?,
-        ?, ?, 'C',
-        ?, ?, 18, ?, ?, 4,
-        ?,
-        ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        21, 10.5, 'G',
-        1, 'G', 'V',
-        0, 0, 0, 0, 0,
-        0, 'N', 'S', 'S',
-        '1010601', '4010100', '1010601',
-        'COWORK', 'A', GETDATE(), GETDATE()
-    )
+        estado
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 
 SQL_PEDIDO_CAB = """
@@ -305,27 +279,6 @@ def extraer_nombre_producto(desc):
     return desc.split()[0].upper()[:30]
 
 
-def extraer_color(desc):
-    """Extrae el color de la descripción (última palabra/s)."""
-    # Formato: "NOMBRE TIPO COLOR" ej: "KIRKLI MOCHILA NEGRO"
-    _COLORES = [
-        "NEGRO", "CAFE", "CAFE OSCURO", "TAUPE", "BLANCO ESPECIAL",
-        "BLANCO", "MARRON", "GRIS", "NATURAL", "BEIGE",
-    ]
-    d = desc.upper()
-    for c in _COLORES:
-        if d.endswith(c):
-            return c
-    # Fallback: última palabra
-    parts = desc.split()
-    return parts[-1].upper() if parts else ""
-
-
-def descripcion_3(desc):
-    """Descripción corta para etiqueta (máx 26 chars)."""
-    return desc[:26]
-
-
 def main():
     modo = "--dry-run"
     if len(sys.argv) > 1:
@@ -390,24 +343,15 @@ def main():
         for i, (bc, desc, cant, precio, talle, cod_obj) in enumerate(items_prep):
             codigo = next_codigo + i
             art_map[bc] = codigo
-            color = extraer_color(desc)
-            desc3 = descripcion_3(desc)
-            pf = precio  # precio_fabrica
-            pc = pf      # precio_costo (sin descuento para Amphora)
-            p1 = round(pc * (1 + UTILIDAD_1 / 100), 2)
-            p2 = round(pc * (1 + UTILIDAD_2 / 100), 2)
-            p3 = round(pc * (1 + UTILIDAD_3 / 100), 2)
-            p4 = round(pc * (1 + UTILIDAD_4 / 100), 2)
             cursor.execute(SQL_ARTICULO, (
-                codigo, desc, desc3, color, talle,
-                bc, bc,
-                MARCA, RUBRO, GRUPO, PROVEEDOR,
+                codigo, bc,
+                desc, talle,
+                PROVEEDOR, MARCA, GRUPO, RUBRO,
+                precio, UTILIDAD_1,
                 cod_obj,
-                pf, pc, pc,
-                p1, p2, p3, p4,
-                UTILIDAD_1, UTILIDAD_2, UTILIDAD_3, UTILIDAD_4,
+                ESTADO,
             ))
-            print(f"    [{codigo}] {bc} = {desc} T{talle} color={color} ${pf:,.0f} → P1=${p1:,.0f}")
+            print(f"    [{codigo}] {bc} = {desc} T{talle}")
 
         # 2. PEDIDO (en ambas bases)
         print(f"\n--- 2. Pedido en MSGESTION01 (03 es VIEW) ---")
