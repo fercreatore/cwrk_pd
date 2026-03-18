@@ -19,6 +19,11 @@ Uso:
 from .ml_scraper import MLScraper, import_opportunity_score
 from .analyzer import MarketAnalyzer
 from .trends import get_trends, seasonal_projection, get_related_queries
+from .instagram import InstagramAuditor
+from .facebook import FacebookAuditor
+from .whatsapp import WhatsAppChecker
+from .website_audit import WebsiteAuditor
+from .skills import SkillsAudit
 
 __all__ = [
     "MLScraper",
@@ -27,4 +32,9 @@ __all__ = [
     "get_trends",
     "seasonal_projection",
     "get_related_queries",
+    "InstagramAuditor",
+    "FacebookAuditor",
+    "WhatsAppChecker",
+    "WebsiteAuditor",
+    "SkillsAudit",
 ]
