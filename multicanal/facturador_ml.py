@@ -71,6 +71,7 @@ USUARIO = 'COWORK-ML'
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mercadolibre_config.json')
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'ordenes_ml_procesadas.json')
+SQLITE_DB = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.db')
 
 ML_API_BASE = 'https://api.mercadolibre.com'
 
@@ -95,8 +96,102 @@ def cargar_config() -> dict:
     return {}
 
 
-# ── Persistencia de órdenes procesadas ──
+# ── Persistencia de órdenes procesadas (SQLite — compartida con TN) ──
 
+def _init_sqlite_if_needed(conn):
+    """Crea tablas si no existen (idempotente)."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ordenes_ml (
+            order_id TEXT PRIMARY KEY,
+            fecha_orden TEXT,
+            cliente TEXT,
+            total REAL,
+            renglones INTEGER,
+            numero_factura INTEGER,
+            orden_dia INTEGER,
+            empresa TEXT DEFAULT 'H4',
+            fecha_proceso TEXT,
+            estado TEXT DEFAULT 'OK'
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS errores_ml (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id TEXT,
+            empresa TEXT,
+            error TEXT,
+            fecha TEXT
+        )
+    """)
+
+
+def orden_ml_ya_procesada(order_id: str) -> bool:
+    """Verifica si una orden ML ya fue procesada. CRITICO: evita duplicados."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    _init_sqlite_if_needed(conn)
+    cursor = conn.execute(
+        "SELECT 1 FROM ordenes_ml WHERE order_id = ?",
+        (str(order_id),)
+    )
+    existe = cursor.fetchone() is not None
+    conn.close()
+    return existe
+
+
+def registrar_orden_ml(order_id, fecha_orden, cliente, total, renglones,
+                       numero_factura, orden_dia, empresa):
+    """Registra una orden ML como procesada en SQLite."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    _init_sqlite_if_needed(conn)
+    conn.execute("""
+        INSERT OR REPLACE INTO ordenes_ml
+        (order_id, fecha_orden, cliente, total, renglones,
+         numero_factura, orden_dia, empresa, fecha_proceso, estado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        str(order_id), fecha_orden, cliente, float(total), int(renglones),
+        int(numero_factura), int(orden_dia), empresa,
+        datetime.now().isoformat(), 'OK',
+    ))
+    conn.commit()
+    conn.close()
+
+
+def registrar_error_ml(order_id, empresa, error_msg):
+    """Registra un error de facturación ML en SQLite."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    _init_sqlite_if_needed(conn)
+    conn.execute("""
+        INSERT INTO errores_ml (order_id, empresa, error, fecha)
+        VALUES (?, ?, ?, ?)
+    """, (str(order_id), empresa, error_msg, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+
+
+def listar_errores_ml(limit: int = 50) -> list:
+    """Lista los últimos errores de facturación ML."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    try:
+        _init_sqlite_if_needed(conn)
+        cursor = conn.execute("""
+            SELECT order_id, empresa, error, fecha
+            FROM errores_ml
+            ORDER BY fecha DESC LIMIT ?
+        """, (limit,))
+        rows = [dict(zip(['order_id', 'empresa', 'error', 'fecha'], r))
+                for r in cursor.fetchall()]
+    except sqlite3.OperationalError:
+        rows = []
+    conn.close()
+    return rows
+
+
+# Mantener compatibilidad con JSON log existente
 def cargar_ordenes_procesadas() -> dict:
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE) as f:
@@ -276,23 +371,29 @@ def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestio
                 codigo, letra, sucursal, numero, orden,
                 deposito, cuenta, denominacion, cuenta_cc,
                 fecha_comprobante, fecha_proceso, fecha_contable,
+                fecha_hora, talonario, libro_iva, contabiliza,
                 monto_general, importe_neto_ge, monto_exento,
                 estado, estado_stock, estado_cc,
                 estado_pedidos, condicion_iva, usuario, moneda,
                 descuento_general, monto_descuento,
                 bonificacion_general, monto_bonificacion,
                 financiacion_general, monto_financiacion,
-                iva1, monto_iva1, percepcion
+                iva1, monto_iva1, percepcion,
+                zona, provincia, numero_cuit, copias,
+                viajante, entregador, calificacion
             ) VALUES (
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?,
+                ?, ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?,
                 ?, ?,
                 ?, ?,
+                ?, ?, ?,
+                ?, ?, ?, ?,
                 ?, ?, ?
             )
         """,
@@ -302,6 +403,10 @@ def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestio
             cabecera['denominacion'], cabecera['cuenta_cc'],
             cabecera['fecha_comprobante'], cabecera['fecha_proceso'],
             cabecera['fecha_contable'],
+            cabecera['fecha_proceso'],  # fecha_hora = mismo que fecha_proceso
+            1,                          # talonario = 1 (como POS)
+            'N',                        # libro_iva = 'N'
+            'N',                        # contabiliza = 'N'
             cabecera['monto_general'], cabecera['monto_general'], 0,
             cabecera['estado'], cabecera['estado_stock'], cabecera['estado_cc'],
             cabecera['estado_pedidos'], cabecera['condicion_iva'],
@@ -310,6 +415,13 @@ def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestio
             0, 0,  # bonificacion
             0, 0,  # financiacion
             21, None, 0,  # iva, percepcion
+            1,      # zona = 1 (como POS)
+            'S',    # provincia = 'S' (Santa Fe)
+            '00000000000',  # numero_cuit (como POS)
+            1,      # copias = 1
+            585,    # viajante = 585 (como POS)
+            0,      # entregador = 0
+            '',     # calificacion = ''
         )
 
         for det in detalles:
@@ -498,10 +610,11 @@ def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7,
     if not ordenes:
         return {'ordenes_encontradas': 0, 'ya_procesadas': 0, 'procesadas': 0, 'errores': []}
 
-    # 2. Filtrar ya procesadas
+    # 2. Filtrar ya procesadas (SQLite + JSON legacy)
     print("[2/5] Filtrando órdenes ya procesadas...")
-    registro = cargar_ordenes_procesadas()
-    ordenes_nuevas = [o for o in ordenes if str(o['id']) not in registro]
+    registro = cargar_ordenes_procesadas()  # JSON legacy
+    ordenes_nuevas = [o for o in ordenes
+                      if str(o['id']) not in registro and not orden_ml_ya_procesada(str(o['id']))]
     print(f"       {len(ordenes) - len(ordenes_nuevas)} ya procesadas, {len(ordenes_nuevas)} nuevas.\n")
 
     if not ordenes_nuevas:
@@ -587,6 +700,19 @@ def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7,
                     print(f"  [OK]  ML {order_id} → Factura B {SUCURSAL}-{numero_factura} | "
                           f"{renglones} items | ${total:,.0f}")
 
+                    # Registrar en SQLite (anti-duplicados)
+                    registrar_orden_ml(
+                        order_id=order_id,
+                        fecha_orden=fecha_orden,
+                        cliente=cliente,
+                        total=total,
+                        renglones=renglones,
+                        numero_factura=numero_factura,
+                        orden_dia=orden_dia,
+                        empresa=empresa,
+                    )
+
+                    # Mantener JSON legacy por compatibilidad
                     registro[str(order_id)] = {
                         'numero_factura': numero_factura,
                         'orden': orden_dia,
@@ -609,6 +735,7 @@ def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7,
                     error_msg = f"Orden ML {order_id}: {e}"
                     print(f"  [ERR] {error_msg}")
                     errores.append(error_msg)
+                    registrar_error_ml(order_id, empresa, str(e))
     finally:
         if conn:
             conn.close()
