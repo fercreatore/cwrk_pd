@@ -883,8 +883,8 @@ def calcular_alertas_talles():
         ) v ON v.articulo = a.codigo
         WHERE a.estado = 'V'
           AND a.rubro IN (1,3,4,5,6)
-          AND ISNUMERIC(a.descripcion_5) = 1
-          AND CAST(a.descripcion_5 AS INT) BETWEEN 17 AND 50
+          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
+          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
           AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
         GROUP BY a.rubro, a.subrubro, RTRIM(a.descripcion_5)
         HAVING SUM(ISNULL(v.vtas, 0)) > 0
