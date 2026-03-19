@@ -99,7 +99,7 @@ Te mando las fotos y el mensaje armado para que copies y pegues en el grupo?"""
     elif tipo == "Grupal":
         mensaje = f"""Hola! Buenas tardes
 
-Soy Fernando de Calzalindo, tenemos 20 anios en el rubro calzado y accesorios en Venado Tuerto.
+Soy Fernando de Calzalindo, somos una cadena de calzado y accesorios con 35 anios en Venado Tuerto, 3era generacion.
 
 Te escribo porque vi que {nombre_agencia} organiza viajes grupales y tenemos una propuesta que les puede servir.
 
@@ -119,7 +119,7 @@ Te mando fotos?"""
     else:  # General
         mensaje = f"""Hola! Buenas tardes
 
-Soy Fernando de Calzalindo, tenemos 20 anios en el rubro calzado y accesorios en Venado Tuerto.
+Soy Fernando de Calzalindo, somos una cadena de calzado y accesorios con 35 anios en Venado Tuerto, 3era generacion.
 
 Te escribo porque tenemos una propuesta para los pasajeros de {nombre_agencia} que puede ser negocio para los dos.
 

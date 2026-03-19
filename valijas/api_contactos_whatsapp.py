@@ -65,7 +65,7 @@ def get_mensaje(nombre_agencia, tipo="General"):
     elif tipo == "Grupal":
         return (
             f"Hola! Buenas tardes\n\n"
-            f"Soy Fernando de Calzalindo, tenemos 20 anios en el rubro calzado y accesorios en Venado Tuerto.\n\n"
+            f"Soy Fernando de Calzalindo, somos una cadena de calzado y accesorios con 35 anios en Venado Tuerto, 3era generacion.\n\n"
             f"Te escribo porque vi que {nombre_agencia} organiza viajes grupales y tenemos una propuesta "
             f"que les puede servir.\n\n"
             f"Importamos directo de fabrica un contenedor de valijas rigidas marca GO. "
@@ -82,7 +82,7 @@ def get_mensaje(nombre_agencia, tipo="General"):
     else:
         return (
             f"Hola! Buenas tardes\n\n"
-            f"Soy Fernando de Calzalindo, tenemos 20 anios en el rubro calzado y accesorios en Venado Tuerto.\n\n"
+            f"Soy Fernando de Calzalindo, somos una cadena de calzado y accesorios con 35 anios en Venado Tuerto, 3era generacion.\n\n"
             f"Te escribo porque tenemos una propuesta para los pasajeros de {nombre_agencia} "
             f"que puede ser negocio para los dos.\n\n"
             f"Importamos directo de fabrica un contenedor de valijas rigidas marca GO. "
