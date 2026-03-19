@@ -1,0 +1,245 @@
+{
+  "name": "WhatsApp Valijas GO — Envío Agencias",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5050/contactos",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "get-contactos",
+      "name": "Obtener Contactos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "notesInFlow": true,
+      "notes": "Lee contactos pendientes del Excel via API local (puerto 5050)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem"
+      },
+      "id": "split-items",
+      "name": "Split en Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [660, 300],
+      "notesInFlow": true,
+      "notes": "Procesa un contacto a la vez para respetar rate limits"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WA_PHONE_NUMBER_ID }}",
+        "recipientPhoneNumber": "={{ $json.telefono }}",
+        "textBody": "={{ $json.mensaje }}",
+        "additionalFields": {}
+      },
+      "id": "send-whatsapp",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [880, 300],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "WA_CREDENTIALS_ID",
+          "name": "WhatsApp Business"
+        }
+      },
+      "notesInFlow": true,
+      "notes": "Envía mensaje personalizado via WhatsApp Business Cloud API"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5050/marcar_enviado",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "row_num",
+              "value": "={{ $json.row_num }}"
+            },
+            {
+              "name": "estado",
+              "value": "Enviado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "marcar-enviado",
+      "name": "Marcar Enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 300],
+      "notesInFlow": true,
+      "notes": "Actualiza Excel: estado=Enviado + fecha"
+    },
+    {
+      "parameters": {
+        "amount": 45,
+        "unit": "seconds"
+      },
+      "id": "wait-rate-limit",
+      "name": "Wait 45s (Rate Limit)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1320, 300],
+      "notesInFlow": true,
+      "notes": "Espera 45s entre mensajes para no ser baneado por WhatsApp"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-error",
+      "name": "Envío OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 520]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5050/marcar_enviado",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "row_num",
+              "value": "={{ $json.row_num }}"
+            },
+            {
+              "name": "estado",
+              "value": "Error"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "marcar-error",
+      "name": "Marcar Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 520]
+    }
+  ],
+  "connections": {
+    "Inicio Manual": {
+      "main": [
+        [
+          {
+            "node": "Obtener Contactos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Contactos": {
+      "main": [
+        [
+          {
+            "node": "Split en Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split en Items": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Marcar Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Enviado": {
+      "main": [
+        [
+          {
+            "node": "Wait 45s (Rate Limit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 45s (Rate Limit)": {
+      "main": [
+        [
+          {
+            "node": "Split en Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envío OK?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Marcar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "Envía mensajes personalizados de Valijas GO a agencias de viaje via WhatsApp Business Cloud API.\n\nPre-requisitos:\n1. Correr api_contactos_whatsapp.py en localhost:5050\n2. Configurar credenciales WhatsApp Business Cloud en n8n\n3. Setear variable de entorno WA_PHONE_NUMBER_ID\n\nFlujo: Obtener contactos → Split → Enviar WA → Marcar enviado → Wait 45s → Loop"
+  }
+}
