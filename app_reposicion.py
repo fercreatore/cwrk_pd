@@ -43,6 +43,7 @@ PG_CONN_STRING = "postgresql://guille:Martes13%23@200.58.109.125:5432/clz_produc
 DEPOS_INFORMES = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14, 15, 198)
 DEPOS_SQL = '(0,1,2,3,4,5,6,7,8,9,11,12,14,15,198)'
 EXCL_VENTAS = '(7,36)'
+EXCL_MARCAS_GASTOS = '(1316,1317,1158,436)'  # marcas de gastos, no mercadería
 VENTANAS_DIAS = [15, 30, 45, 60]
 MESES_HISTORIA = 12  # para quiebre
 MESES_ESTACIONALIDAD = 36  # 3 años
@@ -76,9 +77,9 @@ st.markdown("""
     .kpi-box { background: #f8f9fa; border-radius: 8px; padding: 16px;
                border-left: 4px solid #1976d2; margin-bottom: 8px; }
     .waterfall-header { font-size: 13px; font-weight: 600; color: #555; }
-    div[data-testid="stMetric"] { background: #262730; border-radius: 8px; padding: 10px; }
-    div[data-testid="stMetric"] label { color: #fafafa !important; }
-    div[data-testid="stMetric"] [data-testid="stMetricValue"] { color: #ffffff !important; }
+    div[data-testid="stMetric"] { background: #1e1e2e; border: 1px solid #444; border-radius: 8px; padding: 12px; }
+    div[data-testid="stMetric"] label { color: #b0b0b0 !important; font-size: 13px !important; }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] { color: #ffffff !important; font-size: 28px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,21 +87,46 @@ st.markdown("""
 # DATABASE HELPERS
 # ============================================================================
 
-@st.cache_resource
-def get_conn():
-    """Conexión a SQL Server para análisis (SELECT)."""
+def _crear_conexion():
+    """Crea una conexión nueva a SQL Server."""
     try:
-        return pyodbc.connect(CONN_COMPRAS, timeout=10)
+        return pyodbc.connect(CONN_COMPRAS, timeout=15)
     except Exception:
-        return pyodbc.connect(CONN_REPLICA, timeout=10)
+        return pyodbc.connect(CONN_REPLICA, timeout=15)
+
+
+def get_conn(force_new=False):
+    """Conexión a SQL Server con reconexión automática si se cayó."""
+    if force_new or 'sql_conn' not in st.session_state:
+        st.session_state['sql_conn'] = _crear_conexion()
+    else:
+        # Verificar que la conexión sigue viva
+        try:
+            st.session_state['sql_conn'].execute("SELECT 1")
+        except Exception:
+            try:
+                st.session_state['sql_conn'].close()
+            except Exception:
+                pass
+            st.session_state['sql_conn'] = _crear_conexion()
+    return st.session_state['sql_conn']
 
 
 def query_df(sql, conn=None):
-    """Ejecuta query y retorna DataFrame."""
+    """Ejecuta query y retorna DataFrame. Reintenta con conexión nueva si falla."""
     c = conn or get_conn()
     try:
         return pd.read_sql(sql, c)
     except Exception as e:
+        err_str = str(e)
+        # Communication link failure o conexión cerrada → reintentar con conexión nueva
+        if '08S01' in err_str or 'Communication link' in err_str or 'closed' in err_str.lower():
+            try:
+                c_new = get_conn(force_new=True)
+                return pd.read_sql(sql, c_new)
+            except Exception as e2:
+                st.error(f"Error SQL (reintento): {e2}")
+                return pd.DataFrame()
         st.error(f"Error SQL: {e}")
         return pd.DataFrame()
 
@@ -379,6 +405,7 @@ def cargar_resumen_marcas():
             GROUP BY articulo
         ) v ON v.articulo = a.codigo
         WHERE a.estado = 'V'
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
           AND LEN(a.codigo_sinonimo) >= 10
           AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
           AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
@@ -419,6 +446,7 @@ def cargar_productos_por_marca(marca_codigo):
             GROUP BY articulo
         ) v ON v.articulo = a.codigo
         WHERE a.estado = 'V' AND a.marca = {int(marca_codigo)}
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
           AND LEN(a.codigo_sinonimo) >= 10
           AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
           AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
@@ -464,6 +492,7 @@ def cargar_productos_por_proveedor(proveedor_num):
             GROUP BY articulo
         ) v ON v.articulo = a.codigo
         WHERE a.estado = 'V' AND a.proveedor = {int(proveedor_num)}
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
           AND LEN(a.codigo_sinonimo) >= 10
           AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
           AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
@@ -817,6 +846,76 @@ def cargar_mapa_surtido():
         labels=['CRITICO', 'BAJO', 'MEDIO', 'OK']
     )
     return df.sort_values('ventas_12m', ascending=False)
+
+
+@st.cache_data(ttl=300)
+def calcular_alertas_talles():
+    """
+    Calcula talles críticos para TODAS las categorías en una sola query.
+    Solo categorías tipo CALZADO (excluye accesorios, indumentaria).
+    Retorna dict: (genero_cod, sub_cod) → list of {'talle', 'stock', 'vtas_12m', 'cob_dias'}
+    Y un DataFrame resumen: genero_cod, sub_cod, talles_criticos (int), detalle (str)
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    sql = f"""
+        SELECT
+            a.rubro AS genero_cod,
+            a.subrubro AS sub_cod,
+            RTRIM(a.descripcion_5) AS talle,
+            COUNT(DISTINCT a.codigo) AS modelos,
+            SUM(ISNULL(s.stk, 0)) AS stock,
+            SUM(ISNULL(v.vtas, 0)) AS vtas_12m
+        FROM msgestion01art.dbo.articulo a
+        INNER JOIN msgestion01.dbo.regla_talle_subrubro rt
+            ON rt.codigo_subrubro = a.subrubro AND rt.tipo_talle = 'CALZADO'
+        LEFT JOIN (
+            SELECT articulo, SUM(stock_actual) AS stk
+            FROM msgestionC.dbo.stock WHERE deposito IN {DEPOS_SQL}
+            GROUP BY articulo
+        ) s ON s.articulo = a.codigo
+        LEFT JOIN (
+            SELECT articulo,
+                   SUM(CASE WHEN operacion='+' THEN cantidad
+                            WHEN operacion='-' THEN -cantidad END) AS vtas
+            FROM msgestionC.dbo.ventas1
+            WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
+            GROUP BY articulo
+        ) v ON v.articulo = a.codigo
+        WHERE a.estado = 'V'
+          AND a.rubro IN (1,3,4,5,6)
+          AND ISNUMERIC(a.descripcion_5) = 1
+          AND CAST(a.descripcion_5 AS INT) BETWEEN 17 AND 50
+          AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
+        GROUP BY a.rubro, a.subrubro, RTRIM(a.descripcion_5)
+        HAVING SUM(ISNULL(v.vtas, 0)) > 0
+    """
+    df = query_df(sql)
+    if df.empty:
+        return pd.DataFrame(), {}
+
+    df['talle_num'] = pd.to_numeric(df['talle'], errors='coerce')
+    df['vel_diaria'] = df['vtas_12m'] / 365
+    cob_raw = np.where(df['vel_diaria'] > 0, df['stock'] / df['vel_diaria'],
+                       np.where(df['stock'] > 0, 9999, 0))
+    df['cob_dias'] = np.nan_to_num(cob_raw, nan=0, posinf=9999, neginf=0).astype(int)
+    # Crítico: cob < 30 días O stock 0 con demanda
+    df['es_critico'] = (df['cob_dias'] <= 30) | ((df['vtas_12m'] > 0) & (df['stock'] == 0))
+
+    # Construir resumen por categoría
+    criticos = df[df['es_critico']].copy()
+    detalle_dict = {}
+    rows = []
+    for (g, s), grp in criticos.groupby(['genero_cod', 'sub_cod']):
+        talles_str = ", ".join(grp.sort_values('talle_num')['talle'].tolist())
+        detalle_dict[(int(g), int(s))] = grp.sort_values('talle_num').to_dict('records')
+        rows.append({
+            'genero_cod': int(g), 'sub_cod': int(s),
+            'talles_criticos': len(grp), 'talles_detalle': talles_str
+        })
+
+    df_resumen = pd.DataFrame(rows) if rows else pd.DataFrame(
+        columns=['genero_cod', 'sub_cod', 'talles_criticos', 'talles_detalle'])
+    return df_resumen, detalle_dict
 
 
 @st.cache_data(ttl=300)
@@ -1230,17 +1329,45 @@ def render_dashboard():
 
         with st.spinner("Cargando mapa de surtido..."):
             df_mapa = cargar_mapa_surtido()
+            df_alertas_talles, detalle_talles_dict = calcular_alertas_talles()
 
         if df_mapa.empty:
             st.warning("No se pudo cargar el mapa de surtido.")
         else:
+            # Merge talles críticos al mapa
+            if not df_alertas_talles.empty:
+                df_mapa = df_mapa.merge(
+                    df_alertas_talles[['genero_cod', 'sub_cod', 'talles_criticos', 'talles_detalle']],
+                    on=['genero_cod', 'sub_cod'], how='left'
+                )
+            else:
+                df_mapa['talles_criticos'] = 0
+                df_mapa['talles_detalle'] = ''
+            df_mapa['talles_criticos'] = df_mapa['talles_criticos'].fillna(0).astype(int)
+            df_mapa['talles_detalle'] = df_mapa['talles_detalle'].fillna('')
+
+            # ── PANEL DE ALERTAS: talles críticos ──
+            alertas_activas = df_mapa[df_mapa['talles_criticos'] > 0].sort_values(
+                'talles_criticos', ascending=False)
+            if not alertas_activas.empty:
+                total_talles_crit = int(alertas_activas['talles_criticos'].sum())
+                st.error(f"⚠️ **{total_talles_crit} talles críticos** en {len(alertas_activas)} categorías — stock 0 con demanda o menos de 30 días")
+                with st.expander(f"Ver detalle de {total_talles_crit} talles críticos", expanded=False):
+                    for _, row in alertas_activas.head(15).iterrows():
+                        st.markdown(
+                            f"**{row['genero']} > {row['categoria']}** — "
+                            f"Talles: `{row['talles_detalle']}` "
+                            f"(cat. cob: {row['cobertura_dias']}d = {row['urgencia']})"
+                        )
+
             # KPIs globales del surtido
             c1, c2, c3, c4 = st.columns(4)
             criticos_cat = len(df_mapa[df_mapa['urgencia'] == 'CRITICO'])
             bajos_cat = len(df_mapa[df_mapa['urgencia'] == 'BAJO'])
+            total_talles_crit_all = int(df_mapa['talles_criticos'].sum())
             c1.metric("Categorias activas", len(df_mapa))
-            c2.metric("CRITICAS (<30d)", criticos_cat)
-            c3.metric("BAJAS (30-60d)", bajos_cat)
+            c2.metric("Cat. CRITICAS (<30d)", criticos_cat)
+            c3.metric("Talles criticos", total_talles_crit_all)
             c4.metric("Stock total (pares)", f"{int(df_mapa['stock_total'].sum()):,}")
 
             st.divider()
@@ -1263,18 +1390,28 @@ def render_dashboard():
                                              default=urgencias_disp, key="surtido_urg")
             df_vis = df_vis[df_vis['urgencia'].isin(urg_filtro)].copy()
 
+            # Checkbox: solo categorías con talles críticos
+            solo_con_alerta = st.checkbox("Solo categorias con talles criticos", value=False, key="solo_alerta")
+            if solo_con_alerta:
+                df_vis = df_vis[df_vis['talles_criticos'] > 0].copy()
+
             # Tabla principal
             st.dataframe(
                 df_vis[['genero', 'categoria', 'modelos', 'stock_total', 'ventas_12m',
-                        'cobertura_dias', 'urgencia', 'precio_min', 'precio_max']],
+                        'cobertura_dias', 'urgencia', 'talles_criticos', 'talles_detalle',
+                        'precio_min', 'precio_max']],
                 column_config={
                     'genero': st.column_config.TextColumn('Genero', width=90),
-                    'categoria': st.column_config.TextColumn('Categoria', width=180),
+                    'categoria': st.column_config.TextColumn('Categoria', width=150),
                     'modelos': st.column_config.NumberColumn('Modelos', format="%d"),
                     'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
                     'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
                     'cobertura_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
                     'urgencia': 'Urgencia',
+                    'talles_criticos': st.column_config.NumberColumn('T.Crit', format="%d",
+                        help="Talles con menos de 30 dias de cobertura o sin stock"),
+                    'talles_detalle': st.column_config.TextColumn('Talles sin stock',
+                        width=180),
                     'precio_min': st.column_config.NumberColumn('P.Min', format="$%.0f"),
                     'precio_max': st.column_config.NumberColumn('P.Max', format="$%.0f"),
                 },

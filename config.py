@@ -45,6 +45,7 @@ def get_conn_string(base):
         f"DATABASE={base};"
         f"UID={USUARIO};"
         f"PWD={PASSWORD};"
+        f"Connection Timeout=15;"
     )
     if not _is_windows:
         conn += "TrustServerCertificate=yes;Encrypt=no;"
@@ -160,6 +161,23 @@ PROVEEDORES = {
         "empresa":       "CALZALINDO", # 100% base 01
         "descuento":     15,
         "utilidad_1":    140,
+        "utilidad_2":    124,
+        "utilidad_3":    60,
+        "utilidad_4":    45,
+        "formula":       1,
+        "descuento_1":   0,
+        "descuento_2":   0,
+    },
+    # ── AMPHORA ──
+    44: {
+        "nombre":        "AMPHORA",
+        "cuit":          "30708994002",
+        "condicion_iva": "I",
+        "zona":          6,
+        "marca":         44,
+        "empresa":       "H4",
+        "descuento":     0,
+        "utilidad_1":    100,
         "utilidad_2":    124,
         "utilidad_3":    60,
         "utilidad_4":    45,
