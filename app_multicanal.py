@@ -779,14 +779,21 @@ elif pagina == '🔄 Sincronización':
         with tab_precios:
             st.subheader('Precios ERP → TiendaNube')
             st.markdown('Calcula precios desde el costo ERP con la regla del canal TN y actualiza diferencias.')
-            tolerancia = st.slider('Tolerancia (%)', 0.0, 10.0, 2.0, 0.5,
-                                   help='Ignora diferencias menores a este porcentaje')
+            col_tol, col_usd = st.columns(2)
+            with col_tol:
+                tolerancia = st.slider('Tolerancia (%)', 0.0, 10.0, 2.0, 0.5,
+                                       help='Ignora diferencias menores a este porcentaje')
+            with col_usd:
+                cotiz_usd_sync = st.number_input('Cotización USD ($)', value=1170.0, step=10.0,
+                                                  key='cotiz_usd_sync',
+                                                  help='Para artículos importados con costo en dólares')
 
             def _ejecutar_sync_precios(dry_run_mode):
                 with st.spinner('Sincronizando precios...'):
                     try:
                         from multicanal.sync_precios import sincronizar_precios
-                        reporte = sincronizar_precios(dry_run=dry_run_mode, tolerancia_pct=tolerancia)
+                        reporte = sincronizar_precios(dry_run=dry_run_mode, tolerancia_pct=tolerancia,
+                                                      cotiz_usd=cotiz_usd_sync)
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
