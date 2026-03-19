@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valijas GO - Propuesta Agencias</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    max-width: 1080px;
+    margin: 0 auto;
+    overflow-x: hidden;
+  }
+
+  /* ---- HERO ---- */
+  .hero {
+    position: relative;
+    background: linear-gradient(160deg, #0c0c0c 0%, #1a1a2e 40%, #16213e 100%);
+    padding: 50px 40px 40px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60%;
+    right: -30%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40%;
+    left: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+  }
+
+  .badge-top {
+    display: inline-block;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #000;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 5px 20px;
+    border-radius: 30px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(245,158,11,0.3);
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 100px;
+    line-height: 0.85;
+    letter-spacing: 6px;
+    margin-bottom: 5px;
+  }
+
+  .hero h1 .go {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 130px;
+  }
+
+  .hero .subtitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: #94a3b8;
+    font-weight: 400;
+    font-style: italic;
+    margin-bottom: 30px;
+  }
+
+  .sizes-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .size-pill {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 12px;
+    padding: 12px 22px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s;
+  }
+
+  .size-pill:hover { transform: translateY(-2px); }
+
+  .size-pill .num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    color: #f59e0b;
+    line-height: 1;
+  }
+
+  .size-pill .label {
+    font-size: 10px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+  }
+
+  /* ---- PHOTOS ---- */
+  .photos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    padding: 3px;
+    background: #0a0a0a;
+  }
+
+  .photo-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .photo-card img {
+    width: 100%;
+    height: 320px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+  }
+
+  .photo-card:hover img { transform: scale(1.03); }
+
+  .photo-card .color-tag {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ---- FEATURES ---- */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #111;
+  }
+
+  .feature {
+    background: linear-gradient(180deg, #141414, #0f0f0f);
+    padding: 28px 10px;
+    text-align: center;
+  }
+
+  .feature .icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 2px 8px rgba(245,158,11,0.2));
+  }
+
+  .feature .text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.4;
+  }
+
+  /* ---- PRICING ---- */
+  .pricing {
+    position: relative;
+    background: linear-gradient(135deg, #fefce8 0%, #fef9c3 50%, #fef3c7 100%);
+    color: #1a1a1a;
+    padding: 45px 30px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .pricing::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+  }
+
+  .pricing .tag {
+    display: inline-block;
+    background: #f59e0b;
+    color: #000;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 6px 24px;
+    border-radius: 30px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .pricing .old-price {
+    font-size: 24px;
+    color: #a1a1aa;
+    text-decoration: line-through;
+    margin-bottom: 0;
+  }
+
+  .pricing .price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 90px;
+    font-weight: 400;
+    color: #0f172a;
+    line-height: 1;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    text-shadow: 2px 2px 0px rgba(245,158,11,0.15);
+  }
+
+  .pricing .transfer {
+    display: inline-block;
+    background: #16a34a;
+    color: white;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 8px 28px;
+    border-radius: 8px;
+    margin: 8px 0;
+  }
+
+  .pricing .cuotas {
+    font-size: 15px;
+    color: #64748b;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  /* ---- ENVIO BANNER ---- */
+  .envio {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%);
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite;
+    color: #000;
+    text-align: center;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ---- COMISION ---- */
+  .comision {
+    position: relative;
+    background: linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%);
+    padding: 40px 30px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .comision::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(34,197,94,0.2) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .comision-content {
+    position: relative;
+    z-index: 2;
+  }
+
+  .comision .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: #86efac;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+
+  .comision .amount {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+  }
+
+  .comision .per {
+    font-size: 20px;
+    color: #bbf7d0;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  .comision .examples {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+  }
+
+  .comision .example-box {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px 24px;
+    backdrop-filter: blur(5px);
+  }
+
+  .comision .example-box .num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    line-height: 1;
+  }
+
+  .comision .example-box .desc {
+    font-size: 11px;
+    color: #bbf7d0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* ---- SPECS ---- */
+  .specs {
+    background: #111;
+    padding: 30px 35px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .spec {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+
+  .spec .check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #000;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+
+  /* ---- FOOTER ---- */
+  .footer {
+    background: linear-gradient(160deg, #0c0c0c 0%, #1a1a2e 100%);
+    padding: 35px 30px;
+    text-align: center;
+  }
+
+  .footer .wa-label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  .wa-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: #25d366;
+    color: #fff;
+    padding: 14px 36px;
+    border-radius: 50px;
+    font-size: 24px;
+    font-weight: 900;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(37,211,102,0.3);
+    margin-bottom: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .wa-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(37,211,102,0.4);
+  }
+
+  .wa-button .wa-icon {
+    font-size: 28px;
+  }
+
+  .footer .brand-footer {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: #e2e8f0;
+    margin-bottom: 2px;
+  }
+
+  .footer .location {
+    font-size: 12px;
+    color: #475569;
+    letter-spacing: 1px;
+  }
+
+  .divider-line {
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+    margin: 15px auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-content">
+    <div class="badge-top">Importacion directa</div>
+    <h1>VALIJAS<br><span class="go">GO</span></h1>
+    <div class="subtitle">Set de 3 Valijas Rigidas Importadas</div>
+    <div class="sizes-row">
+      <div class="size-pill">
+        <div class="num">17"</div>
+        <div class="label">Carry On<br>Low Cost</div>
+      </div>
+      <div class="size-pill">
+        <div class="num">19"</div>
+        <div class="label">Cabina<br>Estandar</div>
+      </div>
+      <div class="size-pill">
+        <div class="num">21"</div>
+        <div class="label">Mediana<br>Despachar</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="photos">
+  <div class="photo-card">
+    <img src="imagenes/7981DFA3-BA8D-4DF0-827C-93262386D1A4_1_105_c.jpeg" alt="Set Negro">
+    <div class="color-tag">Negro</div>
+  </div>
+  <div class="photo-card">
+    <img src="imagenes/94CF5F2D-7F2D-412D-B855-59CCB2C6F8D2_1_105_c.jpeg" alt="Set Rosa Gold">
+    <div class="color-tag">Rosa Gold</div>
+  </div>
+  <div class="photo-card">
+    <img src="imagenes/442EA850-5101-45F6-BE50-11F7644F0ED6_1_105_c.jpeg" alt="Set Rosa">
+    <div class="color-tag">Rosa</div>
+  </div>
+  <div class="photo-card">
+    <img src="imagenes/31A6CE80-E550-46CF-B026-725D2C610AE5.jpeg" alt="Set Rojo">
+    <div class="color-tag">Rojo</div>
+  </div>
+</div>
+
+<div class="features">
+  <div class="feature">
+    <div class="icon">🔒</div>
+    <div class="text">Cierre<br>Combinacion</div>
+  </div>
+  <div class="feature">
+    <div class="icon">🔄</div>
+    <div class="text">8 Ruedas<br>360&deg;</div>
+  </div>
+  <div class="feature">
+    <div class="icon">💎</div>
+    <div class="text">ABS<br>Rigido</div>
+  </div>
+  <div class="feature">
+    <div class="icon">🪶</div>
+    <div class="text">Super<br>Liviana</div>
+  </div>
+</div>
+
+<div class="pricing">
+  <div class="tag">Precio exclusivo grupos</div>
+  <div class="old-price">$249.999</div>
+  <div class="price">$179.999</div>
+  <div class="transfer">$143.999 por transferencia</div>
+  <div class="cuotas">6 cuotas sin interes con tarjeta</div>
+</div>
+
+<div class="envio">Envio gratis a todo el pais</div>
+
+<div class="comision">
+  <div class="comision-content">
+    <div class="label">Propuesta para agencias</div>
+    <div class="amount">$20.000</div>
+    <div class="per">por cada set vendido</div>
+    <div class="examples">
+      <div class="example-box">
+        <div class="num">$200.000</div>
+        <div class="desc">10 ventas</div>
+      </div>
+      <div class="example-box">
+        <div class="num">$600.000</div>
+        <div class="desc">30 ventas</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="specs">
+  <div class="spec"><div class="check">✓</div>4 colores disponibles</div>
+  <div class="spec"><div class="check">✓</div>Interior forrado con correas</div>
+  <div class="spec"><div class="check">✓</div>Garantia 6 meses</div>
+  <div class="spec"><div class="check">✓</div>Factura A o B</div>
+  <div class="spec"><div class="check">✓</div>Stock inmediato</div>
+  <div class="spec"><div class="check">✓</div>Nosotros enviamos y atendemos</div>
+</div>
+
+<div class="footer">
+  <div class="wa-label">Pedidos por WhatsApp</div>
+  <a href="https://wa.me/5493462676300" class="wa-button">
+    <span class="wa-icon">📲</span>
+    +54 9 3462 67-6300
+  </a>
+  <div class="divider-line"></div>
+  <div class="brand-footer">CALZALINDO</div>
+  <div class="location">Venado Tuerto, Santa Fe &bull; +20 anos en el rubro</div>
+</div>
+
+</body>
+</html>
