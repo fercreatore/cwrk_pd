@@ -29,6 +29,7 @@ import json
 import os
 import sys
 import pyodbc
+import requests
 from datetime import datetime, timedelta
 
 # Agregar raíz al path para imports
@@ -64,7 +65,13 @@ def _conn_string(base: str) -> str:
         "Encrypt=no;"
     )
 
-CONN_STRING_ART = _conn_string('msgestion01art')
+CONN_STRING_ART = (
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=192.168.2.112;"
+    "DATABASE=msgestion01art;"
+    "UID=am;PWD=dl;"
+    "Encrypt=no;"
+)
 
 
 # ── Parámetros fijos factura B ──
@@ -78,6 +85,12 @@ CONDICION_IVA = 'C'  # consumidor final
 USUARIO = 'COWORK-TN'
 
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.json')
+
+# ── Config POS 109 ──
+# Endpoint del sistema del 109 para registrar ventas
+POS_109_URL = 'https://192.168.2.109/clz_ventas/api/tiendanube_gen_remito'
+POS_109_USUARIO = {'id': 2, 'sucursal': 1}   # Dep. VENTAS ML 1
+POS_109_MEDIO_PAGO = {'id': 137}              # MERCADOLIBRE ONLINE API
 
 # ── Multi-tienda TN ──
 # Archivo principal = tiendanube_config.json (default)
@@ -113,20 +126,103 @@ def guardar_config_tienda(store_id: str, access_token: str, nombre_tienda: str =
         }, f, indent=2)
 
 
-# ── Persistencia de órdenes procesadas ──
+# ── Persistencia de órdenes procesadas (SQLite) ──
 
-def cargar_ordenes_procesadas() -> dict:
-    """Carga el registro de órdenes ya facturadas."""
-    if os.path.exists(LOG_FILE):
-        with open(LOG_FILE) as f:
-            return json.load(f)
-    return {}
+SQLITE_DB = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.db')
+
+def _init_sqlite():
+    """Crea la tabla si no existe."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ordenes (
+            order_id TEXT PRIMARY KEY,
+            order_number INTEGER,
+            tienda TEXT DEFAULT 'default',
+            fecha_orden TEXT,
+            cliente TEXT,
+            total REAL,
+            renglones INTEGER,
+            payload TEXT,
+            respuesta_109 TEXT,
+            fecha_proceso TEXT,
+            estado TEXT DEFAULT 'OK'
+        )
+    """)
+    conn.commit()
+    return conn
 
 
-def guardar_ordenes_procesadas(registro: dict):
-    """Persiste el registro de órdenes facturadas."""
-    with open(LOG_FILE, 'w') as f:
-        json.dump(registro, f, indent=2, default=str)
+def orden_ya_procesada(order_id: str, tienda: str = 'default') -> bool:
+    """Verifica si una orden ya fue enviada al 109. CRITICO: evita duplicados."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    _init_sqlite_if_needed(conn)
+    cursor = conn.execute(
+        "SELECT 1 FROM ordenes WHERE order_id = ? AND tienda = ?",
+        (str(order_id), tienda)
+    )
+    existe = cursor.fetchone() is not None
+    conn.close()
+    return existe
+
+
+def registrar_orden_procesada(order_id, order_number, tienda, fecha_orden,
+                               cliente, total, renglones, payload, respuesta_109):
+    """Registra una orden como procesada en SQLite."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    _init_sqlite_if_needed(conn)
+    conn.execute("""
+        INSERT OR REPLACE INTO ordenes
+        (order_id, order_number, tienda, fecha_orden, cliente, total,
+         renglones, payload, respuesta_109, fecha_proceso, estado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        str(order_id), int(order_number), tienda, fecha_orden,
+        cliente, float(total), int(renglones),
+        json.dumps(payload, ensure_ascii=False, default=str),
+        json.dumps(respuesta_109, ensure_ascii=False, default=str),
+        datetime.now().isoformat(),
+        'OK',
+    ))
+    conn.commit()
+    conn.close()
+
+
+def listar_ordenes_procesadas(tienda: str = 'default', limit: int = 50) -> list:
+    """Lista las últimas órdenes procesadas."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    _init_sqlite_if_needed(conn)
+    cursor = conn.execute("""
+        SELECT order_id, order_number, fecha_orden, cliente, total, estado, fecha_proceso
+        FROM ordenes WHERE tienda = ?
+        ORDER BY fecha_proceso DESC LIMIT ?
+    """, (tienda, limit))
+    rows = [dict(zip(['order_id', 'order_number', 'fecha_orden', 'cliente',
+                       'total', 'estado', 'fecha_proceso'], r)) for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+
+def _init_sqlite_if_needed(conn):
+    """Crea tabla si no existe (idempotente)."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ordenes (
+            order_id TEXT PRIMARY KEY,
+            order_number INTEGER,
+            tienda TEXT DEFAULT 'default',
+            fecha_orden TEXT,
+            cliente TEXT,
+            total REAL,
+            renglones INTEGER,
+            payload TEXT,
+            respuesta_109 TEXT,
+            fecha_proceso TEXT,
+            estado TEXT DEFAULT 'OK'
+        )
+    """)
 
 
 # ── Conexión ERP ──
@@ -241,9 +337,278 @@ def obtener_siguiente_orden(conn, base: str, fecha_comprobante: str) -> int:
     return int(row[0])
 
 
+# ── Alta de cliente ──
+
+def alta_cliente_tn(conn, orden: dict, base: str = 'msgestion03') -> int:
+    """
+    Crea un cliente en la tabla clientes a partir de datos de orden TN.
+    Si ya existe (por DNI o denominacion), retorna su numero.
+    Retorna el numero de cliente creado/existente.
+
+    NO vincula a ventas2.cuenta (queda NULL, como hace el POS).
+    """
+    cursor = conn.cursor()
+
+    customer = orden.get('customer', {})
+    nombre = (customer.get('name') or '').strip()
+    email = (customer.get('email') or '').strip()
+    telefono = (customer.get('phone') or '').strip()
+    dni_str = (customer.get('identification') or '').strip().lstrip('0')
+
+    # Armar denominacion formato APELLIDO, NOMBRE
+    partes = nombre.split(' ', 1)
+    if len(partes) == 2:
+        denominacion = f"{partes[1].upper()}, {partes[0].upper()}"
+        nombres = partes[0]
+        apellidos = partes[1]
+    else:
+        denominacion = nombre.upper()
+        nombres = nombre
+        apellidos = ''
+
+    # Dirección de facturación
+    billing_addr = orden.get('billing_address') or ''
+    billing_num = orden.get('billing_number') or ''
+    billing_loc = orden.get('billing_locality') or ''
+    billing_city = orden.get('billing_city') or ''
+    if isinstance(billing_addr, dict):
+        # Formato viejo de API
+        billing_addr = billing_addr.get('address', '')
+    direccion_parts = [p for p in [billing_addr, billing_num, billing_loc, billing_city] if p]
+    direccion = ', '.join(direccion_parts)[:80]
+
+    cp_str = orden.get('billing_zipcode') or '0'
+    try:
+        codigo_postal = int(cp_str)
+    except (ValueError, TypeError):
+        codigo_postal = 0
+
+    # DNI numérico
+    try:
+        dni_num = int(dni_str) if dni_str else 0
+    except (ValueError, TypeError):
+        dni_num = 0
+
+    # Verificar si ya existe por DNI o denominacion
+    if dni_num > 0:
+        cursor.execute(f"""
+            SELECT numero, denominacion FROM {base}.dbo.clientes
+            WHERE nume_documento = ?
+        """, dni_num)
+    else:
+        cursor.execute(f"""
+            SELECT numero, denominacion FROM {base}.dbo.clientes
+            WHERE denominacion = ?
+        """, denominacion)
+
+    existente = cursor.fetchone()
+    if existente:
+        return int(existente[0])
+
+    # Obtener siguiente numero
+    cursor.execute(f"SELECT ISNULL(MAX(numero), 0) + 1 FROM {base}.dbo.clientes")
+    nuevo_numero = cursor.fetchone()[0]
+
+    # TN order info para observaciones_facturacion
+    tn_id = customer.get('id', '')
+    tn_order = orden.get('number', '')
+    obs_fact = f"TN-ID:{tn_id}, TN-ORDER:{tn_order}"
+
+    cursor.execute(f"""
+        INSERT INTO {base}.dbo.clientes (
+            numero, denominacion, direccion, codigo_postal,
+            telefonos, condicion_iva, cuit,
+            tipo_documento, nume_documento,
+            tipo_comercio, usuario, observaciones,
+            fecha_ingreso, e_mail,
+            apellidos, nombres,
+            observaciones_facturacion
+        ) VALUES (
+            ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?,
+            ?, ?, ?,
+            GETDATE(), ?,
+            ?, ?,
+            ?
+        )
+    """,
+        nuevo_numero,
+        denominacion[:80],
+        direccion,
+        codigo_postal,
+        telefono[:30] if telefono else None,
+        'C',            # consumidor final
+        '',             # sin CUIT
+        96,             # tipo_documento = DNI
+        dni_num,
+        2,              # tipo_comercio (como POS-API-ML)
+        'COWORK-TN',
+        'TIENDANUBE-COWORK',
+        email[:50] if email else None,
+        apellidos[:30],
+        nombres[:30],
+        obs_fact[:50],
+    )
+
+    return int(nuevo_numero)
+
+
+# ── Registro en POS 109 ──
+
+def construir_payload_109(orden: dict, articulos_erp: dict) -> dict:
+    """
+    Arma el JSON que espera el sistema del 109 para registrar una venta.
+    """
+    customer = orden.get('customer', {})
+    nombre_raw = (customer.get('name') or '').strip()
+    partes = nombre_raw.split(' ', 1)
+    nombre = partes[0] if partes else ''
+    apellido = partes[1] if len(partes) > 1 else ''
+
+    dni_str = (customer.get('identification') or '').strip()
+    email = (customer.get('email') or '').strip()
+    tn_id = str(customer.get('id', ''))
+
+    # Dirección
+    billing_addr = orden.get('billing_address') or ''
+    billing_num = orden.get('billing_number') or ''
+    billing_loc = orden.get('billing_locality') or ''
+    billing_city = orden.get('billing_city') or ''
+    if isinstance(billing_addr, dict):
+        billing_addr = billing_addr.get('address', '')
+    direccion_parts = [p for p in [billing_addr, billing_num, billing_loc, billing_city] if p]
+    direccion = ', '.join(direccion_parts)
+
+    cod_postal = orden.get('billing_zipcode') or '0'
+
+    # Productos
+    productos = []
+    for item in orden.get('products', []):
+        sku = (item.get('sku') or '').strip()
+        if not sku:
+            continue
+        art = articulos_erp.get(sku)
+        if not art:
+            continue
+        productos.append({
+            'sku': sku,
+            'cantidad': int(item.get('quantity', 0)),
+            'precio': float(item.get('price', 0)),
+        })
+
+    payload = {
+        'pack_id': str(orden.get('id', '')),
+        'nro_doc': dni_str,
+        'tipo_doc': 96,
+        'tipo_doc_descrip': 'DNI',
+        'condicion_iva': 'C',
+        'nombre': nombre,
+        'apellido': apellido,
+        'usuario_ml': tn_id,
+        'usuario_ml_nick': email,
+        'direccion': direccion,
+        'cod_postal': str(cod_postal),
+        'tenant': 'tiendanube',
+        'mi_usuario': POS_109_USUARIO,
+        'mi_medio_pago': POS_109_MEDIO_PAGO,
+        'productos': productos,
+    }
+
+    return payload
+
+
+def enviar_venta_109(orden: dict, articulos_erp: dict) -> dict:
+    """
+    Envía la venta al POS del 109 de forma SÍNCRONA.
+    Espera la respuesta completa antes de retornar.
+    Retorna la respuesta o None si no está configurado.
+    """
+    if not POS_109_URL:
+        return None
+
+    payload = construir_payload_109(orden, articulos_erp)
+
+    if not payload['productos']:
+        return {'error': 'Sin productos válidos para 109'}
+
+    try:
+        # POST síncrono — espera respuesta completa antes de continuar
+        resp = requests.post(POS_109_URL, json=payload, timeout=60, verify=False)
+        resp.raise_for_status()
+        if resp.headers.get('content-type', '').startswith('application/json'):
+            result = resp.json()
+        else:
+            result = {'status': resp.status_code, 'text': resp.text[:500]}
+        return result
+    except requests.Timeout:
+        return {'error': f'Timeout (60s) al conectar con {POS_109_URL}'}
+    except requests.ConnectionError as e:
+        return {'error': f'No se pudo conectar al 109: {e}'}
+    except requests.HTTPError as e:
+        body = ''
+        try:
+            body = e.response.text[:500]
+        except Exception:
+            pass
+        return {'error': f'HTTP {e.response.status_code}: {body}'}
+    except requests.RequestException as e:
+        return {'error': str(e)}
+
+
+# ── Log de errores (SQLite) ──
+
+def registrar_error(order_id, order_number, tienda, error_msg, payload=None):
+    """Registra un error en SQLite para auditoría."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    _init_sqlite_if_needed(conn)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS errores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id TEXT,
+            order_number INTEGER,
+            tienda TEXT,
+            error TEXT,
+            payload TEXT,
+            fecha TEXT
+        )
+    """)
+    conn.execute("""
+        INSERT INTO errores (order_id, order_number, tienda, error, payload, fecha)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        str(order_id), int(order_number), tienda,
+        error_msg,
+        json.dumps(payload, ensure_ascii=False, default=str) if payload else None,
+        datetime.now().isoformat(),
+    ))
+    conn.commit()
+    conn.close()
+
+
+def listar_errores(tienda: str = 'default', limit: int = 50) -> list:
+    """Lista los últimos errores registrados."""
+    import sqlite3
+    conn = sqlite3.connect(SQLITE_DB)
+    try:
+        cursor = conn.execute("""
+            SELECT order_id, order_number, error, fecha
+            FROM errores WHERE tienda = ?
+            ORDER BY fecha DESC LIMIT ?
+        """, (tienda, limit))
+        rows = [dict(zip(['order_id', 'order_number', 'error', 'fecha'], r))
+                for r in cursor.fetchall()]
+    except sqlite3.OperationalError:
+        rows = []  # tabla no existe todavía
+    conn.close()
+    return rows
+
+
 # ── Inserción ERP ──
 
-def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestion03'):
+def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestion03',
+                     orden_tn: dict = None):
     """
     Inserta ventas2 (cabecera) + ventas1 (detalles) dentro de una transacción.
     Si algo falla, hace rollback completo.
@@ -254,29 +619,37 @@ def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestio
     cursor = conn.cursor()
 
     try:
+        # --- Alta de cliente TN ---
+        if orden_tn:
+            alta_cliente_tn(conn, orden_tn, base)
+
         # --- INSERT ventas2 (cabecera) ---
         cursor.execute(f"""
             INSERT INTO {base}.dbo.ventas2 (
                 codigo, letra, sucursal, numero, orden,
                 deposito, cuenta, denominacion, cuenta_cc,
                 fecha_comprobante, fecha_proceso, fecha_contable,
-                monto_general, importe_neto_ge, monto_exento,
+                fecha_hora, talonario, libro_iva, contabiliza,
+                monto_general, importe_neto_ge,
                 estado, estado_stock, estado_cc,
                 estado_pedidos, condicion_iva, usuario, moneda,
                 descuento_general, monto_descuento,
                 bonificacion_general, monto_bonificacion,
-                financiacion_general, monto_financiacion,
-                iva1, monto_iva1, percepcion
+                iva1, monto_iva1, percepcion,
+                zona, provincia, numero_cuit, copias,
+                viajante, entregador, calificacion
             ) VALUES (
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?,
-                ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?,
                 ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?,
                 ?, ?,
-                ?, ?,
+                ?, ?, ?,
+                ?, ?, ?, ?,
                 ?, ?, ?
             )
         """,
@@ -292,9 +665,12 @@ def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestio
             cabecera['fecha_comprobante'],
             cabecera['fecha_proceso'],
             cabecera['fecha_contable'],
+            cabecera['fecha_proceso'],  # fecha_hora = mismo que fecha_proceso
+            1,                          # talonario = 1 (como POS)
+            'N',                        # libro_iva = 'N'
+            'N',                        # contabiliza = 'N'
             cabecera['monto_general'],
             cabecera['monto_general'],  # importe_neto_ge = monto total (B sin IVA discriminado)
-            0,                          # monto_exento
             cabecera['estado'],
             cabecera['estado_stock'],
             cabecera['estado_cc'],
@@ -304,9 +680,15 @@ def insertar_factura(conn, cabecera: dict, detalles: list, base: str = 'msgestio
             cabecera['moneda'],
             0, 0,  # descuento_general, monto_descuento
             0, 0,  # bonificacion_general, monto_bonificacion
-            0, 0,  # financiacion_general, monto_financiacion
             21, None,  # iva1=21%, monto_iva1=NULL (factura B, IVA incluido)
             0,      # percepcion
+            1,      # zona = 1 (como POS)
+            'S',    # provincia = 'S' (Santa Fe)
+            '00000000000',  # numero_cuit (como POS)
+            1,      # copias = 1
+            585,    # viajante = 585 (como POS)
+            0,      # entregador = 0
+            '',     # calificacion = ''
         )
 
         # --- INSERT ventas1 (detalles) ---
@@ -404,11 +786,17 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
 
     fecha_proceso = datetime.now()
 
-    # Nombre del cliente
+    # Nombre del cliente — formato APELLIDO, NOMBRE en mayúsculas (como POS)
     customer = orden.get('customer', {})
-    nombre_cliente = f"{customer.get('name', '')}".strip()
-    if not nombre_cliente:
-        nombre_cliente = f"TiendaNube #{orden.get('number', orden['id'])}"
+    nombre_raw = (customer.get('name') or '').strip()
+    if nombre_raw:
+        partes = nombre_raw.split(' ', 1)
+        if len(partes) == 2:
+            nombre_cliente = f"{partes[1].upper()}, {partes[0].upper()}"
+        else:
+            nombre_cliente = nombre_raw.upper()
+    else:
+        nombre_cliente = f"TIENDANUBE #{orden.get('number', orden['id'])}"
 
     # Monto total
     monto_general = float(orden.get('total', 0))
@@ -420,9 +808,9 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
         'numero': numero,
         'orden': orden_dia,
         'deposito': DEPOSITO,
-        'cuenta': 0,
+        'cuenta': None,
         'denominacion': nombre_cliente[:100],
-        'cuenta_cc': 0,
+        'cuenta_cc': 1,
         'fecha_comprobante': fecha_comprobante,
         'fecha_proceso': fecha_proceso,
         'fecha_contable': fecha_comprobante,
@@ -540,10 +928,10 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
             'errores': [],
         }
 
-    # --- 2. Filtrar ya procesadas ---
+    # --- 2. Filtrar ya procesadas (SQLite) ---
     print("[2/5] Filtrando órdenes ya procesadas...")
-    registro = cargar_ordenes_procesadas()
-    ordenes_nuevas = [o for o in ordenes if str(o['id']) not in registro]
+    tienda = nombre_tienda or 'default'
+    ordenes_nuevas = [o for o in ordenes if not orden_ya_procesada(str(o['id']), tienda)]
     print(f"       {len(ordenes) - len(ordenes_nuevas)} ya procesadas, {len(ordenes_nuevas)} nuevas.\n")
 
     if not ordenes_nuevas:
@@ -582,8 +970,7 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
     print()
 
     # --- 4. Procesar cada orden ---
-    print(f"[4/5] {'Simulando' if dry_run else 'Insertando'} facturas...")
-    conn = conectar_erp(empresa) if not dry_run else None
+    print(f"[4/5] {'Simulando' if dry_run else 'Enviando al POS 109'}...")
 
     procesadas = []
     errores = []
@@ -594,20 +981,18 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
             order_number = orden.get('number', order_id)
             fecha_orden = orden.get('created_at', '')[:10]
 
-            # Obtener número y orden
-            if dry_run:
-                # En dry run simulamos los números
-                numero_factura = 999999
-                orden_dia = 99
-            else:
-                numero_factura = obtener_siguiente_numero(conn, base)
-                orden_dia = obtener_siguiente_orden(conn, base, fecha_orden)
+            # Armar payload para el 109
+            payload = construir_payload_109(orden, articulos_erp)
 
-            cabecera, detalles, skus_no_enc = construir_factura(
-                orden, articulos_erp, numero_factura, orden_dia
-            )
-
-            if not detalles:
+            if not payload['productos']:
+                # Buscar SKUs no encontrados
+                skus_no_enc = []
+                for item in orden.get('products', []):
+                    sku = (item.get('sku') or '').strip()
+                    if sku and sku not in articulos_erp:
+                        skus_no_enc.append(sku)
+                    elif not sku:
+                        skus_no_enc.append(f"(sin SKU) {item.get('name', '?')}")
                 msg = f"  [SKIP] Orden #{order_number} (TN {order_id}) — sin artículos válidos"
                 if skus_no_enc:
                     msg += f" (SKUs no encontrados: {', '.join(skus_no_enc[:5])})"
@@ -615,61 +1000,71 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
                 errores.append(f"Orden #{order_number}: sin artículos válidos en ERP")
                 continue
 
-            total = cabecera['monto_general']
-            renglones = len(detalles)
-            cliente = cabecera['denominacion']
+            customer = orden.get('customer', {})
+            nombre_raw = (customer.get('name') or '').strip()
+            total = sum(p['precio'] * p['cantidad'] for p in payload['productos'])
+            renglones = len(payload['productos'])
 
             if dry_run:
-                print(f"  [DRY] Orden #{order_number} | {fecha_orden} | {cliente[:25]:25s} | "
+                print(f"  [DRY] Orden #{order_number} | {fecha_orden} | {nombre_raw[:25]:25s} | "
                       f"{renglones} items | ${total:,.0f}")
-                if skus_no_enc:
-                    print(f"        SKUs sin match: {', '.join(skus_no_enc[:5])}")
                 procesadas.append({
                     'order_id': order_id,
                     'order_number': order_number,
                     'fecha': fecha_orden,
-                    'cliente': cliente,
+                    'cliente': nombre_raw,
                     'renglones': renglones,
                     'total': total,
-                    'skus_no_encontrados': skus_no_enc,
+                    'payload_109': payload,
                 })
             else:
                 try:
-                    insertar_factura(conn, cabecera, detalles, base)
-                    print(f"  [OK]  Orden #{order_number} → Factura B {SUCURSAL}-{numero_factura} | "
-                          f"{renglones} items | ${total:,.0f} | {cliente[:25]}")
-                    if skus_no_enc:
-                        print(f"        SKUs sin match (omitidos): {', '.join(skus_no_enc[:5])}")
+                    # Enviar al POS 109 — el 109 hace TODO (cliente, factura, stock)
+                    resp_109 = enviar_venta_109(orden, articulos_erp)
 
-                    # Registrar como procesada
-                    registro[str(order_id)] = {
-                        'numero_factura': numero_factura,
-                        'orden': orden_dia,
-                        'fecha_proceso': datetime.now().isoformat(),
-                        'order_number': order_number,
-                        'total': total,
-                        'renglones': renglones,
-                    }
-                    guardar_ordenes_procesadas(registro)
+                    if resp_109 and 'error' in resp_109:
+                        raise Exception(f"POS 109: {resp_109['error']}")
+
+                    print(f"  [OK]  Orden #{order_number} → POS 109 | "
+                          f"{renglones} items | ${total:,.0f} | {nombre_raw[:25]}")
+
+                    # Registrar como procesada en SQLite (anti-duplicados)
+                    registrar_orden_procesada(
+                        order_id=order_id,
+                        order_number=order_number,
+                        tienda=tienda,
+                        fecha_orden=fecha_orden,
+                        cliente=nombre_raw,
+                        total=total,
+                        renglones=renglones,
+                        payload=payload,
+                        respuesta_109=resp_109,
+                    )
 
                     procesadas.append({
                         'order_id': order_id,
                         'order_number': order_number,
-                        'numero_factura': numero_factura,
                         'fecha': fecha_orden,
-                        'cliente': cliente,
+                        'cliente': nombre_raw,
                         'renglones': renglones,
                         'total': total,
-                        'skus_no_encontrados': skus_no_enc,
                     })
                 except Exception as e:
                     error_msg = f"Orden #{order_number} (TN {order_id}): {e}"
                     print(f"  [ERR] {error_msg}")
                     errores.append(error_msg)
+                    # Registrar error en SQLite para auditoría
+                    registrar_error(
+                        order_id=order_id,
+                        order_number=order_number,
+                        tienda=tienda,
+                        error_msg=str(e),
+                        payload=payload,
+                    )
 
-    finally:
-        if conn:
-            conn.close()
+    except Exception as e:
+        print(f"\n[ERROR GENERAL] {e}")
+        errores.append(str(e))
 
     # --- 5. Resumen ---
     print(f"\n{'='*60}")
