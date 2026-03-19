@@ -676,8 +676,8 @@ elif pagina == '🔄 Sincronización':
     if not has_tn and not has_ml:
         st.warning('Configurá credenciales de TiendaNube o MercadoLibre primero.')
     else:
-        tabs_nombres = ['Sync Stock', 'Sync Precios', 'Facturar TN', 'Facturar ML']
-        tab_stock, tab_precios, tab_facturar, tab_facturar_ml = st.tabs(tabs_nombres)
+        tabs_nombres = ['Sync Stock TN', 'Sync Stock ML', 'Sync Precios', 'Facturar TN', 'Facturar ML']
+        tab_stock, tab_stock_ml, tab_precios, tab_facturar, tab_facturar_ml = st.tabs(tabs_nombres)
 
         with tab_stock:
             st.subheader('Stock ERP → TiendaNube')
@@ -725,6 +725,56 @@ elif pagina == '🔄 Sincronización':
                 if st.button('Ejecutar sync real', key='btn_sync_stock_real',
                              type='primary', disabled=not confirmar_stock):
                     _ejecutar_sync_stock(dry_run_mode=False)
+
+        with tab_stock_ml:
+            st.subheader('Stock ERP → MercadoLibre')
+            st.markdown('Compara el stock real del ERP con lo publicado en ML y actualiza las diferencias.')
+
+            if not has_ml:
+                st.warning('Configurá credenciales de MercadoLibre primero.')
+            else:
+                def _ejecutar_sync_stock_ml(dry_run_mode):
+                    with st.spinner('Sincronizando stock con ML...'):
+                        try:
+                            from multicanal.sync_stock_ml import sincronizar_stock_ml
+                            reporte = sincronizar_stock_ml(dry_run=dry_run_mode)
+                            if reporte.get('error'):
+                                st.error(reporte['error'])
+                            else:
+                                c1, c2, c3, c4 = st.columns(4)
+                                c1.metric('Items ML', reporte['total_items'])
+                                c2.metric('Con SKU', reporte['total_con_sku'])
+                                c3.metric('Sin cambio', reporte['sin_cambio'])
+                                c4.metric('Actualizados' if not dry_run_mode else 'A actualizar',
+                                          len(reporte['actualizados']))
+
+                                if reporte['actualizados']:
+                                    df_cambios = pd.DataFrame([{
+                                        'SKU': a['sku'],
+                                        'Título': a['titulo'][:30],
+                                        'Stock ML': a['stock_ml_anterior'],
+                                        'Stock ERP': a['stock_nuevo'],
+                                    } for a in reporte['actualizados']])
+                                    st.dataframe(df_cambios, use_container_width=True, hide_index=True)
+
+                                if not dry_run_mode and reporte['actualizados']:
+                                    st.success(f"{len(reporte['actualizados'])} items actualizados en MercadoLibre.")
+
+                                if reporte['errores']:
+                                    for err in reporte['errores']:
+                                        st.error(err)
+                        except Exception as e:
+                            st.error(f'Error: {e}')
+
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    if st.button('Dry run (solo ver cambios)', key='btn_sync_stock_ml'):
+                        _ejecutar_sync_stock_ml(dry_run_mode=True)
+                with col_btn2:
+                    confirmar_stock_ml = st.checkbox('Confirmo actualizar stock en ML', key='conf_stock_ml')
+                    if st.button('Ejecutar sync real', key='btn_sync_stock_ml_real',
+                                 type='primary', disabled=not confirmar_stock_ml):
+                        _ejecutar_sync_stock_ml(dry_run_mode=False)
 
         with tab_precios:
             st.subheader('Precios ERP → TiendaNube')
@@ -779,8 +829,8 @@ elif pagina == '🔄 Sincronización':
                     _ejecutar_sync_precios(dry_run_mode=False)
 
         with tab_facturar:
-            st.subheader('Facturar órdenes TiendaNube → ERP')
-            st.markdown('Procesa órdenes pagadas de TN e inserta facturas B en el ERP (ventas2+ventas1) y descuenta stock.')
+            st.subheader('Facturar órdenes TiendaNube → POS 109')
+            st.markdown('Procesa órdenes pagadas de TN y las envía al POS 109 para registro de venta, cliente y stock.')
             col_cfg1, col_cfg2 = st.columns(2)
             with col_cfg1:
                 dias_facturar = st.slider('Últimos N días', 1, 30, 7, key='dias_fact')
@@ -811,7 +861,6 @@ elif pagina == '🔄 Sincronización':
                                     'Cliente': p['cliente'][:25],
                                     'Items': p['renglones'],
                                     'Total': f"${p['total']:,.0f}",
-                                    **({"Factura": f"B {p.get('numero_factura', '-')}"} if not dry_run_mode else {}),
                                 } for p in procesadas])
                                 st.dataframe(df_fact, use_container_width=True, hide_index=True)
 
@@ -830,10 +879,23 @@ elif pagina == '🔄 Sincronización':
                 if st.button('Dry run (solo ver)', key='btn_facturar'):
                     _ejecutar_facturacion(dry_run_mode=True)
             with col_btn2:
-                confirmar_fact = st.checkbox('Confirmo insertar facturas en el ERP', key='conf_facturar')
-                if st.button('Facturar real', key='btn_facturar_real',
+                confirmar_fact = st.checkbox('Confirmo enviar al POS 109', key='conf_facturar')
+                if st.button('Enviar al POS 109', key='btn_facturar_real',
                              type='primary', disabled=not confirmar_fact):
                     _ejecutar_facturacion(dry_run_mode=False)
+
+            # Historial de errores TN
+            with st.expander('Historial de errores TN'):
+                try:
+                    from multicanal.facturador_tn import listar_errores
+                    errores_tn = listar_errores(limit=20)
+                    if errores_tn:
+                        df_err = pd.DataFrame(errores_tn)
+                        st.dataframe(df_err, use_container_width=True, hide_index=True)
+                    else:
+                        st.info('Sin errores registrados.')
+                except Exception as e:
+                    st.caption(f'No se pudo cargar historial: {e}')
 
         with tab_facturar_ml:
             st.subheader('Facturar órdenes MercadoLibre → ERP')
@@ -913,6 +975,19 @@ elif pagina == '🔄 Sincronización':
                     if st.button('Facturar real', key='btn_facturar_ml_real',
                                  type='primary', disabled=not confirmar_ml):
                         _ejecutar_facturacion_ml(dry_run_mode=False)
+
+                # Historial de errores ML
+                with st.expander('Historial de errores ML'):
+                    try:
+                        from multicanal.facturador_ml import listar_errores_ml
+                        errores_ml = listar_errores_ml(limit=20)
+                        if errores_ml:
+                            df_err_ml = pd.DataFrame(errores_ml)
+                            st.dataframe(df_err_ml, use_container_width=True, hide_index=True)
+                        else:
+                            st.info('Sin errores registrados.')
+                    except Exception as e:
+                        st.caption(f'No se pudo cargar historial: {e}')
 
 
 # ══════════════════════════════════════════════════
