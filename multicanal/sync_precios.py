@@ -49,9 +49,10 @@ def conectar_erp():
     return pyodbc.connect(CONN_STRING, timeout=15)
 
 
-def obtener_costos_erp(conn, codigos_sinonimo: list) -> dict:
+def obtener_costos_erp(conn, codigos_sinonimo: list, cotiz_usd: float = 1170.0) -> dict:
     """
-    Dado un listado de SKUs (codigo_sinonimo), devuelve {sku: precio_costo}.
+    Dado un listado de SKUs (codigo_sinonimo), devuelve {sku: precio_costo_en_pesos}.
+    Convierte automáticamente artículos con moneda=1 (USD) usando cotiz_usd.
     """
     if not codigos_sinonimo:
         return {}
@@ -76,13 +77,18 @@ def obtener_costos_erp(conn, codigos_sinonimo: list) -> dict:
         for row in cursor.fetchall():
             sku = row[0].strip() if row[0] else ''
             costo = float(row[1] or 0)
+            moneda = int(row[2] or 0)
             if sku and costo > 0:
+                # Convertir USD a ARS si moneda=1
+                if moneda == 1:
+                    costo = costo * cotiz_usd
                 resultado[sku] = costo
 
     return resultado
 
 
-def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0) -> dict:
+def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0,
+                        cotiz_usd: float = 1170.0) -> dict:
     """
     Flujo principal de sincronización de precios.
 
@@ -100,6 +106,7 @@ def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0) -> di
     print(f"  SYNC PRECIOS ERP → TiendaNube [{modo}]")
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Tolerancia: {tolerancia_pct}%")
+    print(f"  Cotización USD: ${cotiz_usd:,.0f}")
     print(f"{'='*60}\n")
 
     # --- Cargar regla de pricing para TN ---
@@ -165,7 +172,7 @@ def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0) -> di
     print("[3/4] Consultando costos en ERP...")
     conn = conectar_erp()
     try:
-        costos_erp = obtener_costos_erp(conn, skus_unicos)
+        costos_erp = obtener_costos_erp(conn, skus_unicos, cotiz_usd=cotiz_usd)
     finally:
         conn.close()
 
@@ -271,9 +278,12 @@ if __name__ == '__main__':
                         help='Solo mostrar cambios sin aplicar')
     parser.add_argument('--tolerancia', type=float, default=2.0,
                         help='Porcentaje mínimo de diferencia para actualizar (default: 2%%)')
+    parser.add_argument('--cotiz-usd', type=float, default=1170.0,
+                        help='Cotización USD para artículos importados (default: 1170)')
     args = parser.parse_args()
 
-    reporte = sincronizar_precios(dry_run=args.dry_run, tolerancia_pct=args.tolerancia)
+    reporte = sincronizar_precios(dry_run=args.dry_run, tolerancia_pct=args.tolerancia,
+                                  cotiz_usd=args.cotiz_usd)
 
     if reporte.get('error'):
         sys.exit(1)
