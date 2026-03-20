@@ -963,6 +963,239 @@ def get_sentiment_dashboard():
     }
 
 
+# ============================================================
+# GEOPOLITICAL SCENARIO: Guerra larga vs corta (Iran/Hormuz)
+# ============================================================
+
+ENERGY_TICKERS = {"VIST", "YPF", "PAMP", "PAM", "XLE", "CVX"}
+
+
+def get_geopolitical_scenario():
+    """
+    Clasifica el escenario geopolítico basado en petróleo, oro, VIX y sector energía.
+
+    GUERRA LARGA: WTI>90 + VIX>25 + XLE outperform >15% YTD
+    GUERRA CORTA: WTI<80 + VIX<20 + normalización en curso
+    INCIERTO: todo lo demás
+
+    Retorna dict con escenario, confianza %, drivers clave y datos raw.
+    """
+    import warnings
+    warnings.filterwarnings("ignore")
+
+    drivers = {}
+    raw = {}
+
+    # --- Fetch datos ---
+    try:
+        tickers = ["CL=F", "BZ=F", "GLD", "^VIX", "XLE", "^GSPC"]
+        data = yf.download(tickers, period="ytd", interval="1d", progress=False, group_by="ticker")
+    except Exception:
+        return {"scenario": "INCIERTO", "confidence": 0, "drivers": [], "raw": {},
+                "error": "No se pudieron descargar datos"}
+
+    def _extract(ticker):
+        try:
+            if ticker in data.columns.get_level_values(0):
+                close = data[ticker]["Close"].dropna().squeeze()
+                if isinstance(close, pd.DataFrame):
+                    close = close.iloc[:, 0]
+                return close
+        except Exception:
+            pass
+        return pd.Series(dtype=float)
+
+    wti = _extract("CL=F")
+    brent = _extract("BZ=F")
+    gld = _extract("GLD")
+    vix = _extract("^VIX")
+    xle = _extract("XLE")
+    sp500 = _extract("^GSPC")
+
+    # --- Valores actuales ---
+    wti_now = float(wti.iloc[-1]) if not wti.empty else None
+    brent_now = float(brent.iloc[-1]) if not brent.empty else None
+    gld_now = float(gld.iloc[-1]) if not gld.empty else None
+    vix_now = float(vix.iloc[-1]) if not vix.empty else None
+
+    # YTD returns
+    xle_ytd = ((float(xle.iloc[-1]) / float(xle.iloc[0])) - 1) * 100 if len(xle) > 1 else None
+    sp_ytd = ((float(sp500.iloc[-1]) / float(sp500.iloc[0])) - 1) * 100 if len(sp500) > 1 else None
+    xle_outperform = (xle_ytd - sp_ytd) if xle_ytd is not None and sp_ytd is not None else None
+    gld_ytd = ((float(gld.iloc[-1]) / float(gld.iloc[0])) - 1) * 100 if len(gld) > 1 else None
+
+    raw = {
+        "wti": wti_now, "brent": brent_now, "gld": gld_now, "vix": vix_now,
+        "xle_ytd": round(xle_ytd, 1) if xle_ytd else None,
+        "sp_ytd": round(sp_ytd, 1) if sp_ytd else None,
+        "xle_outperform": round(xle_outperform, 1) if xle_outperform else None,
+        "gld_ytd": round(gld_ytd, 1) if gld_ytd else None,
+    }
+
+    # --- Clasificación ---
+    score_largo = 0  # positivo = guerra larga
+    drivers_list = []
+
+    # WTI
+    if wti_now is not None:
+        drivers["WTI"] = {"value": round(wti_now, 2), "largo": 90, "corto": 80}
+        if wti_now > 90:
+            score_largo += 2
+            drivers_list.append(f"WTI US${wti_now:.0f} > $90 — petróleo en zona de riesgo")
+        elif wti_now > 80:
+            score_largo += 1
+            drivers_list.append(f"WTI US${wti_now:.0f} — elevado pero no en crisis")
+        elif wti_now < 70:
+            score_largo -= 2
+            drivers_list.append(f"WTI US${wti_now:.0f} < $70 — petróleo barato, sin prima de guerra")
+        else:
+            drivers_list.append(f"WTI US${wti_now:.0f} — zona normal ($70-80)")
+
+    # VIX
+    if vix_now is not None:
+        drivers["VIX"] = {"value": round(vix_now, 1), "largo": 25, "corto": 20}
+        if vix_now > 30:
+            score_largo += 2
+            drivers_list.append(f"VIX {vix_now:.0f} > 30 — pánico, consistente con escalada")
+        elif vix_now > 25:
+            score_largo += 1
+            drivers_list.append(f"VIX {vix_now:.0f} > 25 — miedo elevado")
+        elif vix_now < 18:
+            score_largo -= 2
+            drivers_list.append(f"VIX {vix_now:.0f} < 18 — complacencia, sin prima de riesgo")
+        else:
+            score_largo -= 1
+            drivers_list.append(f"VIX {vix_now:.0f} — moderado")
+
+    # XLE outperformance
+    if xle_outperform is not None:
+        drivers["XLE vs S&P"] = {"value": round(xle_outperform, 1), "largo": 15, "corto": 0}
+        if xle_outperform > 15:
+            score_largo += 2
+            drivers_list.append(f"XLE supera S&P en {xle_outperform:+.1f}pp YTD — mercado priceando conflicto")
+        elif xle_outperform > 5:
+            score_largo += 1
+            drivers_list.append(f"XLE supera S&P en {xle_outperform:+.1f}pp YTD — rotación a energía")
+        elif xle_outperform < -5:
+            score_largo -= 1
+            drivers_list.append(f"XLE underperforma S&P en {xle_outperform:+.1f}pp — sin bid por energía")
+        else:
+            drivers_list.append(f"XLE vs S&P: {xle_outperform:+.1f}pp — neutral")
+
+    # Oro
+    if gld_ytd is not None:
+        drivers["Oro YTD"] = {"value": round(gld_ytd, 1), "largo": 15, "corto": 5}
+        if gld_ytd > 15:
+            score_largo += 1
+            drivers_list.append(f"Oro {gld_ytd:+.1f}% YTD — flight to safety activo")
+        elif gld_ytd > 5:
+            drivers_list.append(f"Oro {gld_ytd:+.1f}% YTD — demanda moderada de refugio")
+        else:
+            score_largo -= 1
+            drivers_list.append(f"Oro {gld_ytd:+.1f}% YTD — sin demanda de refugio")
+
+    # --- Determinar escenario ---
+    if score_largo >= 4:
+        scenario = "GUERRA LARGA"
+        confidence = min(90, 50 + score_largo * 8)
+    elif score_largo <= -3:
+        scenario = "GUERRA CORTA"
+        confidence = min(90, 50 + abs(score_largo) * 8)
+    else:
+        scenario = "INCIERTO"
+        confidence = max(20, 50 - abs(score_largo) * 5)
+
+    return {
+        "scenario": scenario,
+        "confidence": confidence,
+        "score": score_largo,
+        "drivers": drivers_list,
+        "thresholds": drivers,
+        "raw": raw,
+    }
+
+
+def get_energy_exposure(positions):
+    """
+    Analiza exposición a energía del portfolio.
+    Identifica posiciones en VIST, YPF, PAMP, XLE, CVX.
+    Calcula correlación con WTI últimos 90d.
+
+    positions: lista de dicts con 'ticker', 'market_value_usd', etc.
+    Retorna dict con exposición y correlaciones.
+    """
+    from indicators import TICKER_MAP, _get_price_history
+
+    total = sum(p.get("market_value_usd", 0) for p in positions)
+    if total <= 0:
+        return {"energy_positions": [], "total_pct": 0, "ar_pct": 0, "global_pct": 0}
+
+    ar_energy = {"VIST", "YPF", "PAMP", "PAM"}
+    global_energy = {"XLE", "CVX"}
+
+    energy_positions = []
+    ar_value = 0
+    global_value = 0
+
+    # Fetch WTI para correlaciones
+    wti_prices = _get_price_history("CL=F", period="3mo")
+    wti_returns = wti_prices.pct_change().dropna() if wti_prices is not None and len(wti_prices) > 20 else None
+
+    for p in positions:
+        ticker = p["ticker"]
+        ticker_upper = ticker.upper()
+        yahoo = TICKER_MAP.get(ticker)
+
+        is_energy = (ticker_upper in ENERGY_TICKERS or
+                     (yahoo and yahoo.replace(".BA", "") in ENERGY_TICKERS))
+
+        if not is_energy:
+            continue
+
+        value = p.get("market_value_usd", 0)
+        weight = value / total * 100
+
+        # Clasificar AR vs global
+        if ticker_upper in ar_energy or (yahoo and yahoo.replace(".BA", "").upper() in ar_energy):
+            ar_value += value
+            region = "Argentina"
+        else:
+            global_value += value
+            region = "Global"
+
+        # Correlación con WTI
+        corr_wti = None
+        if wti_returns is not None and yahoo:
+            asset_prices = _get_price_history(yahoo, period="3mo")
+            if asset_prices is not None and len(asset_prices) > 20:
+                asset_returns = asset_prices.pct_change().dropna()
+                aligned = pd.concat([asset_returns, wti_returns], axis=1, join="inner").dropna()
+                if len(aligned) > 15:
+                    aligned.columns = ["asset", "wti"]
+                    corr_wti = round(float(aligned["asset"].corr(aligned["wti"])), 2)
+
+        energy_positions.append({
+            "ticker": ticker,
+            "name": p.get("name", ticker),
+            "value_usd": round(value, 0),
+            "weight_pct": round(weight, 1),
+            "region": region,
+            "corr_wti_90d": corr_wti,
+        })
+
+    energy_total = ar_value + global_value
+
+    return {
+        "energy_positions": sorted(energy_positions, key=lambda x: x["value_usd"], reverse=True),
+        "total_pct": round(energy_total / total * 100, 1) if total > 0 else 0,
+        "total_usd": round(energy_total, 0),
+        "ar_pct": round(ar_value / total * 100, 1) if total > 0 else 0,
+        "ar_usd": round(ar_value, 0),
+        "global_pct": round(global_value / total * 100, 1) if total > 0 else 0,
+        "global_usd": round(global_value, 0),
+    }
+
+
 if __name__ == "__main__":
     print("=== GLOBAL ===")
     global_data = get_global_indicators()

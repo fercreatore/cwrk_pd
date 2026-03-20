@@ -20,6 +20,7 @@ from macro import (
     get_ar_decision_matrix, get_brecha_historica, EVENTOS_ECONOMICOS,
     get_regime_matching, get_macro_thresholds_live, get_threshold_summary,
     get_sentiment_dashboard, DATAROMA_SMART_MONEY,
+    get_geopolitical_scenario, get_energy_exposure,
 )
 from risk_engine import (
     calculate_concentration_metrics, calculate_component_var,
@@ -133,8 +134,8 @@ else:
 st.markdown("## Family Office Dashboard")
 st.caption(f"Datos de: {', '.join(df['source'].unique())} | {len(positions)} posiciones | {len(owners)} miembros")
 
-tab_overview, tab_macro, tab_sentiment, tab_risk, tab_indicators, tab_rebalance, tab_positions, tab_conclusiones = st.tabs([
-    "📊 Overview", "🌎 Macro & Liquidez", "🎰 Sentimiento & Smart Money", "🛡 Risk Engine", "📈 Indicadores & What-If", "⚖️ Rebalanceo", "📋 Posiciones", "🎯 Conclusiones"
+tab_overview, tab_macro, tab_geopolitics, tab_sentiment, tab_risk, tab_indicators, tab_rebalance, tab_positions, tab_conclusiones = st.tabs([
+    "📊 Overview", "🌎 Macro & Liquidez", "⚔️ Geopolítica", "🎰 Sentimiento & Smart Money", "🛡 Risk Engine", "📈 Indicadores & What-If", "⚖️ Rebalanceo", "📋 Posiciones", "🎯 Conclusiones"
 ])
 
 # ============================================================
@@ -697,6 +698,282 @@ with tab_macro:
             st.markdown(f'<div class="{box_class}"><strong>{title}</strong>: {desc}</div>', unsafe_allow_html=True)
     else:
         st.info("Sin señales cruzadas activas — mercado en equilibrio relativo.")
+
+
+# ============================================================
+# TAB: GEOPOLÍTICA — Guerra larga vs corta
+# ============================================================
+with tab_geopolitics:
+    st.markdown("### Escenario Geopolítico: Guerra Larga vs Corta")
+    st.caption("Análisis Iran/Hormuz — Impacto en energía, commodities y tu portfolio. Datos live de Yahoo Finance.")
+
+    @st.cache_data(ttl=1800, show_spinner="Analizando escenario geopolítico...")
+    def _get_geo_scenario():
+        return get_geopolitical_scenario()
+
+    geo = _get_geo_scenario()
+
+    # --- SEMÁFORO PRINCIPAL ---
+    scenario = geo.get("scenario", "INCIERTO")
+    confidence = geo.get("confidence", 0)
+    geo_score = geo.get("score", 0)
+
+    scenario_config = {
+        "GUERRA LARGA": ("#2d1b1b", "#ff4444", "Mercado priceando conflicto prolongado. Energía sube, risk-off en equity."),
+        "GUERRA CORTA": ("#1b2d1b", "#44ff44", "Mercado priceando resolución / desescalada. Normalización en curso."),
+        "INCIERTO": ("#2d2d1b", "#ffcc44", "Señales mixtas. El mercado no tiene convicción sobre la duración del conflicto."),
+    }
+    bg, color, desc = scenario_config.get(scenario, scenario_config["INCIERTO"])
+
+    st.markdown(
+        f'<div style="background:{bg}; border:3px solid {color}; border-radius:14px; '
+        f'padding:24px; margin:10px 0; text-align:center;">'
+        f'<span style="color:{color}; font-size:2.2rem; font-weight:700;">{scenario}</span><br>'
+        f'<span style="color:#ccc; font-size:1.1rem;">Confianza: {confidence}% | Score: {geo_score:+d}</span><br>'
+        f'<span style="color:#aaa; font-size:0.95rem;">{desc}</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    # --- DRIVERS: tabla actual vs umbrales ---
+    st.markdown("---")
+    st.markdown("#### Drivers: Valores Actuales vs Umbrales")
+
+    raw = geo.get("raw", {})
+    thresholds = geo.get("thresholds", {})
+
+    driver_rows = []
+    for name, th in thresholds.items():
+        val = th["value"]
+        largo = th.get("largo")
+        corto = th.get("corto")
+        unit = "%" if "YTD" in name or "vs" in name else ""
+        if "WTI" in name:
+            unit = " USD"
+
+        # Status
+        if name == "WTI":
+            if val > largo:
+                status = "GUERRA LARGA"
+                s_color = "#ff4444"
+            elif val < corto:
+                status = "GUERRA CORTA"
+                s_color = "#44ff44"
+            else:
+                status = "ZONA GRIS"
+                s_color = "#ffcc44"
+        elif name == "VIX":
+            if val > largo:
+                status = "GUERRA LARGA"
+                s_color = "#ff4444"
+            elif val < corto:
+                status = "GUERRA CORTA"
+                s_color = "#44ff44"
+            else:
+                status = "ZONA GRIS"
+                s_color = "#ffcc44"
+        elif name == "XLE vs S&P":
+            if val > largo:
+                status = "GUERRA LARGA"
+                s_color = "#ff4444"
+            elif val < corto:
+                status = "GUERRA CORTA"
+                s_color = "#44ff44"
+            else:
+                status = "ZONA GRIS"
+                s_color = "#ffcc44"
+        else:
+            if val > largo:
+                status = "RISK-OFF"
+                s_color = "#ff8844"
+            else:
+                status = "NORMAL"
+                s_color = "#88ff88"
+
+        driver_rows.append({
+            "Indicador": name,
+            "Actual": f"{val}{unit}",
+            "Umbral Guerra Larga": f">{largo}{unit}",
+            "Umbral Guerra Corta": f"<{corto}{unit}",
+            "Status": status,
+        })
+
+    if driver_rows:
+        df_drivers = pd.DataFrame(driver_rows)
+        st.dataframe(df_drivers, use_container_width=True, hide_index=True)
+
+    # Drivers narrativos
+    drivers_list = geo.get("drivers", [])
+    if drivers_list:
+        for d in drivers_list:
+            if ">" in d or "crisis" in d.lower() or "pánico" in d.lower() or "riesgo" in d.lower():
+                st.markdown(f'<div class="alert-box">{d}</div>', unsafe_allow_html=True)
+            elif "<" in d or "barato" in d.lower() or "sin prima" in d.lower() or "complacencia" in d.lower():
+                st.markdown(f'<div class="ok-box">{d}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div class="info-box">{d}</div>', unsafe_allow_html=True)
+
+    # --- DATOS CRUDOS ---
+    st.markdown("---")
+    col_raw1, col_raw2, col_raw3, col_raw4 = st.columns(4)
+    with col_raw1:
+        st.metric("WTI Crude", f"US$ {raw.get('wti', 0):,.1f}" if raw.get('wti') else "N/A")
+    with col_raw2:
+        st.metric("Brent", f"US$ {raw.get('brent', 0):,.1f}" if raw.get('brent') else "N/A")
+    with col_raw3:
+        xle_ytd = raw.get('xle_ytd')
+        st.metric("XLE (Energía) YTD", f"{xle_ytd:+.1f}%" if xle_ytd is not None else "N/A")
+    with col_raw4:
+        gld_ytd = raw.get('gld_ytd')
+        st.metric("Oro (GLD) YTD", f"{gld_ytd:+.1f}%" if gld_ytd is not None else "N/A")
+
+    # --- EXPOSICIÓN ENERGÍA ---
+    st.markdown("---")
+    st.markdown("#### Tu Exposición a Energía")
+
+    pos_list_geo = df_filtered.to_dict("records")
+
+    @st.cache_data(ttl=1800, show_spinner="Calculando exposición energética...")
+    def _get_energy_exp(pos_json):
+        import json
+        return get_energy_exposure(json.loads(pos_json))
+
+    import json as json_mod
+    energy_exp = _get_energy_exp(json_mod.dumps(pos_list_geo, default=str))
+
+    col_e1, col_e2, col_e3 = st.columns(3)
+    with col_e1:
+        st.metric("Energía Total", f"{energy_exp['total_pct']:.1f}%",
+                  f"US$ {energy_exp.get('total_usd', 0):,.0f}")
+    with col_e2:
+        st.metric("Energía Argentina", f"{energy_exp['ar_pct']:.1f}%",
+                  f"VIST, YPF, PAMP — US$ {energy_exp.get('ar_usd', 0):,.0f}")
+    with col_e3:
+        st.metric("Energía Global", f"{energy_exp['global_pct']:.1f}%",
+                  f"XLE, CVX — US$ {energy_exp.get('global_usd', 0):,.0f}")
+
+    # Tabla de posiciones energéticas
+    if energy_exp["energy_positions"]:
+        df_energy = pd.DataFrame(energy_exp["energy_positions"])
+        st.dataframe(
+            df_energy[["ticker", "region", "value_usd", "weight_pct", "corr_wti_90d"]],
+            use_container_width=True, hide_index=True,
+            column_config={
+                "ticker": "Ticker",
+                "region": "Región",
+                "value_usd": st.column_config.NumberColumn("Valor USD", format="US$ %,.0f"),
+                "weight_pct": st.column_config.NumberColumn("Peso %", format="%.1f%%"),
+                "corr_wti_90d": st.column_config.NumberColumn("Corr WTI 90d", format="%.2f"),
+            },
+        )
+    else:
+        st.info("No tenés posiciones en energía. Si el escenario es GUERRA LARGA, considerar agregar VIST/YPF/XLE como hedge.")
+
+    # --- STRESS TEST HORMUZ ---
+    st.markdown("---")
+    st.markdown("#### Stress Test: Escalada Hormuz")
+    st.caption("Bloqueo Estrecho de Hormuz: WTI +40%, VIX +60%, S&P -15%. "
+               "Tus acciones AR de energía (VIST/YPF/PAMP) actúan como hedge natural.")
+
+    hormuz_result = run_stress_test(pos_list_geo, "escalada_hormuz")
+
+    if "error" not in hormuz_result:
+        col_h1, col_h2, col_h3 = st.columns(3)
+        pnl_color = "#ff4444" if hormuz_result["pnl_pct"] < 0 else "#44ff44"
+        with col_h1:
+            st.markdown(
+                f'<div style="background:#1a1a2e;border:2px solid {pnl_color};border-radius:12px;padding:20px;text-align:center;">'
+                f'<span style="color:#aaa;">Impacto Hormuz</span><br>'
+                f'<span style="color:{pnl_color};font-size:2.5rem;font-weight:700;">{hormuz_result["pnl_pct"]:+.1f}%</span><br>'
+                f'<span style="color:{pnl_color};">US$ {hormuz_result["pnl_usd"]:+,.0f}</span></div>',
+                unsafe_allow_html=True,
+            )
+        with col_h2:
+            st.metric("Portfolio Pre-Shock", f"US$ {hormuz_result['current_total_usd']:,.0f}")
+        with col_h3:
+            st.metric("Portfolio Post-Shock", f"US$ {hormuz_result['stressed_total_usd']:,.0f}")
+
+        # Detalle por clase
+        if hormuz_result.get("by_class"):
+            stress_rows = []
+            for cls, data in hormuz_result["by_class"].items():
+                stress_rows.append({
+                    "Clase": cls,
+                    "Actual USD": data["current_usd"],
+                    "Shock %": data["shock_pct"],
+                    "Post-Shock USD": data["stressed_usd"],
+                    "P&L USD": data["pnl_usd"],
+                })
+            df_stress = pd.DataFrame(stress_rows).sort_values("P&L USD")
+            st.dataframe(df_stress, use_container_width=True, hide_index=True,
+                         column_config={
+                             "Actual USD": st.column_config.NumberColumn(format="US$ %,.0f"),
+                             "Shock %": st.column_config.NumberColumn(format="%+d%%"),
+                             "Post-Shock USD": st.column_config.NumberColumn(format="US$ %,.0f"),
+                             "P&L USD": st.column_config.NumberColumn(format="US$ %+,.0f"),
+                         })
+    else:
+        st.warning(f"Error en stress test: {hormuz_result.get('error')}")
+
+    # --- RECOMENDACIÓN ---
+    st.markdown("---")
+    st.markdown("#### Recomendación: Energía Argentina")
+
+    energy_pct = energy_exp["total_pct"]
+    ar_energy_pct = energy_exp["ar_pct"]
+
+    if scenario == "GUERRA LARGA":
+        if ar_energy_pct < 5:
+            rec_box = "buy-box"
+            rec_title = "AUMENTAR energía AR"
+            rec_text = (f"Escenario GUERRA LARGA + solo {ar_energy_pct:.1f}% en energía AR. "
+                       f"Vaca Muerta es hedge natural contra Hormuz. "
+                       f"Considerar: VIST (Vista Energy), YPF, PAMP. "
+                       f"Target: llevar energía AR al 8-12% del portfolio.")
+        elif ar_energy_pct < 12:
+            rec_box = "info-box"
+            rec_title = "MANTENER / AUMENTAR LEVE energía AR"
+            rec_text = (f"Escenario GUERRA LARGA, {ar_energy_pct:.1f}% en energía AR — exposición moderada. "
+                       f"Podés agregar un tramo más si WTI supera $85. "
+                       f"No sobreponderar — el conflicto puede desescalar.")
+        else:
+            rec_box = "ok-box"
+            rec_title = "MANTENER energía AR"
+            rec_text = (f"Escenario GUERRA LARGA, {ar_energy_pct:.1f}% en energía AR — buena cobertura. "
+                       f"No agregar más. El riesgo es overexposure si el conflicto se resuelve rápido.")
+
+    elif scenario == "GUERRA CORTA":
+        if ar_energy_pct > 15:
+            rec_box = "alert-box"
+            rec_title = "REDUCIR energía AR"
+            rec_text = (f"Escenario GUERRA CORTA + {ar_energy_pct:.1f}% en energía AR — sobreexpuesto. "
+                       f"Si el conflicto se resuelve, petróleo cae y estas posiciones corrigen. "
+                       f"Considerar rotar parte a CEDEARs tech que están sobrevendidos.")
+        else:
+            rec_box = "ok-box"
+            rec_title = "MANTENER energía AR"
+            rec_text = (f"Escenario GUERRA CORTA, {ar_energy_pct:.1f}% en energía AR — nivel aceptable. "
+                       f"Vaca Muerta tiene valor más allá del conflicto (exportación LNG, regalías). "
+                       f"No aumentar, pero no hay urgencia de vender.")
+
+    else:  # INCIERTO
+        if ar_energy_pct < 3:
+            rec_box = "info-box"
+            rec_title = "CONSIDERAR agregar energía AR"
+            rec_text = (f"Escenario INCIERTO, {ar_energy_pct:.1f}% en energía AR — sin cobertura. "
+                       f"Un tramo chico (3-5%) en VIST o YPF te da hedge si escala. "
+                       f"Si no escala, Vaca Muerta tiene upside propio.")
+        else:
+            rec_box = "ok-box"
+            rec_title = "MANTENER posición actual"
+            rec_text = (f"Escenario INCIERTO, {ar_energy_pct:.1f}% en energía AR — adecuado. "
+                       f"Esperar a que se defina el escenario antes de mover.")
+
+    st.markdown(
+        f'<div class="{rec_box}">'
+        f'<strong>{rec_title}</strong><br>{rec_text}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ============================================================

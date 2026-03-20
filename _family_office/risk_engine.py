@@ -317,6 +317,17 @@ STRESS_SCENARIOS = {
             "Crypto": +30,
         },
     },
+    "escalada_hormuz": {
+        "name": "Escalada Hormuz / Guerra larga",
+        "description": "Bloqueo Estrecho de Hormuz: WTI +40%, crisis energética global, flight to safety",
+        "shocks": {
+            "Bonos Soberanos AR": -12,    # emergentes sufren pero AR tiene Vaca Muerta (parcial hedge)
+            "FCI / Money Market": -3,      # ARS se deprecia vs USD
+            "CEDEARs": -15,               # S&P -15%, tech sufre, pero XLE sube (neto negativo)
+            "Acciones AR": +10,           # YPF/VIST/PAMP suben por petróleo (energía AR = hedge natural)
+            "Crypto": -20,                # risk-off, BTC correlaciona con equity en crisis
+        },
+    },
 }
 
 
