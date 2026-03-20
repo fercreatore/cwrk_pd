@@ -2024,6 +2024,132 @@ def cargar_log():
 
 
 # ============================================================================
+# SIMULADOR DE RECUPERO DE INVERSIÓN
+# ============================================================================
+
+def simular_recupero_pedido(lineas_pedido):
+    """
+    Simula el recupero de inversión para un pedido de compra.
+
+    lineas_pedido: list of dict con keys:
+        codigo_sinonimo (CSR 10 o 12 dígitos), cantidad, precio_costo
+        Opcionalmente: descripcion, talle
+
+    Retorna dict con:
+        - lineas: list of dict con métricas por línea
+        - totales: dict con inversión, ingreso, margen, días promedio
+    """
+    if not lineas_pedido:
+        return {'lineas': [], 'totales': {}}
+
+    # Obtener CSRs únicos (nivel producto = 10 primeros dígitos)
+    csrs_10 = list(set(l.get('codigo_sinonimo', '')[:10] for l in lineas_pedido))
+    csrs_10 = [c for c in csrs_10 if len(c) >= 10]
+
+    if not csrs_10:
+        return {'lineas': [], 'totales': {}}
+
+    # Batch: quiebre + precios venta
+    quiebres = analizar_quiebre_batch(csrs_10)
+    precios_venta = obtener_precios_venta_batch(csrs_10)
+    factores_all = factor_estacional_batch(csrs_10)
+
+    resultados = []
+    for linea in lineas_pedido:
+        cs = linea.get('codigo_sinonimo', '')
+        csr_10 = cs[:10] if len(cs) >= 10 else cs
+        cantidad = float(linea.get('cantidad', 0))
+        precio_costo = float(linea.get('precio_costo', 0))
+
+        if cantidad <= 0 or precio_costo <= 0:
+            continue
+
+        q = quiebres.get(csr_10, {})
+        vel_real_mes = q.get('vel_real', 0)
+        vel_diaria = vel_real_mes / 30
+        pct_quiebre = q.get('pct_quiebre', 0)
+
+        pv = precios_venta.get(csr_10, 0)
+        if pv <= 0:
+            pv = precio_costo * 2  # fallback
+
+        # Días para vender todo el lote
+        if vel_diaria > 0:
+            dias_vender = cantidad / vel_diaria
+        else:
+            dias_vender = 9999
+
+        inversion = cantidad * precio_costo
+        ingreso_esperado = cantidad * pv
+        margen = ingreso_esperado - inversion
+        margen_pct = (margen / inversion * 100) if inversion > 0 else 0
+
+        # Días recupero = inversión / (ingreso diario)
+        # con estacionalidad: simular día a día
+        f_est = factores_all.get(csr_10, {m: 1.0 for m in range(1, 13)})
+        ingreso_acum = 0.0
+        dias_recupero = 9999
+        hoy = date.today()
+        for d in range(min(int(dias_vender) + 1, 730)):
+            fecha = hoy + timedelta(days=d)
+            factor = f_est.get(fecha.month, 1.0)
+            ingreso_dia = vel_diaria * factor * pv
+            ingreso_acum += ingreso_dia
+            if ingreso_acum >= inversion:
+                dias_recupero = d + 1
+                break
+
+        if dias_recupero < 60:
+            semaforo = 'verde'
+        elif dias_recupero <= 120:
+            semaforo = 'amarillo'
+        else:
+            semaforo = 'rojo'
+
+        resultados.append({
+            'codigo_sinonimo': cs,
+            'descripcion': linea.get('descripcion', ''),
+            'talle': linea.get('talle', ''),
+            'cantidad': int(cantidad),
+            'precio_costo': round(precio_costo, 0),
+            'precio_venta': round(pv, 0),
+            'vel_real_mes': round(vel_real_mes, 1),
+            'pct_quiebre': round(pct_quiebre, 0),
+            'dias_vender': min(round(dias_vender, 0), 9999),
+            'inversion': round(inversion, 0),
+            'ingreso_esperado': round(ingreso_esperado, 0),
+            'margen': round(margen, 0),
+            'margen_pct': round(margen_pct, 1),
+            'dias_recupero': dias_recupero,
+            'semaforo': semaforo,
+        })
+
+    if not resultados:
+        return {'lineas': [], 'totales': {}}
+
+    # Totales
+    total_inversion = sum(r['inversion'] for r in resultados)
+    total_ingreso = sum(r['ingreso_esperado'] for r in resultados)
+    total_margen = sum(r['margen'] for r in resultados)
+    # Días recupero promedio ponderado por inversión
+    dias_ponderado = sum(r['dias_recupero'] * r['inversion'] for r in resultados)
+    dias_prom = round(dias_ponderado / total_inversion) if total_inversion > 0 else 0
+    margen_prom_pct = round(total_margen / total_inversion * 100, 1) if total_inversion > 0 else 0
+
+    totales = {
+        'inversion': total_inversion,
+        'ingreso_esperado': total_ingreso,
+        'margen': total_margen,
+        'margen_pct': margen_prom_pct,
+        'dias_recupero_prom': dias_prom,
+        'pares': sum(r['cantidad'] for r in resultados),
+        'lineas': len(resultados),
+    }
+
+    return {'lineas': resultados, 'totales': totales}
+
+
+# ============================================================================
 # UI: DASHBOARD GLOBAL
 # ============================================================================
 
@@ -3349,155 +3475,303 @@ def render_dashboard():
     with tab_pedido:
         st.subheader("🛒 Armar y enviar pedido")
 
-        if 'df_ranking' not in st.session_state:
-            st.info("Primero calculá el ranking ROI en la pestaña 'Optimizar Compra'.")
-        else:
-            df_rank = st.session_state['df_ranking']
-            dentro = df_rank[df_rank['dentro_presupuesto']].copy()
+        subtab_simular, subtab_roi = st.tabs(["📊 Simulador de Recupero", "⚡ Pedido desde ROI"])
 
-            if dentro.empty:
-                st.warning("No hay productos dentro del presupuesto.")
-            else:
-                # Agrupar por proveedor
-                provs = dentro['proveedor'].unique()
-                prov_pedido = st.selectbox("Proveedor para el pedido", sorted(provs),
-                                           key="prov_pedido_sel")
+        # ── SUBTAB: SIMULADOR DE RECUPERO ──
+        with subtab_simular:
+            st.markdown("#### Simulador de recupero de inversión")
+            st.caption("Cargá las líneas del pedido para simular cuántos días tarda en recuperarse la inversión.")
 
-                df_prov = dentro[dentro['proveedor'] == prov_pedido].copy()
+            # Input: tabla editable
+            if 'sim_pedido_df' not in st.session_state:
+                st.session_state['sim_pedido_df'] = pd.DataFrame([
+                    {'marca': '', 'subrubro': '', 'talle': '', 'cantidad': 0,
+                     'precio_costo': 0.0, 'codigo_sinonimo': ''}
+                ])
 
-                st.markdown(f"**{len(df_prov)} productos** — "
-                            f"**{int(df_prov['pedir'].sum())} pares** — "
-                            f"**${df_prov['inversion'].sum():,.0f}**")
+            st.markdown("**Opción 1**: Cargá manualmente las líneas")
 
-                # Para cada producto, cargar talles
-                if st.button("📋 Cargar detalle por talle", type="primary", key="btn_talles"):
-                    with st.spinner("Cargando talles..."):
-                        df_pend = obtener_pendientes()
-                        all_talles = []
-                        for _, prod in df_prov.iterrows():
-                            df_t = analizar_producto_detalle(prod['csr'], df_pend)
-                            if not df_t.empty:
-                                ventas_total = df_t['ventas_12m'].sum()
-                                for _, t in df_t.iterrows():
-                                    pct = t['ventas_12m'] / ventas_total * 100 if ventas_total > 0 else 0
-                                    pedir_talle = max(0, round(prod['pedir'] * pct / 100))
-                                    all_talles.append({
-                                        'csr': prod['csr'],
-                                        'descripcion_1': prod['descripcion'],
-                                        'codigo': int(t['codigo']),
-                                        'codigo_sinonimo': t['codigo_sinonimo'],
-                                        'talle': t.get('talle', ''),
-                                        'stock': int(t['stock_actual']),
-                                        'pendiente': int(t.get('pendiente', 0)),
-                                        'ventas_12m': int(t['ventas_12m']),
-                                        'pct': round(pct, 1),
-                                        'precio_fabrica': float(t.get('precio_fabrica', 0)),
-                                        'pedir': pedir_talle,
-                                    })
+            sim_df = st.data_editor(
+                st.session_state['sim_pedido_df'],
+                column_config={
+                    'marca': st.column_config.TextColumn('Marca', width=100),
+                    'subrubro': st.column_config.TextColumn('Subrubro', width=100),
+                    'talle': st.column_config.TextColumn('Talle', width=60),
+                    'cantidad': st.column_config.NumberColumn('Cantidad', min_value=0, max_value=9999),
+                    'precio_costo': st.column_config.NumberColumn('Precio Costo', format="$%.0f",
+                                                                   min_value=0),
+                    'codigo_sinonimo': st.column_config.TextColumn('Cod. Sinónimo',
+                        width=140, help="CSR 10-12 dígitos del artículo"),
+                },
+                num_rows="dynamic",
+                use_container_width=True, hide_index=True,
+                key="sim_editor"
+            )
+            st.session_state['sim_pedido_df'] = sim_df
 
-                        if all_talles:
-                            st.session_state['df_talles_pedido'] = pd.DataFrame(all_talles)
+            st.divider()
 
-                # Editar cantidades
-                if 'df_talles_pedido' in st.session_state:
-                    df_tp = st.session_state['df_talles_pedido'].copy()
+            st.markdown("**Opción 2**: Cargá desde el pedido ya armado (tab Pedido desde ROI)")
+            if 'df_talles_pedido' in st.session_state:
+                if st.button("📥 Importar desde pedido armado", key="btn_import_pedido"):
+                    df_tp_imp = st.session_state['df_talles_pedido'].copy()
+                    df_tp_imp = df_tp_imp[df_tp_imp['pedir'] > 0]
+                    if not df_tp_imp.empty:
+                        st.session_state['sim_pedido_df'] = pd.DataFrame([{
+                            'marca': '',
+                            'subrubro': '',
+                            'talle': str(r.get('talle', '')),
+                            'cantidad': int(r['pedir']),
+                            'precio_costo': float(r.get('precio_fabrica', 0)),
+                            'codigo_sinonimo': str(r.get('codigo_sinonimo', r.get('csr', ''))),
+                        } for _, r in df_tp_imp.iterrows()])
+                        st.rerun()
 
-                    st.divider()
-                    st.markdown("#### Editá las cantidades por talle")
+            st.divider()
 
-                    df_edit = st.data_editor(
-                        df_tp[['descripcion_1', 'talle', 'stock', 'pendiente',
-                               'ventas_12m', 'pct', 'precio_fabrica', 'pedir']],
-                        column_config={
-                            'descripcion_1': st.column_config.TextColumn('Producto', disabled=True, width=200),
-                            'talle': st.column_config.TextColumn('Talle', disabled=True),
-                            'stock': st.column_config.NumberColumn('Stock', disabled=True),
-                            'pendiente': st.column_config.NumberColumn('Pend.', disabled=True),
-                            'ventas_12m': st.column_config.NumberColumn('Vtas 12m', disabled=True),
-                            'pct': st.column_config.NumberColumn('% Talle', disabled=True, format="%.1f%%"),
-                            'precio_fabrica': st.column_config.NumberColumn('Precio', disabled=True, format="$%.0f"),
-                            'pedir': st.column_config.NumberColumn('PEDIR', min_value=0, max_value=999),
-                        },
-                        use_container_width=True, hide_index=True,
-                        key="edit_talles"
+            # Botón simular
+            lineas_validas = sim_df[(sim_df['cantidad'] > 0) & (sim_df['precio_costo'] > 0)
+                                    & (sim_df['codigo_sinonimo'].str.len() >= 10)]
+
+            if st.button("🔍 Simular recupero", type="primary", key="btn_simular_recupero",
+                         disabled=lineas_validas.empty):
+                with st.spinner("Calculando quiebre, estacionalidad y recupero..."):
+                    lineas_input = [{
+                        'codigo_sinonimo': r['codigo_sinonimo'].strip(),
+                        'cantidad': r['cantidad'],
+                        'precio_costo': r['precio_costo'],
+                        'descripcion': f"{r['marca']} {r['subrubro']}".strip(),
+                        'talle': r['talle'],
+                    } for _, r in lineas_validas.iterrows()]
+
+                    resultado = simular_recupero_pedido(lineas_input)
+                    st.session_state['sim_resultado'] = resultado
+
+            # Mostrar resultados
+            if 'sim_resultado' in st.session_state and st.session_state['sim_resultado']['lineas']:
+                resultado = st.session_state['sim_resultado']
+                tot = resultado['totales']
+                lineas = resultado['lineas']
+
+                # Semáforo global
+                if tot['dias_recupero_prom'] < 60:
+                    sem_emoji = "🟢"
+                    sem_text = "EXCELENTE"
+                elif tot['dias_recupero_prom'] <= 120:
+                    sem_emoji = "🟡"
+                    sem_text = "MODERADO"
+                else:
+                    sem_emoji = "🔴"
+                    sem_text = "LENTO"
+
+                st.markdown(f"### {sem_emoji} Recupero: {tot['dias_recupero_prom']} días — {sem_text}")
+
+                # KPIs
+                k1, k2, k3, k4, k5 = st.columns(5)
+                k1.metric("Inversión total", f"${tot['inversion']:,.0f}")
+                k2.metric("Ingreso esperado", f"${tot['ingreso_esperado']:,.0f}")
+                k3.metric("Margen total", f"${tot['margen']:,.0f}")
+                k4.metric("Margen %", f"{tot['margen_pct']:.1f}%")
+                k5.metric("Pares", f"{tot['pares']:,}")
+
+                st.divider()
+
+                # Tabla por línea
+                df_sim = pd.DataFrame(lineas)
+                # Emoji semáforo
+                df_sim['sem'] = df_sim['semaforo'].map(
+                    {'verde': '🟢', 'amarillo': '🟡', 'rojo': '🔴'})
+
+                st.dataframe(
+                    df_sim[['sem', 'descripcion', 'talle', 'cantidad', 'precio_costo',
+                            'precio_venta', 'vel_real_mes', 'pct_quiebre',
+                            'dias_vender', 'dias_recupero', 'inversion',
+                            'ingreso_esperado', 'margen', 'margen_pct']],
+                    column_config={
+                        'sem': st.column_config.TextColumn('', width=30),
+                        'descripcion': st.column_config.TextColumn('Producto', width=150),
+                        'talle': st.column_config.TextColumn('Talle', width=50),
+                        'cantidad': st.column_config.NumberColumn('Cant', format="%d"),
+                        'precio_costo': st.column_config.NumberColumn('P.Costo', format="$%.0f"),
+                        'precio_venta': st.column_config.NumberColumn('P.Venta', format="$%.0f"),
+                        'vel_real_mes': st.column_config.NumberColumn('Vel/mes', format="%.1f"),
+                        'pct_quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
+                        'dias_vender': st.column_config.NumberColumn('Días vender', format="%.0f"),
+                        'dias_recupero': st.column_config.NumberColumn('Días recup.', format="%d"),
+                        'inversion': st.column_config.NumberColumn('Inversión', format="$%.0f"),
+                        'ingreso_esperado': st.column_config.NumberColumn('Ingreso', format="$%.0f"),
+                        'margen': st.column_config.NumberColumn('Margen $', format="$%.0f"),
+                        'margen_pct': st.column_config.NumberColumn('Margen%', format="%.1f%%"),
+                    },
+                    use_container_width=True, hide_index=True,
+                )
+
+                # Gráfico de barras: días de recupero por línea
+                st.divider()
+                st.markdown("#### Días de recupero por línea")
+                df_chart = df_sim[df_sim['dias_recupero'] < 9999].copy()
+                if not df_chart.empty:
+                    df_chart['label'] = df_chart.apply(
+                        lambda r: f"{r['descripcion'][:20]} T{r['talle']}" if r['talle'] else r['descripcion'][:25],
+                        axis=1
                     )
+                    chart_data = df_chart.set_index('label')['dias_recupero']
+                    st.bar_chart(chart_data, color='#1976d2')
 
-                    # Actualizar cantidades
-                    df_tp['pedir'] = df_edit['pedir'].values
+                    # Líneas de referencia en texto
+                    st.caption("🟢 < 60 días | 🟡 60-120 días | 🔴 > 120 días")
 
-                    total_pares = int(df_tp['pedir'].sum())
-                    total_monto = (df_tp['pedir'] * df_tp['precio_fabrica']).sum()
+        # ── SUBTAB: PEDIDO DESDE ROI ──
+        with subtab_roi:
+            if 'df_ranking' not in st.session_state:
+                st.info("Primero calculá el ranking ROI en la pestaña 'Optimizar Compra'.")
+            else:
+                df_rank = st.session_state['df_ranking']
+                dentro = df_rank[df_rank['dentro_presupuesto']].copy()
 
-                    st.markdown(f"### Total: {total_pares} pares — ${total_monto:,.0f}")
+                if dentro.empty:
+                    st.warning("No hay productos dentro del presupuesto.")
+                else:
+                    # Agrupar por proveedor
+                    provs = dentro['proveedor'].unique()
+                    prov_pedido = st.selectbox("Proveedor para el pedido", sorted(provs),
+                                               key="prov_pedido_sel")
 
-                    # Observaciones
-                    empresa = st.selectbox("Empresa", ["H4", "CALZALINDO"], key="empresa_sel")
-                    fecha_ent = st.date_input("Fecha entrega", date.today() + timedelta(days=30),
-                                              key="fecha_ent")
-                    obs = st.text_area("Observaciones",
-                                       f"Pedido automático reposición inteligente. "
-                                       f"Presupuesto ${presupuesto:,.0f}. "
-                                       f"Análisis waterfall 60d + quiebre + ROI.",
-                                       key="obs_pedido")
+                    df_prov = dentro[dentro['proveedor'] == prov_pedido].copy()
 
-                    st.divider()
+                    st.markdown(f"**{len(df_prov)} productos** — "
+                                f"**{int(df_prov['pedir'].sum())} pares** — "
+                                f"**${df_prov['inversion'].sum():,.0f}**")
 
-                    # Buscar proveedor ID
-                    prov_id = None
-                    for num, p in provs_dict.items():
-                        if p.strip() == prov_pedido.strip():
-                            prov_id = num
-                            break
+                    # Para cada producto, cargar talles
+                    if st.button("📋 Cargar detalle por talle", type="primary", key="btn_talles"):
+                        with st.spinner("Cargando talles..."):
+                            df_pend = obtener_pendientes()
+                            all_talles = []
+                            for _, prod in df_prov.iterrows():
+                                df_t = analizar_producto_detalle(prod['csr'], df_pend)
+                                if not df_t.empty:
+                                    ventas_total = df_t['ventas_12m'].sum()
+                                    for _, t in df_t.iterrows():
+                                        pct = t['ventas_12m'] / ventas_total * 100 if ventas_total > 0 else 0
+                                        pedir_talle = max(0, round(prod['pedir'] * pct / 100))
+                                        all_talles.append({
+                                            'csr': prod['csr'],
+                                            'descripcion_1': prod['descripcion'],
+                                            'codigo': int(t['codigo']),
+                                            'codigo_sinonimo': t['codigo_sinonimo'],
+                                            'talle': t.get('talle', ''),
+                                            'stock': int(t['stock_actual']),
+                                            'pendiente': int(t.get('pendiente', 0)),
+                                            'ventas_12m': int(t['ventas_12m']),
+                                            'pct': round(pct, 1),
+                                            'precio_fabrica': float(t.get('precio_fabrica', 0)),
+                                            'pedir': pedir_talle,
+                                        })
 
-                    col_ins, col_email = st.columns(2)
+                            if all_talles:
+                                st.session_state['df_talles_pedido'] = pd.DataFrame(all_talles)
 
-                    with col_ins:
-                        if total_pares > 0 and prov_id:
-                            if st.button("⚡ INSERTAR EN ERP", type="primary",
-                                         use_container_width=True, key="btn_insert"):
-                                with st.spinner("Insertando..."):
-                                    try:
-                                        numero, msg = insertar_pedido_produccion(
-                                            prov_id, empresa, df_tp, obs, fecha_ent)
-                                        if numero:
-                                            st.success(f"✅ {msg}")
-                                            st.session_state['ultimo_pedido'] = numero
-                                            guardar_log({
-                                                'fecha': str(datetime.now()),
-                                                'numero': numero,
-                                                'proveedor': prov_pedido,
-                                                'prov_id': prov_id,
-                                                'empresa': empresa,
-                                                'pares': total_pares,
-                                                'monto': total_monto,
-                                                'presupuesto': presupuesto,
-                                                'estado': 'insertado',
-                                                'email_enviado': False,
-                                                'confirmado': False,
-                                            })
-                                            st.balloons()
-                                        else:
-                                            st.error(f"❌ {msg}")
-                                    except Exception as e:
-                                        st.error(f"❌ Error: {e}")
-                        else:
-                            st.info("No hay pares para pedir o proveedor no encontrado.")
+                    # Editar cantidades
+                    if 'df_talles_pedido' in st.session_state:
+                        df_tp = st.session_state['df_talles_pedido'].copy()
 
-                    with col_email:
-                        st.markdown("#### 📧 Email proveedor")
-                        email_dest = st.text_input("Email", key="email_prov",
-                                                    placeholder="ventas@proveedor.com")
-                        num_ped = st.session_state.get('ultimo_pedido', '---')
+                        st.divider()
+                        st.markdown("#### Editá las cantidades por talle")
 
-                        if st.button("📤 ENVIAR EMAIL", use_container_width=True,
-                                     disabled=not email_dest or num_ped == '---',
-                                     key="btn_email"):
-                            from app_pedido_auto import enviar_email_proveedor
-                            ok, msg = enviar_email_proveedor(prov_id, num_ped, df_tp, email_dest)
-                            if ok:
-                                st.success(f"✅ {msg}")
+                        df_edit = st.data_editor(
+                            df_tp[['descripcion_1', 'talle', 'stock', 'pendiente',
+                                   'ventas_12m', 'pct', 'precio_fabrica', 'pedir']],
+                            column_config={
+                                'descripcion_1': st.column_config.TextColumn('Producto', disabled=True, width=200),
+                                'talle': st.column_config.TextColumn('Talle', disabled=True),
+                                'stock': st.column_config.NumberColumn('Stock', disabled=True),
+                                'pendiente': st.column_config.NumberColumn('Pend.', disabled=True),
+                                'ventas_12m': st.column_config.NumberColumn('Vtas 12m', disabled=True),
+                                'pct': st.column_config.NumberColumn('% Talle', disabled=True, format="%.1f%%"),
+                                'precio_fabrica': st.column_config.NumberColumn('Precio', disabled=True, format="$%.0f"),
+                                'pedir': st.column_config.NumberColumn('PEDIR', min_value=0, max_value=999),
+                            },
+                            use_container_width=True, hide_index=True,
+                            key="edit_talles"
+                        )
+
+                        # Actualizar cantidades
+                        df_tp['pedir'] = df_edit['pedir'].values
+
+                        total_pares = int(df_tp['pedir'].sum())
+                        total_monto = (df_tp['pedir'] * df_tp['precio_fabrica']).sum()
+
+                        st.markdown(f"### Total: {total_pares} pares — ${total_monto:,.0f}")
+
+                        # Observaciones
+                        empresa = st.selectbox("Empresa", ["H4", "CALZALINDO"], key="empresa_sel")
+                        fecha_ent = st.date_input("Fecha entrega", date.today() + timedelta(days=30),
+                                                  key="fecha_ent")
+                        obs = st.text_area("Observaciones",
+                                           f"Pedido automático reposición inteligente. "
+                                           f"Presupuesto ${presupuesto:,.0f}. "
+                                           f"Análisis waterfall 60d + quiebre + ROI.",
+                                           key="obs_pedido")
+
+                        st.divider()
+
+                        # Buscar proveedor ID
+                        prov_id = None
+                        for num, p in provs_dict.items():
+                            if p.strip() == prov_pedido.strip():
+                                prov_id = num
+                                break
+
+                        col_ins, col_email = st.columns(2)
+
+                        with col_ins:
+                            if total_pares > 0 and prov_id:
+                                if st.button("⚡ INSERTAR EN ERP", type="primary",
+                                             use_container_width=True, key="btn_insert"):
+                                    with st.spinner("Insertando..."):
+                                        try:
+                                            numero, msg = insertar_pedido_produccion(
+                                                prov_id, empresa, df_tp, obs, fecha_ent)
+                                            if numero:
+                                                st.success(f"✅ {msg}")
+                                                st.session_state['ultimo_pedido'] = numero
+                                                guardar_log({
+                                                    'fecha': str(datetime.now()),
+                                                    'numero': numero,
+                                                    'proveedor': prov_pedido,
+                                                    'prov_id': prov_id,
+                                                    'empresa': empresa,
+                                                    'pares': total_pares,
+                                                    'monto': total_monto,
+                                                    'presupuesto': presupuesto,
+                                                    'estado': 'insertado',
+                                                    'email_enviado': False,
+                                                    'confirmado': False,
+                                                })
+                                                st.balloons()
+                                            else:
+                                                st.error(f"❌ {msg}")
+                                        except Exception as e:
+                                            st.error(f"❌ Error: {e}")
                             else:
-                                st.error(f"❌ {msg}")
+                                st.info("No hay pares para pedir o proveedor no encontrado.")
+
+                        with col_email:
+                            st.markdown("#### 📧 Email proveedor")
+                            email_dest = st.text_input("Email", key="email_prov",
+                                                        placeholder="ventas@proveedor.com")
+                            num_ped = st.session_state.get('ultimo_pedido', '---')
+
+                            if st.button("📤 ENVIAR EMAIL", use_container_width=True,
+                                         disabled=not email_dest or num_ped == '---',
+                                         key="btn_email"):
+                                from app_pedido_auto import enviar_email_proveedor
+                                ok, msg = enviar_email_proveedor(prov_id, num_ped, df_tp, email_dest)
+                                if ok:
+                                    st.success(f"✅ {msg}")
+                                else:
+                                    st.error(f"❌ {msg}")
 
     # ══════════════════════════════════════════════════════════════
     # TAB 5: HISTORIAL
