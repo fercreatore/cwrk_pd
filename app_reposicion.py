@@ -2140,6 +2140,78 @@ def render_dashboard():
 
                 st.divider()
 
+                # ── CURVA IDEAL DEL SUBRUBRO (lógica omicron) ──
+                st.markdown("#### Curva ideal de talles (subrubro)")
+                st.caption("Cuantos pares de cada talle por cada 12 comprados, basado en 3 anios de ventas de toda la marca+subrubro. "
+                           "Util para productos nuevos sin historial propio.")
+
+                # Obtener marca predominante de la categoría
+                sql_marca_pred = f"""
+                    SELECT TOP 1 a.marca, m.descripcion AS marca_desc,
+                           COUNT(*) AS cnt
+                    FROM msgestion01art.dbo.articulo a
+                    JOIN msgestion01art.dbo.marcas m ON a.marca = m.codigo
+                    WHERE a.rubro = {genero_sel} AND a.subrubro = {sub_sel}
+                      AND a.estado = 'V' AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+                    GROUP BY a.marca, m.descripcion
+                    ORDER BY cnt DESC
+                """
+                df_marca_pred = query_df(sql_marca_pred)
+                if not df_marca_pred.empty:
+                    marca_pred = int(df_marca_pred.iloc[0]['marca'])
+                    marca_desc = df_marca_pred.iloc[0]['marca_desc'].strip()
+
+                    df_curva_sub = calcular_curva_ideal_subrubro(marca_pred, sub_sel)
+                    if not df_curva_sub.empty:
+                        st.markdown(f"**Marca: {marca_desc}** | Subrubro: {sub_sel}")
+
+                        # Merge curva ideal con tabla de talles si existe
+                        if not df_talles.empty:
+                            df_talles_curva = df_talles[['talle', 'stock', 'vtas_12m', 'cob_dias', 'urgencia']].copy()
+                            df_talles_curva['talle_num'] = pd.to_numeric(
+                                df_talles_curva['talle'].str.replace(',', '.'), errors='coerce')
+                            merged_curva = pd.merge(
+                                df_talles_curva,
+                                df_curva_sub[['nro', 'porcent', 'comprar']].rename(
+                                    columns={'nro': 'talle_num', 'comprar': 'curva_ideal'}),
+                                on='talle_num', how='outer'
+                            ).fillna(0).sort_values('talle_num')
+                            merged_curva['curva_ideal'] = merged_curva['curva_ideal'].astype(int)
+
+                            st.dataframe(
+                                merged_curva[['talle', 'stock', 'vtas_12m', 'cob_dias', 'urgencia',
+                                              'porcent', 'curva_ideal']],
+                                column_config={
+                                    'talle': st.column_config.TextColumn('Talle', width=60),
+                                    'stock': st.column_config.NumberColumn('Stock', format="%d"),
+                                    'vtas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                                    'cob_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
+                                    'urgencia': 'Urgencia',
+                                    'porcent': st.column_config.NumberColumn('% Curva', format="%.1f%%"),
+                                    'curva_ideal': st.column_config.NumberColumn('x12 pares',
+                                        format="%d", help="Pares de este talle por cada 12 comprados"),
+                                },
+                                use_container_width=True, hide_index=True,
+                            )
+                        else:
+                            # Solo mostrar la curva
+                            st.dataframe(
+                                df_curva_sub[['nro', 'vendidos', 'porcent', 'comprar']],
+                                column_config={
+                                    'nro': st.column_config.NumberColumn('Talle'),
+                                    'vendidos': st.column_config.NumberColumn('Vendidos 3a', format="%d"),
+                                    'porcent': st.column_config.NumberColumn('% Curva', format="%.1f%%"),
+                                    'comprar': st.column_config.NumberColumn('x12 pares', format="%d"),
+                                },
+                                use_container_width=True, hide_index=True,
+                            )
+                    else:
+                        st.info("Sin ventas suficientes en este subrubro para calcular curva ideal.")
+                else:
+                    st.info("No se encontro marca predominante para esta categoria.")
+
+                st.divider()
+
                 # ── PIRÁMIDE DE PRECIOS ──
                 st.markdown("#### Piramide de precios")
 
