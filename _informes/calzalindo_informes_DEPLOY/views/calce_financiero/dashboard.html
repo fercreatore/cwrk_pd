@@ -266,12 +266,15 @@
                                 <th>Industria</th>
                                 <th class="text-right">Presupuesto</th>
                                 <th class="text-right">Comprometido</th>
-                                <th class="text-right">Disponible</th>
+                                <th class="text-right" title="Remitos recibidos sin facturar (cod 7/36). Deuda en formación.">Recibido (s/fact)</th>
+                                <th class="text-right" title="Saldo neto en cuenta corriente proveedor (facturas - pagos)">Deuda CC</th>
+                                <th class="text-right" title="Presupuesto - Pedidos - Remitos - Deuda CC">Disponible</th>
                                 <th>Cumplimiento</th>
                                 <th class="text-center">Dias 50%</th>
                                 <th class="text-center">Plazo Pago</th>
                                 <th class="text-center">% Vend. al Pago</th>
                                 <th class="text-center" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin.</th>
+                                <th class="text-center" title="Días estimados hasta el pago de remitos recibidos">Pago Est.</th>
                                 <th class="text-center">Estado</th>
                                 <th></th>
                             </tr>
@@ -293,6 +296,19 @@
                                 {{if m.get('pct_ejecutado', 0) > 0:}}
                                 <br><small class="text-muted">{{="%.0f" % m['pct_ejecutado']}}% del presup.</small>
                                 {{pass}}
+                            </td>
+                            <td class="text-right">
+                                {{rem_m = m.get('remitos_monto', 0)}}
+                                {{if rem_m > 0:}}
+                                <strong style="color:#e67e22;">{{=fmt(rem_m)}}</strong>
+                                <br><small class="text-muted">{{=m.get('remitos_cant', 0)}} remitos</small>
+                                {{else:}}<span class="text-muted">-</span>{{pass}}
+                            </td>
+                            <td class="text-right">
+                                {{deuda_cc = m.get('deuda_neta', 0)}}
+                                {{if deuda_cc > 0:}}
+                                <strong style="color:#dc3545;">{{=fmt(deuda_cc)}}</strong>
+                                {{else:}}<span class="text-muted">-</span>{{pass}}
                             </td>
                             <td class="text-right">
                                 {{disp = m.get('disponible', 0)}}
@@ -336,6 +352,15 @@
                                 </span>
                             </td>
                             <td class="text-center">
+                                {{dp = m.get('dias_para_pago', 0)}}
+                                {{rem_m2 = m.get('remitos_monto', 0)}}
+                                {{if rem_m2 > 0:}}
+                                <strong style="color:{{if dp <= 7:}}#dc3545{{elif dp <= 21:}}#e67e22{{else:}}#28a745{{pass}};">
+                                    {{=dp}}d
+                                </strong>
+                                {{else:}}<span class="text-muted">-</span>{{pass}}
+                            </td>
+                            <td class="text-center">
                                 <span class="semaforo semaforo-{{=m['semaforo'].replace(' ', '-')}}">
                                     {{=m['semaforo']}}
                                 </span>
@@ -349,12 +374,44 @@
                         </tr>
                         {{pass}}
                         {{if not matriz:}}
-                        <tr><td colspan="12" class="text-center text-muted" style="padding:30px;">Sin datos para los filtros seleccionados</td></tr>
+                        <tr><td colspan="14" class="text-center text-muted" style="padding:30px;">Sin datos para los filtros seleccionados</td></tr>
                         {{pass}}
                         </tbody>
                     </table>
                 </div>
             </div>
+
+            <!-- REMITOS VIEJOS SIN FACTURAR -->
+            {{if remitos_viejos:}}
+            <div class="panel panel-warning panel-calce">
+                <div class="panel-heading">
+                    <strong><i class="glyphicon glyphicon-alert"></i> Remitos Pre-2026 sin Facturar</strong>
+                    <span class="badge">{{=len(remitos_viejos)}} proveedores</span>
+                </div>
+                <div class="panel-body" style="padding: 0; overflow-x: auto;">
+                    <table class="table table-condensed table-striped" style="font-size: 12px; margin: 0;">
+                        <thead><tr style="background:#e67e22; color:#fff;">
+                            <th>Proveedor</th>
+                            <th class="text-center">Remitos</th>
+                            <th class="text-right">Monto Total</th>
+                            <th class="text-center">Desde</th>
+                            <th class="text-center">Hasta</th>
+                        </tr></thead>
+                        <tbody>
+                        {{for rv in remitos_viejos:}}
+                        <tr>
+                            <td><strong>{{=rv.get('proveedor', '')}}</strong></td>
+                            <td class="text-center">{{=rv.get('cant_remitos', 0)}}</td>
+                            <td class="text-right"><strong>{{=fmt(rv.get('monto_total', 0))}}</strong></td>
+                            <td class="text-center">{{=str(rv.get('fecha_min', ''))[:10]}}</td>
+                            <td class="text-center">{{=str(rv.get('fecha_max', ''))[:10]}}</td>
+                        </tr>
+                        {{pass}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {{pass}}
 
             <!-- PROVEEDORES EN PRESION -->
             {{if proveedores_presion:}}
@@ -442,10 +499,12 @@
                     </table>
                 </div>
             </div>
-            <div style="margin-top: 8px; font-size: 11px; color: #888;">
-                <strong>Pagos</strong>: OPs con vencimiento en la semana (de moviprov2).
-                <strong>Cobranza</strong>: estimada por run-rate ultimos 60 dias ajustada por estacionalidad.
-                <span style="color:#dc3545;">Rojo = semanas donde pagas mas de lo que cobras.</span>
+            <div style="margin-top: 8px; font-size: 12px; color: #666; line-height: 1.6;">
+                <strong>Como leer este grafico:</strong> Muestra las proximas 12 semanas. Cada semana compara lo que sale (pagos) vs lo que entra (cobranzas).<br>
+                <strong style="color:#dc3545;">Pagos (rojo)</strong>: Cheques diferidos y transferencias con fecha de cobro en esa semana. Son salidas de caja comprometidas.<br>
+                <strong style="color:#28a745;">Cobranza Est. (verde)</strong>: Estimacion de ventas semanal basada en el ritmo de los ultimos 60 dias, ajustada por estacionalidad del mes.<br>
+                <strong style="color:#2196F3;">Balance Acum. (azul)</strong>: Diferencia acumulada entre cobranzas y pagos. Si sube, estas generando caja. Si baja, estas consumiendo reservas.<br>
+                <strong>Balance = Cobranza - Pagos</strong>. El acumulado arranca en 0 y suma semana a semana. Un acumulado alto indica holgura; uno negativo indica necesidad de financiamiento.
             </div>
         </div>
     </div>
@@ -462,7 +521,63 @@
             <span style="font-size:11px; color:#666; margin-left:10px;">
                 Si tenes $5M, a quien le compras primero?
             </span>
+            <!-- Selector de temporada -->
+            <div style="float:right;">
+                <a href="{{=URL('calce_financiero', 'dashboard', vars=dict(
+                    industria=filtro_industria or '', proveedor=filtro_proveedor or '',
+                    temporada=filtro_temporada or '', roi_periodo=''))}}"
+                   class="btn btn-xs {{if not roi_periodo_activo:}}btn-success{{else:}}btn-default{{pass}}">
+                    12 meses
+                </a>
+                {{if roi_periodos_disponibles:}}
+                {{for rp in roi_periodos_disponibles[:6]:}}
+                <a href="{{=URL('calce_financiero', 'dashboard', vars=dict(
+                    industria=filtro_industria or '', proveedor=filtro_proveedor or '',
+                    temporada=filtro_temporada or '', roi_periodo=rp.get('periodo','')))}}"
+                   class="btn btn-xs {{if roi_periodo_activo == rp.get('periodo',''):}}btn-success{{else:}}btn-default{{pass}}"
+                   title="{{=rp.get('proveedores', 0)}} proveedores">
+                    {{=rp.get('periodo', '')}}
+                </a>
+                {{pass}}
+                {{pass}}
+            </div>
         </div>
+        <!-- Benchmark por temporada -->
+        {{if roi_benchmark:}}
+        <div style="padding: 6px 15px; background: #f8f9fa; border-bottom: 1px solid #ddd; font-size: 11px; overflow-x:auto;">
+            <strong>Benchmark por temporada (isotipos):</strong>
+            <table class="table table-condensed" style="margin:4px 0 0; font-size:11px;">
+                <thead><tr style="background:#e9ecef;">
+                    <th>Periodo</th><th class="text-center">Provs</th><th class="text-center">Isotipos</th>
+                    <th class="text-right">Margen</th><th class="text-right">ROI</th>
+                    <th class="text-right" style="color:#8e44ad;" title="ROI solo de proveedores presentes en 2+ temporadas">ROI Isotipo</th>
+                    <th class="text-center">Dias 50</th><th class="text-center">Calce</th>
+                    <th class="text-center">Score</th><th class="text-center" style="color:#8e44ad;">Score Iso</th>
+                </tr></thead>
+                <tbody>
+                {{for bm in roi_benchmark:}}
+                <tr {{if roi_periodo_activo == bm.get('periodo',''):}}style="background:#d4edda; font-weight:bold;"{{pass}}>
+                    <td><strong>{{=bm.get('periodo', '')}}</strong></td>
+                    <td class="text-center">{{=bm.get('proveedores', 0)}}</td>
+                    <td class="text-center" style="color:#8e44ad;">{{=bm.get('proveedores_isotipo', 0)}}</td>
+                    <td class="text-right">{{="%.1f" % float(bm.get('margen_prom', 0) or 0)}}%</td>
+                    <td class="text-right">{{="%.0f" % float(bm.get('roi_prom', 0) or 0)}}%</td>
+                    <td class="text-right" style="color:#8e44ad; font-weight:bold;">{{="%.0f" % float(bm.get('roi_isotipo_prom', 0) or 0)}}%</td>
+                    <td class="text-center">{{=int(bm.get('dias_50_prom', 0) or 0)}}d</td>
+                    <td class="text-center">
+                        {{br_bm = int(bm.get('brecha_prom', 0) or 0)}}
+                        <span style="color:{{if br_bm >= 0:}}#28a745{{else:}}#dc3545{{pass}};">
+                            {{if br_bm >= 0:}}+{{pass}}{{=br_bm}}d
+                        </span>
+                    </td>
+                    <td class="text-center">{{="%.0f" % float(bm.get('score_prom', 0) or 0)}}</td>
+                    <td class="text-center" style="color:#8e44ad; font-weight:bold;">{{="%.0f" % float(bm.get('score_isotipo_prom', 0) or 0)}}</td>
+                </tr>
+                {{pass}}
+                </tbody>
+            </table>
+        </div>
+        {{pass}}
         <div class="panel-body" style="padding: 0; overflow-x: auto;">
             <table class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
                 <thead>
@@ -486,7 +601,10 @@
                 {{score = float(r.get('score_compra', 0) or 0)}}
                 <tr {{if score < 30:}}class="presion-row"{{pass}}>
                     <td><strong>{{=r.get('ranking', '-')}}</strong></td>
-                    <td><strong>{{=html(r.get('proveedor_nombre', '-'))}}</strong></td>
+                    <td>
+                        <strong>{{=html(r.get('proveedor_nombre', '-'))}}</strong>
+                        {{if r.get('es_isotipo'):}}<span class="badge" style="background:#8e44ad; font-size:9px;" title="Presente en {{=r.get('cant_temporadas',0)}} temporadas">ISO</span>{{pass}}
+                    </td>
                     <td>{{=html(r.get('industria', '-'))}}</td>
                     <td class="text-right">
                         {{mg = float(r.get('margen_bruto_pct', 0) or 0)}}

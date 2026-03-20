@@ -25,24 +25,9 @@ import os
 import pyodbc
 import socket
 
-# -- AUTO-DETECT SERVER vs MAC -----------------------------------------
-_hostname = socket.gethostname().upper()
-if _hostname in ("DELL-SVR", "DELLSVR"):
-    SERVIDOR = "localhost"
-    DRIVER = "ODBC Driver 17 for SQL Server"
-    EXTRAS = ""
-else:
-    SERVIDOR = "192.168.2.111"
-    DRIVER = "ODBC Driver 18 for SQL Server"
-    EXTRAS = "TrustServerCertificate=yes;Encrypt=no;"
-
-CONN_ART = (
-    f"DRIVER={{{DRIVER}}};"
-    f"SERVER={SERVIDOR};"
-    f"DATABASE=msgestion01art;"
-    f"UID=am;PWD=dl;"
-    f"{EXTRAS}"
-)
+# Usar config.py para la conexión
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from config import CONN_ARTICULOS as CONN_ART, SERVIDOR
 
 # -- CONSTANTES LESEDIFE -----------------------------------------------
 PROVEEDOR = 42
@@ -53,7 +38,7 @@ UTILIDAD_2 = 144
 UTILIDAD_3 = 60
 UTILIDAD_4 = 45
 
-# Subrubro por prefijo de código proveedor
+# Subrubro por prefijo de código proveedor (fallback)
 SUBRUBRO_MAP = {
     "10":  37,   # mochilas/canoplas escolares
     "62":  18,   # carteras/accesorios Unicross
@@ -63,6 +48,34 @@ SUBRUBRO_MAP = {
     "97":  37,   # cartucheras/canoplas
     "61":  18,   # accesorios Wilson
 }
+
+# Clasificación por palabras clave en descripción → (subrubro, rubro)
+# subrubro: 18=carteras, 37=mochilas/escolares, 52=zapatería
+# rubro: 1=dama, 2=todo, 3=hombre, 4=niño, 5=niña, 6=unisex
+CLASIFICACION_DESC = [
+    # Carteras/bolsos → siempre dama
+    ("CARTERA",          18, 1),
+    ("BOLSO",            18, 1),
+    ("BANDOLERA",        18, 1),
+    ("MORRAL",           18, 1),    # morral puede ser unisex pero Lesedife es dama
+    ("RINONERA",         18, 6),    # riñonera unisex
+    ("RIÑONERA",         18, 6),
+    ("PORTANOTEBOOK",    18, 6),    # unisex
+    ("PORTA NOTEBOOK",   18, 6),
+    ("ORGANIZADOR",      18, 1),    # organizador de viaje → dama
+    # Mochilas
+    ("MOCHILA",          37, 6),    # unisex
+    # Escolares
+    ("CANOPLA",          37, 4),    # niños
+    ("CARTUCHERA",       37, 4),    # niños
+    ("LAPICERA",         37, 4),
+    # Disney/Marvel → niños
+    ("DISNEY",           37, 4),
+    ("MARVEL",           37, 4),
+    ("FROZEN",           37, 5),    # niña
+    ("PRINCESAS",        37, 5),
+    ("SPIDERMAN",        37, 4),    # niño
+]
 
 
 def cargar_lista_precios():
@@ -113,12 +126,20 @@ def extraer_codigo_prov(desc1):
     return ""
 
 
-def detectar_subrubro(codigo_prov):
-    """Detecta subrubro por el prefijo del código proveedor."""
-    if not codigo_prov:
-        return 18  # default: accesorios
-    prefijo = codigo_prov.split(".")[0] if "." in codigo_prov else ""
-    return SUBRUBRO_MAP.get(prefijo, 18)
+def clasificar_por_descripcion(desc, codigo_prov):
+    """Detecta subrubro y rubro por descripción y código proveedor.
+    Retorna (subrubro, rubro)."""
+    d = (desc or "").upper()
+    # Primero por descripción (más preciso)
+    for keyword, subrubro, rubro in CLASIFICACION_DESC:
+        if keyword in d:
+            return subrubro, rubro
+    # Fallback por prefijo de código proveedor
+    if codigo_prov:
+        prefijo = codigo_prov.split(".")[0] if "." in codigo_prov else ""
+        sr = SUBRUBRO_MAP.get(prefijo, 18)
+        return sr, 1  # default dama para Lesedife
+    return 18, 1
 
 
 def main():
@@ -147,7 +168,7 @@ def main():
                cuenta_compras, cuenta_ventas, cuenta_com_anti,
                calificacion, factura_por_total,
                tipo_codigo_barra, numero_maximo, stock, moneda,
-               formula, subrubro, linea
+               formula, subrubro, linea, rubro
         FROM articulo
         WHERE proveedor = ? AND estado = 'V'
         ORDER BY codigo
@@ -176,16 +197,16 @@ def main():
         params = []
 
         # -- CÓDIGO DE BARRA (de la lista de precios) --
-        barras_actual = (row.codigo_barra or "").strip()
+        barras_actual = str(row.codigo_barra or "").strip()
         barras_lista = info_lista.get("barras", "")
-        if not barras_actual and barras_lista:
+        if (not barras_actual or barras_actual == "0") and barras_lista:
             updates.append("codigo_barra = ?")
             params.append(barras_lista)
             campo_stats["codigo_barra"] = campo_stats.get("codigo_barra", 0) + 1
             barras_ok += 1
 
         # -- CODIGO_SINONIMO (si vacío, usar código proveedor) --
-        sin_actual = (row.codigo_sinonimo or "").strip()
+        sin_actual = str(row.codigo_sinonimo or "").strip()
         if not sin_actual and codigo_prov:
             updates.append("codigo_sinonimo = ?")
             params.append(codigo_prov)
@@ -256,12 +277,16 @@ def main():
             params.append(0)
             campo_stats["moneda"] = campo_stats.get("moneda", 0) + 1
 
-        # -- SUBRUBRO --
+        # -- SUBRUBRO y RUBRO (por descripción) --
+        sr_det, rub_det = clasificar_por_descripcion(desc1, codigo_prov)
         if (row.subrubro or 0) == 0:
-            sr = detectar_subrubro(codigo_prov)
             updates.append("subrubro = ?")
-            params.append(sr)
+            params.append(sr_det)
             campo_stats["subrubro"] = campo_stats.get("subrubro", 0) + 1
+        if (row.rubro or 0) == 0:
+            updates.append("rubro = ?")
+            params.append(rub_det)
+            campo_stats["rubro"] = campo_stats.get("rubro", 0) + 1
 
         # -- LINEA (4 = todo el año para accesorios) --
         if (row.linea or 0) == 0:

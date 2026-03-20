@@ -1,0 +1,129 @@
+{
+  "query": "bolso de viaje grande",
+  "timestamp": "2026-03-17T11:43:38.906969",
+  "exchange_rate": 1250,
+  "market": {
+    "total_items": 59,
+    "items_with_price": 59,
+    "price_min": 6235,
+    "price_max": 244990,
+    "price_median": 42000,
+    "price_avg": 53537,
+    "price_q1": 30009,
+    "price_q3": 58590,
+    "top_brands": [
+      [
+        "Everlast",
+        11
+      ],
+      [
+        "American Tourister",
+        2
+      ],
+      [
+        "Wilson",
+        2
+      ]
+    ],
+    "free_shipping_pct": 100.0,
+    "discounted_pct": 69.5,
+    "avg_discount_pct": 0.0,
+    "segments": {
+      "economico": {
+        "range": "$0 - $30,009",
+        "count": 15,
+        "items": [
+          {
+            "title": "Bolso De Viaje Gimnasio Unisex Grande Reforzado Impermeable",
+            "price": 22999
+          },
+          {
+            "title": "Bolso Deportivo Gim Viaje Grande Premium Bolsillo Cómodo",
+            "price": 30009
+          },
+          {
+            "title": "Bolso Expandible Extensible Grande Viaje Resistente Equipaje",
+            "price": 29990
+          }
+        ]
+      },
+      "medio": {
+        "range": "$30,009 - $42,000",
+        "count": 15,
+        "items": [
+          {
+            "title": "Bolso Gym Everlast Deportivo Reforzado Viaje Color Negro 158",
+            "price": 42000
+          },
+          {
+            "title": "Bolso Deportivo Viaje Multiuso Impermeable Grande Reforzada",
+            "price": 39999
+          },
+          {
+            "title": "Bolso Everlast Con Llavero Bolsillos Viaje Grande Color Azul",
+            "price": 38000
+          }
+        ]
+      },
+      "medio_alto": {
+        "range": "$42,000 - $58,590",
+        "count": 16,
+        "items": [
+          {
+            "title": "Bolso De Viaje Extra Grande Xxl Con Bolsillos Gran Capacidad",
+            "price": 47367
+          },
+          {
+            "title": "Bolso De Viaje Deportivo Impermeable Grande Resistente Negro",
+            "price": 55000
+          },
+          {
+            "title": "Bolso Deportivo Urbano Wilson Para Viaje Gimnasio Running En",
+            "price": 48999
+          }
+        ]
+      },
+      "premium": {
+        "range": "$58,590+",
+        "count": 13,
+        "items": [
+          {
+            "title": "Valija American Tourister Curio 57cm de ancho x 80cm de alto",
+            "price": 244990
+          },
+          {
+            "title": "Valija Rigida Grande Con Fuelle 28' Oferta Local San Martin",
+            "price": 140000
+          },
+          {
+            "title": "Bolso De Viaje Grande Rbc Reforzado Fuerte Impermeable",
+            "price": 67417
+          }
+        ]
+      }
+    },
+    "timestamp": "2026-03-17T11:43:38.906959"
+  },
+  "costs": {
+    "landed_cost_usd": 6
+  },
+  "opportunity": {
+    "landed_cost_ars": 7500,
+    "ml_median_price": 42000,
+    "ml_q1_price": 30009,
+    "net_after_commission_median": 35280,
+    "margin_at_median": 78.7,
+    "margin_at_q1": 70.2,
+    "breakeven_price_25pct": 12712,
+    "positioning": "FUERTE - podés competir en precio bajo",
+    "viable": true,
+    "suggested_prices": {
+      "agresivo_30": 13889,
+      "target_40": 17045,
+      "premium_50": 22059
+    }
+  },
+  "trends": {
+    "note": "Google Trends unavailable (rate limited)"
+  }
+}

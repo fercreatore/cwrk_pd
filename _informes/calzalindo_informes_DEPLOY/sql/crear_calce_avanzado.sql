@@ -84,6 +84,72 @@ CREATE TABLE dbo.t_roi_proveedor (
 GO
 
 -- #############################################################################
+-- MEJORA 2b: ROI POR PROVEEDOR POR TEMPORADA + ISOTIPOS
+-- Misma logica que t_roi_proveedor pero segmentado por periodo/temporada
+-- Isotipos = proveedores presentes en 2+ temporadas (comparacion like-for-like)
+-- #############################################################################
+
+IF OBJECT_ID('dbo.t_roi_proveedor_temporada', 'U') IS NOT NULL
+    DROP TABLE dbo.t_roi_proveedor_temporada;
+GO
+
+CREATE TABLE dbo.t_roi_proveedor_temporada (
+    proveedor_id        INT            NOT NULL,
+    proveedor_nombre    VARCHAR(200)   NOT NULL,
+    industria           VARCHAR(100)   NOT NULL,
+    periodo             VARCHAR(20)    NOT NULL,  -- ej: 2026-OI, 2025-PV, 2026-H1
+    -- Margen
+    margen_bruto_pct    DECIMAL(8,2)   DEFAULT 0,
+    venta_total         DECIMAL(18,2)  DEFAULT 0,
+    costo_total         DECIMAL(18,2)  DEFAULT 0,
+    unidades_vendidas   INT            DEFAULT 0,
+    -- Rotacion
+    dias_50             INT            DEFAULT 0,
+    dias_75             INT            DEFAULT 0,
+    rotacion_anual      DECIMAL(8,2)   DEFAULT 0,
+    -- ROI
+    roi_anualizado      DECIMAL(8,2)   DEFAULT 0,
+    roi_por_peso        DECIMAL(8,4)   DEFAULT 0,
+    -- Calce
+    plazo_pago          INT            DEFAULT 0,
+    brecha              INT            DEFAULT 0,
+    pct_vendido_al_pago DECIMAL(8,2)   DEFAULT 0,
+    -- Score
+    score_compra        DECIMAL(8,2)   DEFAULT 0,
+    ranking             INT            DEFAULT 0,
+    recomendacion       VARCHAR(200)   DEFAULT '',
+    -- Isotipo
+    es_isotipo          BIT            DEFAULT 0,  -- 1 si vendio en 2+ temporadas
+    cant_temporadas     INT            DEFAULT 1,
+    -- Metadata
+    fecha_calculo       DATETIME       DEFAULT GETDATE(),
+    PRIMARY KEY (proveedor_id, industria, periodo)
+);
+GO
+
+-- Tabla resumen: media por temporada (solo isotipos)
+IF OBJECT_ID('dbo.t_roi_temporada_media', 'U') IS NOT NULL
+    DROP TABLE dbo.t_roi_temporada_media;
+GO
+
+CREATE TABLE dbo.t_roi_temporada_media (
+    periodo             VARCHAR(20)    NOT NULL,
+    industria           VARCHAR(100)   NOT NULL DEFAULT 'TODAS',
+    proveedores         INT            DEFAULT 0,
+    proveedores_isotipo INT            DEFAULT 0,
+    margen_prom         DECIMAL(8,2)   DEFAULT 0,
+    roi_prom            DECIMAL(8,2)   DEFAULT 0,
+    roi_isotipo_prom    DECIMAL(8,2)   DEFAULT 0,  -- solo isotipos
+    dias_50_prom        INT            DEFAULT 0,
+    brecha_prom         INT            DEFAULT 0,
+    score_prom          DECIMAL(8,2)   DEFAULT 0,
+    score_isotipo_prom  DECIMAL(8,2)   DEFAULT 0,  -- solo isotipos
+    fecha_calculo       DATETIME       DEFAULT GETDATE(),
+    PRIMARY KEY (periodo, industria)
+);
+GO
+
+-- #############################################################################
 -- MEJORA 3: CAPITAL DE TRABAJO MENSUAL CON ESTACIONALIDAD
 -- Curva de necesidad de capital mes a mes (mar-ago invierno 2026)
 -- #############################################################################
@@ -180,10 +246,11 @@ BEGIN
         SET @i = @i + 1;
     END;
 
-    -- Pagos: OPs con vencimiento en cada semana (de moviprov2)
-    -- moviprov2.fecha_vencimiento = cuando vence el cheque/transferencia
+    -- Pagos: cheques diferidos y pagos con vencimiento futuro (de moviprov2)
+    -- fecha_cancelacion = fecha efectiva del cheque diferido (puede ser futura)
+    -- Para semanas futuras: buscamos cheques cuya fecha_cancelacion cae en esa semana
     UPDATE f SET
-        pagos_ops = ISNULL(x.total_importe, 0),
+        pagos_cheques = ISNULL(x.total_importe, 0),
         pagos_total = ISNULL(x.total_importe, 0),
         cant_ops = ISNULL(x.cant, 0),
         cant_proveedores = ISNULL(x.provs, 0)
@@ -194,8 +261,8 @@ BEGIN
             COUNT(*) AS cant,
             COUNT(DISTINCT m.numero_cuenta) AS provs
         FROM msgestionC.dbo.moviprov2 m
-        WHERE m.fecha_vencimiento BETWEEN f.semana_inicio AND f.semana_fin
-          AND m.fecha_cancelacion IS NOT NULL
+        WHERE m.fecha_cancelacion BETWEEN f.semana_inicio AND f.semana_fin
+          AND m.fecha_cancelacion >= CAST(GETDATE() AS DATE)
     ) x;
 
     -- Cobranza estimada: run rate semanal de ventas (ultimos 60 dias)
@@ -306,6 +373,7 @@ BEGIN
     WHERE v2.codigo IN (1, 6, 21, 61)
       AND v2.fecha_comprobante >= DATEADD(MONTH, -12, GETDATE())
       AND a.subrubro > 0
+      AND a.marca NOT IN (1316, 1317, 1158, 436)  -- excluir marcas de gastos
       AND p.numero IS NOT NULL
     GROUP BY p.numero, RTRIM(p.denominacion), ind.industria
     HAVING SUM(v1.cantidad * v1.precio) > 0;
@@ -384,6 +452,198 @@ BEGIN
         fecha_calculo = GETDATE();
 
     PRINT 'ROI por proveedor calculado OK.';
+
+    -- =================================================================
+    -- MEJORA 2b: ROI POR TEMPORADA + ISOTIPOS
+    -- =================================================================
+    TRUNCATE TABLE t_roi_proveedor_temporada;
+
+    -- Ventas por proveedor x temporada (ultimos 3 anios)
+    INSERT INTO t_roi_proveedor_temporada (
+        proveedor_id, proveedor_nombre, industria, periodo,
+        venta_total, costo_total, unidades_vendidas, margen_bruto_pct
+    )
+    SELECT
+        p.numero AS proveedor_id,
+        RTRIM(p.denominacion) AS proveedor_nombre,
+        ISNULL(ind.industria, 'Sin clasificar') AS industria,
+        -- Periodo segun industria
+        CASE
+            WHEN COALESCE(ind.industria,'') IN ('Deportes','Mixto_Zap_Dep') THEN
+                CASE WHEN MONTH(v2.fecha_comprobante) BETWEEN 1 AND 6
+                     THEN CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-H1'
+                     ELSE CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-H2' END
+            ELSE
+                CASE WHEN MONTH(v2.fecha_comprobante) BETWEEN 3 AND 8
+                     THEN CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-OI'
+                     WHEN MONTH(v2.fecha_comprobante) >= 9
+                     THEN CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-PV'
+                     ELSE CAST(YEAR(v2.fecha_comprobante)-1 AS VARCHAR)+'-PV' END
+        END AS periodo,
+        SUM(v1.cantidad * v1.precio) AS venta_total,
+        SUM(v1.cantidad * v1.precio_costo) AS costo_total,
+        SUM(v1.cantidad) AS unidades_vendidas,
+        CASE WHEN SUM(v1.cantidad * v1.precio) > 0
+             THEN ROUND((SUM(v1.cantidad * v1.precio) - SUM(v1.cantidad * v1.precio_costo))
+                        * 100.0 / SUM(v1.cantidad * v1.precio), 2)
+             ELSE 0
+        END AS margen_bruto_pct
+    FROM msgestionC.dbo.ventas1 v1
+    JOIN msgestionC.dbo.ventas2 v2
+        ON v1.empresa = v2.empresa AND v1.codigo = v2.codigo
+       AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+       AND v1.numero = v2.numero AND v1.orden = v2.orden
+    JOIN msgestion01art.dbo.articulo a ON v1.articulo = a.codigo
+    LEFT JOIN msgestionC.dbo.proveedores p ON a.proveedor = p.numero
+    LEFT JOIN map_subrubro_industria ind ON a.subrubro = ind.subrubro
+    WHERE v2.codigo IN (1, 6, 21, 61)
+      AND v2.fecha_comprobante >= DATEADD(YEAR, -3, GETDATE())
+      AND a.subrubro > 0
+      AND a.marca NOT IN (1316, 1317, 1158, 436)  -- excluir marcas de gastos
+      AND p.numero IS NOT NULL
+    GROUP BY p.numero, RTRIM(p.denominacion), ind.industria,
+        CASE
+            WHEN COALESCE(ind.industria,'') IN ('Deportes','Mixto_Zap_Dep') THEN
+                CASE WHEN MONTH(v2.fecha_comprobante) BETWEEN 1 AND 6
+                     THEN CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-H1'
+                     ELSE CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-H2' END
+            ELSE
+                CASE WHEN MONTH(v2.fecha_comprobante) BETWEEN 3 AND 8
+                     THEN CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-OI'
+                     WHEN MONTH(v2.fecha_comprobante) >= 9
+                     THEN CAST(YEAR(v2.fecha_comprobante) AS VARCHAR)+'-PV'
+                     ELSE CAST(YEAR(v2.fecha_comprobante)-1 AS VARCHAR)+'-PV' END
+        END
+    HAVING SUM(v1.cantidad * v1.precio) > 0;
+
+    PRINT 'ROI temporada: ventas insertadas - ' + CAST(@@ROWCOUNT AS VARCHAR) + ' filas';
+
+    -- Cruzar con recupero por periodo
+    UPDATE r SET
+        dias_50 = ISNULL(rec.d50, 0),
+        dias_75 = ISNULL(rec.d75, 0),
+        plazo_pago = ISNULL(rec.plazo, 0),
+        brecha = ISNULL(rec.brecha, 0),
+        pct_vendido_al_pago = ISNULL(rec.pct_pago, 0),
+        rotacion_anual = CASE WHEN ISNULL(rec.d50, 0) > 0
+                              THEN ROUND(365.0 / rec.d50, 2)
+                              ELSE 0 END,
+        roi_anualizado = CASE WHEN ISNULL(rec.d50, 0) > 0
+                              THEN ROUND(r.margen_bruto_pct * (365.0 / rec.d50), 2)
+                              ELSE 0 END,
+        roi_por_peso = CASE WHEN ISNULL(rec.d50, 0) > 0
+                            THEN ROUND(r.margen_bruto_pct * (365.0 / rec.d50) / 100.0, 4)
+                            ELSE 0 END
+    FROM t_roi_proveedor_temporada r
+    OUTER APPLY (
+        SELECT
+            AVG(CAST(t.dias_50 AS FLOAT)) AS d50,
+            AVG(CAST(t.dias_75 AS FLOAT)) AS d75,
+            AVG(t.plazo_pago_real_prom) AS plazo,
+            AVG(t.brecha_pago_vs_rec50) AS brecha,
+            AVG(t.pct_vendido_al_pago) AS pct_pago
+        FROM t_recupero_inversion t
+        WHERE t.proveedor_id = r.proveedor_id
+          AND t.industria = r.industria
+          AND t.periodo = r.periodo
+    ) rec;
+
+    -- Score por temporada (misma formula)
+    DECLARE @max_roi_t DECIMAL(18,2);
+    SELECT @max_roi_t = MAX(roi_anualizado) FROM t_roi_proveedor_temporada WHERE roi_anualizado > 0;
+    IF @max_roi_t IS NULL OR @max_roi_t = 0 SET @max_roi_t = 1;
+
+    UPDATE t_roi_proveedor_temporada SET
+        score_compra = ROUND(
+            (CASE WHEN roi_anualizado > 0 THEN (roi_anualizado / @max_roi_t) * 50 ELSE 0 END)
+            + (CASE WHEN brecha >= 30 THEN 30
+                    WHEN brecha >= 0  THEN brecha * 1.0
+                    WHEN brecha >= -30 THEN brecha * 0.5
+                    ELSE -15 END)
+            + (CASE WHEN margen_bruto_pct >= 60 THEN 20
+                    WHEN margen_bruto_pct >= 40 THEN 15
+                    WHEN margen_bruto_pct >= 25 THEN 10
+                    ELSE margen_bruto_pct * 0.3 END)
+        , 1);
+
+    -- Ranking por temporada
+    ;WITH ranked_t AS (
+        SELECT proveedor_id, industria, periodo,
+               ROW_NUMBER() OVER (PARTITION BY periodo ORDER BY score_compra DESC) AS rn
+        FROM t_roi_proveedor_temporada
+    )
+    UPDATE r SET ranking = rn
+    FROM t_roi_proveedor_temporada r
+    JOIN ranked_t ON r.proveedor_id = ranked_t.proveedor_id
+        AND r.industria = ranked_t.industria AND r.periodo = ranked_t.periodo;
+
+    -- Recomendacion
+    UPDATE t_roi_proveedor_temporada SET
+        recomendacion = CASE
+            WHEN score_compra >= 70 THEN 'PRIORIZAR'
+            WHEN score_compra >= 50 THEN 'COMPRAR'
+            WHEN score_compra >= 30 THEN 'EVALUAR'
+            WHEN score_compra >= 10 THEN 'POSTERGAR'
+            ELSE 'EVITAR'
+        END,
+        fecha_calculo = GETDATE();
+
+    -- Marcar isotipos: proveedores presentes en 2+ temporadas
+    ;WITH multi AS (
+        SELECT proveedor_id, industria, COUNT(DISTINCT periodo) AS cnt
+        FROM t_roi_proveedor_temporada
+        GROUP BY proveedor_id, industria
+        HAVING COUNT(DISTINCT periodo) >= 2
+    )
+    UPDATE r SET es_isotipo = 1, cant_temporadas = m.cnt
+    FROM t_roi_proveedor_temporada r
+    JOIN multi m ON r.proveedor_id = m.proveedor_id AND r.industria = m.industria;
+
+    PRINT 'Isotipos marcados: ' + CAST(@@ROWCOUNT AS VARCHAR) + ' filas';
+
+    -- Tabla resumen: medias por temporada
+    TRUNCATE TABLE t_roi_temporada_media;
+
+    INSERT INTO t_roi_temporada_media (
+        periodo, industria, proveedores, proveedores_isotipo,
+        margen_prom, roi_prom, roi_isotipo_prom,
+        dias_50_prom, brecha_prom, score_prom, score_isotipo_prom
+    )
+    SELECT
+        periodo, 'TODAS',
+        COUNT(*),
+        SUM(CASE WHEN es_isotipo = 1 THEN 1 ELSE 0 END),
+        ROUND(AVG(margen_bruto_pct), 1),
+        ROUND(AVG(CASE WHEN roi_anualizado > 0 THEN roi_anualizado END), 1),
+        ROUND(AVG(CASE WHEN es_isotipo = 1 AND roi_anualizado > 0 THEN roi_anualizado END), 1),
+        ROUND(AVG(CASE WHEN dias_50 > 0 THEN CAST(dias_50 AS FLOAT) END), 0),
+        ROUND(AVG(CAST(brecha AS FLOAT)), 0),
+        ROUND(AVG(score_compra), 1),
+        ROUND(AVG(CASE WHEN es_isotipo = 1 THEN score_compra END), 1)
+    FROM t_roi_proveedor_temporada
+    GROUP BY periodo;
+
+    -- Tambien por industria
+    INSERT INTO t_roi_temporada_media (
+        periodo, industria, proveedores, proveedores_isotipo,
+        margen_prom, roi_prom, roi_isotipo_prom,
+        dias_50_prom, brecha_prom, score_prom, score_isotipo_prom
+    )
+    SELECT
+        periodo, industria,
+        COUNT(*),
+        SUM(CASE WHEN es_isotipo = 1 THEN 1 ELSE 0 END),
+        ROUND(AVG(margen_bruto_pct), 1),
+        ROUND(AVG(CASE WHEN roi_anualizado > 0 THEN roi_anualizado END), 1),
+        ROUND(AVG(CASE WHEN es_isotipo = 1 AND roi_anualizado > 0 THEN roi_anualizado END), 1),
+        ROUND(AVG(CASE WHEN dias_50 > 0 THEN CAST(dias_50 AS FLOAT) END), 0),
+        ROUND(AVG(CAST(brecha AS FLOAT)), 0),
+        ROUND(AVG(score_compra), 1),
+        ROUND(AVG(CASE WHEN es_isotipo = 1 THEN score_compra END), 1)
+    FROM t_roi_proveedor_temporada
+    GROUP BY periodo, industria;
+
+    PRINT 'Medias por temporada calculadas OK.';
 
     -- =================================================================
     -- MEJORA 3: CAPITAL DE TRABAJO MENSUAL
@@ -540,6 +800,7 @@ BEGIN
     WHERE v2.codigo IN (1, 6, 21, 61)
       AND v2.fecha_comprobante >= DATEADD(MONTH, -12, GETDATE())
       AND a.subrubro > 0
+      AND a.marca NOT IN (1316, 1317, 1158, 436)  -- excluir marcas de gastos
     GROUP BY ind.industria;
 
     -- Concentracion de riesgo: top 3 proveedores por industria
@@ -604,6 +865,7 @@ BEGIN
         JOIN msgestion01art.dbo.articulo a ON s.articulo = a.codigo
         LEFT JOIN map_subrubro_industria ind ON a.subrubro = ind.subrubro
         WHERE s.stock_actual > 0
+          AND a.marca NOT IN (1316, 1317, 1158, 436)  -- excluir marcas de gastos
           AND ISNULL(ind.industria, 'Sin clasificar') = e.industria
           AND NOT EXISTS (
               SELECT 1 FROM msgestionC.dbo.ventas1 v1
@@ -624,6 +886,7 @@ BEGIN
         JOIN msgestion01art.dbo.articulo a ON s.articulo = a.codigo
         LEFT JOIN map_subrubro_industria ind ON a.subrubro = ind.subrubro
         WHERE s.stock_actual > 0
+          AND a.marca NOT IN (1316, 1317, 1158, 436)  -- excluir marcas de gastos
           AND ISNULL(ind.industria, 'Sin clasificar') = e.industria
           AND NOT EXISTS (
               SELECT 1 FROM msgestionC.dbo.ventas1 v1

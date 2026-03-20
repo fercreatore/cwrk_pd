@@ -2,15 +2,18 @@
 Configuración del Family Office Dashboard
 """
 
-# Target allocation (%) — ajustar según perfil de riesgo familiar
+# Target allocation (%) — Objetivo: 15% anual USD, largo plazo, con liquidez para dips
+# Aprobado: marzo 2026
 TARGET_ALLOCATION = {
-    "Equity US": 35,
-    "Equity LATAM/CEDEARs": 10,
-    "Bonds / Renta Fija": 25,
-    "Cash / Money Market": 15,
-    "Crypto": 5,
-    "Alternatives": 10,
+    "Bonos Soberanos AR": 35,    # Hard-dollar (GD35/AE38/AL41) + BONCER (TX28/TX31) → 10% carry
+    "FCI / Money Market": 15,    # COCOUSDPA + FCI ARS → liquidez para oportunidades
+    "CEDEARs": 30,               # NVDA, MELI, growth stocks → motor de 15%+ USD
+    "Acciones AR": 10,           # Post-crash Merval, selectivas (TGNO4, AUSO)
+    "Crypto": 10,                # MSTR, IBIT, BITFC → apuesta asimétrica
 }
+
+# Aporte mensual en ARS
+APORTE_MENSUAL_ARS = 1_000_000
 
 # Alertas de rebalanceo
 REBALANCE_THRESHOLD_PCT = 5  # alerta si desvío > 5% del target

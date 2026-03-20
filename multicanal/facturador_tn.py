@@ -89,8 +89,8 @@ LOG_FILE = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.json')
 # ── Config POS 109 ──
 # Endpoint del sistema del 109 para registrar ventas
 POS_109_URL = 'https://192.168.2.109/clz_ventas/api/tiendanube_gen_remito'
-POS_109_USUARIO = {'id': 2, 'sucursal': 1}   # Dep. VENTAS ML 1
-POS_109_MEDIO_PAGO = {'id': 137}              # MERCADOLIBRE ONLINE API
+POS_109_USUARIO = {'id': 1, 'sucursal': 2}   # Fer Calaianov, Dep. VENTAS ML 1 (Nro Suc=1, Depo=1)
+POS_109_MEDIO_PAGO = {'id': 137}              # MERCADOLIBRE ONLINE API (usado para TN también)
 
 # ── Multi-tienda TN ──
 # Archivo principal = tiendanube_config.json (default)

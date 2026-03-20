@@ -1,0 +1,116 @@
+{
+  "query": "neceser viaje",
+  "timestamp": "2026-03-17T11:45:20.471773",
+  "exchange_rate": 1250,
+  "market": {
+    "total_items": 58,
+    "items_with_price": 58,
+    "price_min": 4800,
+    "price_max": 112000,
+    "price_median": 14990,
+    "price_avg": 20048,
+    "price_q1": 8799,
+    "price_q3": 18000,
+    "top_brands": [],
+    "free_shipping_pct": 100.0,
+    "discounted_pct": 84.5,
+    "avg_discount_pct": 0.0,
+    "segments": {
+      "economico": {
+        "range": "$0 - $8,799",
+        "count": 17,
+        "items": [
+          {
+            "title": "Portacosmeticos Neceser Organizador Viaje Maquillaje Estuche",
+            "price": 8761
+          },
+          {
+            "title": "Set 4 Botellas Recargables De Plástico Lookmy | Neceser 4 En",
+            "price": 5900
+          },
+          {
+            "title": "Organizador Neceser de Viaje con Percha Portacosméticos Muje",
+            "price": 8799
+          }
+        ]
+      },
+      "medio": {
+        "range": "$8,799 - $14,990",
+        "count": 15,
+        "items": [
+          {
+            "title": "Neceser De Viaje Rosa Soft Lookmy | Porta Costméticos Y Maqu",
+            "price": 13900
+          },
+          {
+            "title": "Neceser Portacosmeticos De Viaje Lookmy Azul | Bolso Organiz",
+            "price": 13900
+          },
+          {
+            "title": "Porta Cosmeticos De Viaje Rosa Lookmy | Bolso Neceser Con Pe",
+            "price": 13900
+          }
+        ]
+      },
+      "medio_alto": {
+        "range": "$14,990 - $18,000",
+        "count": 12,
+        "items": [
+          {
+            "title": "Neceser De Cuero Ecologico Para Maquillaje Cosméticos Y Acce",
+            "price": 15999
+          },
+          {
+            "title": "Neceser De Cuero Ecologico Para Maquillaje Cosméticos Y Acce",
+            "price": 15999
+          },
+          {
+            "title": "Organizador Colgante P/ Viajes Neceser Plegable Portátil Gri",
+            "price": 15999
+          }
+        ]
+      },
+      "premium": {
+        "range": "$18,000+",
+        "count": 14,
+        "items": [
+          {
+            "title": "Neceser Hombre De Viaje Cuero Con Cierre Metálico Oldbike Ma",
+            "price": 69989
+          },
+          {
+            "title": "Necesser Viaje Tropea Liso Grande Color Negro",
+            "price": 31900
+          },
+          {
+            "title": "Neceser De Cuero Vacuno Viaje Marron Negro Mediano 33250",
+            "price": 95000
+          }
+        ]
+      }
+    },
+    "timestamp": "2026-03-17T11:45:20.471763"
+  },
+  "costs": {
+    "landed_cost_usd": 3
+  },
+  "opportunity": {
+    "landed_cost_ars": 3750,
+    "ml_median_price": 14990,
+    "ml_q1_price": 8799,
+    "net_after_commission_median": 12592,
+    "margin_at_median": 70.2,
+    "margin_at_q1": 49.3,
+    "breakeven_price_25pct": 6356,
+    "positioning": "FUERTE - podés competir en precio bajo",
+    "viable": true,
+    "suggested_prices": {
+      "agresivo_30": 6944,
+      "target_40": 8523,
+      "premium_50": 11029
+    }
+  },
+  "trends": {
+    "note": "Google Trends unavailable (rate limited)"
+  }
+}

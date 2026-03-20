@@ -20,10 +20,12 @@ ASSET_CLASS_RULES = [
     (r"\bAL41C\b|AL30C|GD30C|GD35C|GD38C|AE38C", "Bonos Soberanos AR"),
     # Bopreal (bonos del BCRA para importadores)
     (r"\bBOPREAL\b|BPC7C|BPD7C|BPE7C", "Bonos Soberanos AR"),
+    # Bonos BONCER (CER) y letras del tesoro
+    (r"\bTX2[0-9]\b|TX3[0-9]\b|BONCER|BONO.*TESORO.*\$|BONO DEL TESORO", "Bonos Soberanos AR"),
     # FCI
-    (r"\bFCI\b|COCOSPPA|COCOUSDPA", "FCI / Money Market"),
+    (r"\bFCI\b|COCOSPPA|COCOUSDPA|COCORMA|ADCGLOA", "FCI / Money Market"),
     # Crypto related (antes de CEDEARs para que IBIT/MSTR/BITF matcheen acá)
-    (r"\b(IBIT|MSTR|COIN|BITF|BITFC)\b|BITCOIN|CRYPTO|BITFARMS", "Crypto"),
+    (r"\b(IBIT|MSTR|COIN|BITF|BITFC|BTC|ETH|USDC|USDT|VET|VTHO|TRX)\b|BITCOIN|CRYPTO|BITFARMS", "Crypto"),
     # CEDEARs (genérico — matchea "Cedear" en el nombre)
     (r"\bCEDEAR\b", "CEDEARs"),
     # Acciones argentinas
@@ -165,11 +167,20 @@ def load_all_portfolios():
     if not os.path.exists(DATA_DIR):
         return all_positions, all_cash, ["Carpeta data/ no existe"]
 
+    # Buscar CSVs en data/ y en subcarpetas (data/fer/, data/lucia/, etc.)
     files = globmod.glob(os.path.join(DATA_DIR, "*"))
+    files += globmod.glob(os.path.join(DATA_DIR, "*", "*"))
 
     for filepath in files:
+        if os.path.isdir(filepath):
+            continue
         filename = os.path.basename(filepath)
-        owner = detect_owner_from_filename(filename)
+        # Si está en subcarpeta, usar nombre de subcarpeta como owner
+        parent_dir = os.path.basename(os.path.dirname(filepath))
+        if parent_dir != "data":
+            owner = detect_owner_from_filename(parent_dir + "_" + filename)
+        else:
+            owner = detect_owner_from_filename(filename)
 
         if filename.lower().endswith(".csv"):
             # Detectar source por nombre de archivo

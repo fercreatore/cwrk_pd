@@ -1,0 +1,107 @@
+{
+  "total_items": 56,
+  "items_with_price": 56,
+  "price_min": 105000,
+  "price_max": 964800,
+  "price_median": 228800,
+  "price_avg": 288746,
+  "price_q1": 203000,
+  "price_q3": 315000,
+  "top_brands": [
+    [
+      "Amayra",
+      5
+    ],
+    [
+      "Wilson",
+      5
+    ],
+    [
+      "Blaque",
+      3
+    ],
+    [
+      "Unicross",
+      1
+    ]
+  ],
+  "free_shipping_pct": 100.0,
+  "discounted_pct": 85.7,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $203,000",
+      "count": 15,
+      "items": [
+        {
+          "title": "Set X3 Valijas Rígidas Carry On Mediana Grande Relax",
+          "price": 203000
+        },
+        {
+          "title": "Set Valijas Eurokitchen Combo X2 Ultra Light Equipaje Rígido",
+          "price": 133990
+        },
+        {
+          "title": "Valija Premium Chica 20° Cabina 2 Ruedas Set X 2 Oferta !!",
+          "price": 108727
+        }
+      ]
+    },
+    "medio": {
+      "range": "$203,000 - $228,800",
+      "count": 14,
+      "items": [
+        {
+          "title": "Set De Valijas Wacky Lisos Rueda Roller Fucsia",
+          "price": 210000
+        },
+        {
+          "title": "Set De Valijas Wacky Lisos Rueda Roller Semirigida",
+          "price": 210000
+        },
+        {
+          "title": "Kit Set Valija X2 Carry On 20 Y Mediana 24  Viaje Abs Amayra",
+          "price": 209999
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$228,800 - $315,000",
+      "count": 14,
+      "items": [
+        {
+          "title": "Set x3 Valijas Gadnic Rígidas 4 Ruedas 360 Candado Carry On ",
+          "price": 288499
+        },
+        {
+          "title": "Set De Valijas Wilson X3 Rígidas Carry On Mediana Grande",
+          "price": 299999
+        },
+        {
+          "title": "Set Valijas X 3 Amayra 4 Ruedas Dobles Expandible 8021",
+          "price": 315000
+        }
+      ]
+    },
+    "premium": {
+      "range": "$315,000+",
+      "count": 13,
+      "items": [
+        {
+          "title": "Set De 2 Valijas Blaque 24  (con Fuelle) Y 20  (sin Fuelle).",
+          "price": 430000
+        },
+        {
+          "title": "Set Valija X 3 Grande Mediana Carryon Hechter Ultra Liviana",
+          "price": 599999
+        },
+        {
+          "title": "Set Valijas X 3 Wilson Abs Expandible Carry Mediana Grande",
+          "price": 400000
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-17T11:38:01.340841",
+  "query": "set valijas rigidas"
+}

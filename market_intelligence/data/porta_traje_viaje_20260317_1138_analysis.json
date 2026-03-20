@@ -1,0 +1,95 @@
+{
+  "total_items": 48,
+  "items_with_price": 48,
+  "price_min": 6990,
+  "price_max": 1200000,
+  "price_median": 76190,
+  "price_avg": 107134,
+  "price_q1": 26941,
+  "price_q3": 99500,
+  "top_brands": [
+    [
+      "Samsonite",
+      3
+    ]
+  ],
+  "free_shipping_pct": 70.8,
+  "discounted_pct": 27.1,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $26,941",
+      "count": 13,
+      "items": [
+        {
+          "title": "2 Cubre Polvo Ropa Porta Vestidos Trajes Closet Viajes",
+          "price": 17323
+        },
+        {
+          "title": "Funda De Ropa Para Traje Campera Sacos Blusas Viajes Blanco",
+          "price": 6990
+        },
+        {
+          "title": "Funda Porta Traje Y Vestido Porta Zapatos Bolsillos",
+          "price": 20997
+        }
+      ]
+    },
+    "medio": {
+      "range": "$26,941 - $76,190",
+      "count": 12,
+      "items": [
+        {
+          "title": "Bolso Porta Traje De Viaje Doble Portatraje Completo Negro D",
+          "price": 59000
+        },
+        {
+          "title": "Funda Porta Traje Rbc Negro Reforzada",
+          "price": 28715
+        },
+        {
+          "title": "Funda Porta Traje Vestido Viaje Organizador Placard Ropero !",
+          "price": 31560
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$76,190 - $99,500",
+      "count": 12,
+      "items": [
+        {
+          "title": "Bolso Porta Traje Saco Carry On Avion Extendible Viral",
+          "price": 99000
+        },
+        {
+          "title": "Bolso Viral Folding Bag Viaje Oxford Plegable Porta Traje Co",
+          "price": 99500
+        },
+        {
+          "title": "Valija Porta Traje/ropa Samsonite Negro",
+          "price": 95000
+        }
+      ]
+    },
+    "premium": {
+      "range": "$99,500+",
+      "count": 11,
+      "items": [
+        {
+          "title": "Bolso De Cuero Vacuno Porta Traje Viajes Elegante 09250",
+          "price": 470000
+        },
+        {
+          "title": "Valija Porta Traje.  Dockers. Con Ruedas Azul",
+          "price": 150000
+        },
+        {
+          "title": "Valija Cuero Con Ruedas Portatraje",
+          "price": 1200000
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-17T11:38:39.140142",
+  "query": "porta traje viaje"
+}

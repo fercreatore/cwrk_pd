@@ -1,0 +1,90 @@
+{
+  "total_items": 52,
+  "items_with_price": 52,
+  "price_min": 20640,
+  "price_max": 1475000,
+  "price_median": 275480,
+  "price_avg": 402479,
+  "price_q1": 201900,
+  "price_q3": 485000,
+  "top_brands": [],
+  "free_shipping_pct": 5.8,
+  "discounted_pct": 25.0,
+  "avg_discount_pct": 3.4,
+  "segments": {
+    "economico": {
+      "range": "$0 - $201,900",
+      "count": 14,
+      "items": [
+        {
+          "title": "Bisagra Oculta Invisible 40 Kg 150mm Zamak",
+          "price": 92623
+        },
+        {
+          "title": "Bisagra Oculta Invisible 80 Kg 177mm Zamak",
+          "price": 102443
+        },
+        {
+          "title": "Bisagra Oculta Invisible 118mm Zamak",
+          "price": 45679
+        }
+      ]
+    },
+    "medio": {
+      "range": "$201,900 - $275,480",
+      "count": 13,
+      "items": [
+        {
+          "title": "Puerta Placa Oblak Practika Bco Marco Aluminio Izquierda 70 ",
+          "price": 225599
+        },
+        {
+          "title": "Puerta Placa Oblak Camden 2 Tableros Pci Marco Chapa Der. 80",
+          "price": 231399
+        },
+        {
+          "title": "Puerta placa Oblak Practika Curupí marco de madera mano de a",
+          "price": 256899
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$275,480 - $485,000",
+      "count": 13,
+      "items": [
+        {
+          "title": "Puerta Placa Oblak Practika Curupí Marco Madera Derecha 80 C",
+          "price": 311299
+        },
+        {
+          "title": "Puerta Placa Oblak Practika Blanco Marco De Aluminio Izq. 80",
+          "price": 280299
+        },
+        {
+          "title": "Puerta Placa Oblak Tekstura Wengue 080 Muro 10 Marco Madera ",
+          "price": 393750
+        }
+      ]
+    },
+    "premium": {
+      "range": "$485,000+",
+      "count": 12,
+      "items": [
+        {
+          "title": "Puerta Seguridad Multianclaje 2050x860x70 Color Simil Madera",
+          "price": 1279900
+        },
+        {
+          "title": "Puertade De Seguridad 7 Cm Espesor Color Madera Derecha Marr",
+          "price": 1279900
+        },
+        {
+          "title": "Puerta Seguridad 7 Cm Color Simil Madera Izquierda Marrón",
+          "price": 1279900
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-17T16:25:53.438599",
+  "query": "puerta interior color madera"
+}

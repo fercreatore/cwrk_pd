@@ -1,0 +1,99 @@
+{
+  "total_items": 58,
+  "items_with_price": 58,
+  "price_min": 12999,
+  "price_max": 159000,
+  "price_median": 49400,
+  "price_avg": 53938,
+  "price_q1": 32999,
+  "price_q3": 69980,
+  "top_brands": [
+    [
+      "Everlast",
+      4
+    ],
+    [
+      "Wilson",
+      2
+    ]
+  ],
+  "free_shipping_pct": 94.8,
+  "discounted_pct": 65.5,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $32,999",
+      "count": 17,
+      "items": [
+        {
+          "title": "Mochila Urbana Mujer Porta Notebook Qe450 Preventa Color Pap",
+          "price": 28999
+        },
+        {
+          "title": "Mochila Urbana Mujer Porta Notebook Qe450 Preventa Color Blo",
+          "price": 28999
+        },
+        {
+          "title": "Mochila Cartera Mujer Urbana Espaciosa LIBERCAM MOC-012 Corr",
+          "price": 28899
+        }
+      ]
+    },
+    "medio": {
+      "range": "$32,999 - $49,400",
+      "count": 14,
+      "items": [
+        {
+          "title": "Mochila Mujer Impermeable Urbana Trabajo Universidad Liviana",
+          "price": 39990
+        },
+        {
+          "title": "Mochila Cartera Mujer Urbana Espaciosa LIBERCAM MOC-012 Corr",
+          "price": 45199
+        },
+        {
+          "title": "Mochila Urbana Impermeable Reforzada Con Bolsillos Para Lapt",
+          "price": 48999
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$49,400 - $69,980",
+      "count": 14,
+      "items": [
+        {
+          "title": "Mochila Urbana Skora Casablanca Pu Bolsillo Antirrobo Color ",
+          "price": 63140
+        },
+        {
+          "title": "Mochila Impermeable New Bip Porta Laptop Nylon Reforzada Col",
+          "price": 69980
+        },
+        {
+          "title": "Mochila Bolso New Bip Tela Oxford Impermeable Urbana Unisex ",
+          "price": 49980
+        }
+      ]
+    },
+    "premium": {
+      "range": "$69,980+",
+      "count": 13,
+      "items": [
+        {
+          "title": "Mochila Negra Mujer Oreiro Love Urbana Varios Bolsillos",
+          "price": 73329
+        },
+        {
+          "title": "Mochila Barbara Bags Cuero Pu Bb224",
+          "price": 76990
+        },
+        {
+          "title": "Mochila Mujer Impermeable Nylon Porta Notebook 15.6",
+          "price": 74060
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-17T11:38:55.051237",
+  "query": "mochila urbana mujer"
+}

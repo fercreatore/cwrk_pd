@@ -1,0 +1,90 @@
+{
+  "total_items": 49,
+  "items_with_price": 49,
+  "price_min": 41000,
+  "price_max": 145851,
+  "price_median": 77803,
+  "price_avg": 77757,
+  "price_q1": 62968,
+  "price_q3": 86830,
+  "top_brands": [],
+  "free_shipping_pct": 34.7,
+  "discounted_pct": 61.2,
+  "avg_discount_pct": 1.1,
+  "segments": {
+    "economico": {
+      "range": "$0 - $62,968",
+      "count": 13,
+      "items": [
+        {
+          "title": "Puerta Plegadiza Económica Acordeón 70x200 En Caja Blanca",
+          "price": 62968
+        },
+        {
+          "title": "Puerta Plegadiza Económica 6mm Completa 70x200 Kit Plegable",
+          "price": 45471
+        },
+        {
+          "title": "Puerta Plegadiza Económica - 70 Cm X 200 Cm X 6 Mm  - Kit",
+          "price": 45920
+        }
+      ]
+    },
+    "medio": {
+      "range": "$62,968 - $77,803",
+      "count": 12,
+      "items": [
+        {
+          "title": "Puerta Plegadiza Completa 6mm Económica 70x200 Envio Gratis",
+          "price": 72450
+        },
+        {
+          "title": "Puerta Plegable De Pvc Reforzada De 90 Cm X 200 Cm X 10 Mm",
+          "price": 77803
+        },
+        {
+          "title": "Puerta Plegadiza 70x200 Con Marco Imantado Kit Completo",
+          "price": 75000
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$77,803 - $86,830",
+      "count": 12,
+      "items": [
+        {
+          "title": "Puerta Plegadiza Reforzada Pvc 10mm 2 Vidrios Comb. A Medida",
+          "price": 81867
+        },
+        {
+          "title": "Puerta Plegadiza 6mm 80x200 Con Marco Imantado Caja Wengue",
+          "price": 86830
+        },
+        {
+          "title": "Puerta Plegadiza Económica Acordeón 90x200 Envió A Domicilio",
+          "price": 82950
+        }
+      ]
+    },
+    "premium": {
+      "range": "$86,830+",
+      "count": 12,
+      "items": [
+        {
+          "title": "Puerta Plegadiza 90x200 Con Marco Imantado Kit Completo Cedr",
+          "price": 88000
+        },
+        {
+          "title": "Puerta Plegadiza Pvc 10mm Con Traba 130x200 Kit Completo",
+          "price": 145851
+        },
+        {
+          "title": "Puerta Plegadiza Plegable Acordeón 100x200 Econ Envio Gratis",
+          "price": 114813
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-17T16:25:39.285668",
+  "query": "puerta interior pvc"
+}

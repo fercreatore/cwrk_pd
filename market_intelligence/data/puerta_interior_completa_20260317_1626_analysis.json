@@ -1,0 +1,90 @@
+{
+  "total_items": 48,
+  "items_with_price": 48,
+  "price_min": 45471,
+  "price_max": 2907000,
+  "price_median": 86268,
+  "price_avg": 180968,
+  "price_q1": 72450,
+  "price_q3": 137155,
+  "top_brands": [],
+  "free_shipping_pct": 16.7,
+  "discounted_pct": 35.4,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $72,450",
+      "count": 13,
+      "items": [
+        {
+          "title": "Puerta Plegadiza Completa 6mm Económica 70x200 Envio Gratis",
+          "price": 72450
+        },
+        {
+          "title": "Puerta Plegadiza Económica 6mm Completa 70x200 Kit Plegable",
+          "price": 45471
+        },
+        {
+          "title": "Puerta plegadiza de pvc Fracas h de 6 mm cedro 70x200",
+          "price": 51499
+        }
+      ]
+    },
+    "medio": {
+      "range": "$72,450 - $86,268",
+      "count": 12,
+      "items": [
+        {
+          "title": "Puerta Plegadiza Reforzada Blanca Pvc 10mm Completa 0,75x2m ",
+          "price": 86268
+        },
+        {
+          "title": "Puerta Plegadiza 80 X 2 Plegable Pvc Completa 6 Mm Oferta",
+          "price": 83999
+        },
+        {
+          "title": "Puerta Plegadiza De Pvc  Económica  De 6mm Completa 70 X 2 F",
+          "price": 85388
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$86,268 - $137,155",
+      "count": 12,
+      "items": [
+        {
+          "title": "Puertas Corrediza Colgantes - Ideal Living, Baños, Vestidor ",
+          "price": 137155
+        },
+        {
+          "title": "Puerta Colgante Corrediza Completa Lista Para Colocar",
+          "price": 137155
+        },
+        {
+          "title": "Oferta Puerta Plegadiza Reforzada Pvc 10mm Completa 0,70x2m",
+          "price": 99999
+        }
+      ]
+    },
+    "premium": {
+      "range": "$137,155+",
+      "count": 11,
+      "items": [
+        {
+          "title": "Puerta Plegadiza A Medida Completa Aptas Durlock Baño Cocina",
+          "price": 145173
+        },
+        {
+          "title": "Puerta Plegable A Medida Completa Aptas Durlock Baño Cocina ",
+          "price": 154999
+        },
+        {
+          "title": "Puerta Granero Con Tinta Y Manijon Tinta Cetol",
+          "price": 183040
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-17T16:26:04.783094",
+  "query": "puerta interior completa"
+}

@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
-# eliminar_remito_amphora.py
-# Elimina el remito de Amphora AW26 que se cargo antes de recibir mercaderia
-# Remito: R 5000-78194 orden 1 en MSGESTION03
-# Pedido: #1134073 (pedico1 en MSGESTION01, visible via VIEW en 03)
-#
-# EJECUTAR EN 111:
-#   py -3 eliminar_remito_amphora.py --dry-run     <- solo muestra
-#   py -3 eliminar_remito_amphora.py --ejecutar    <- borra
+"""
+eliminar_remito_amphora.py — Elimina el remito Amphora cargado sin mercaderia
+=============================================================================
+Remito: codigo=7, letra='R', sucursal=1, numero=99855223
+Base: MSGESTION03
+Cuenta: 44 (AMPHORA)
+Fecha: 17/03/2026
+Detalle: 9 renglones, 14 unidades (JULIA, ANGELA, CHARLOTE, JENIFER, KIRKLI)
+
+El pedido #1134073 NO se toca — queda vigente para cuando llegue.
+
+EJECUTAR EN EL 111:
+  py -3 eliminar_remito_amphora.py --dry-run     <- muestra que va a borrar
+  py -3 eliminar_remito_amphora.py --ejecutar    <- borra en produccion
+"""
 
 import sys
 import pyodbc
 import socket
 
+# -- AUTO-DETECT SERVER vs MAC -----------------------------------------
 _hostname = socket.gethostname().upper()
 if _hostname in ("DELL-SVR", "DELLSVR"):
     SERVIDOR = "localhost"
@@ -22,156 +30,135 @@ else:
     DRIVER = "ODBC Driver 18 for SQL Server"
     EXTRAS = "TrustServerCertificate=yes;Encrypt=no;"
 
-CONN = (
-    f"DRIVER={{{DRIVER}}};"
-    f"SERVER={SERVIDOR};"
-    f"DATABASE=msgestionC;"
-    f"UID=am;PWD=dl;"
-    f"{EXTRAS}"
-)
+def get_conn(base):
+    return (
+        f"DRIVER={{{DRIVER}}};"
+        f"SERVER={SERVIDOR};"
+        f"DATABASE={base};"
+        f"UID=am;PWD=dl;"
+        f"{EXTRAS}"
+    )
 
-# Remito
-REM_COD = 7
-REM_LET = 'R'
-REM_SUC = 5000
-REM_NUM = 78194
-REM_ORD = 1
+# -- DATOS DEL REMITO --------------------------------------------------
+BASE = "MSGESTION03"
+CODIGO = 7
+LETRA = "R"
+SUCURSAL = 1
+NUMERO = 99855223
 
-# Pedido
-PED_COD = 8
-PED_LET = 'X'
-PED_SUC = 1
-PED_NUM = 1134073
 
 def main():
-    dry_run = '--dry-run' in sys.argv
-    ejecutar = '--ejecutar' in sys.argv
+    modo = "--dry-run"
+    if len(sys.argv) > 1:
+        modo = sys.argv[1]
+    dry_run = modo != "--ejecutar"
 
-    if not dry_run and not ejecutar:
-        print("Uso: py -3 eliminar_remito_amphora.py [--dry-run | --ejecutar]")
-        return
+    print(f"\n{'='*60}")
+    print(f"ELIMINAR REMITO AMPHORA")
+    print(f"{'='*60}")
+    print(f"  Remito:   {CODIGO}-{LETRA}-{SUCURSAL}-{NUMERO}")
+    print(f"  Base:     {BASE}")
+    print(f"  Servidor: {SERVIDOR}")
+    print(f"  Modo:     {'DRY-RUN' if dry_run else 'PRODUCCION'}")
+    print(f"{'='*60}")
 
-    print("=" * 60)
-    print("  ELIMINAR REMITO AMPHORA AW26")
-    print(f"  Remito: R {REM_SUC}-{REM_NUM} orden {REM_ORD} (MSGESTION03)")
-    print(f"  Pedido: #{PED_NUM} (MSGESTION01)")
-    print(f"  Modo: {'DRY RUN' if dry_run else 'EJECUTAR'}")
-    print("=" * 60)
+    with pyodbc.connect(get_conn(BASE), timeout=10) as conn:
+        cursor = conn.cursor()
 
-    conn = pyodbc.connect(CONN, timeout=10, autocommit=False)
-    cursor = conn.cursor()
-
-    try:
-        # 1. Verificar que existe
-        cursor.execute("""
-            SELECT COUNT(*) FROM msgestion03.dbo.compras2
-            WHERE codigo=? AND letra=? AND sucursal=? AND numero=? AND orden=?
-        """, (REM_COD, REM_LET, REM_SUC, REM_NUM, REM_ORD))
-        if cursor.fetchone()[0] == 0:
-            print("\n  El remito NO existe. Nada que hacer.")
+        # 1. Mostrar cabecera
+        print(f"\n  CABECERA (compras2):")
+        cursor.execute(
+            f"SELECT cuenta, denominacion, fecha_comprobante, estado "
+            f"FROM {BASE}.dbo.compras2 "
+            f"WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ?",
+            CODIGO, LETRA, SUCURSAL, NUMERO
+        )
+        row = cursor.fetchone()
+        if not row:
+            print(f"    NO ENCONTRADO — ya fue eliminado o no existe")
             return
+        print(f"    Cuenta: {row[0]}, Denom: {row[1]}, Fecha: {row[2]}, Estado: {row[3]}")
 
-        # 2. Contar lo que se va a borrar
-        checks = [
-            ("msgestion03.dbo.compras1",
-             f"codigo={REM_COD} AND letra='{REM_LET}' AND sucursal={REM_SUC} AND numero={REM_NUM} AND orden={REM_ORD}"),
-            ("msgestion03.dbo.comprasr",
-             f"codigo={REM_COD} AND letra='{REM_LET}' AND sucursal={REM_SUC} AND numero={REM_NUM} AND orden={REM_ORD}"),
-            ("msgestion03.dbo.movi_stock",
-             f"codigo_comprobante={REM_COD} AND letra_comprobante='{REM_LET}' AND sucursal_comprobante={REM_SUC} AND numero_comprobante={REM_NUM} AND orden={REM_ORD}"),
-            ("msgestion01.dbo.pedico1_entregas",
-             f"codigo={PED_COD} AND letra='{PED_LET}' AND sucursal={PED_SUC} AND numero={PED_NUM}"),
-            ("msgestion03.dbo.pedico1_entregas",
-             f"codigo={PED_COD} AND letra='{PED_LET}' AND sucursal={PED_SUC} AND numero={PED_NUM}"),
-        ]
+        # 2. Mostrar detalle
+        print(f"\n  DETALLE (compras1):")
+        cursor.execute(
+            f"SELECT c1.renglon, c1.articulo, a.descripcion_1, c1.cantidad, c1.precio "
+            f"FROM {BASE}.dbo.compras1 c1 "
+            f"JOIN msgestion01art.dbo.articulo a ON a.codigo = c1.articulo "
+            f"WHERE c1.codigo = ? AND c1.letra = ? AND c1.sucursal = ? AND c1.numero = ? "
+            f"ORDER BY c1.renglon",
+            CODIGO, LETRA, SUCURSAL, NUMERO
+        )
+        renglones = cursor.fetchall()
+        total_uds = 0
+        for r in renglones:
+            desc = (r[2] or '')[:45]
+            print(f"    [{r[0]:2d}] Art {r[1]}: {desc:45s} x{r[3]} @ ${r[4]:,.0f}")
+            total_uds += r[3]
+        print(f"    --- {len(renglones)} renglones, {total_uds} unidades")
 
-        print("\n  Registros a eliminar:")
-        for tabla, where in checks:
-            cursor.execute(f"SELECT COUNT(*) FROM {tabla} WHERE {where}")
-            cnt = cursor.fetchone()[0]
-            print(f"    {tabla}: {cnt} filas")
-
-        # Verificar pedico1 (para revertir)
-        cursor.execute(f"""
-            SELECT COUNT(*) FROM msgestion01.dbo.pedico1
-            WHERE codigo={PED_COD} AND letra='{PED_LET}' AND sucursal={PED_SUC} AND numero={PED_NUM}
-        """)
-        ped_lines = cursor.fetchone()[0]
-        print(f"    msgestion01.dbo.pedico1: {ped_lines} lineas a revertir (cantidad_entregada=0)")
+        # 3. Verificar comprasr
+        cursor.execute(
+            f"SELECT COUNT(*) FROM {BASE}.dbo.comprasr "
+            f"WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ?",
+            CODIGO, LETRA, SUCURSAL, NUMERO
+        )
+        comprasr_count = cursor.fetchone()[0]
+        print(f"\n  VINCULACION (comprasr): {comprasr_count} registros")
 
         if dry_run:
-            print("\n  [DRY RUN] Nada fue modificado.")
+            print(f"\n  [DRY RUN] No se borro nada.")
+            print(f"  Para ejecutar: py -3 eliminar_remito_amphora.py --ejecutar")
             return
 
-        # 3. EJECUTAR eliminacion
-        print("\n  Eliminando...")
+        # 4. EJECUTAR BORRADO
+        confirmacion = input(f"\n  Borrar remito {NUMERO} ({total_uds} uds) de {BASE}? (s/N): ").strip().lower()
+        if confirmacion != "s":
+            print("  Cancelado.")
+            sys.exit(0)
 
-        # 3a. DELETE movi_stock
-        cursor.execute(f"""
-            DELETE FROM msgestion03.dbo.movi_stock
-            WHERE codigo_comprobante={REM_COD} AND letra_comprobante='{REM_LET}'
-              AND sucursal_comprobante={REM_SUC} AND numero_comprobante={REM_NUM} AND orden={REM_ORD}
-        """)
-        print(f"    movi_stock: {cursor.rowcount} borrados")
+        conn.autocommit = False
 
-        # 3b. DELETE compras1
-        cursor.execute(f"""
-            DELETE FROM msgestion03.dbo.compras1
-            WHERE codigo={REM_COD} AND letra='{REM_LET}'
-              AND sucursal={REM_SUC} AND numero={REM_NUM} AND orden={REM_ORD}
-        """)
-        print(f"    compras1: {cursor.rowcount} borrados")
+        # Borrar comprasr si existe
+        if comprasr_count > 0:
+            cursor.execute(
+                f"DELETE FROM {BASE}.dbo.comprasr "
+                f"WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ?",
+                CODIGO, LETRA, SUCURSAL, NUMERO
+            )
+            print(f"    comprasr: {cursor.rowcount} registros eliminados")
 
-        # 3c. DELETE comprasr
-        cursor.execute(f"""
-            DELETE FROM msgestion03.dbo.comprasr
-            WHERE codigo={REM_COD} AND letra='{REM_LET}'
-              AND sucursal={REM_SUC} AND numero={REM_NUM} AND orden={REM_ORD}
-        """)
-        print(f"    comprasr: {cursor.rowcount} borrados")
+        # Borrar detalle
+        cursor.execute(
+            f"DELETE FROM {BASE}.dbo.compras1 "
+            f"WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ?",
+            CODIGO, LETRA, SUCURSAL, NUMERO
+        )
+        print(f"    compras1: {cursor.rowcount} renglones eliminados")
 
-        # 3d. DELETE compras2
-        cursor.execute(f"""
-            DELETE FROM msgestion03.dbo.compras2
-            WHERE codigo={REM_COD} AND letra='{REM_LET}'
-              AND sucursal={REM_SUC} AND numero={REM_NUM} AND orden={REM_ORD}
-        """)
-        print(f"    compras2: {cursor.rowcount} borrados")
+        # Borrar cabecera
+        cursor.execute(
+            f"DELETE FROM {BASE}.dbo.compras2 "
+            f"WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ?",
+            CODIGO, LETRA, SUCURSAL, NUMERO
+        )
+        print(f"    compras2: {cursor.rowcount} cabecera eliminada")
 
-        # 3e. DELETE pedico1_entregas en AMBAS bases
-        for base in ['msgestion01', 'msgestion03']:
-            cursor.execute(f"""
-                DELETE FROM {base}.dbo.pedico1_entregas
-                WHERE codigo={PED_COD} AND letra='{PED_LET}'
-                  AND sucursal={PED_SUC} AND numero={PED_NUM}
-            """)
-            print(f"    {base}.pedico1_entregas: {cursor.rowcount} borrados")
-
-        # 3f. Revertir pedico1: cantidad_entregada=0, monto_entregado=0
-        cursor.execute(f"""
-            UPDATE msgestion01.dbo.pedico1
-            SET cantidad_entregada = 0, monto_entregado = 0
-            WHERE codigo={PED_COD} AND letra='{PED_LET}'
-              AND sucursal={PED_SUC} AND numero={PED_NUM}
-        """)
-        print(f"    pedico1 revertido: {cursor.rowcount} lineas")
-
-        # COMMIT
         conn.commit()
-        print(f"\n{'=' * 60}")
-        print(f"  COMMIT OK — Remito R {REM_SUC}-{REM_NUM} eliminado")
-        print(f"  Pedido #{PED_NUM} queda activo (sin entregas)")
-        print(f"{'=' * 60}")
 
-    except Exception as e:
-        conn.rollback()
-        print(f"\n  !!! ERROR — ROLLBACK !!!")
-        print(f"  {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    finally:
-        conn.close()
+        print(f"\n{'='*60}")
+        print(f"  REMITO ELIMINADO OK")
+        print(f"  Pedido #1134073 sigue vigente (no se toco)")
+        print(f"{'='*60}")
+
+        # Verificar
+        cursor.execute(
+            f"SELECT COUNT(*) FROM {BASE}.dbo.compras2 "
+            f"WHERE codigo = ? AND letra = ? AND sucursal = ? AND numero = ?",
+            CODIGO, LETRA, SUCURSAL, NUMERO
+        )
+        check = cursor.fetchone()[0]
+        print(f"\n  Verificacion: compras2 count = {check} (debe ser 0)")
 
 
 if __name__ == "__main__":

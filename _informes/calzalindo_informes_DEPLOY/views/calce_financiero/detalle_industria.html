@@ -427,12 +427,12 @@ meses_nombres = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago'
             <thead>
                 <tr>
                     <th data-sort="string">Proveedor <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num">Comprometido <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num">Pendiente <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num">Uds. Pedidas <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num">Uds. Recibidas <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num">% Cumplimiento <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num">L&iacute;neas Vencidas <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Pedidos <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num" title="Remitos sin facturar 2026+">Remitos s/f <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num" title="Saldo neto cuenta corriente">Deuda CC <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num" title="Pedidos + Remitos + Deuda CC">Total Comp. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">% Cumpl. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num">Vencidas <span class="sort-arrow">&#9650;&#9660;</span></th>
                     <th data-sort="string">1er Pedido <span class="sort-arrow">&#9650;&#9660;</span></th>
                     <th data-sort="string">&Uacute;lt. Entrega <span class="sort-arrow">&#9650;&#9660;</span></th>
                 </tr>
@@ -442,9 +442,19 @@ meses_nombres = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago'
                 <tr>
                     <td>{{=p.get('proveedor', '-')}}</td>
                     <td class="num" data-val="{{=p.get('comprometido', 0)}}">{{=fmt(p.get('comprometido', 0))}}</td>
-                    <td class="num" data-val="{{=p.get('pendiente', 0)}}">{{=fmt(p.get('pendiente', 0))}}</td>
-                    <td class="num" data-val="{{=p.get('unidades_pedidas', 0)}}">{{="{:,.0f}".format(float(p.get('unidades_pedidas', 0))).replace(",",".")}}</td>
-                    <td class="num" data-val="{{=p.get('unidades_recibidas', 0)}}">{{="{:,.0f}".format(float(p.get('unidades_recibidas', 0))).replace(",",".")}}</td>
+                    <td class="num" data-val="{{=p.get('remitos_monto', 0)}}">
+                        {{rm = float(p.get('remitos_monto', 0))}}
+                        {{if rm > 0:}}<span style="color:#e67e22; font-weight:600;">{{=fmt(rm)}}</span><br><small class="text-muted">{{=p.get('remitos_cant', 0)}} rem.</small>
+                        {{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=p.get('deuda_neta', 0)}}">
+                        {{dn = float(p.get('deuda_neta', 0))}}
+                        {{if dn > 0:}}<span style="color:#dc3545; font-weight:600;">{{=fmt(dn)}}</span>
+                        {{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
+                    <td class="num" data-val="{{=p.get('fondos_comprometidos', 0)}}">
+                        <strong>{{=fmt(p.get('fondos_comprometidos', 0))}}</strong>
+                    </td>
                     <td class="num" data-val="{{=p.get('pct_cumplimiento', 0)}}">
                         {{pct = float(p.get('pct_cumplimiento', 0))}}
                         <div class="pct-cell"><span class="pct-bar" style="width:{{=min(pct, 100)}}px; background:#16a34a;"></span><span>{{="%.1f" % pct}}%</span></div>

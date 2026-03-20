@@ -1,115 +1,113 @@
 # CAMPANA WHATSAPP — Venta a Agencias de Viaje + Grupos
-# Fecha: 15 marzo 2026
+# Fecha: 19 marzo 2026
 # Objetivo: Conseguir 15-20 agencias revendedoras en 2 semanas
 
 ---
 
-## PASO 1: ARMAR LA LISTA DE AGENCIAS (hacer HOY)
+## PRECIOS ACTUALIZADOS (web calzalindo.com.ar)
 
-### Buscar en Google Maps estas frases:
-- "agencia de viajes Rosario"
-- "agencia de viajes Cordoba"
-- "agencia de viajes Buenos Aires"
-- "agencia de viajes Santa Fe"
-- "agencia de viajes Mendoza"
-- "turismo estudiantil Rosario"
-- "viajes de egresados Bariloche"
-- "viajes de egresados Europa"
+| Producto | Lista | Transfer (-20%) | 6 cuotas s/i |
+|----------|-------|-----------------|--------------|
+| Set x3 GO (18"+19"+21") | $162.499 | $129.999 | 6x $27.083 |
+| Cabina 19" individual | $74.999 | $59.999 | 6x $12.499 |
+| Mediana 21" individual | $87.499 | $69.999 | 6x $14.583 |
+| Carry On 18" individual | $58.749 | $46.999 | 6x $9.791 |
 
-### Buscar en Instagram:
-- #viajedeegresados
-- #turismoestudiantil
-- #viajegrupal
-- #coordinadordeviajes
-- #agenciadeviajes
-
-### Empresas de turismo estudiantil (PRIORIDAD MAXIMA):
-Estos mueven grupos de 40-80 chicos, TODOS necesitan valija.
-- Moon Travel
-- TTS Viajes
-- Iguazu Travel
-- Viajes Estuditur
-- Stay Travel
-- Mas que Viajes
-- Check In Travel
-- Alas del Sur
-
-**Objetivo: juntar 50 numeros de WhatsApp en 2 horas.**
+**Costo por set: $45.000**
+**Margen bruto por set: $84.999 (transfer) a $117.499 (lista)**
 
 ---
 
-## PASO 2: PRIMER MENSAJE (Cold Outreach)
+## TEMPLATE WHATSAPP (para Meta — primer contacto)
 
-### Mensaje A — Para agencias de viaje generales:
-
-```
-Hola! Buenas tardes
-
-Soy Fernando de Calzalindo, tenemos 20 anios en el rubro calzado y accesorios en Venado Tuerto.
-
-Te escribo porque tenemos una propuesta para tus pasajeros que puede ser negocio para los dos.
-
-Importamos directo de fabrica un contenedor de valijas rigidas marca GO. Son sets de 3 (17" + 19" + 21"), 8 ruedas 360, ABS, cierre combinacion. Vienen en 4 colores.
-
-La propuesta:
-- Vos compartiis un mensaje en tus grupos de viaje
-- Por cada set que se venda, te damos $20.000 de comision
-- El precio para tus pasajeros: $179.999 (10% menos que la web)
-- Nosotros nos encargamos de envio, stock, atencion, todo
-- Envio gratis a todo el pais
-
-Si un grupo de 30 pasajeros y 10 compran = $200.000 para vos sin hacer nada.
-
-Te mando fotos?
-```
-
-### Mensaje B — Para turismo estudiantil (JACKPOT):
+Nombre: `propuesta_agencias_valijas`
 
 ```
-Hola! Buenas tardes
-
-Soy Fernando de Calzalindo. Te escribo porque tenemos algo ideal para tus grupos de egresados.
-
-Trajimos un contenedor de valijas rigidas importadas marca GO. Sets de 3 valijas (17" + 19" + 21"), perfectas para el viaje de egresados.
-
-La 17" entra en low cost (Flybondi/JetSmart)
-La 19" para cabina estandar (Aerolineas/LATAM)
-La 21" para despachar
-
-La propuesta es simple:
-- Vos lo compartis en el grupo de WhatsApp del viaje
-- Por cada set vendido te damos $20.000 de comision
-- Precio exclusivo grupo: $179.999 (en la web esta $199.999)
-- Envio gratis a todo el pais
-- 6 cuotas sin interes
-
-Un grupo de 40 egresados donde 15 compren = $300.000 de comision para vos.
-Y si manejas 5 grupos... ya haces las cuentas.
-
-Nosotros nos encargamos de TODO: atencion, envio, postventa.
-
-Te mando las fotos y el mensaje armado para que copies y pegues en el grupo?
+Hola {{1}}! Soy Fernando de Calzalindo, 35 anios en el negocio. Importamos sets de 3 valijas rigidas marca GO ideales para pasajeros y grupos. Tenemos dos modelos de trabajo para agencias. Te cuento?
 ```
 
-### Mensaje C — Para coordinadores de viaje / influencers:
+Footer: `Calzalindo - Venado Tuerto`
+Botones: `Si, contame` / `No, gracias`
+
+---
+
+## PASO 1: ARMAR LA LISTA DE AGENCIAS (LISTO — 36 agencias en Excel)
+
+Archivo: `LISTA_AGENCIAS_PROSPECCION.xlsx`
+- 8 ALTA prioridad (estudiantil)
+- 18 MEDIA prioridad
+- 10 NORMAL prioridad
+
+---
+
+## PASO 2: CUANDO RESPONDEN — PRESENTAR LAS 2 OPCIONES
+
+### Mensaje con las dos propuestas:
 
 ```
-Hola! Soy Fernando de Calzalindo
+Genial! Te cuento las dos formas de trabajar juntos:
 
-Vi que organizas/coordinass viajes y queria hacerte una propuesta.
+OPCION A — COMISION POR REFERIDO
+- Compartis un link o codigo con tus pasajeros
+- Ellos compran directo en nuestra web con descuento exclusivo
+- Por cada set vendido te transferimos $20.000 de comision
+- Nosotros nos encargamos de TODO: atencion, envio, postventa
+- Vos no pones plata ni stockeas nada
 
-Tenemos sets de 3 valijas rigidas importadas a un precio que no vas a encontrar en ningun lado: $179.999 el set de 3 (17"+19"+21").
+Ejemplo: un grupo de 30 pasajeros, 10 compran = $200.000 para vos
 
-Si lo compartis con tu comunidad/grupo y se vende, te damos $20.000 por cada set.
+OPCION B — PRECIO MAYORISTA
+- Compras los sets a $95.000 c/u (transferencia)
+- Los revendes al precio que quieras
+- Margen de $35.000 a $67.000 por set segun tu precio
+- Envio gratis desde Venado Tuerto
+- Pedido minimo: 5 sets
 
-Es ganar-ganar: tus seguidores/pasajeros consiguen valijas baratas y vos ganas sin stockear ni entregar nada.
+Ejemplo: compras 10 sets x $95.000 = $950.000
+Revendes a $160.000 c/u = $1.600.000
+Ganancia: $650.000
 
-Te interesa? Te mando toda la info armada.
+Cual te sirve mas? Muchas agencias arrancan con la A para probar y despues pasan a la B cuando ven que se vende.
 ```
 
 ---
 
-## PASO 3: CUANDO RESPONDEN "SI, MANDATE LAS FOTOS"
+## CODIGOS DE DESCUENTO — OPCION A
+
+Para cada agencia se crea un codigo unico en TiendaNube:
+
+| Agencia | Codigo | Descuento | Precio final set | Comision |
+|---------|--------|-----------|------------------|----------|
+| Travel Rock | TRAVELROCK | 5% | $154.374 / $123.499 transf | $20.000 |
+| Flecha | FLECHA | 5% | $154.374 / $123.499 transf | $20.000 |
+| (etc) | (NOMBRE) | 5% | $154.374 / $123.499 transf | $20.000 |
+
+**Logica del descuento:**
+- El pasajero paga 5% menos que precio web = incentivo real para comprar por la agencia
+- Comision $20.000 sale del margen (costo $45.000, venta transfer $123.499 = margen $78.499)
+- Margen neto despues de comision: $58.499 por set
+- El codigo nos permite trackear que agencia genero la venta
+
+### Como crear codigos en TiendaNube:
+1. Admin > Marketing > Cupones de descuento
+2. Crear cupon con nombre de la agencia (ej: TRAVELROCK)
+3. Tipo: porcentaje, 5%
+4. Sin limite de usos
+5. Valido para categoria "Valijas"
+
+---
+
+## PRECIOS OPCION B — MAYORISTA
+
+| Cantidad | Precio x set | Precio total | Margen vs reventa $160k |
+|----------|-------------|--------------|------------------------|
+| 5 sets | $95.000 | $475.000 | $325.000 (68%) |
+| 10 sets | $90.000 | $900.000 | $700.000 (78%) |
+| 20 sets | $85.000 | $1.700.000 | $1.500.000 (88%) |
+
+---
+
+## PASO 3: FOTOS Y MATERIAL
 
 ### Mandar en este orden (5 mensajes separados):
 
@@ -138,35 +136,10 @@ Set Rojo - el mas elegante
 Interior forrado con correas de sujecion y bolsillo. Cierre combinacion numerica.
 ```
 
-**Mensaje 6 — Resumen de la propuesta:**
-```
-RESUMEN DE LA PROPUESTA
+---
 
-PRODUCTO: Set de 3 Valijas Rigidas GO (17" + 19" + 21")
-MATERIAL: ABS rigido importado
-RUEDAS: 8 ruedas giratorias 360
-CIERRE: Combinacion numerica
-COLORES: Negro, Rosa, Rojo, Rosa Gold
+## PASO 4: MENSAJE LISTO PARA QUE LA AGENCIA COPIE (Opcion A)
 
-PRECIO PARA TUS PASAJEROS:
-$179.999 (tarjeta, 6 cuotas sin interes)
-$143.999 (transferencia, 20% OFF)
-
-TU COMISION: $20.000 por cada set vendido
-ENVIO: Gratis a todo el pais (lo pagamos nosotros)
-GARANTIA: 6 meses
-
-QUE TENES QUE HACER:
-1. Copiar el mensaje que te mando abajo
-2. Pegarlo en el grupo de WhatsApp del viaje
-3. Los interesados nos escriben directo
-4. Nosotros vendemos, cobramos y enviamos
-5. Te transferimos tu comision cuando se concrete
-
-No tenes que stockear, entregar ni atender nada.
-```
-
-**Mensaje 7 — El mensaje listo para que copien:**
 ```
 Aca te dejo el mensaje listo para que copies y pegues en tu grupo:
 
@@ -175,57 +148,57 @@ Aca te dejo el mensaje listo para que copies y pegues en tu grupo:
 PROMO EXCLUSIVA PARA EL GRUPO
 
 Set de 3 Valijas Rigidas GO
-17" (carry on low cost) + 19" (cabina estandar) + 21" (mediana)
+18" (carry on low cost) + 19" (cabina estandar) + 21" (mediana)
 
 8 ruedas 360 | ABS rigido | Cierre combinacion
 Super livianas | Interior forrado
 
 Colores: Negro, Rosa, Rojo, Rosa Gold
 
-PRECIO EXCLUSIVO: $179.999
-$143.999 pagando por transferencia
-6 cuotas sin interes
+PRECIO EXCLUSIVO CON CODIGO: 5% OFF
+$154.374 en 6 cuotas sin interes
+$123.499 pagando por transferencia
 
 ENVIO GRATIS a todo el pais
 
-Para pedir: wa.me/5493462676300
-(decile que sos del grupo de [PONER NOMBRE AGENCIA])
+Compra aca: calzalindo.com.ar
+Usa el codigo: [CODIGO_AGENCIA]
 
 ---
 
-Solo tenes que cambiar [PONER NOMBRE AGENCIA] por tu nombre y listo!
-Adjunta las 4 fotos de los sets que te mande.
+Solo tenes que cambiar [CODIGO_AGENCIA] por el codigo que te asignamos.
+Adjunta las 4 fotos de los sets que te mandamos.
 ```
 
 ---
 
-## PASO 4: SEGUIMIENTO (MUY IMPORTANTE)
+## PASO 5: SEGUIMIENTO (MUY IMPORTANTE)
 
-### Dia 1 (hoy): Mandar mensaje A o B a 50 agencias
+### Dia 1 (hoy): Mandar template a 36 agencias via n8n
 ### Dia 2: A los que no respondieron, mandar:
 ```
 Hola! Te escribi ayer por el tema de las valijas para tus pasajeros. Viste el mensaje? Si te interesa te mando toda la info. Si no, ningun drama!
 ```
 
-### Dia 4: A los que respondieron pero no mandaron al grupo:
+### Dia 4: A los que respondieron pero no avanzaron:
 ```
-Hola! Como va? Pudiste compartir lo de las valijas con alguno de tus grupos? Si necesitas que te arme algo mas personalizado para tu agencia me avisas.
+Hola! Como va? Pudiste ver las opciones de trabajo? Si necesitas que te arme algo mas personalizado me avisas. Ya tenemos varias agencias trabajando con nosotros.
 ```
 
 ### Dia 7: A TODOS (interesados + no respondieron):
 ```
-Hola! Te cuento que ya tenemos 8 agencias compartiendo las valijas GO y se estan vendiendo muy bien. Si queres sumarte todavia tenemos stock. Avísame!
+Hola! Te cuento que ya tenemos agencias compartiendo las valijas GO y se estan vendiendo muy bien. Si queres sumarte todavia tenemos stock. Avisame!
 ```
-**(Esto genera FOMO — miedo a perderse la oportunidad)**
+**(Esto genera FOMO)**
 
 ---
 
-## PASO 5: ESCALAR CON REFERIDOS
+## PASO 6: ESCALAR CON REFERIDOS
 
-Cuando una agencia venda 5+ sets, mandarle:
+Cuando una agencia venda 5+ sets:
 
 ```
-Hola! Ya vendiste [X] sets, genial! Te queria proponer algo: si me recomendas a otra agencia o coordinador de viaje que quiera sumarse, te doy $5.000 extra por cada uno que se sume y venda.
+Hola! Ya vendiste [X] sets, genial! Te propongo algo: si me recomendas a otra agencia o coordinador de viaje que quiera sumarse, te doy $5.000 extra por cada uno que se sume y venda.
 ```
 
 ---
@@ -234,32 +207,23 @@ Hola! Ya vendiste [X] sets, genial! Te queria proponer algo: si me recomendas a 
 
 | Semana | Agencias contactadas | Agencias activas | Sets vendidos | Facturacion |
 |--------|---------------------|-------------------|---------------|-------------|
-| Sem 1 | 50 | 5-8 | 15-20 | $2.7M - $3.6M |
-| Sem 2 | 30 nuevas | 10-15 | 30-40 | $5.4M - $7.2M |
-| Sem 3 | 20 nuevas + referidos | 15-20 | 50-70 | $9M - $12.6M |
-| Sem 4 | Referidos | 20+ | 70-100 | $12.6M - $18M |
+| Sem 1 | 36 | 5-8 | 10-15 | $1.6M - $2.4M |
+| Sem 2 | 30 nuevas | 10-15 | 25-35 | $4M - $5.6M |
+| Sem 3 | 20 nuevas + referidos | 15-20 | 40-60 | $6.4M - $9.6M |
+| Sem 4 | Referidos | 20+ | 60-80 | $9.6M - $12.8M |
 
-**Meta 30 dias: 150-230 sets = $27M - $41M facturados**
-
----
-
-## PLANILLA DE SEGUIMIENTO (copiar a Google Sheets)
-
-| Agencia | Ciudad | WhatsApp | Fecha 1er msj | Respondio? | Mando al grupo? | Sets vendidos | Comision pagada |
-|---------|--------|----------|---------------|------------|-----------------|---------------|-----------------|
-| | | | | | | | |
-| | | | | | | | |
+**Meta 30 dias: 135-190 sets = $21M - $30M facturados**
 
 ---
 
 ## TIPS CLAVE
 
 1. **Mandar entre 10:00 y 12:00** (horario laboral, las agencias estan activas)
-2. **No mandar mas de 15-20 mensajes por hora** desde un mismo numero (WhatsApp puede banear)
-3. **Si te preguntan si es marca conocida:** "GO es nuestra marca propia importada. Misma fabrica que produce para marcas de primer nivel. La diferencia es que al ser directos no pagas el marketing de la marca."
-4. **Si te piden muestra:** "Te mando fotos y video. Si queres ver en persona, estamos en Venado Tuerto o te enviamos 1 set de muestra y si no te convence te devolvemos la plata."
-5. **Si piden mas descuento:** Maximo bajar a $169.999 para grupos de 20+. La comision baja a $15.000 pero el volumen compensa.
-6. **NUNCA bajar de $159.999** — ese es el piso con transferencia.
+2. **No mandar mas de 15 mensajes por batch** (configurado en WF4 de n8n)
+3. **Si preguntan si es marca conocida:** "GO es nuestra marca propia importada. Misma fabrica que produce para marcas de primer nivel. Sin el markup del marketing."
+4. **Si piden muestra:** "Te mando fotos y video. Si queres ver en persona, estamos en Venado Tuerto o te enviamos 1 set y si no te convence devolvemos la plata."
+5. **Si piden mas descuento en Opcion B:** Bajar a $85.000/set solo para 20+ unidades.
+6. **NUNCA bajar de $85.000/set** — ese es el piso mayorista.
 
 ---
 
@@ -267,39 +231,25 @@ Hola! Ya vendiste [X] sets, genial! Te queria proponer algo: si me recomendas a 
 
 ### Si preguntan por garantia:
 ```
-Tienen 6 meses de garantia. Si llega algo fallado lo cambiamos sin costo. Somos Calzalindo, una cadena de calzado con mas de 20 anios. No desaparecemos.
+Tienen 6 meses de garantia. Si llega algo fallado lo cambiamos sin costo. Somos Calzalindo, 35 anios en el negocio. No desaparecemos.
 ```
 
 ### Si preguntan si pasa por cabina low cost:
 ```
-Si! La 17" esta disenada especificamente para low cost (Flybondi/JetSmart). Medidas: 45x35x25cm, entra perfecto. La 19" va para cabina estandar (Aerolineas/LATAM).
+Si! La 18" esta disenada para low cost (Flybondi/JetSmart). Medidas: 45x35x25cm, entra perfecto. La 19" va para cabina estandar (Aerolineas/LATAM).
 ```
 
 ### Si preguntan el peso:
 ```
-La 17" pesa 2.1kg, la 19" pesa 2.8kg y la 21" pesa 3.2kg. Son de las mas livianas del mercado.
+La 18" pesa 2.1kg, la 19" pesa 2.8kg y la 21" pesa 3.2kg. Super livianas.
 ```
 
 ### Si preguntan por factura:
 ```
-Si, hacemos factura A o B segun necesites. Somos una empresa formal con mas de 20 anios.
+Si, hacemos factura A o B segun necesites. Somos empresa formal, 35 anios.
 ```
 
-### Si piden precio por unidad (no el set):
+### Si piden precio por unidad (no set):
 ```
-Vendemos solo en set de 3 para mantener el precio. Si necesita solo 1, en la web tenemos carry on individuales a $89.999.
+El mejor precio es en set de 3. Sueltas tenemos en la web: 18" a $58.749, 19" a $74.999, 21" a $87.499. El set sale mucho mas conveniente.
 ```
-
----
-
-## ACCION INMEDIATA (hacer en las proximas 2 horas)
-
-1. Abrir Google Maps en el celular
-2. Buscar "agencia de viajes rosario"
-3. Abrir las primeras 10, buscar el numero de WhatsApp
-4. Mandar Mensaje A a cada una
-5. Repetir con "agencia de viajes cordoba"
-6. Repetir con "turismo estudiantil"
-7. Buscar en Instagram #turismoestudiantil y mandar DM con Mensaje B
-
-**50 mensajes hoy = 5-8 respuestas positivas = primeras ventas esta semana.**

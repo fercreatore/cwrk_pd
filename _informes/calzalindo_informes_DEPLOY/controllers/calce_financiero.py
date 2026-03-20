@@ -363,6 +363,119 @@ def dashboard():
         matriz[ind]['brecha'] = round(float(r.get('brecha_promedio') or 0), 0)
         matriz[ind]['proveedores_presion'] = int(r.get('proveedores_presion') or 0)
 
+    # BLOQUE 4b: REMITOS SIN FACTURAR POR INDUSTRIA (deuda en formación)
+    # Remitos de compra (cod 7, 36) - deuda en formación
+    # CTE para evitar multiplicación por JOIN con detalle
+    remitos_industria = {}
+    remitos_viejos = []
+    if dbC:
+        try:
+            sql_remitos_ind = """
+            ;WITH remitos_ind AS (
+                SELECT
+                    c2.empresa, c2.codigo, c2.letra, c2.sucursal, c2.numero, c2.orden,
+                    c2.monto_general, c2.fecha_comprobante, c2.cuenta_cc,
+                    ISNULL(
+                        (SELECT TOP 1 ISNULL(ind.industria, 'Sin clasificar')
+                         FROM compras1 c1
+                         JOIN msgestion01art.dbo.articulo a ON c1.articulo = a.codigo
+                         LEFT JOIN omicronvt.dbo.map_subrubro_industria ind ON a.subrubro = ind.subrubro
+                         WHERE c1.empresa = c2.empresa AND c1.codigo = c2.codigo
+                           AND c1.letra = c2.letra AND c1.sucursal = c2.sucursal
+                           AND c1.numero = c2.numero AND c1.orden = c2.orden
+                           AND a.marca NOT IN (1316, 1317, 1158, 436)
+                        ), 'Sin clasificar') AS industria
+                FROM compras2 c2
+                WHERE c2.codigo IN (7, 36)
+                  AND c2.estado = 'V'
+                  AND c2.fecha_comprobante >= '2026-01-01'
+            )
+            SELECT industria,
+                   COUNT(*) as cant_remitos,
+                   COUNT(DISTINCT cuenta_cc) as cant_proveedores,
+                   SUM(monto_general) as monto_remitos,
+                   AVG(DATEDIFF(DAY, fecha_comprobante, GETDATE())) as dias_promedio
+            FROM remitos_ind
+            GROUP BY industria
+            """
+            for r in dbC.executesql(sql_remitos_ind, as_dict=True):
+                r = _fix_row(r)
+                remitos_industria[r['industria']] = {
+                    'monto': float(r.get('monto_remitos') or 0),
+                    'cant': int(r.get('cant_remitos') or 0),
+                    'proveedores': int(r.get('cant_proveedores') or 0),
+                    'dias_promedio': int(r.get('dias_promedio') or 0),
+                }
+        except:
+            pass
+
+        # Remitos viejos (pre-2026) sin facturar — para limpieza
+        try:
+            sql_remitos_viejos = """
+            SELECT TOP 20
+                RTRIM(c2.denominacion) as proveedor,
+                c2.cuenta_cc as prov_id,
+                COUNT(*) as cant_remitos,
+                SUM(c2.monto_general) as monto_total,
+                MIN(c2.fecha_comprobante) as fecha_min,
+                MAX(c2.fecha_comprobante) as fecha_max
+            FROM compras2 c2
+            WHERE c2.codigo IN (7, 36)
+              AND c2.estado = 'V'
+              AND c2.fecha_comprobante < '2026-01-01'
+              AND c2.fecha_comprobante >= '2024-01-01'
+            GROUP BY RTRIM(c2.denominacion), c2.cuenta_cc
+            ORDER BY SUM(c2.monto_general) DESC
+            """
+            remitos_viejos = [_fix_row(r) for r in dbC.executesql(sql_remitos_viejos, as_dict=True)]
+        except:
+            pass
+
+    # Deuda neta por industria (facturas pendientes de pago)
+    # Usa t_roi_proveedor como mapping proveedor→industria (ya existe en omicronvt)
+    deuda_industria = {}
+    if dbC and db_analitica:
+        try:
+            sql_deuda_ind = """
+            ;WITH saldo_prov AS (
+                SELECT numero_cuenta,
+                       SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) as saldo_neto
+                FROM moviprov1
+                GROUP BY numero_cuenta
+                HAVING SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) > 100
+            )
+            SELECT ISNULL(roi.industria, 'Sin clasificar') as industria,
+                   SUM(sp.saldo_neto) as deuda_neta,
+                   COUNT(*) as proveedores
+            FROM saldo_prov sp
+            LEFT JOIN omicronvt.dbo.t_roi_proveedor roi ON sp.numero_cuenta = roi.proveedor_id
+            GROUP BY ISNULL(roi.industria, 'Sin clasificar')
+            """
+            for r in dbC.executesql(sql_deuda_ind, as_dict=True):
+                r = _fix_row(r)
+                deuda_industria[r['industria']] = float(r.get('deuda_neta') or 0)
+        except:
+            pass
+
+    # Inyectar remitos y deuda en la matriz
+    for ind, m in matriz.items():
+        rem = remitos_industria.get(ind, {})
+        m['remitos_monto'] = rem.get('monto', 0)
+        m['remitos_cant'] = rem.get('cant', 0)
+        m['remitos_dias_prom'] = rem.get('dias_promedio', 0)
+        m['deuda_neta'] = deuda_industria.get(ind, 0)
+        # Fondos comprometidos = pedidos + remitos + deuda
+        m['fondos_comprometidos'] = m['comprometido'] + m['remitos_monto'] + m['deuda_neta']
+        # Fecha estimada de pago: fecha promedio remito + plazo pago industria
+        dias_prom_remito = rem.get('dias_promedio', 0)
+        plazo = m.get('plazo_pago', 0)
+        dias_para_pago = max(0, plazo - dias_prom_remito)
+        m['dias_para_pago'] = dias_para_pago
+
     # Calcular semáforo por industria
     for ind, m in matriz.items():
         pct_pago = m['pct_vendido_al_pago']
@@ -531,27 +644,82 @@ def dashboard():
             pass
 
     # BLOQUE 9: ROI POR PROVEEDOR / RANKING DE COMPRA
+    # Soporta: rolling 12 meses (default) o por temporada (si roi_periodo seleccionado)
     roi_proveedores = []
+    roi_benchmark = []
+    roi_periodos_disponibles = []
+    roi_periodo_activo = _fix_encoding(request.vars.roi_periodo) if request.vars.roi_periodo else ''
+
     if _db_cfo:
+        # Obtener periodos disponibles
+        try:
+            sql_periodos = """
+            SELECT DISTINCT periodo, COUNT(*) as proveedores
+            FROM t_roi_proveedor_temporada
+            GROUP BY periodo
+            HAVING COUNT(*) >= 5
+            ORDER BY periodo DESC
+            """
+            roi_periodos_disponibles = [{k: _clean(v) for k, v in r.items()}
+                                        for r in _db_cfo.executesql(sql_periodos, as_dict=True)]
+        except:
+            pass
+
         try:
             sql_roi_where = "1=1"
             if industria:
                 sql_roi_where = "industria = '{}'".format(industria.replace("'", "''"))
             if proveedor:
                 sql_roi_where += " AND proveedor_nombre LIKE '%{}%'".format(proveedor.replace("'", "''"))
-            sql_roi = """
-            SELECT TOP 25
-                proveedor_id, proveedor_nombre, industria,
-                margen_bruto_pct, venta_total, costo_total, unidades_vendidas,
-                dias_50, dias_75, rotacion_anual,
-                roi_anualizado, roi_por_peso,
-                plazo_pago, brecha, pct_vendido_al_pago,
-                score_compra, ranking, recomendacion
-            FROM t_roi_proveedor
-            WHERE {where}
-            ORDER BY score_compra DESC
-            """.format(where=sql_roi_where)
+
+            if roi_periodo_activo:
+                # Por temporada
+                sql_roi = """
+                SELECT TOP 25
+                    proveedor_id, proveedor_nombre, industria,
+                    margen_bruto_pct, venta_total, costo_total, unidades_vendidas,
+                    dias_50, dias_75, rotacion_anual,
+                    roi_anualizado, roi_por_peso,
+                    plazo_pago, brecha, pct_vendido_al_pago,
+                    score_compra, ranking, recomendacion,
+                    es_isotipo, cant_temporadas
+                FROM t_roi_proveedor_temporada
+                WHERE periodo = '{periodo}' AND {where}
+                ORDER BY score_compra DESC
+                """.format(periodo=roi_periodo_activo.replace("'", "''"), where=sql_roi_where)
+            else:
+                # Rolling 12 meses (default)
+                sql_roi = """
+                SELECT TOP 25
+                    proveedor_id, proveedor_nombre, industria,
+                    margen_bruto_pct, venta_total, costo_total, unidades_vendidas,
+                    dias_50, dias_75, rotacion_anual,
+                    roi_anualizado, roi_por_peso,
+                    plazo_pago, brecha, pct_vendido_al_pago,
+                    score_compra, ranking, recomendacion
+                FROM t_roi_proveedor
+                WHERE {where}
+                ORDER BY score_compra DESC
+                """.format(where=sql_roi_where)
             roi_proveedores = [_fix_row(r) for r in _db_cfo.executesql(sql_roi, as_dict=True)]
+        except:
+            pass
+
+        # Benchmark por temporada (medias con isotipos)
+        try:
+            sql_bench_where = "industria = 'TODAS'"
+            if industria:
+                sql_bench_where = "industria = '{}'".format(industria.replace("'", "''"))
+            sql_benchmark = """
+            SELECT periodo, proveedores, proveedores_isotipo,
+                   margen_prom, roi_prom, roi_isotipo_prom,
+                   dias_50_prom, brecha_prom, score_prom, score_isotipo_prom
+            FROM t_roi_temporada_media
+            WHERE {where}
+            ORDER BY periodo DESC
+            """.format(where=sql_bench_where)
+            roi_benchmark = [{k: _clean(v) for k, v in r.items()}
+                             for r in _db_cfo.executesql(sql_benchmark, as_dict=True)]
         except:
             pass
 
@@ -744,8 +912,12 @@ def dashboard():
         if ind in presup_dict:
             p = presup_dict[ind]
             m['presupuesto'] = float(p.get('presupuesto_costo') or 0)
-            m['disponible'] = float(p.get('disponible_costo') or 0)
-            m['pct_ejecutado'] = float(p.get('pct_ejecutado') or 0)
+            # Disponible real = presupuesto - pedidos - remitos sin facturar - deuda neta
+            disponible_base = float(p.get('disponible_costo') or 0)  # ya tiene presup - pedidos
+            m['disponible'] = disponible_base - m.get('remitos_monto', 0) - m.get('deuda_neta', 0)
+            m['pct_ejecutado'] = round(
+                m.get('fondos_comprometidos', 0) * 100.0 / m['presupuesto'], 1
+            ) if m['presupuesto'] > 0 else 0
             m['factor_tendencia'] = float(p.get('factor_tendencia') or 1.0)
             m['presupuesto_ajustado'] = float(p.get('presupuesto_ajustado') or 0)
             m['disponible_ajustado'] = float(p.get('disponible_ajustado') or 0)
@@ -830,8 +1002,13 @@ def dashboard():
         # Nuevos bloques CFO
         flujo_caja=flujo_caja,
         roi_proveedores=[{k: _clean(v) for k, v in r.items()} for r in roi_proveedores],
+        roi_benchmark=roi_benchmark,
+        roi_periodos_disponibles=roi_periodos_disponibles,
+        roi_periodo_activo=roi_periodo_activo,
         capital_trabajo=capital_trabajo,
         enriquecedores=enriquecedores,
+        # Remitos viejos sin facturar (limpieza)
+        remitos_viejos=remitos_viejos,
         # Deuda completa + pagos
         funnel_deuda=funnel_deuda,
         deuda_proveedores=deuda_proveedores,
@@ -1009,6 +1186,7 @@ def detalle_industria():
           AND YEAR(v2.fecha_comprobante) = %d
           AND ind.industria = '%s'
           AND a.subrubro > 0
+          AND a.marca NOT IN (1316, 1317, 1158, 436)
           AND %s
         GROUP BY RTRIM(m.descripcion)
         """ % (anio_base, industria_safe, mes_filter)
@@ -1220,13 +1398,100 @@ def detalle_industria():
         recupero_proveedores = []
 
     # =========================================================================
+    # 6b. REMITOS SIN FACTURAR POR PROVEEDOR (esta industria, 2026+)
+    # =========================================================================
+    remitos_por_proveedor = {}
+    if dbC:
+        try:
+            sql_rem_prov = """
+            ;WITH rem_prov AS (
+                SELECT
+                    c2.cuenta_cc as prov_id,
+                    RTRIM(c2.denominacion) as proveedor,
+                    c2.monto_general, c2.fecha_comprobante,
+                    ISNULL(
+                        (SELECT TOP 1 ISNULL(ind.industria, 'Sin clasificar')
+                         FROM compras1 c1
+                         JOIN msgestion01art.dbo.articulo a ON c1.articulo = a.codigo
+                         LEFT JOIN omicronvt.dbo.map_subrubro_industria ind ON a.subrubro = ind.subrubro
+                         WHERE c1.empresa = c2.empresa AND c1.codigo = c2.codigo
+                           AND c1.letra = c2.letra AND c1.sucursal = c2.sucursal
+                           AND c1.numero = c2.numero AND c1.orden = c2.orden
+                           AND a.marca NOT IN (1316, 1317, 1158, 436)
+                        ), 'Sin clasificar') AS industria
+                FROM compras2 c2
+                WHERE c2.codigo IN (7, 36) AND c2.estado = 'V'
+                  AND c2.fecha_comprobante >= '2026-01-01'
+            )
+            SELECT prov_id, proveedor,
+                   COUNT(*) as cant_remitos,
+                   SUM(monto_general) as monto_remitos,
+                   AVG(DATEDIFF(DAY, fecha_comprobante, GETDATE())) as dias_promedio
+            FROM rem_prov
+            WHERE industria = '%s'
+            GROUP BY prov_id, proveedor
+            """ % industria_safe
+            for r in dbC.executesql(sql_rem_prov, as_dict=True):
+                r = _fix_row(r)
+                pid = str(r.get('prov_id', ''))
+                remitos_por_proveedor[pid] = {
+                    'monto': float(r.get('monto_remitos') or 0),
+                    'cant': int(r.get('cant_remitos') or 0),
+                    'dias_promedio': int(r.get('dias_promedio') or 0),
+                }
+        except:
+            pass
+
+    # =========================================================================
+    # 6c. DEUDA NETA POR PROVEEDOR (esta industria)
+    # =========================================================================
+    deuda_por_proveedor = {}
+    if dbC:
+        try:
+            sql_deuda_prov = """
+            SELECT sp.numero_cuenta as prov_id, sp.saldo_neto
+            FROM (
+                SELECT numero_cuenta,
+                       SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) as saldo_neto
+                FROM moviprov1
+                GROUP BY numero_cuenta
+                HAVING SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) > 100
+            ) sp
+            JOIN omicronvt.dbo.t_roi_proveedor roi
+                ON sp.numero_cuenta = roi.proveedor_id
+            WHERE roi.industria = '%s'
+            """ % industria_safe
+            for r in dbC.executesql(sql_deuda_prov, as_dict=True):
+                r = _fix_row(r)
+                pid = str(r.get('prov_id', ''))
+                deuda_por_proveedor[pid] = float(r.get('saldo_neto') or 0)
+        except:
+            pass
+
+    # Inyectar remitos y deuda en proveedores_pedidos
+    for pp in proveedores_pedidos:
+        pid = str(pp.get('cod_proveedor', ''))
+        rem = remitos_por_proveedor.get(pid, {})
+        pp['remitos_monto'] = rem.get('monto', 0)
+        pp['remitos_cant'] = rem.get('cant', 0)
+        pp['deuda_neta'] = deuda_por_proveedor.get(pid, 0)
+        pp['fondos_comprometidos'] = float(pp.get('comprometido', 0)) + pp['remitos_monto'] + pp['deuda_neta']
+
+    # =========================================================================
     # 7. TOTALES DE LA INDUSTRIA (para KPIs arriba)
     # =========================================================================
+    total_remitos = sum(pp.get('remitos_monto', 0) for pp in proveedores_pedidos)
+    total_deuda = sum(pp.get('deuda_neta', 0) for pp in proveedores_pedidos)
     total_comprometido = sum(m['comprometido'] for m in marcas_combinadas)
+    total_fondos = total_comprometido + total_remitos + total_deuda
     total_presupuesto = sum(m['presupuesto'] for m in marcas_combinadas)
     total_presupuesto_ajustado = sum(m['presupuesto_ajustado'] for m in marcas_combinadas)
-    total_disponible = total_presupuesto - total_comprometido
-    total_disponible_ajustado = total_presupuesto_ajustado - total_comprometido
+    total_disponible = total_presupuesto - total_fondos
+    total_disponible_ajustado = total_presupuesto_ajustado - total_fondos
     total_pct_ejecutado = round(total_comprometido * 100.0 / total_presupuesto, 1) if total_presupuesto > 0 else 0
     total_pct_ejecutado_ajustado = round(total_comprometido * 100.0 / total_presupuesto_ajustado, 1) if total_presupuesto_ajustado > 0 else 0
     total_vencido = sum(m['monto_vencido'] for m in marcas_combinadas)
@@ -1294,6 +1559,9 @@ def detalle_industria():
         proveedores_pedidos=[{k: _clean(v) for k, v in r.items()} for r in proveedores_pedidos],
         recupero_proveedores=[{k: _clean(v) for k, v in r.items()} for r in recupero_proveedores],
         total_comprometido=total_comprometido,
+        total_remitos=total_remitos,
+        total_deuda=total_deuda,
+        total_fondos=total_fondos,
         total_presupuesto=total_presupuesto,
         total_presupuesto_ajustado=total_presupuesto_ajustado,
         total_disponible=total_disponible,

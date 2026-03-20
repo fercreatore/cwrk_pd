@@ -1,0 +1,90 @@
+{
+  "total_items": 52,
+  "items_with_price": 52,
+  "price_min": 87424,
+  "price_max": 2800000,
+  "price_median": 319209,
+  "price_avg": 498239,
+  "price_q1": 259000,
+  "price_q3": 499996,
+  "top_brands": [],
+  "free_shipping_pct": 23.1,
+  "discounted_pct": 40.4,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $259,000",
+      "count": 14,
+      "items": [
+        {
+          "title": "Puerta De Aluminio 70x200 Reforzado Blanco",
+          "price": 259000
+        },
+        {
+          "title": "Puerta Plegadiza Pvc 10mm Con Traba 130x200 Kit Completo",
+          "price": 145851
+        },
+        {
+          "title": "Puerta Para Frente De Casa Inyectada Doble Chapa 80 X 200",
+          "price": 240316
+        }
+      ]
+    },
+    "medio": {
+      "range": "$259,000 - $319,209",
+      "count": 13,
+      "items": [
+        {
+          "title": "Puerta Hgs Exterior Inyectada De Chapa Lisa 1.00x2.00",
+          "price": 312700
+        },
+        {
+          "title": "Puerta Doble Chapa Inyectada 0.70 X 2.00 Frente Moderna",
+          "price": 267014
+        },
+        {
+          "title": "Puerta De Acero Barmetal Standard Inyectada Derecha 330 Colo",
+          "price": 259399
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$319,209 - $499,996",
+      "count": 13,
+      "items": [
+        {
+          "title": "Puerta Inyectada Pesada 1/2 Reja Postigo 80x200cocina/patio ",
+          "price": 429996
+        },
+        {
+          "title": "Puerta Inyectada Pesada 1/2 Reja Postigo 70x200 Cocina/patio",
+          "price": 499996
+        },
+        {
+          "title": "Puerta Inyectada 80x200  Blanco",
+          "price": 345600
+        }
+      ]
+    },
+    "premium": {
+      "range": "$499,996+",
+      "count": 12,
+      "items": [
+        {
+          "title": "Puerta Seguridad Inyectada Cocina/ Patio/ 80x2 3 Cerraduras ",
+          "price": 999995
+        },
+        {
+          "title": "Puerta Pivotante Pavir 120x220 Simil Madera Marco Aluminio N",
+          "price": 1950000
+        },
+        {
+          "title": "Puerta Doble Hoja Chapa Inyectada Reforzada 1.60x2.00 Gris G",
+          "price": 589901
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-17T16:25:47.049137",
+  "query": "puerta pvc inyectada"
+}
