@@ -499,6 +499,37 @@ with tab_cross:
                     rising_df = pd.DataFrame(related["rising"])
                     st.dataframe(rising_df, use_container_width=True)
 
+            # Price war detector
+            price_war = cross.price_war_detector(items, ml_analysis)
+            st.subheader("Detector de guerra de precios")
+            pw_cols = st.columns(4)
+            pw_score = price_war.get("war_score", 0)
+            pw_color = "inverse" if pw_score >= 60 else ("off" if pw_score >= 40 else "normal")
+            pw_cols[0].metric("War Score", f"{pw_score}/100", delta="PELIGRO" if pw_score >= 60 else "OK", delta_color=pw_color)
+            pw_cols[1].metric("Items con descuento", f"{price_war.get('discount_ratio_pct', 0)}%")
+            pw_cols[2].metric("Descuento promedio", f"{price_war.get('avg_discount_pct', 0)}%")
+            pw_cols[3].metric("Descuento >30%", f"{price_war.get('deep_discount_ratio_pct', 0)}%")
+            st.write(f"**{price_war.get('signal', '')}**")
+            st.write(f"*{price_war.get('recommendation', '')}*")
+
+            # Import calendar
+            st.subheader("Calendario de importación (12 meses)")
+            with st.spinner("Generando calendario..."):
+                calendar = cross.import_calendar(cx_query, cx_landed, ml_analysis)
+            if calendar:
+                cal_cols = st.columns(6)
+                for i, month in enumerate(calendar):
+                    col = cal_cols[i % 6]
+                    col.markdown(
+                        f'<div style="background:{month["color"]};padding:8px;border-radius:5px;'
+                        f'text-align:center;margin:3px 0">'
+                        f'<b style="color:white;font-size:12px">{month["month"][:3]}</b><br>'
+                        f'<span style="color:white;font-size:11px">{month["timing"]}</span><br>'
+                        f'<span style="color:white;font-size:10px">'
+                        f'M:{month["adjusted_margin_pct"]}% S:{month["seasonal_factor"]}x</span></div>',
+                        unsafe_allow_html=True,
+                    )
+
             # Competitive landscape
             if landscape.get("ml_brands"):
                 st.subheader("Paisaje competitivo")

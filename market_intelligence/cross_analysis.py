@@ -475,6 +475,124 @@ class CrossAnalyzer:
             json.dump(data, f, ensure_ascii=False, indent=2, default=str)
         return path
 
+    def price_war_detector(self, items, analysis):
+        """Detectar si hay guerra de precios en el mercado.
+
+        Cruza: descuentos x dispersión x envío gratis
+        Señales de guerra: muchos descuentos altos + baja dispersión + envío gratis universal
+        """
+        if not items:
+            return {"detected": False}
+
+        discounted = [i for i in items if i.get("original_price", 0) > 0 and i["price"] > 0]
+        total = len(items)
+
+        if not discounted:
+            return {
+                "detected": False,
+                "discount_ratio": 0,
+                "signal": "Mercado estable — pocos descuentos",
+            }
+
+        discount_ratio = len(discounted) / total
+        discounts = [(i["original_price"] - i["price"]) / i["original_price"] * 100 for i in discounted]
+        avg_discount = sum(discounts) / len(discounts)
+        deep_discounts = sum(1 for d in discounts if d >= 30) / len(discounts)
+
+        free_ship = sum(1 for i in items if i["free_shipping"]) / total if total > 0 else 0
+
+        # Price war score (0-100)
+        war_score = (
+            min(discount_ratio / 0.8, 1) * 30 +       # % items with discount
+            min(avg_discount / 40, 1) * 25 +            # Average discount depth
+            min(deep_discounts / 0.5, 1) * 25 +         # % deep discounts (>30%)
+            min(free_ship / 0.9, 1) * 20                # Free shipping prevalence
+        )
+
+        detected = war_score >= 60
+
+        if war_score >= 80:
+            signal = "GUERRA TOTAL — descuentos agresivos masivos, competencia brutal"
+            recommendation = "EVITAR importar salvo que tengas costo < Q1"
+        elif war_score >= 60:
+            signal = "GUERRA ACTIVA — descuentos frecuentes y profundos"
+            recommendation = "Importar solo con margen >= 40% para absorber guerra"
+        elif war_score >= 40:
+            signal = "COMPETENCIA INTENSA — descuentos moderados"
+            recommendation = "Viable pero monitorear evolución de precios"
+        else:
+            signal = "MERCADO SANO — descuentos normales"
+            recommendation = "Buen contexto para entrar"
+
+        return {
+            "detected": detected,
+            "war_score": round(war_score, 1),
+            "discount_ratio_pct": round(discount_ratio * 100, 1),
+            "avg_discount_pct": round(avg_discount, 1),
+            "deep_discount_ratio_pct": round(deep_discounts * 100, 1),
+            "free_shipping_pct": round(free_ship * 100, 1),
+            "signal": signal,
+            "recommendation": recommendation,
+        }
+
+    def import_calendar(self, query, landed_cost_usd, ml_analysis):
+        """Generar calendario de importación mes a mes para los próximos 12 meses.
+
+        Cruza: Google Trends mensual x margen base = score mensual de importación
+        """
+        from datetime import timedelta
+        today = datetime.now()
+        landed_ars = landed_cost_usd * self.exchange_rate
+        median = ml_analysis.get("price_median", 0)
+        commission = self.ml_commission / 100
+        net = median * (1 - commission)
+        base_margin = (net - landed_ars) / net * 100 if net > 0 else 0
+
+        trends_df = get_trends([query.split()[0]], months=12)
+
+        calendar = []
+        for month_offset in range(12):
+            target = today + timedelta(days=30 * month_offset)
+            month_name = target.strftime("%B %Y")
+            month_num = target.month
+
+            # Seasonal factor from trends
+            seasonal_factor = 1.0
+            if trends_df is not None and not trends_df.empty:
+                col = trends_df.columns[0] if len(trends_df.columns) > 0 else None
+                if col:
+                    month_data = trends_df[trends_df.index.month == month_num]
+                    overall_avg = trends_df[col].mean()
+                    if not month_data.empty and overall_avg > 0:
+                        seasonal_factor = month_data[col].mean() / overall_avg
+
+            adjusted_margin = base_margin * (1 + (seasonal_factor - 1) * 0.3)
+
+            # Scoring
+            if adjusted_margin >= 40 and seasonal_factor >= 1.1:
+                timing = "OPTIMO"
+                color = "#28a745"
+            elif adjusted_margin >= 30 and seasonal_factor >= 0.9:
+                timing = "BUENO"
+                color = "#17a2b8"
+            elif adjusted_margin >= 20:
+                timing = "REGULAR"
+                color = "#ffc107"
+            else:
+                timing = "MALO"
+                color = "#dc3545"
+
+            calendar.append({
+                "month": month_name,
+                "month_num": month_num,
+                "seasonal_factor": round(seasonal_factor, 2),
+                "adjusted_margin_pct": round(adjusted_margin, 1),
+                "timing": timing,
+                "color": color,
+            })
+
+        return calendar
+
     def load_historical(self, query_filter=None, limit=20):
         """Cargar análisis cruzados previos para comparación temporal."""
         files = sorted(
