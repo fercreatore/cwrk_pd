@@ -1192,6 +1192,172 @@ def buscar_sustitutos_activos_con_stock(codigo_mg, subrubro_cod):
 
 
 # ============================================================================
+# DETECTOR DE TENDENCIA EMERGENTE
+# ============================================================================
+
+@st.cache_data(ttl=600)
+def detectar_tendencias_emergentes():
+    """
+    Detecta productos que están naciendo fuertes.
+    Criterios:
+      - Primera venta hace menos de 6 meses O aceleración explosiva
+      - Ventas crecientes mes a mes (pendiente positiva)
+      - Velocidad actual > promedio de su categoría
+
+    Retorna DataFrame rankeado por "momentum" (score compuesto).
+    """
+    hoy = date.today()
+    hace_12 = (hoy - relativedelta(months=12)).replace(day=1)
+    hace_6 = (hoy - relativedelta(months=6)).replace(day=1)
+    hace_3 = (hoy - relativedelta(months=3)).replace(day=1)
+
+    sql = f"""
+        SELECT
+            LEFT(a.codigo_sinonimo, 10) AS csr,
+            MAX(a.descripcion_1) AS descripcion,
+            MAX(a.marca) AS marca,
+            MAX(a.proveedor) AS proveedor,
+            MAX(a.subrubro) AS subrubro,
+            MAX(a.rubro) AS rubro,
+            MAX(a.precio_fabrica) AS precio_fabrica,
+            MIN(v.fecha) AS primera_venta,
+            SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                     WHEN v.operacion='-' THEN -v.cantidad END) AS vtas_total,
+            SUM(CASE WHEN v.fecha < '{hace_6}'
+                THEN (CASE WHEN v.operacion='+' THEN v.cantidad
+                           WHEN v.operacion='-' THEN -v.cantidad END)
+                ELSE 0 END) AS vtas_s1,
+            SUM(CASE WHEN v.fecha >= '{hace_6}' AND v.fecha < '{hace_3}'
+                THEN (CASE WHEN v.operacion='+' THEN v.cantidad
+                           WHEN v.operacion='-' THEN -v.cantidad END)
+                ELSE 0 END) AS vtas_q3,
+            SUM(CASE WHEN v.fecha >= '{hace_3}'
+                THEN (CASE WHEN v.operacion='+' THEN v.cantidad
+                           WHEN v.operacion='-' THEN -v.cantidad END)
+                ELSE 0 END) AS vtas_q4,
+            ISNULL((
+                SELECT SUM(s.stock_actual)
+                FROM msgestionC.dbo.stock s
+                JOIN msgestion01art.dbo.articulo a2 ON a2.codigo = s.articulo
+                WHERE LEFT(a2.codigo_sinonimo, 10) = LEFT(a.codigo_sinonimo, 10)
+                  AND s.deposito IN {DEPOS_SQL}
+            ), 0) AS stock_actual
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND v.fecha >= '{hace_12}'
+          AND a.estado = 'V'
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+          AND LEN(a.codigo_sinonimo) >= 10
+          AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
+        HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) > 3
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['csr'] = df['csr'].str.strip()
+    df['descripcion'] = df['descripcion'].str.strip()
+    for c in ['vtas_total', 'vtas_s1', 'vtas_q3', 'vtas_q4', 'stock_actual', 'precio_fabrica']:
+        df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
+
+    # ── Métricas de momentum ──
+
+    # 1. Aceleración: Q4 vs Q3 (últimos 3 meses vs anteriores 3)
+    df['aceleracion'] = np.where(
+        df['vtas_q3'] > 0,
+        ((df['vtas_q4'] - df['vtas_q3']) / df['vtas_q3'] * 100).round(1),
+        np.where(df['vtas_q4'] > 0, 500, 0)  # producto nuevo sin historia
+    )
+
+    # 2. Es "nuevo"? primera venta en últimos 6 meses
+    df['primera_venta'] = pd.to_datetime(df['primera_venta'])
+    df['es_nuevo'] = df['primera_venta'] >= pd.Timestamp(hace_6)
+
+    # 3. Concentración reciente: % de ventas totales que ocurrió en Q4
+    df['pct_reciente'] = np.where(
+        df['vtas_total'] > 0,
+        (df['vtas_q4'] / df['vtas_total'] * 100).round(1),
+        0
+    )
+
+    # 4. Velocidad mensual actual (Q4 = últimos 3 meses)
+    df['vel_mensual'] = (df['vtas_q4'] / 3).round(1)
+
+    # 5. Cobertura con velocidad actual
+    df['dias_stock'] = np.where(
+        df['vel_mensual'] > 0,
+        (df['stock_actual'] / (df['vel_mensual'] / 30)).round(0),
+        np.where(df['stock_actual'] > 0, 999, 0)
+    )
+
+    # 6. Score compuesto de momentum
+    # Pesa: aceleración (40%), concentración reciente (30%), novedad (20%), velocidad (10%)
+    df['aceleracion_norm'] = df['aceleracion'].clip(-100, 500) / 500
+    df['pct_reciente_norm'] = df['pct_reciente'] / 100
+    df['vel_norm'] = df['vel_mensual'] / df['vel_mensual'].quantile(0.95).clip(lower=1)
+    df['vel_norm'] = df['vel_norm'].clip(0, 1)
+
+    df['momentum'] = (
+        df['aceleracion_norm'] * 0.4 +
+        df['pct_reciente_norm'] * 0.3 +
+        df['es_nuevo'].astype(float) * 0.2 +
+        df['vel_norm'] * 0.1
+    ).round(3)
+
+    # Filtrar: solo los que realmente están creciendo
+    df_emergentes = df[
+        (df['aceleracion'] > 20) &  # acelerando >20%
+        (df['vtas_q4'] >= 3) &  # mínimo 3 pares en Q4
+        (df['pct_reciente'] >= 30)  # al menos 30% de ventas son recientes
+    ].copy()
+
+    df_emergentes = df_emergentes.sort_values('momentum', ascending=False)
+
+    # Agregar nombres
+    df_emergentes['genero'] = df_emergentes['rubro'].map(RUBRO_GENERO).fillna('?')
+
+    return df_emergentes
+
+
+@st.cache_data(ttl=600)
+def velocidad_promedio_por_categoria():
+    """Velocidad promedio mensual por rubro × subrubro (benchmark)."""
+    desde = (date.today() - relativedelta(months=3)).replace(day=1)
+    sql = f"""
+        SELECT a.rubro, a.subrubro,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) / 3.0 AS vel_prom_cat
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS} AND v.fecha >= '{desde}'
+          AND a.estado = 'V' AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+        GROUP BY a.rubro, a.subrubro
+    """
+    df = query_df(sql)
+    if df.empty:
+        return {}
+    # Contar productos por categoría para sacar promedio por producto
+    sql_count = f"""
+        SELECT a.rubro, a.subrubro, COUNT(DISTINCT LEFT(a.codigo_sinonimo, 10)) AS n_prods
+        FROM msgestion01art.dbo.articulo a
+        WHERE a.estado = 'V' AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+          AND LEN(a.codigo_sinonimo) >= 10
+        GROUP BY a.rubro, a.subrubro
+    """
+    df_n = query_df(sql_count)
+    if df_n.empty:
+        return {}
+
+    merged = df.merge(df_n, on=['rubro', 'subrubro'], how='left')
+    merged['vel_por_prod'] = merged['vel_prom_cat'] / merged['n_prods'].clip(lower=1)
+    return {(int(r['rubro']), int(r['subrubro'])): round(float(r['vel_por_prod']), 2)
+            for _, r in merged.iterrows()}
+
+
+# ============================================================================
 # CURVA DE TALLE IDEAL (reverse-engineered from 3 years of sales)
 # ============================================================================
 
@@ -1672,9 +1838,10 @@ def render_dashboard():
 
     # ── TABS ──
     (tab_surtido, tab_dashboard, tab_waterfall, tab_optimizar,
-     tab_curva, tab_canibal, tab_pedido, tab_historial) = st.tabs([
+     tab_curva, tab_canibal, tab_emergentes, tab_pedido, tab_historial) = st.tabs([
         "🗺️ Mapa Surtido", "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
-        "👟 Curva Talle", "🔬 Canibalización", "🛒 Armar Pedido", "📋 Historial"
+        "👟 Curva Talle", "🔬 Canibalización", "🚀 Emergentes",
+        "🛒 Armar Pedido", "📋 Historial"
     ])
 
     # ══════════════════════════════════════════════════════════════
@@ -2585,6 +2752,179 @@ def render_dashboard():
                                     st.dataframe(pd.DataFrame(no_canib)[
                                         ['descripcion', 'similitud', 'vtas_s1', 'vtas_s2', 'delta_pct', 'tendencia']
                                     ], use_container_width=True, hide_index=True)
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB: TENDENCIAS EMERGENTES
+    # ══════════════════════════════════════════════════════════════
+    with tab_emergentes:
+        st.subheader("Tendencias Emergentes")
+        st.caption("Productos que estan naciendo fuertes o acelerando. "
+                   "La senal temprana de hacia donde va tu mercado.")
+
+        if st.button("Detectar tendencias", type="primary", key="btn_emergentes"):
+            with st.spinner("Analizando velocidad, aceleracion y novedad..."):
+                df_emerg = detectar_tendencias_emergentes()
+                vel_cat = velocidad_promedio_por_categoria()
+                marcas_d2 = cargar_marcas_dict()
+                provs_d2 = cargar_proveedores_dict()
+                sub_d2 = cargar_subrubro_desc()
+                st.session_state['emergentes_data'] = {
+                    'df': df_emerg, 'vel_cat': vel_cat,
+                    'marcas': marcas_d2, 'provs': provs_d2, 'subs': sub_d2
+                }
+
+        if 'emergentes_data' in st.session_state:
+            edata = st.session_state['emergentes_data']
+            df_e = edata['df']
+            vel_cat = edata['vel_cat']
+            marcas_d2 = edata['marcas']
+            provs_d2 = edata['provs']
+            sub_d2 = edata['subs']
+
+            if df_e.empty:
+                st.info("No se detectaron tendencias emergentes claras en este momento.")
+            else:
+                # Enriquecer
+                df_e['marca_desc'] = df_e['marca'].map(
+                    lambda x: marcas_d2.get(int(x), f"#{int(x)}") if pd.notna(x) else "?"
+                )
+                df_e['prov_nombre'] = df_e['proveedor'].map(
+                    lambda x: provs_d2.get(int(x), f"#{int(x)}") if pd.notna(x) else "?"
+                )
+                df_e['categoria'] = df_e['subrubro'].map(
+                    lambda x: sub_d2.get(int(x), '?') if pd.notna(x) else '?'
+                )
+
+                # Benchmark: es más rápido que su categoría?
+                df_e['vel_cat_prom'] = df_e.apply(
+                    lambda r: vel_cat.get((int(r['rubro']), int(r['subrubro'])), 0)
+                    if pd.notna(r['rubro']) and pd.notna(r['subrubro']) else 0,
+                    axis=1
+                )
+                df_e['vs_categoria'] = np.where(
+                    df_e['vel_cat_prom'] > 0,
+                    (df_e['vel_mensual'] / df_e['vel_cat_prom']).round(1),
+                    0
+                )
+                df_e['supera_cat'] = df_e['vs_categoria'] > 2  # vende >2x que el promedio
+
+                # KPIs
+                ek1, ek2, ek3, ek4 = st.columns(4)
+                ek1.metric("Productos emergentes", len(df_e))
+                nuevos = len(df_e[df_e['es_nuevo']])
+                ek2.metric("Productos nuevos (<6m)", nuevos)
+                acelerando = len(df_e[df_e['aceleracion'] > 100])
+                ek3.metric("Aceleracion >100%", acelerando)
+                superan = len(df_e[df_e['supera_cat']])
+                ek4.metric("Superan 2x su categoria", superan)
+
+                st.divider()
+
+                # Clasificación
+                st.markdown("#### Clasificacion de tendencias")
+                st.markdown(
+                    "- **ESTRELLA**: Nuevo + acelerando + supera su categoria = **comprar agresivo**\n"
+                    "- **COHETE**: No es nuevo pero aceleracion explosiva (>100%) = **aumentar reposicion**\n"
+                    "- **PROMESA**: Creciendo sostenido, todavia no exploto = **monitorear y preparar stock**"
+                )
+
+                df_e['clasificacion'] = 'PROMESA'
+                df_e.loc[df_e['aceleracion'] > 100, 'clasificacion'] = 'COHETE'
+                df_e.loc[df_e['es_nuevo'] & (df_e['aceleracion'] > 50) & df_e['supera_cat'],
+                         'clasificacion'] = 'ESTRELLA'
+
+                # Alerta de stock bajo en emergentes
+                sin_stock = df_e[(df_e['dias_stock'] < 30) & (df_e['vel_mensual'] > 2)]
+                if not sin_stock.empty:
+                    productos_alerta = ", ".join(sin_stock.head(5)['descripcion'].str[:30].tolist())
+                    st.error(f"ALERTA: {len(sin_stock)} emergentes con menos de 30 dias de stock: {productos_alerta}...")
+
+                st.divider()
+
+                # Filtros
+                ef1, ef2 = st.columns(2)
+                with ef1:
+                    clasif_disp = sorted(df_e['clasificacion'].unique())
+                    clasif_sel = st.multiselect("Clasificacion", clasif_disp,
+                                                 default=clasif_disp, key="emerg_clasif")
+                with ef2:
+                    generos_e = sorted(df_e['genero'].unique())
+                    genero_e_sel = st.multiselect("Genero", generos_e,
+                                                    default=generos_e, key="emerg_genero")
+
+                df_vis_e = df_e[
+                    df_e['clasificacion'].isin(clasif_sel) &
+                    df_e['genero'].isin(genero_e_sel)
+                ].copy()
+
+                # Tabla principal
+                st.dataframe(
+                    df_vis_e[['clasificacion', 'descripcion', 'marca_desc', 'genero', 'categoria',
+                              'vel_mensual', 'aceleracion', 'vtas_q3', 'vtas_q4',
+                              'stock_actual', 'dias_stock', 'vs_categoria', 'momentum']].head(80),
+                    column_config={
+                        'clasificacion': st.column_config.TextColumn('Tipo', width=90),
+                        'descripcion': st.column_config.TextColumn('Producto', width=220),
+                        'marca_desc': 'Marca',
+                        'genero': st.column_config.TextColumn('Gen.', width=70),
+                        'categoria': st.column_config.TextColumn('Cat.', width=100),
+                        'vel_mensual': st.column_config.NumberColumn('Vel/mes', format="%.1f",
+                            help="Velocidad mensual actual (ultimos 3 meses)"),
+                        'aceleracion': st.column_config.NumberColumn('Acelerac.%', format="%.0f%%",
+                            help="Crecimiento Q4 vs Q3"),
+                        'vtas_q3': st.column_config.NumberColumn('Q3', format="%d",
+                            help="Ventas hace 6-3 meses"),
+                        'vtas_q4': st.column_config.NumberColumn('Q4', format="%d",
+                            help="Ventas ultimos 3 meses"),
+                        'stock_actual': st.column_config.NumberColumn('Stock', format="%d"),
+                        'dias_stock': st.column_config.NumberColumn('Dias', format="%d"),
+                        'vs_categoria': st.column_config.NumberColumn('vs Cat.', format="%.1fx",
+                            help="Cuantas veces mas rapido que el promedio de su categoria"),
+                        'momentum': st.column_config.ProgressColumn('Momentum', min_value=0, max_value=1,
+                            format="%.2f"),
+                    },
+                    use_container_width=True, hide_index=True,
+                )
+
+                st.divider()
+
+                # Resumen por marca: qué marcas están generando emergentes?
+                st.markdown("#### Marcas con mas emergentes")
+                resumen_marca = df_e.groupby('marca_desc').agg(
+                    emergentes=('csr', 'count'),
+                    estrellas=('clasificacion', lambda x: (x == 'ESTRELLA').sum()),
+                    cohetes=('clasificacion', lambda x: (x == 'COHETE').sum()),
+                    vel_total=('vel_mensual', 'sum'),
+                    momentum_prom=('momentum', 'mean'),
+                ).reset_index().sort_values('emergentes', ascending=False)
+
+                st.dataframe(
+                    resumen_marca.head(20),
+                    column_config={
+                        'marca_desc': 'Marca',
+                        'emergentes': st.column_config.NumberColumn('Emergentes', format="%d"),
+                        'estrellas': st.column_config.NumberColumn('Estrellas', format="%d"),
+                        'cohetes': st.column_config.NumberColumn('Cohetes', format="%d"),
+                        'vel_total': st.column_config.NumberColumn('Vel total/mes', format="%.0f"),
+                        'momentum_prom': st.column_config.NumberColumn('Momentum prom', format="%.2f"),
+                    },
+                    use_container_width=True, hide_index=True,
+                )
+
+                st.divider()
+
+                # Insight final
+                st.markdown("#### La senal")
+                top3 = df_e.head(3)
+                for _, t in top3.iterrows():
+                    emoji = {'ESTRELLA': '⭐', 'COHETE': '🚀', 'PROMESA': '📈'}.get(t['clasificacion'], '')
+                    stock_warn = " ⚠️ STOCK BAJO" if t['dias_stock'] < 30 else ""
+                    st.markdown(
+                        f"{emoji} **{t['descripcion'][:50]}** ({t['marca_desc']}) — "
+                        f"Vel: {t['vel_mensual']:.0f}/mes, Acelerac: {t['aceleracion']:+.0f}%, "
+                        f"vs cat: {t['vs_categoria']:.1f}x, Stock: {int(t['stock_actual'])} "
+                        f"({int(t['dias_stock'])}d){stock_warn}"
+                    )
 
     # ══════════════════════════════════════════════════════════════
     # TAB 4: ARMAR PEDIDO
