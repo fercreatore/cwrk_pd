@@ -34,6 +34,7 @@ class MLScraper:
             "Accept-Language": "es-AR,es;q=0.9,en;q=0.8",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         })
+        self._learned_brands = set()
         self._init_session()
         os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -73,6 +74,13 @@ class MLScraper:
 
             if page < pages - 1:
                 time.sleep(1.5)  # Rate limit
+
+        # Auto-learn brands from results and re-tag items
+        new_brands = self.learn_brands_from_results(all_items)
+        if new_brands:
+            for item in all_items:
+                if not item.get("brand"):
+                    item["brand"] = self._extract_brand(item["title"])
 
         return all_items
 
@@ -236,11 +244,47 @@ class MLScraper:
                     if b.lower() not in seen:
                         seen.add(b.lower())
                         brands.append(b)
+            # Include learned brands
+            for b in self._learned_brands:
+                if b.lower() not in seen:
+                    seen.add(b.lower())
+                    brands.append(b)
 
         for brand in brands:
             if brand.lower() in title_lower:
                 return brand
         return ""
+
+    def learn_brands_from_results(self, items):
+        """Auto-detect new brands from ML listing titles.
+
+        Uses first-word heuristic: if the first word of many titles is
+        the same capitalized word, it's likely a brand.
+        """
+        from collections import Counter
+        first_words = Counter()
+        for item in items:
+            title = item.get("title", "").strip()
+            if not title:
+                continue
+            first_word = title.split()[0]
+            # Only consider capitalized words (likely brands)
+            if first_word[0].isupper() and len(first_word) >= 3 and first_word.isalpha():
+                first_words[first_word] += 1
+
+        # If a first word appears in >= 3 titles, consider it a brand
+        known_lower = set()
+        for cat_brands in self.BRANDS_BY_CATEGORY.values():
+            for b in cat_brands:
+                known_lower.add(b.lower())
+
+        new_brands = []
+        for word, count in first_words.most_common(20):
+            if count >= 3 and word.lower() not in known_lower:
+                new_brands.append(word)
+                self._learned_brands.add(word)
+
+        return new_brands
 
     def get_category_info(self, query):
         """Get ML category data for a search term."""
