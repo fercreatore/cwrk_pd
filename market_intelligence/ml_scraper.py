@@ -415,7 +415,8 @@ def import_opportunity_score(landed_cost_usd, exchange_rate, ml_median_price,
     targets = {"minimo_30": 30, "objetivo_40": 40, "premium_50": 50}
     suggested = {}
     for name, target_margin in targets.items():
-        suggested[name] = round(landed_ars / (1 - target_margin / 100 - ml_commission_pct / 100))
+        denom = 1 - target_margin / 100 - ml_commission_pct / 100
+        suggested[name] = round(landed_ars / denom) if denom > 0 else None
 
     return {
         "landed_cost_usd": landed_cost_usd,

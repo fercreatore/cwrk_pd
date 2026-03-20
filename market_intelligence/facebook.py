@@ -205,10 +205,10 @@ class FacebookAuditor:
         return data
 
     def _parse_count(self, text):
-        """Convertir '12.3K' o '1,234' a entero."""
+        """Convertir '12.3K' o '1,234' o '1.234' a entero."""
         if isinstance(text, int):
             return text
-        text = str(text).strip().replace(",", "").replace(".", "")
+        text = str(text).strip()
         multiplier = 1
         if text.upper().endswith("K"):
             multiplier = 1000
@@ -216,6 +216,12 @@ class FacebookAuditor:
         elif text.upper().endswith("M"):
             multiplier = 1_000_000
             text = text[:-1]
+        # Remove thousand separators (comma or dot) but keep decimal dots for K/M
+        # If multiplier > 1, dot is decimal (e.g. "12.3K" = 12300)
+        # If multiplier == 1, dot is thousand separator for integers (e.g. "1.234" = 1234)
+        text = text.replace(",", "")
+        if multiplier == 1:
+            text = text.replace(".", "")
         try:
             return int(float(text) * multiplier)
         except ValueError:

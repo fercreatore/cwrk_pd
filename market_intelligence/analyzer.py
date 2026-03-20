@@ -134,10 +134,16 @@ class MarketAnalyzer:
 
         # Break-even price (minimum ML listing price for 25% margin)
         min_margin = 25
-        breakeven_price = landed_ars / (1 - min_margin / 100 - ml_commission / 100)
+        denominator = 1 - min_margin / 100 - ml_commission / 100
+        if denominator <= 0:
+            breakeven_price = float('inf')
+        else:
+            breakeven_price = landed_ars / denominator
 
         # Price positioning
-        if breakeven_price < q1_price:
+        if breakeven_price == float('inf'):
+            positioning = "INVIABLE - margen + comisión >= 100%"
+        elif breakeven_price < q1_price:
             positioning = "FUERTE - podés competir en precio bajo"
         elif breakeven_price < median_price:
             positioning = "VIABLE - competitivo en rango medio"
@@ -149,8 +155,11 @@ class MarketAnalyzer:
         # Suggested prices
         suggested = {}
         for label, margin in [("agresivo_30", 30), ("target_40", 40), ("premium_50", 50)]:
-            price = landed_ars / (1 - margin / 100 - ml_commission / 100)
-            suggested[label] = round(price)
+            denom = 1 - margin / 100 - ml_commission / 100
+            if denom <= 0:
+                suggested[label] = None
+            else:
+                suggested[label] = round(landed_ars / denom)
 
         return {
             "landed_cost_ars": round(landed_ars),

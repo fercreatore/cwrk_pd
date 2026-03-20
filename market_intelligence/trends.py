@@ -35,7 +35,7 @@ def get_trends(keywords, months=12, geo="AR", max_retries=3):
         print("pytrends not installed. Run: pip install pytrends")
         return None
 
-    pytrends = TrendReq(hl="es-AR", tz=180, geo=geo)
+    pytrends = TrendReq(hl="es-AR", tz=180)
     timeframe = f"today {months}-m"
 
     for attempt in range(max_retries):
@@ -79,19 +79,31 @@ def seasonal_projection(df, forecast_days=90):
         # Current period average (last 4 weeks)
         recent = df[col].tail(4).mean()
 
-        # Same period last year
+        # Same period last year — handle month boundaries (Jan=1, Dec=12)
         target_month = target_start.month
+        target_months = set()
+        for offset in [-1, 0, 1]:
+            m = target_month + offset
+            if m < 1:
+                m += 12
+            elif m > 12:
+                m -= 12
+            target_months.add(m)
         last_year_data = df[
-            (df.index.month >= target_month - 1) &
-            (df.index.month <= target_month + 1) &
+            df.index.month.isin(target_months) &
             (df.index.year == today.year - 1)
         ]
 
         if not last_year_data.empty:
-            # Current period last year
+            # Current period last year — handle month boundaries
+            current_months = set()
+            for offset in [-1, 0]:
+                m = today.month + offset
+                if m < 1:
+                    m += 12
+                current_months.add(m)
             current_last_year = df[
-                (df.index.month >= today.month - 1) &
-                (df.index.month <= today.month) &
+                df.index.month.isin(current_months) &
                 (df.index.year == today.year - 1)
             ]
 
@@ -123,7 +135,7 @@ def get_related_queries(keyword, geo="AR"):
     if not HAS_PYTRENDS:
         return {}
 
-    pytrends = TrendReq(hl="es-AR", tz=180, geo=geo)
+    pytrends = TrendReq(hl="es-AR", tz=180)
     try:
         pytrends.build_payload([keyword], timeframe="today 3-m", geo=geo)
         related = pytrends.related_queries()

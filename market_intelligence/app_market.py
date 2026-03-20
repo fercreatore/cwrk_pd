@@ -7,6 +7,7 @@ Uso:
 
 import streamlit as st
 import pandas as pd
+import numpy as np
 import json
 import os
 import time
@@ -83,12 +84,16 @@ with tab_scan:
             m3.metric("Rango", f"${analysis['price_min']:,} — ${analysis['price_max']:,}")
             m4.metric("Envío gratis", f"{analysis['free_shipping_pct']}%")
 
-            # Price distribution
+            # Price distribution (histogram)
             st.subheader("Distribución de precios")
             prices = [i["price"] for i in items if i["price"] > 0]
             if prices:
                 df_prices = pd.DataFrame({"Precio ARS": prices})
-                st.bar_chart(df_prices["Precio ARS"].value_counts().sort_index())
+                n_bins = min(20, len(set(prices)))
+                hist_counts, bin_edges = np.histogram(prices, bins=n_bins)
+                bin_labels = [f"${int(bin_edges[i]):,}-${int(bin_edges[i+1]):,}" for i in range(len(hist_counts))]
+                df_hist = pd.DataFrame({"Rango de precio": bin_labels, "Cantidad": hist_counts})
+                st.bar_chart(df_hist.set_index("Rango de precio"))
 
             # Segments
             st.subheader("Segmentos de precio")
@@ -118,14 +123,18 @@ with tab_scan:
             o1.metric("Costo landed", f"${landed_ars:,.0f} ARS")
             o2.metric("Margen a mediana", f"{margin:.1f}%",
                        delta="Viable" if margin >= 25 else "Ajustado")
-            bep = landed_ars / (1 - 0.25 - ml_commission / 100)
-            o3.metric("Break-even (25%)", f"${bep:,.0f}")
+            bep_denom = 1 - 0.25 - ml_commission / 100
+            bep = landed_ars / bep_denom if bep_denom > 0 else float('inf')
+            o3.metric("Break-even (25%)", f"${bep:,.0f}" if bep != float('inf') else "N/A")
 
             # Suggested prices table
             margins = [30, 35, 40, 45, 50]
             price_table = []
             for m in margins:
-                p = landed_ars / (1 - m / 100 - ml_commission / 100)
+                denom = 1 - m / 100 - ml_commission / 100
+                if denom <= 0:
+                    continue
+                p = landed_ars / denom
                 position = ""
                 if p < analysis["price_q1"]:
                     position = "Por debajo de Q1 (muy competitivo)"
@@ -193,9 +202,11 @@ mochila urbana mujer,7"""
             landed_ars = cost * exchange_rate
             net_median = analysis["price_median"] * (1 - ml_commission / 100)
             margin = (net_median - landed_ars) / net_median * 100 if net_median > 0 else 0
-            bep = landed_ars / (1 - 0.25 - ml_commission / 100)
+            bep_d = 1 - 0.25 - ml_commission / 100
+            bep = landed_ars / bep_d if bep_d > 0 else float('inf')
 
-            p40 = landed_ars / (1 - 0.40 - ml_commission / 100)
+            p40_d = 1 - 0.40 - ml_commission / 100
+            p40 = landed_ars / p40_d if p40_d > 0 else float('inf')
 
             results.append({
                 "Categoría": q,
