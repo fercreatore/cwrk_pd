@@ -34,6 +34,18 @@ HHI_ALERT_THRESHOLD = 2500   # alerta si HHI > 2500 (altamente concentrado)
 MAX_CLASS_PCT = 45            # ninguna asset class > 45%
 VAR_95_DAILY_LIMIT = -3.0    # VaR 95% diario máximo aceptable (%)
 
+# Cross-analysis: umbrales para señales cruzadas
+CROSS_ANALYSIS = {
+    "vix_alto": 25,           # VIX > 25 = miedo
+    "vix_panico": 30,         # VIX > 30 = pánico (oportunidad contrarian)
+    "dxy_fuerte": 3,          # DXY +3% 6m = USD fuerte
+    "sp_sobrevendido": 35,    # S&P RSI < 35
+    "brecha_baja": 8,         # brecha < 8% = ventana de dolarización
+    "brecha_alta": 20,        # brecha > 20% = presión devaluatoria
+    "rp_bajo": 600,           # RP < 600bp = zona favorable
+    "rp_alto": 800,           # RP > 800bp = stress
+}
+
 # IBKR config (para cuando se conecte la API real)
 IBKR_CONFIG = {
     "host": "127.0.0.1",

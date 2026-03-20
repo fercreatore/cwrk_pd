@@ -51,6 +51,19 @@ TICKER_MAP = {
     "AUSO": "AUSO.BA",
     "TECO2": "TECO2.BA",
     "DGCU2": "DGCU2.BA",
+    "GGAL": "GGAL",       # ADR en NYSE
+    "YPF": "YPF",         # ADR en NYSE
+    "PAMP": "PAM",         # ADR en NYSE
+    "BBAR": "BBAR",        # ADR en NYSE
+    "SUPV": "SUPV",        # ADR en NYSE
+    "CEPU": "CEPU",        # ADR en NYSE
+    "LOMA": "LOMA",        # ADR en NYSE
+    "TXAR": "TXAR.BA",
+    "ALUA": "ALUA.BA",
+    "COME": "COME.BA",
+    "EDN": "EDN.BA",
+    "VALO": "VALO.BA",
+    "BYMA": "BYMA.BA",
     # Crypto directo
     "BTC": "BTC-USD",
     "ETH": "ETH-USD",

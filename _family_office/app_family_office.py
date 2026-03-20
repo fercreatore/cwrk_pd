@@ -556,6 +556,88 @@ with tab_macro:
             else:
                 st.info(f"BTC en rango ({btc['range_pct']:.0f}% del rango 6m)")
 
+    # --- CROSS-ANALYSIS: cruce de variables ---
+    st.markdown("---")
+    st.markdown("#### Cross-Analysis: Cruce de Variables")
+    st.caption("Combinaciones de indicadores que generan señales compuestas")
+
+    cross_signals = []
+
+    # Extraer valores para cruce
+    _vix = next((g for g in global_data if g["ticker"] == "^VIX"), None)
+    _dxy = next((g for g in global_data if g["ticker"] == "DX-Y.NYB"), None)
+    _sp500 = next((g for g in global_data if g["ticker"] == "^GSPC"), None)
+    _btc = next((g for g in global_data if g["ticker"] == "BTC-USD"), None)
+    _gld = next((g for g in global_data if g["ticker"] == "GLD"), None)
+    _eem = next((g for g in global_data if g["ticker"] == "EEM"), None)
+    _tlt = next((g for g in global_data if g["ticker"] == "TLT"), None)
+    _brecha = next((i["value"] for i in ar_indicators if "Brecha MEP" in i["name"]), None)
+    _rp = next((i["value"] for i in ar_indicators if "EMBI" in i["name"]), None)
+
+    # 1. VIX alto + S&P sobrevendido = oportunidad contrarian
+    if _vix and _sp500 and _vix["current"] > 25 and _sp500.get("rsi") and _sp500["rsi"] < 35:
+        cross_signals.append(("buy-box", "OPORTUNIDAD CONTRARIAN",
+            f"VIX {_vix['current']:.0f} + S&P RSI {_sp500['rsi']:.0f} — históricamente los mejores puntos de entrada para CEDEARs"))
+
+    # 2. DXY bajando + EEM subiendo = viento de cola emergentes
+    if _dxy and _eem and _dxy["period_chg"] < -2 and _eem["period_chg"] > 3:
+        cross_signals.append(("ok-box", "VIENTO DE COLA EMERGENTES",
+            f"DXY {_dxy['period_chg']:+.1f}% + EEM {_eem['period_chg']:+.1f}% — condiciones óptimas para bonos AR y acciones AR"))
+
+    # 3. DXY subiendo + EEM cayendo = presión sobre AR
+    if _dxy and _eem and _dxy["period_chg"] > 3 and _eem["period_chg"] < -3:
+        cross_signals.append(("alert-box", "PRESIÓN SOBRE ARGENTINA",
+            f"DXY {_dxy['period_chg']:+.1f}% + EEM {_eem['period_chg']:+.1f}% — USD fuerte + salida de emergentes, cautela con activos AR"))
+
+    # 4. Oro subiendo + BTC subiendo = liquidez global expansiva
+    if _gld and _btc and _gld["period_chg"] > 10 and _btc["period_chg"] > 10:
+        cross_signals.append(("ok-box", "LIQUIDEZ GLOBAL FUERTE",
+            f"Oro {_gld['period_chg']:+.1f}% + BTC {_btc['period_chg']:+.1f}% — ambos activos de reserva subiendo, ciclo expansivo"))
+
+    # 5. Oro subiendo + BTC cayendo = flight to safety (risk-off con inflación)
+    if _gld and _btc and _gld["period_chg"] > 10 and _btc["period_chg"] < -10:
+        cross_signals.append(("alert-box", "FLIGHT TO SAFETY",
+            f"Oro {_gld['period_chg']:+.1f}% + BTC {_btc['period_chg']:+.1f}% — rotación a refugio, reducir riesgo"))
+
+    # 6. TLT subiendo + VIX subiendo = recesión fears
+    if _tlt and _vix and _tlt["period_chg"] > 5 and _vix["current"] > 22:
+        cross_signals.append(("info-box", "SEÑAL RECESIÓN",
+            f"TLT (bonos largos) {_tlt['period_chg']:+.1f}% + VIX {_vix['current']:.0f} — mercado priceando recesión, bonos US como refugio"))
+
+    # 7. Brecha baja + riesgo país bajo = ventana de dolarización
+    if _brecha is not None and _rp is not None and _brecha < 8 and _rp < 600:
+        cross_signals.append(("ok-box", "VENTANA DE DOLARIZACIÓN",
+            f"Brecha {_brecha:.1f}% + RP {_rp:.0f}bp — momento óptimo para comprar dólar MEP y bonos hard-dollar"))
+
+    # 8. Brecha subiendo + RP subiendo = alerta Argentina
+    if _brecha is not None and _rp is not None and _brecha > 20 and _rp > 700:
+        cross_signals.append(("alert-box", "ALERTA ARGENTINA",
+            f"Brecha {_brecha:.1f}% + RP {_rp:.0f}bp — stress cambiario + crediticio, refugiarse en USD"))
+
+    # 9. S&P sobrecomprado + VIX muy bajo = complacencia (señal de cautela)
+    if _sp500 and _vix and _sp500.get("rsi") and _sp500["rsi"] > 70 and _vix["current"] < 14:
+        cross_signals.append(("info-box", "COMPLACENCIA",
+            f"S&P RSI {_sp500['rsi']:.0f} + VIX {_vix['current']:.0f} — mercado eufórico, históricamente precede correcciones"))
+
+    # 10. Cruce portfolio: tu allocation vs señales
+    bonos_pct = alloc_pct.get("Bonos Soberanos AR", 0)
+    crypto_pct = alloc_pct.get("Crypto", 0)
+    cedear_pct = alloc_pct.get("CEDEARs", 0)
+
+    if _btc and _btc["period_chg"] < -20 and crypto_pct > 15:
+        cross_signals.append(("alert-box", "SOBREEXPOSICIÓN CRYPTO EN CORRECCIÓN",
+            f"BTC {_btc['period_chg']:+.1f}% + tu crypto es {crypto_pct:.1f}% del portfolio — considerar reducir"))
+
+    if _rp and _rp > 800 and bonos_pct > 40:
+        cross_signals.append(("alert-box", "SOBREEXPOSICIÓN BONOS AR EN STRESS",
+            f"RP {_rp:.0f}bp + tus bonos AR son {bonos_pct:.1f}% del portfolio — riesgo concentrado"))
+
+    if cross_signals:
+        for box_class, title, desc in cross_signals:
+            st.markdown(f'<div class="{box_class}"><strong>{title}</strong>: {desc}</div>', unsafe_allow_html=True)
+    else:
+        st.info("Sin señales cruzadas activas — mercado en equilibrio relativo.")
+
 
 # ============================================================
 # TAB 3: RISK ENGINE
