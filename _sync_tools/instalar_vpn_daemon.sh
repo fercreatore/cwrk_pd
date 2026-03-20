@@ -10,16 +10,16 @@ LABEL="com.cowork.vpn-reconectar"
 echo "=== Instalación daemon VPN reconexión ==="
 
 # Verificar que el secreto IPSec está en Keychain
-if ! security find-generic-password -a "VPN (L2TP)" -s "VPN IPSec Secret" -w &>/dev/null; then
+if ! security find-generic-password -a "VPN (L2TP)" -s "com.cowork.vpn.ipsec" -w &>/dev/null; then
     echo "⚠ Falta el secreto IPSec en Keychain."
     echo "  Guardalo primero:"
-    echo "  security add-generic-password -a 'VPN (L2TP)' -s 'VPN IPSec Secret' -w 'TU_SECRETO_IPSEC'"
+    echo "  security add-generic-password -a 'VPN (L2TP)' -s 'com.cowork.vpn.ipsec' -w 'TU_SECRETO_IPSEC'"
     echo ""
     read -p "¿Querés ingresarlo ahora? (s/n) " resp
     if [ "$resp" = "s" ] || [ "$resp" = "S" ]; then
         read -sp "Secreto IPSec: " secret_val
         echo ""
-        security add-generic-password -a "VPN (L2TP)" -s "VPN IPSec Secret" -w "$secret_val"
+        security add-generic-password -a "VPN (L2TP)" -s "com.cowork.vpn.ipsec" -w "$secret_val"
         if [ $? -eq 0 ]; then
             echo "✓ Secreto guardado en Keychain"
         else

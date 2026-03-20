@@ -109,11 +109,11 @@ connect_vpn() {
 
     # Leer secreto IPSec desde Keychain
     local ipsec_secret
-    ipsec_secret=$(security find-generic-password -a "VPN (L2TP)" -s "VPN IPSec Secret" -w 2>/dev/null)
+    ipsec_secret=$(security find-generic-password -a "VPN (L2TP)" -s "com.cowork.vpn.ipsec" -w 2>/dev/null)
 
     if [ -z "$ipsec_secret" ]; then
         log "${RED}✗ Falta secreto IPSec en Keychain${NC}"
-        log "  Guardalo con: security add-generic-password -a 'VPN (L2TP)' -s 'VPN IPSec Secret' -w 'TU_SECRETO'"
+        log "  Guardalo con: security add-generic-password -a 'VPN (L2TP)' -s 'com.cowork.vpn.ipsec' -w 'TU_SECRETO'"
         notify "❌ Falta secreto IPSec en Keychain"
         return 1
     fi

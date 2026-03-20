@@ -35,8 +35,8 @@ El daemon fallaba con "Falta el secreto compartido IPSec" porque `scutil --nc st
 **Solución**: Guardar el secreto en Keychain del usuario y leerlo antes de conectar.
 
 Pasos:
-1. Guardar secreto: `security add-generic-password -a 'VPN (L2TP)' -s 'VPN IPSec Secret' -w 'SECRETO'`
-2. El daemon lee con: `security find-generic-password -a 'VPN (L2TP)' -s 'VPN IPSec Secret' -w`
+1. Guardar secreto: `security add-generic-password -a 'VPN (L2TP)' -s 'com.cowork.vpn.ipsec' -w 'SECRETO'`
+2. El daemon lee con: `security find-generic-password -a 'VPN (L2TP)' -s 'com.cowork.vpn.ipsec' -w`
 3. Pasa a scutil: `scutil --nc start 'VPN (L2TP)' --secret "$SECRET"`
 
 Archivos modificados:
