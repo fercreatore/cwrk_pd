@@ -851,16 +851,25 @@ def cargar_mapa_surtido():
 @st.cache_data(ttl=300)
 def calcular_alertas_talles():
     """
-    Calcula talles críticos para TODAS las categorías en una sola query.
+    Calcula talles críticos para TODAS las categorías con quiebre por talle.
     Solo categorías tipo CALZADO (excluye accesorios, indumentaria).
     Retorna dict: (genero_cod, sub_cod) → list of {'talle', 'stock', 'vtas_12m', 'cob_dias'}
     Y un DataFrame resumen: genero_cod, sub_cod, talles_criticos (int), detalle (str)
     """
-    desde = (date.today() - relativedelta(months=12)).replace(day=1)
-    sql = f"""
-        SELECT
-            a.rubro AS genero_cod,
-            a.subrubro AS sub_cod,
+    meses = MESES_HISTORIA
+    hoy = date.today()
+    desde = (hoy - relativedelta(months=meses)).replace(day=1)
+
+    calzado_filter = """
+        a.estado = 'V' AND a.rubro IN (1,3,4,5,6)
+          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
+          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
+    """
+    talle_key = "CAST(a.rubro AS VARCHAR) + '_' + CAST(a.subrubro AS VARCHAR) + '_' + RTRIM(a.descripcion_5)"
+
+    # 1. Stock actual + ventas totales
+    sql_base = f"""
+        SELECT a.rubro AS genero_cod, a.subrubro AS sub_cod,
             RTRIM(a.descripcion_5) AS talle,
             COUNT(DISTINCT a.codigo) AS modelos,
             SUM(ISNULL(s.stk, 0)) AS stock,
@@ -881,23 +890,95 @@ def calcular_alertas_talles():
             WHERE codigo NOT IN {EXCL_VENTAS} AND fecha >= '{desde}'
             GROUP BY articulo
         ) v ON v.articulo = a.codigo
-        WHERE a.estado = 'V'
-          AND a.rubro IN (1,3,4,5,6)
-          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
-          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
+        WHERE {calzado_filter}
           AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
         GROUP BY a.rubro, a.subrubro, RTRIM(a.descripcion_5)
         HAVING SUM(ISNULL(v.vtas, 0)) > 0
     """
-    df = query_df(sql)
+    df = query_df(sql_base)
     if df.empty:
         return pd.DataFrame(), {}
 
+    # 2. Ventas mensuales por talle-categoría
+    sql_vtas_mes = f"""
+        SELECT {talle_key} AS tkey,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
+               YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS} AND {calzado_filter} AND v.fecha >= '{desde}'
+        GROUP BY {talle_key}, YEAR(v.fecha), MONTH(v.fecha)
+    """
+    df_vtas_mes = query_df(sql_vtas_mes)
+
+    # 3. Compras mensuales por talle-categoría
+    sql_comp_mes = f"""
+        SELECT {talle_key} AS tkey,
+               SUM(rc.cantidad) AS cant,
+               YEAR(rc.fecha) AS anio, MONTH(rc.fecha) AS mes
+        FROM msgestionC.dbo.compras1 rc
+        JOIN msgestion01art.dbo.articulo a ON rc.articulo = a.codigo
+        WHERE rc.operacion = '+' AND {calzado_filter} AND rc.fecha >= '{desde}'
+        GROUP BY {talle_key}, YEAR(rc.fecha), MONTH(rc.fecha)
+    """
+    df_comp_mes = query_df(sql_comp_mes)
+
+    # Organizar en dicts
+    vtas_dict = {}
+    for _, r in df_vtas_mes.iterrows():
+        tk = r['tkey'].strip()
+        vtas_dict.setdefault(tk, {})[(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    comp_dict = {}
+    for _, r in df_comp_mes.iterrows():
+        tk = r['tkey'].strip()
+        comp_dict.setdefault(tk, {})[(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    # Lista de meses hacia atrás
+    meses_lista = []
+    cursor = hoy.replace(day=1)
+    for _ in range(meses):
+        meses_lista.append((cursor.year, cursor.month))
+        cursor -= relativedelta(months=1)
+
+    # Reconstruir quiebre por talle y calcular cobertura
     df['talle_num'] = pd.to_numeric(df['talle'], errors='coerce')
-    df['vel_diaria'] = df['vtas_12m'] / 365
-    cob_raw = np.where(df['vel_diaria'] > 0, df['stock'] / df['vel_diaria'],
-                       np.where(df['stock'] > 0, 9999, 0))
-    df['cob_dias'] = np.nan_to_num(cob_raw, nan=0, posinf=9999, neginf=0).astype(int)
+
+    cob_list = []
+    for _, row in df.iterrows():
+        tkey = f"{int(row['genero_cod'])}_{int(row['sub_cod'])}_{row['talle'].strip()}"
+        stock_actual = float(row['stock'])
+        v_d = vtas_dict.get(tkey, {})
+        c_d = comp_dict.get(tkey, {})
+
+        stock_fin = stock_actual
+        meses_q = 0
+        meses_ok = 0
+        ventas_ok = 0
+
+        for anio, mes in meses_lista:
+            v = v_d.get((anio, mes), 0)
+            c = c_d.get((anio, mes), 0)
+            stock_inicio = stock_fin + v - c
+            if stock_inicio <= 0:
+                meses_q += 1
+            else:
+                meses_ok += 1
+                ventas_ok += v
+            stock_fin = stock_inicio
+
+        vel_real = ventas_ok / max(meses_ok, 1) if meses_ok > 0 else float(row['vtas_12m']) / max(meses, 1)
+        vel_diaria = vel_real / 30
+        if vel_diaria > 0:
+            cob = int(stock_actual / vel_diaria)
+        elif stock_actual > 0:
+            cob = 9999
+        else:
+            cob = 0
+        cob_list.append(cob)
+
+    df['cob_dias'] = cob_list
     # Crítico: cob < 30 días O stock 0 con demanda
     df['es_critico'] = (df['cob_dias'] <= 30) | ((df['vtas_12m'] > 0) & (df['stock'] == 0))
 
@@ -998,16 +1079,23 @@ def cargar_talles_categoria(genero_cod, subrubro_cod):
     """
     Análisis por talle individual dentro de una categoría (género × subrubro).
     Usa descripcion_5 como talle principal, últimos 2 del sinónimo como fallback.
-    Retorna DataFrame con: talle, modelos, stock, ventas_12m, cobertura_dias, urgencia.
+    Velocidad corregida por quiebre a nivel talle (reconstrucción de stock mes a mes).
+    Retorna DataFrame con: talle, modelos, stock, ventas_12m, vel_real, pct_quiebre,
+                           cobertura_dias, urgencia.
     """
-    desde = (date.today() - relativedelta(months=12)).replace(day=1)
-    sql = f"""
-        SELECT
-            COALESCE(
-                NULLIF(RTRIM(a.descripcion_5), ''),
-                CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
-                     THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
-            ) AS talle,
+    meses = MESES_HISTORIA
+    hoy = date.today()
+    desde = (hoy - relativedelta(months=meses)).replace(day=1)
+
+    talle_expr = """COALESCE(
+            NULLIF(RTRIM(a.descripcion_5), ''),
+            CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
+                 THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
+        )"""
+
+    # 1. Stock actual + modelos + ventas totales por talle
+    sql_base = f"""
+        SELECT {talle_expr} AS talle,
             COUNT(DISTINCT a.codigo) AS modelos,
             SUM(ISNULL(s.stk, 0)) AS stock,
             SUM(ISNULL(v.vtas, 0)) AS vtas_12m
@@ -1026,29 +1114,105 @@ def cargar_talles_categoria(genero_cod, subrubro_cod):
             GROUP BY articulo
         ) v ON v.articulo = a.codigo
         WHERE a.estado = 'V'
-          AND a.rubro = {genero_cod}
-          AND a.subrubro = {subrubro_cod}
+          AND a.rubro = {genero_cod} AND a.subrubro = {subrubro_cod}
           AND (ISNULL(s.stk, 0) > 0 OR ISNULL(v.vtas, 0) > 0)
-        GROUP BY COALESCE(
-            NULLIF(RTRIM(a.descripcion_5), ''),
-            CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
-                 THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
-        )
-        HAVING COALESCE(
-            NULLIF(RTRIM(a.descripcion_5), ''),
-            CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
-                 THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
-        ) IS NOT NULL
+        GROUP BY {talle_expr}
+        HAVING {talle_expr} IS NOT NULL
     """
-    df = query_df(sql)
+    df = query_df(sql_base)
     if df.empty:
         return df
+
+    # 2. Ventas mensuales por talle (para reconstruir quiebre)
+    sql_vtas_mes = f"""
+        SELECT {talle_expr} AS talle,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
+               YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.estado = 'V' AND a.rubro = {genero_cod} AND a.subrubro = {subrubro_cod}
+          AND v.fecha >= '{desde}'
+        GROUP BY {talle_expr}, YEAR(v.fecha), MONTH(v.fecha)
+        HAVING {talle_expr} IS NOT NULL
+    """
+    df_vtas_mes = query_df(sql_vtas_mes)
+
+    # 3. Compras mensuales por talle
+    sql_comp_mes = f"""
+        SELECT {talle_expr} AS talle,
+               SUM(rc.cantidad) AS cant,
+               YEAR(rc.fecha) AS anio, MONTH(rc.fecha) AS mes
+        FROM msgestionC.dbo.compras1 rc
+        JOIN msgestion01art.dbo.articulo a ON rc.articulo = a.codigo
+        WHERE rc.operacion = '+'
+          AND a.estado = 'V' AND a.rubro = {genero_cod} AND a.subrubro = {subrubro_cod}
+          AND rc.fecha >= '{desde}'
+        GROUP BY {talle_expr}, YEAR(rc.fecha), MONTH(rc.fecha)
+        HAVING {talle_expr} IS NOT NULL
+    """
+    df_comp_mes = query_df(sql_comp_mes)
+
+    # Organizar ventas y compras en dicts por talle
+    vtas_dict = {}  # {talle: {(anio,mes): cant}}
+    for _, r in df_vtas_mes.iterrows():
+        t = r['talle'].strip() if r['talle'] else ''
+        vtas_dict.setdefault(t, {})[(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    comp_dict = {}
+    for _, r in df_comp_mes.iterrows():
+        t = r['talle'].strip() if r['talle'] else ''
+        comp_dict.setdefault(t, {})[(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    # Lista de meses hacia atrás
+    meses_lista = []
+    cursor = hoy.replace(day=1)
+    for _ in range(meses):
+        meses_lista.append((cursor.year, cursor.month))
+        cursor -= relativedelta(months=1)
+
+    # Reconstruir quiebre por talle
+    vel_reales = {}
+    pct_quiebres = {}
+    for _, row in df.iterrows():
+        talle = row['talle'].strip() if row['talle'] else ''
+        stock_actual = float(row['stock'])
+        v_d = vtas_dict.get(talle, {})
+        c_d = comp_dict.get(talle, {})
+
+        stock_fin = stock_actual
+        meses_q = 0
+        meses_ok = 0
+        ventas_ok = 0
+
+        for anio, mes in meses_lista:
+            v = v_d.get((anio, mes), 0)
+            c = c_d.get((anio, mes), 0)
+            stock_inicio = stock_fin + v - c
+
+            if stock_inicio <= 0:
+                meses_q += 1
+            else:
+                meses_ok += 1
+                ventas_ok += v
+
+            stock_fin = stock_inicio
+
+        vel_real = ventas_ok / max(meses_ok, 1) if meses_ok > 0 else float(row['vtas_12m']) / max(meses, 1)
+        vel_reales[talle] = round(vel_real, 2)
+        pct_quiebres[talle] = round(meses_q / max(meses, 1) * 100, 1)
+
+    df['talle'] = df['talle'].str.strip()
+    df['vel_real'] = df['talle'].map(vel_reales).fillna(0)
+    df['pct_quiebre'] = df['talle'].map(pct_quiebres).fillna(0)
 
     # Intentar ordenar numéricamente
     df['talle_num'] = pd.to_numeric(df['talle'], errors='coerce')
     df = df.sort_values('talle_num', na_position='last').drop(columns='talle_num')
 
-    df['vel_diaria'] = df['vtas_12m'] / 365
+    # Cobertura con velocidad real
+    df['vel_diaria'] = df['vel_real'] / 30
     cob_raw = np.where(
         df['vel_diaria'] > 0,
         df['stock'] / df['vel_diaria'],
@@ -1062,7 +1226,7 @@ def cargar_talles_categoria(genero_cod, subrubro_cod):
     df.loc[(df['vtas_12m'] > 0) & (df['stock'] == 0), 'urgencia'] = 'CRITICO'
     df.loc[(df['vtas_12m'] > 0) & (df['stock'] == 0), 'cob_dias'] = 0
 
-    return df.reset_index(drop=True)
+    return df.drop(columns='vel_diaria').reset_index(drop=True)
 
 
 # ============================================================================
@@ -2122,7 +2286,8 @@ def render_dashboard():
                         return colors.get(val, '')
 
                     st.dataframe(
-                        df_talles[['talle', 'modelos', 'stock', 'vtas_12m', 'cob_dias', 'urgencia']].style.applymap(
+                        df_talles[['talle', 'modelos', 'stock', 'vtas_12m', 'vel_real',
+                                   'pct_quiebre', 'cob_dias', 'urgencia']].style.applymap(
                             color_urgencia, subset=['urgencia']
                         ),
                         column_config={
@@ -2130,6 +2295,8 @@ def render_dashboard():
                             'modelos': st.column_config.NumberColumn('Modelos', format="%d"),
                             'stock': st.column_config.NumberColumn('Stock', format="%d"),
                             'vtas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                            'vel_real': st.column_config.NumberColumn('Vel real/mes', format="%.1f"),
+                            'pct_quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
                             'cob_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
                             'urgencia': 'Urgencia',
                         },
