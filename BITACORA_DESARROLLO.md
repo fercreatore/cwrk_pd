@@ -5,7 +5,49 @@
 > LEER PRIMERO en cada sesión nueva para saber qué se hizo y qué falta.
 > AL CERRAR cada sesión, ACTUALIZAR con los cambios realizados.
 
-> Última actualización: 20 de marzo de 2026 — Refresh token ML + revisión facturador TN + batch publish
+> Última actualización: 20 de marzo de 2026 — Curva ideal omicron + auditoría fórmulas app_reposicion
+
+---
+
+## 20 de marzo de 2026 — Curva ideal desde omicron + auditoría fórmulas
+
+### 1. Extracción lógica omicron → app_reposicion.py (3 funciones nuevas)
+
+Se leyó `_docs/omicron_informes_controller.py` (controller web2py del sistema de informes de producción)
+y se adaptaron 3 lógicas clave a pyodbc puro en `app_reposicion.py`:
+
+| Función | Origen omicron | Descripción |
+|---------|---------------|-------------|
+| `calcular_curva_ideal_producto(csr)` | hc_graf3, `producto_curva()` L825-833 | Curva de talles para UN producto (CSR 10 dígitos). `comprar = round(porcent / min(porcent>0), 0)` |
+| `calcular_curva_ideal_subrubro(marca, subrubro)` | hc_graf4, `producto_curva()` L836-857 | Curva de talles para TODOS los arts de una marca+subrubro. Para productos nuevos sin historial (ej: Olympikus) |
+| `calcular_ventas_por_mes(marca, subrubro, csr)` | PID-223, `get_ventas_consolidado_xmarca_graf_mes()` L1537-1546 | Ventas mensuales con promedio ponderado. Inner GROUP BY año-mes, outer GROUP BY mes con `COUNT(yeames)` como divisor |
+
+Ubicación: `app_reposicion.py` líneas 1446-1584 (entre curva talle ideal y detector canibalización).
+
+### 2. Integración en Mapa Surtido — Drill-down de talles
+
+En el drill-down por categoría del tab "Mapa Surtido", después de la tabla de talles y antes de "Pirámide de precios", se agregó:
+- Sección "Curva ideal de talles (subrubro)"
+- Detecta automáticamente la marca predominante de la categoría
+- Muestra tabla con columnas extra: `% Curva` y `x12 pares` (pares de cada talle por cada 12 comprados)
+- Merge con la tabla de talles existente (stock, vtas, cobertura, urgencia + curva ideal)
+
+### 3. Auditoría de fórmulas app_reposicion.py
+
+Documento: `_informes/auditoria_formulas_20260320.md`
+
+Resultados:
+- ✅ **Velocidad Real** (analizar_quiebre_batch L138-259): correcto, gold-standard
+- ✅ **Cobertura Advanced** (calcular_dias_cobertura L578-593): correcto, usa vel_real + estacionalidad
+- ✅ **Waterfall** (proyectar_waterfall L532-575): correcto, cadena quiebre→vel_real→estacionalidad
+- ✅ **ROI** (calcular_roi L596-656): correcto, días recupero + roi_60d
+- ⚠️ **Meses Stock dashboard** (L2150-2156): usa vel_aparente, no real — sobreestima cobertura con quiebre alto
+- ⚠️ **Curva Talles** (calcular_curva_talle_ideal L1365-1406): no corrige quiebre a nivel talle
+- ❌ **GMROI**: no implementado (existe ROI distinto)
+- ❌ **Rotación**: no calculado explícitamente
+
+### 4. Archivo copiado
+- `_docs/omicron_informes_controller.py` — copia del controller web2py para referencia
 
 ---
 
