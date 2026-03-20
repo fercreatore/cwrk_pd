@@ -553,6 +553,20 @@ elif pagina == '🛒 Tienda Nube':
                                 st.info(f"**{art['descripcion_1']} {art.get('descripcion_2','')}** | "
                                         f"Marca: {art.get('marca','-')} | Costo: ${costo:,.0f} | Stock: {stock}")
 
+                                # Buscar fotos en PostgreSQL
+                                try:
+                                    from multicanal.imagenes import buscar_imagenes_producto
+                                    fotos_pg = buscar_imagenes_producto(sku)
+                                except Exception:
+                                    fotos_pg = []
+
+                                if fotos_pg:
+                                    st.caption(f'{len(fotos_pg)} foto(s) encontrada(s) en catálogo PostgreSQL')
+                                    for foto in fotos_pg[:4]:
+                                        st.code(f"  {foto['path_completo']}", language=None)
+                                else:
+                                    st.warning('Sin fotos en el catálogo PostgreSQL para este SKU.')
+
                                 st.divider()
                                 col_p1, col_p2 = st.columns(2)
 
