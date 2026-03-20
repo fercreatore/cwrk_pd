@@ -325,6 +325,14 @@ def dashboard():
         # Si vel_real_articulo no existe todavía, continuar sin datos reales
         recupero_real = []
 
+    # Fallback: si no hay recupero_real de SQL, intentar desde vel_real.py
+    factor_quiebre_industria = {}
+    if not recupero_real:
+        try:
+            factor_quiebre_industria = vel_real_por_industria_resumen()
+        except Exception:
+            factor_quiebre_industria = {}
+
     # =========================================================================
     # BLOQUE 3: KPIs GLOBALES
     # =========================================================================
@@ -437,13 +445,39 @@ def dashboard():
             matriz[ind]['pct_vendido_al_pago_real'] = round(float(r.get('pct_vendido_al_pago_real') or 0), 1)
             matriz[ind]['factor_quiebre'] = factor
 
-            # Alerta cuando diferencia entre aparente y real > 50%
-            if dias_50_ap > 0 and dias_50_re > 0:
+            # Alerta cuando factor_quiebre > 2x (proveedor muy sub-comprado)
+            if factor >= 2.0:
+                matriz[ind]['alerta_quiebre'] = (
+                    'SUB-COMPRADO %.1fx: vel_real es %.1fx vel_aparente. '
+                    'Recupero real %dd vs aparente %dd. '
+                    'Aumentar compra para capturar demanda real.'
+                    % (factor, factor, int(dias_50_re), int(dias_50_ap))
+                )
+            elif dias_50_ap > 0 and dias_50_re > 0:
                 diff_pct = abs(dias_50_ap - dias_50_re) / dias_50_ap * 100
                 if diff_pct > 50:
                     matriz[ind]['alerta_quiebre'] = (
                         'QUIEBRE ALTO: recupero aparente %dd vs real %dd (factor %.1fx). '
                         'El presupuesto subestima la demanda.' % (int(dias_50_ap), int(dias_50_re), factor)
+                    )
+
+    # Fallback: si recupero_real vacío pero tenemos factor_quiebre del módulo vel_real
+    if not recupero_real and factor_quiebre_industria:
+        for ind, m in matriz.items():
+            fq_data = factor_quiebre_industria.get(ind, {})
+            factor = fq_data.get('factor_quiebre', 1.0)
+            if factor > 1.0 and m['dias_50'] > 0:
+                m['factor_quiebre'] = factor
+                m['dias_50_real'] = round(m['dias_50'] / factor, 0)
+                m['dias_75_real'] = round(m['dias_75'] / factor, 0) if m['dias_75'] > 0 else 0
+                pct_ap = m['pct_vendido_al_pago']
+                m['pct_vendido_al_pago_real'] = round(min(pct_ap * factor, 100), 1)
+                if factor >= 2.0:
+                    m['alerta_quiebre'] = (
+                        'SUB-COMPRADO %.1fx: vel_real es %.1fx vel_aparente. '
+                        'Recupero real %dd vs aparente %dd. '
+                        'Aumentar compra para capturar demanda real.'
+                        % (factor, factor, int(m['dias_50_real']), int(m['dias_50']))
                     )
 
     # BLOQUE 4b: REMITOS SIN FACTURAR POR INDUSTRIA (deuda en formación)
