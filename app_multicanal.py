@@ -555,17 +555,18 @@ elif pagina == '🛒 Tienda Nube':
 
                                 # Buscar fotos en PostgreSQL
                                 try:
-                                    from multicanal.imagenes import buscar_imagenes_producto
+                                    from multicanal.imagenes import buscar_imagenes_producto, url_publica
                                     fotos_pg = buscar_imagenes_producto(sku)
                                 except Exception:
                                     fotos_pg = []
 
                                 if fotos_pg:
-                                    st.caption(f'{len(fotos_pg)} foto(s) encontrada(s) en catálogo PostgreSQL')
-                                    for foto in fotos_pg[:4]:
-                                        st.code(f"  {foto['path_completo']}", language=None)
+                                    st.caption(f'{len(fotos_pg)} foto(s) encontrada(s) en catálogo')
+                                    foto_urls = [url_publica(f) for f in fotos_pg[:8]]
+                                    for fu in foto_urls:
+                                        st.code(fu, language=None)
                                 else:
-                                    st.warning('Sin fotos en el catálogo PostgreSQL para este SKU.')
+                                    st.warning('Sin fotos en el catálogo para este SKU.')
 
                                 st.divider()
                                 col_p1, col_p2 = st.columns(2)
@@ -600,6 +601,13 @@ elif pagina == '🛒 Tienda Nube':
                                     else:
                                         with st.spinner('Publicando en TiendaNube...'):
                                             try:
+                                                kwargs_pub = {'descripcion': descripcion_pub}
+                                                # Agregar imágenes si hay fotos
+                                                if fotos_pg:
+                                                    kwargs_pub['images'] = [
+                                                        {'src': url_publica(f)}
+                                                        for f in fotos_pg[:5]
+                                                    ]
                                                 resultado = tn.crear_producto(
                                                     nombre=nombre_pub,
                                                     variantes=[{
@@ -607,7 +615,7 @@ elif pagina == '🛒 Tienda Nube':
                                                         'stock': stock_pub,
                                                         'sku': sku_pub,
                                                     }],
-                                                    descripcion=descripcion_pub,
+                                                    **kwargs_pub,
                                                 )
                                                 prod_id = resultado.get('id', '')
                                                 url = resultado.get('canonical_url', '')

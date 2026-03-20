@@ -31,6 +31,11 @@ import psycopg2
 
 PG_CONN_STRING = "postgresql://guille:Martes13%23@200.58.109.125:5432/clz_productos"
 
+# URL base para servir imágenes por HTTP.
+# Configurar después de instalar nginx en el VPS con nginx_imagenes.conf
+# Ejemplo: "https://calzalindo.com.ar/img" o "http://200.58.109.125:8088/img"
+IMAGE_BASE_URL = os.environ.get('CLZ_IMAGE_URL', 'http://200.58.109.125:8088/img')
+
 
 def _get_pg_conn():
     return psycopg2.connect(PG_CONN_STRING)
@@ -168,6 +173,17 @@ def contar_imagenes_totales() -> dict:
         }
     finally:
         conn.close()
+
+
+def url_publica(imagen: dict) -> str:
+    """Genera la URL pública de la imagen (requiere nginx configurado en el VPS)."""
+    return f"{IMAGE_BASE_URL}/{imagen['path_completo']}"
+
+
+def urls_producto(sku: str) -> list:
+    """Retorna lista de URLs públicas de todas las fotos de un SKU."""
+    fotos = buscar_imagenes_producto(sku)
+    return [url_publica(f) for f in fotos]
 
 
 def obtener_imagen_base64(imagen: dict) -> str:
