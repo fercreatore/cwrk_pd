@@ -154,6 +154,38 @@ with tab_scan:
                 })
             st.table(pd.DataFrame(price_table))
 
+            # Market depth analysis
+            cross = CrossAnalyzer(exchange_rate=exchange_rate, ml_commission=ml_commission)
+            depth = cross.market_depth_analysis(items, analysis)
+            if depth:
+                st.subheader("Profundidad de mercado")
+                dp1, dp2, dp3, dp4 = st.columns(4)
+                dp1.metric("Marcas únicas", depth.get("unique_brands", 0))
+                dp2.metric("Madurez", depth.get("market_maturity", "?"))
+                dp3.metric("Concentración", f"HHI {depth.get('brand_concentration_hhi', 0)}")
+                dp4.metric("Descuento máx.", f"{depth.get('max_discount_pct', 0)}%")
+
+                dp5, dp6, dp7, dp8 = st.columns(4)
+                dp5.metric("Marca líder", depth.get("top_brand", "?"))
+                dp6.metric("Share líder", f"{depth.get('top_brand_share_pct', 0)}%")
+                dp7.metric("Coef. variación precio", depth.get("price_coefficient_variation", 0))
+                dp8.metric("% con marca", f"{depth.get('branded_ratio', 0)}%")
+
+            # Price elasticity
+            elasticity = cross.price_elasticity_map(analysis, landed_usd)
+            if elasticity:
+                st.subheader("Elasticidad por segmento")
+                el_data = []
+                for seg, data in elasticity.items():
+                    el_data.append({
+                        "Segmento": seg.upper(),
+                        "Precio prom.": f"${data['avg_price']:,}",
+                        "Margen": f"{data['margin_pct']}%",
+                        "Ganancia/u": f"${data['profit_per_unit_ars']:,}",
+                        "Atractivo": data["attractiveness"],
+                    })
+                st.dataframe(pd.DataFrame(el_data), use_container_width=True)
+
             # Raw listings
             with st.expander("Ver listings completos"):
                 df_items = pd.DataFrame(items)
@@ -240,10 +272,48 @@ mochila urbana mujer,7"""
             use_container_width=True,
         )
 
-        # Chart
+        # Chart: Margen por categoría
         st.subheader("Margen por categoría")
         chart_df = df[["Categoría", "Margen %"]].set_index("Categoría")
         st.bar_chart(chart_df)
+
+        # Opportunity matrix (cuadrantes estratégicos)
+        st.subheader("Matriz de oportunidad")
+        cross = CrossAnalyzer(exchange_rate=exchange_rate, ml_commission=ml_commission)
+        matrix_data = []
+        for r in results:
+            n_brands = 0
+            matrix_data.append({
+                "query": r["Categoría"],
+                "margin": r["Margen %"],
+                "market_size": r["Items"],
+                "seasonal_factor": 1.0,
+                "competitive_intensity": "ALTA" if r["Items"] > 100 else "MEDIA" if r["Items"] > 30 else "BAJA",
+            })
+        matrix = cross.opportunity_matrix(matrix_data)
+        if matrix:
+            mx_df = pd.DataFrame(matrix)
+            mx_display = mx_df[["category", "margin_pct", "market_size", "composite_score", "quadrant"]]
+            mx_display.columns = ["Categoría", "Margen %", "Tamaño mercado", "Score compuesto", "Cuadrante"]
+            st.dataframe(
+                mx_display.style.apply(
+                    lambda x: ["background-color: #28a745; color: white" if v == "ESTRELLA"
+                               else "background-color: #17a2b8; color: white" if v == "NICHO RENTABLE"
+                               else "background-color: #ffc107" if v == "VOLUMEN"
+                               else "background-color: #dc3545; color: white" if v == "DESCARTE"
+                               else "" for v in x],
+                    subset=["Cuadrante"]
+                ),
+                use_container_width=True,
+            )
+
+            # Score breakdown chart
+            score_cols = ["margin_score", "size_score", "seasonal_score", "competition_score"]
+            score_labels = {"margin_score": "Margen", "size_score": "Tamaño",
+                           "seasonal_score": "Estacionalidad", "competition_score": "Competencia"}
+            score_df = mx_df[["category"] + score_cols].set_index("category")
+            score_df.columns = [score_labels.get(c, c) for c in score_cols]
+            st.bar_chart(score_df)
 
 
 # ============================
