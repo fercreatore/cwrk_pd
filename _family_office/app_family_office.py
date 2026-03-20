@@ -1021,39 +1021,89 @@ with tab_risk:
     st.divider()
 
     # --- Drawdown Alerts ---
-    st.subheader("Drawdown Alerts")
+    st.subheader("Posiciones en caída")
+    st.caption("Posiciones que cayeron más del 15% desde su máximo de los últimos 6 meses. "
+               "No siempre significa vender — a veces es oportunidad de compra.")
     if dd_alerts:
         for alert in dd_alerts:
-            sev_color = "#ff4444" if alert["severity"] == "CRITICAL" else "#ffaa00"
+            is_critical = alert["severity"] == "CRITICAL"
+            sev_color = "#ff4444" if is_critical else "#ffaa00"
+            sev_emoji = "🔴" if is_critical else "🟡"
+            caida = abs(alert['drawdown_pct'])
+            peso = alert['weight_pct']
+
+            # Generar consejo accionable según la situación
+            if is_critical and peso > 10:
+                consejo = "Caída fuerte y es una posición grande. Evaluá si la tesis de inversión sigue vigente. Si sí, aguantá. Si no, reducí."
+                accion = "Revisar tesis"
+            elif is_critical and peso <= 10:
+                consejo = "Caída fuerte pero es una posición chica. Si creés en el activo, puede ser momento de promediar. Si no, no te muevas."
+                accion = "Considerar promediar"
+            elif peso > 15:
+                consejo = "Caída moderada pero pesa mucho en tu portfolio. Ojo con la concentración — no agregues más por ahora."
+                accion = "No agregar más"
+            else:
+                consejo = "Caída moderada, posición controlada. Monitorear. Si cae otro 10%, reconsiderar."
+                accion = "Monitorear"
+
             st.markdown(f"""
-            <div style="background:#2d1b1b;border-left:4px solid {sev_color};border-radius:6px;padding:10px 14px;margin:4px 0;">
-                <strong style="color:{sev_color}">{alert['severity']}</strong> —
-                <strong>{alert['ticker']}</strong>: {alert['drawdown_pct']:.1f}% desde máximo 6m
-                (${alert['peak_price']:.2f} → ${alert['current_price']:.2f})
-                | Peso: {alert['weight_pct']:.1f}%
+            <div style="background:#1a1a2e;border-left:4px solid {sev_color};border-radius:10px;padding:16px 18px;margin:8px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:1.1rem;font-weight:700;">{sev_emoji} {alert['ticker']}</span>
+                    <span style="color:{sev_color};font-size:1.3rem;font-weight:700;">-{caida:.1f}%</span>
+                </div>
+                <div style="color:#aaa;margin:6px 0;">
+                    Máximo 6m: <strong>${alert['peak_price']:.2f}</strong> →
+                    Hoy: <strong>${alert['current_price']:.2f}</strong> |
+                    Pesa <strong>{peso:.1f}%</strong> de tu portfolio
+                </div>
+                <div style="background:#2a2a3e;border-radius:6px;padding:10px 12px;margin-top:8px;">
+                    <strong style="color:#88aaff;">Qué hacer:</strong>
+                    <span style="color:#ccc;">{consejo}</span>
+                </div>
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.markdown('<div class="ok-box">Sin alertas de drawdown. Todas las posiciones dentro de límites.</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="ok-box">
+            <strong>Todo bien.</strong> Ninguna posición cayó más de 15% desde su máximo reciente.
+            Esto no significa que no pueda pasar — revisá esta sección cada semana.
+        </div>
+        """, unsafe_allow_html=True)
 
     st.divider()
 
     # --- Correlation Matrix (visual) ---
-    st.subheader("Correlation Matrix")
-    st.caption("Diversificación real entre posiciones. Azul = descorrelacionado (bueno), Rojo = correlacionado (riesgo)")
+    st.subheader("¿Están realmente diversificadas tus posiciones?")
+    st.markdown("""
+    La correlación mide si dos activos se mueven juntos. Si todo tu portfolio se mueve
+    igual, no estás diversificado — cuando uno cae, caen todos.
+
+    **Cómo leer el mapa:**
+    - **Rojo intenso (+1.0)** = se mueven exactamente igual → tener ambos es redundante
+    - **Blanco (0)** = no tienen relación → diversificación real
+    - **Azul (-1.0)** = se mueven al revés → uno sube cuando el otro baja (cobertura ideal)
+    """)
 
     with st.spinner("Calculando correlaciones..."):
         try:
             corr_data = calculate_correlation_matrix(pos_list)
             corr_matrix = corr_data.get("matrix")
             if corr_matrix is not None and not corr_matrix.empty:
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Correlación promedio", f"{corr_data.get('avg_correlation', 0):.2f}")
-                c2.metric("Score diversificación", f"{corr_data.get('diversification_score', 0):.0f}/100")
+                avg_corr = corr_data.get('avg_correlation', 0)
+                div_score = corr_data.get('diversification_score', 0)
                 max_p = corr_data.get("max_pair", {})
-                c3.metric("Par más correlacionado",
-                          f"{max_p.get('tickers', ('',''))[0]}/{max_p.get('tickers', ('',''))[1]}",
-                          f"ρ={max_p.get('correlation', 0):.2f}")
+                min_p = corr_data.get("min_pair", {})
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Correlación promedio", f"{avg_corr:.2f}",
+                          help="< 0.3 excelente, 0.3-0.6 aceptable, > 0.6 poco diversificado")
+                c2.metric("Score diversificación", f"{div_score:.0f}/100",
+                          help="100 = totalmente descorrelacionado, 0 = todo se mueve igual")
+                max_pair_tickers = max_p.get('tickers', ('', ''))
+                c3.metric("Par más parecido",
+                          f"{max_pair_tickers[0]} / {max_pair_tickers[1]}",
+                          f"ρ = {max_p.get('correlation', 0):.2f}")
 
                 # Heatmap
                 fig_corr = go.Figure(data=go.Heatmap(
@@ -1069,6 +1119,63 @@ with tab_risk:
                 ))
                 fig_corr.update_layout(height=500, margin=dict(t=30, b=30))
                 st.plotly_chart(fig_corr, use_container_width=True)
+
+                # --- Interpretación y pasos concretos ---
+                st.markdown("#### Qué significa esto para vos")
+
+                insights = []
+
+                # Insight 1: diversificación general
+                if avg_corr > 0.6:
+                    insights.append(('alert-box',
+                        "Tu portfolio se mueve muy junto (correlación {:.2f}). "
+                        "En una caída, TODO cae al mismo tiempo. "
+                        "**Acción:** agregá activos que no sean equity — bonos, oro (GLD), o cash.".format(avg_corr)))
+                elif avg_corr > 0.35:
+                    insights.append(('info-box',
+                        "Diversificación aceptable (correlación {:.2f}). "
+                        "Podés mejorarla sumando activos de otras clases.".format(avg_corr)))
+                else:
+                    insights.append(('ok-box',
+                        "Buena diversificación (correlación {:.2f}). "
+                        "Tus activos no se mueven todos juntos — eso te protege en caídas.".format(avg_corr)))
+
+                # Insight 2: pares peligrosos
+                max_corr_val = max_p.get('correlation', 0)
+                if max_corr_val > 0.8:
+                    t1, t2 = max_pair_tickers
+                    insights.append(('alert-box',
+                        f"<strong>{t1}</strong> y <strong>{t2}</strong> se mueven casi idéntico (ρ={max_corr_val:.2f}). "
+                        f"Tener ambos es como duplicar la misma apuesta. "
+                        f"**Acción:** considerá quedarte con uno solo y rotar el otro a algo descorrelacionado."))
+
+                # Insight 3: pares que diversifican
+                min_corr_val = min_p.get('correlation', 0)
+                min_pair_tickers = min_p.get('tickers', ('', ''))
+                if min_corr_val < 0.1:
+                    t1, t2 = min_pair_tickers
+                    insights.append(('ok-box',
+                        f"<strong>{t1}</strong> y <strong>{t2}</strong> están descorrelacionados (ρ={min_corr_val:.2f}). "
+                        f"Excelente — cuando uno cae, el otro no necesariamente lo sigue. "
+                        f"Esta es la clase de diversificación que querés."))
+
+                # Insight 4: buscar pares altamente correlacionados en la matriz
+                n = len(corr_matrix)
+                redundant_pairs = []
+                for i in range(n):
+                    for j in range(i + 1, n):
+                        val = corr_matrix.iloc[i, j]
+                        if val > 0.75:
+                            redundant_pairs.append((corr_matrix.index[i], corr_matrix.columns[j], round(val, 2)))
+                if len(redundant_pairs) > 2:
+                    pair_list = ", ".join([f"{a}/{b}" for a, b, _ in redundant_pairs[:5]])
+                    insights.append(('info-box',
+                        f"Tenés <strong>{len(redundant_pairs)} pares</strong> con correlación > 0.75: {pair_list}. "
+                        f"Muchos de estos probablemente son del mismo sector. Diversificar entre sectores reduce esto."))
+
+                for box_class, text in insights:
+                    st.markdown(f'<div class="{box_class}">{text}</div>', unsafe_allow_html=True)
+
             else:
                 st.info("No hay suficientes posiciones con datos de precio para calcular correlaciones.")
         except Exception as e:
