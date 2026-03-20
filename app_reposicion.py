@@ -1444,6 +1444,139 @@ def calcular_stock_por_talle():
 
 
 # ============================================================================
+# CURVA IDEAL DESDE LÓGICA OMICRON (producto, marca+subrubro, ventas x mes)
+# ============================================================================
+
+@st.cache_data(ttl=600)
+def calcular_curva_ideal_producto(csr, desde=None, hasta=None):
+    """
+    Curva ideal de talles para UN producto (CSR = 10 dígitos del sinónimo).
+    Lógica omicron hc_graf3: porcent = vendidos_talle / total * 100
+                             comprar = round(porcent / min(porcent>0), 0)
+    Retorna DataFrame: nro (talle), vendidos, porcent, comprar
+    """
+    if desde is None:
+        desde = (date.today() - relativedelta(years=3)).replace(month=1, day=1)
+    if hasta is None:
+        hasta = date.today()
+
+    sql = f"""
+        SELECT RTRIM(a.descripcion_5) AS nro,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS vendidos
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND LEFT(a.codigo_sinonimo, 10) = '{csr}'
+          AND v.fecha >= '{desde}' AND v.fecha <= '{hasta}'
+          AND RTRIM(a.descripcion_5) <> ''
+        GROUP BY RTRIM(a.descripcion_5)
+        HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) > 0
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['nro'] = pd.to_numeric(df['nro'].str.replace(',', '.'), errors='coerce')
+    df = df.dropna(subset=['nro'])
+    df['vendidos'] = df['vendidos'].astype(float)
+    df['porcent'] = (df['vendidos'] / df['vendidos'].sum() * 100).round(2)
+    min_pos = df.loc[df['porcent'] > 0, 'porcent'].min()
+    df['comprar'] = (df['porcent'] / min_pos).round(0).astype(int) if min_pos > 0 else 1
+    return df.sort_values('nro')
+
+
+@st.cache_data(ttl=600)
+def calcular_curva_ideal_subrubro(marca, subrubro, desde=None, hasta=None):
+    """
+    Curva ideal de talles para TODOS los artículos de una marca+subrubro.
+    Lógica omicron hc_graf4: usa todos los arts del mismo marca+subrubro.
+    Ideal para productos nuevos sin historial (ej: Olympikus).
+    Retorna DataFrame: nro (talle), vendidos, porcent, comprar
+    """
+    if desde is None:
+        desde = (date.today() - relativedelta(years=3)).replace(month=1, day=1)
+    if hasta is None:
+        hasta = date.today()
+
+    sql = f"""
+        SELECT RTRIM(a.descripcion_5) AS nro,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS vendidos
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.marca = {marca} AND a.subrubro = {subrubro}
+          AND v.fecha >= '{desde}' AND v.fecha <= '{hasta}'
+          AND RTRIM(a.descripcion_5) <> ''
+        GROUP BY RTRIM(a.descripcion_5)
+        HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) > 0
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['nro'] = pd.to_numeric(df['nro'].str.replace(',', '.'), errors='coerce')
+    df = df.dropna(subset=['nro'])
+    df['vendidos'] = df['vendidos'].astype(float)
+    df['porcent'] = (df['vendidos'] / df['vendidos'].sum() * 100).round(2)
+    min_pos = df.loc[df['porcent'] > 0, 'porcent'].min()
+    df['comprar'] = (df['porcent'] / min_pos).round(0).astype(int) if min_pos > 0 else 1
+    return df.sort_values('nro')
+
+
+@st.cache_data(ttl=600)
+def calcular_ventas_por_mes(marca=None, subrubro=None, csr=None, desde=None, hasta=None):
+    """
+    Ventas mensuales con promedio ponderado por años con data (lógica PID-223).
+    Parámetros: csr (10 dígitos) O marca+subrubro.
+    Retorna DataFrame: mes, vendidos, promedio_mensual
+    """
+    if desde is None:
+        desde = (date.today() - relativedelta(years=3)).replace(month=1, day=1)
+    if hasta is None:
+        hasta = date.today()
+
+    filtros = ""
+    if csr:
+        filtros += f" AND LEFT(a.codigo_sinonimo, 10) = '{csr}'"
+    if marca:
+        filtros += f" AND a.marca = {marca}"
+    if subrubro:
+        filtros += f" AND a.subrubro = {subrubro}"
+
+    # PID-223: inner group by year-month, outer group by month with COUNT for avg
+    sql = f"""
+        SELECT CAST(SUM(i.items) AS INT) AS vendidos,
+               i.mes AS mes,
+               CAST(SUM(i.items) / COUNT(i.yeames) AS INT) AS promedio_mensual
+        FROM (
+            SELECT SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                            WHEN v.operacion='-' THEN -v.cantidad END) AS items,
+                   CONCAT(YEAR(v.fecha), '-', MONTH(v.fecha)) AS yeames,
+                   MONTH(v.fecha) AS mes
+            FROM msgestionC.dbo.ventas1 v
+            JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+            WHERE v.codigo NOT IN {EXCL_VENTAS}
+              AND v.fecha >= '{desde}' AND v.fecha <= '{hasta}'
+              {filtros}
+            GROUP BY CONCAT(YEAR(v.fecha), '-', MONTH(v.fecha)), MONTH(v.fecha)
+        ) i
+        GROUP BY i.mes
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['mes'] = df['mes'].astype(int)
+    df['vendidos'] = df['vendidos'].astype(float)
+    df['promedio_mensual'] = df['promedio_mensual'].astype(float)
+    return df.sort_values('mes')
+
+
+# ============================================================================
 # DETECTOR DE CANIBALIZACIÓN POR EMBEDDING
 # ============================================================================
 
