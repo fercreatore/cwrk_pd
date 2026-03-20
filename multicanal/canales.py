@@ -14,9 +14,17 @@ Uso:
 """
 import json
 import logging
+import time
 import requests
 
 logger = logging.getLogger('multicanal.canales')
+
+# Rate limiting por canal (requests por segundo)
+RATE_LIMITS = {
+    'tiendanube': 2.0,   # TN permite ~2 req/s
+    'mercadolibre': 1.0,  # ML es más estricto
+    'meta': 5.0,
+}
 
 
 class CanalBase:
@@ -37,6 +45,86 @@ class CanalBase:
 
     def obtener_producto(self, id_externo):
         raise NotImplementedError
+
+    def publicar_batch(self, productos, batch_size=10, dry_run=False):
+        """
+        Publica una lista de productos de a lotes con rate limiting.
+
+        Args:
+            productos: lista de dicts con al menos {sku, nombre, precio, stock, imagenes}
+            batch_size: cantidad de productos por lote
+            dry_run: si True, solo simula sin hacer requests
+
+        Returns:
+            dict con {ok: [...], errores: [...], total, publicados, fallidos}
+        """
+        rate = RATE_LIMITS.get(self.nombre, 1.0)
+        delay = 1.0 / rate
+
+        resultados_ok = []
+        resultados_err = []
+
+        for i in range(0, len(productos), batch_size):
+            lote = productos[i:i + batch_size]
+            lote_num = (i // batch_size) + 1
+            total_lotes = (len(productos) + batch_size - 1) // batch_size
+            logger.info("Lote %d/%d (%d productos)", lote_num, total_lotes, len(lote))
+
+            for producto in lote:
+                sku = producto.get('sku', '?')
+
+                # Validar campos mínimos
+                if not producto.get('sku') or not producto.get('nombre'):
+                    resultados_err.append({'sku': sku, 'error': 'Faltan campos obligatorios (sku/nombre)'})
+                    continue
+                if not producto.get('imagenes'):
+                    resultados_err.append({'sku': sku, 'error': 'Sin imágenes'})
+                    continue
+                if producto.get('stock', 0) <= 0:
+                    resultados_err.append({'sku': sku, 'error': 'Stock <= 0'})
+                    continue
+
+                if dry_run:
+                    resultados_ok.append({
+                        'sku': sku,
+                        'nombre': producto['nombre'],
+                        'precio': producto.get('precio', 0),
+                        'stock': producto.get('stock', 0),
+                        'dry_run': True,
+                    })
+                    continue
+
+                try:
+                    resultado = self.publicar_producto(producto)
+                    if resultado.get('ok'):
+                        resultados_ok.append({
+                            'sku': sku,
+                            'id_externo': resultado.get('id_externo', ''),
+                            'url': resultado.get('url', ''),
+                        })
+                    else:
+                        resultados_err.append({
+                            'sku': sku,
+                            'error': resultado.get('error', 'Error desconocido'),
+                            'status_code': resultado.get('status_code'),
+                        })
+                except Exception as e:
+                    resultados_err.append({'sku': sku, 'error': str(e)})
+
+                time.sleep(delay)
+
+        reporte = {
+            'total': len(productos),
+            'publicados': len(resultados_ok),
+            'fallidos': len(resultados_err),
+            'ok': resultados_ok,
+            'errores': resultados_err,
+        }
+
+        logger.info("Batch terminado: %d/%d publicados, %d errores",
+                     reporte['publicados'], reporte['total'], reporte['fallidos'])
+
+        return reporte
 
 
 class CanalTiendaNube(CanalBase):
