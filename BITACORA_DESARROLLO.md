@@ -9,6 +9,26 @@
 
 ---
 
+## 20 de marzo de 2026 — VPN L2TP reconexión automática
+
+### VPN auto-reconnect via launchd
+La VPN L2TP nativa de macOS se caía al cambiar de red y no reconectaba sola.
+El script `reconectar_auto.sh` existente era demasiado pesado (VPN+SMB+ping) para polling frecuente.
+
+**Solución**: LaunchAgent liviano que cada 30s verifica `scutil --nc status 'VPN (L2TP)'` y reconecta si está caída.
+
+Archivos:
+- `~/Library/LaunchAgents/com.cowork.vpn-reconectar.plist` — daemon launchd (30s interval)
+- `_sync_tools/instalar_vpn_daemon.sh` — script instalación (`launchctl load`)
+- Log: `/tmp/vpn-reconectar.log`
+
+Gestión:
+- Instalar: `bash _sync_tools/instalar_vpn_daemon.sh`
+- Desactivar: `launchctl unload ~/Library/LaunchAgents/com.cowork.vpn-reconectar.plist`
+- Ver log: `tail -f /tmp/vpn-reconectar.log`
+
+---
+
 ## 20 de marzo de 2026 — Overnight: token ML, facturador TN, batch publish
 
 ### 1. refresh_token_ml.py (NUEVO)
