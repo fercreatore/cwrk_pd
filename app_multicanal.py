@@ -870,6 +870,129 @@ elif pagina == '🔄 Sincronización':
                 modo_facturar = st.selectbox('Modo', ['Directo ERP', 'POS 109'], index=0, key='modo_fact',
                                               help='Directo: INSERT en ventas2/ventas1. POS 109: vía endpoint Luciano.')
 
+            # ── Vista previa: órdenes pendientes de facturar ──
+            @st.cache_data(ttl=60, show_spinner='Consultando TiendaNube...')
+            def _cargar_ordenes_pendientes(_dias):
+                """Trae órdenes pagadas y separa pendientes vs ya procesadas."""
+                from multicanal.tiendanube import TiendaNubeClient, cargar_config as tn_cargar_cfg
+                from multicanal.facturador_tn import (
+                    orden_ya_procesada, buscar_articulos_por_sku, conectar_erp_art,
+                )
+                from datetime import datetime, timedelta
+
+                cfg = tn_cargar_cfg()
+                if not cfg.get('store_id') or not cfg.get('access_token'):
+                    return None, 'Sin config TiendaNube'
+
+                client = TiendaNubeClient(store_id=cfg['store_id'], access_token=cfg['access_token'])
+                fecha_min = (datetime.now() - timedelta(days=_dias)).strftime('%Y-%m-%d')
+                ordenes = client.listar_todas_ordenes(payment_status='paid', created_at_min=fecha_min)
+
+                # Mapear SKUs
+                todos_skus = set()
+                for o in ordenes:
+                    for item in o.get('products', []):
+                        sku = (item.get('sku') or '').strip()
+                        if sku:
+                            todos_skus.add(sku)
+
+                articulos_erp = {}
+                if todos_skus:
+                    try:
+                        conn_art = conectar_erp_art()
+                        articulos_erp = buscar_articulos_por_sku(conn_art, list(todos_skus))
+                        conn_art.close()
+                    except Exception:
+                        pass
+
+                resultado = []
+                for o in ordenes:
+                    oid = str(o['id'])
+                    ya = orden_ya_procesada(oid, 'default')
+                    customer = o.get('customer', {})
+                    nombre = (customer.get('name') or '').strip()
+                    productos = o.get('products', [])
+                    items_detalle = []
+                    total = 0
+                    for item in productos:
+                        sku = (item.get('sku') or '').strip()
+                        cant = int(item.get('quantity', 0))
+                        precio = float(item.get('price', 0))
+                        nombre_prod = (item.get('name') or '').strip()
+                        en_erp = sku in articulos_erp
+                        items_detalle.append({
+                            'sku': sku or '(sin SKU)',
+                            'producto': nombre_prod[:40],
+                            'cantidad': cant,
+                            'precio': precio,
+                            'subtotal': round(precio * cant, 2),
+                            'en_erp': en_erp,
+                        })
+                        total += precio * cant
+
+                    resultado.append({
+                        'order_id': o['id'],
+                        'numero': o.get('number', o['id']),
+                        'fecha': (o.get('created_at') or '')[:10],
+                        'cliente': nombre,
+                        'email': (customer.get('email') or ''),
+                        'total': round(total, 2),
+                        'items': len(productos),
+                        'estado_pago': o.get('payment_status', ''),
+                        'estado_envio': o.get('shipping_status', ''),
+                        'ya_procesada': ya,
+                        'detalle': items_detalle,
+                    })
+
+                return resultado, None
+
+            ordenes_preview, err_preview = _cargar_ordenes_pendientes(dias_facturar)
+
+            if err_preview:
+                st.warning(err_preview)
+            elif ordenes_preview is not None:
+                pendientes = [o for o in ordenes_preview if not o['ya_procesada']]
+                procesadas_prev = [o for o in ordenes_preview if o['ya_procesada']]
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric('Total órdenes', len(ordenes_preview))
+                c2.metric('Ya facturadas', len(procesadas_prev))
+                c3.metric('Pendientes', len(pendientes))
+
+                if pendientes:
+                    st.markdown('#### Órdenes pendientes de facturar')
+                    for o in pendientes:
+                        with st.expander(
+                            f"**#{o['numero']}** — {o['fecha']} — {o['cliente']} — "
+                            f"${o['total']:,.0f} — {o['items']} item(s)"
+                        ):
+                            st.caption(f"Email: {o['email']} | Pago: {o['estado_pago']} | Envío: {o['estado_envio']}")
+                            df_items = pd.DataFrame(o['detalle'])
+                            df_items['en_erp'] = df_items['en_erp'].map({True: 'OK', False: 'NO ENCONTRADO'})
+                            df_items['subtotal'] = df_items['subtotal'].apply(lambda x: f"${x:,.0f}")
+                            df_items['precio'] = df_items['precio'].apply(lambda x: f"${x:,.0f}")
+                            df_items.columns = ['SKU', 'Producto', 'Cant', 'Precio', 'Subtotal', 'En ERP']
+                            st.dataframe(df_items, use_container_width=True, hide_index=True)
+
+                            skus_faltantes = [i for i in o['detalle'] if not i['en_erp']]
+                            if skus_faltantes:
+                                st.warning(f"{len(skus_faltantes)} SKU(s) no encontrados en ERP — no se van a facturar")
+                else:
+                    st.success('No hay órdenes pendientes de facturar.')
+
+                if procesadas_prev:
+                    with st.expander(f'Ya facturadas ({len(procesadas_prev)})'):
+                        df_ya = pd.DataFrame([{
+                            'Orden': o['numero'],
+                            'Fecha': o['fecha'],
+                            'Cliente': o['cliente'][:25],
+                            'Total': f"${o['total']:,.0f}",
+                        } for o in procesadas_prev])
+                        st.dataframe(df_ya, use_container_width=True, hide_index=True)
+
+            st.divider()
+
+            # ── Botones de acción ──
             def _ejecutar_facturacion(dry_run_mode):
                 usar_directo = modo_facturar == 'Directo ERP'
                 with st.spinner('Procesando órdenes...'):
@@ -880,12 +1003,8 @@ elif pagina == '🔄 Sincronización':
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
-                            c1, c2, c3 = st.columns(3)
-                            c1.metric('Órdenes encontradas', reporte['ordenes_encontradas'])
-                            c2.metric('Ya procesadas', reporte['ya_procesadas'])
                             procesadas = reporte.get('procesadas', [])
                             n_proc = len(procesadas) if isinstance(procesadas, list) else 0
-                            c3.metric('Facturadas' if not dry_run_mode else 'Nuevas a facturar', n_proc)
 
                             if isinstance(procesadas, list) and procesadas:
                                 df_fact = pd.DataFrame([{
@@ -900,6 +1019,10 @@ elif pagina == '🔄 Sincronización':
                             if not dry_run_mode and n_proc > 0:
                                 total_fact = sum(p['total'] for p in procesadas)
                                 st.success(f"{n_proc} órdenes facturadas. Total: ${total_fact:,.0f}")
+                                _cargar_ordenes_pendientes.clear()
+
+                            if n_proc == 0 and not reporte.get('errores'):
+                                st.info('No hay órdenes nuevas para facturar.')
 
                             if reporte.get('errores'):
                                 for err in reporte['errores']:
@@ -914,7 +1037,8 @@ elif pagina == '🔄 Sincronización':
                 if st.button('Dry run (solo ver)', key='btn_facturar'):
                     _ejecutar_facturacion(dry_run_mode=True)
             with col_btn2:
-                confirmar_fact = st.checkbox('Confirmo facturar', key='conf_facturar')
+                n_pendientes = len([o for o in (ordenes_preview or []) if not o['ya_procesada']])
+                confirmar_fact = st.checkbox(f'Confirmo facturar {n_pendientes} orden(es)', key='conf_facturar')
                 if st.button('Facturar', key='btn_facturar_real',
                              type='primary', disabled=not confirmar_fact):
                     _ejecutar_facturacion(dry_run_mode=False)
