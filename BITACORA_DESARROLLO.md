@@ -5,7 +5,48 @@
 > LEER PRIMERO en cada sesión nueva para saber qué se hizo y qué falta.
 > AL CERRAR cada sesión, ACTUALIZAR con los cambios realizados.
 
-> Última actualización: 20 de marzo de 2026 — Curva ideal omicron + auditoría fórmulas app_reposicion
+> Última actualización: 20 de marzo de 2026 — Modelo reposición operable v2 (4 deudas técnicas)
+
+---
+
+## 20 de marzo de 2026 — Modelo reposición operable v2
+
+### Deudas técnicas resueltas (4/4)
+
+**1. Fix meses_stock dashboard (vel_aparente → vel_real)**
+- `tab_dashboard` calculaba `vel_mes = ventas_12m / 12` (velocidad aparente)
+- Reemplazado por `analizar_quiebre_batch()` — misma lógica gold-standard que Waterfall/Optimizador
+- Agregada columna `Quiebre%` a tabla Top 30
+- Resumen por marca también corregido (usaba `ventas/365`, ahora `vel_real_sum/30`)
+
+**2. Fix curva de talles (quiebre por talle individual)**
+- `cargar_talles_categoria()`: reescrita con 3 queries (stock, ventas mensuales, compras mensuales por talle)
+- Reconstruye stock mes a mes por talle individual, misma lógica de `analizar_quiebre_batch`
+- Agrega columnas `vel_real` y `pct_quiebre` a tabla drill-down de talles
+- `calcular_alertas_talles()`: también corregida con quiebre por talle (3 queries + reconstrucción)
+- Clave compuesta para quiebre global: `rubro_subrubro_talle` como tkey
+
+**3. GMROI implementado**
+- `GMROI = margen_bruto_anual / stock_a_costo`
+- `margen_bruto_anual = vel_real * 12 * (precio_venta - precio_costo)`
+- `stock_a_costo = stock_actual * precio_fabrica`
+- Precio venta: `obtener_precios_venta_batch()` (últimos 6 meses), fallback x2 costo
+- Visible en tabla Top 30 del dashboard. >1 = rentable
+
+**4. Rotación implementada**
+- `Rotación = ventas_costo_12m / stock_a_costo`
+- `ventas_costo_12m = ventas_12m * precio_costo`
+- Visible en tabla Top 30 del dashboard. >4 = alta rotación
+
+### Resultado auditoría post-fix
+- ✅ Velocidad Real (analizar_quiebre_batch): gold-standard
+- ✅ Cobertura Advanced: vel_real + estacionalidad
+- ✅ Waterfall: cadena quiebre→vel_real→estacionalidad
+- ✅ ROI: días recupero + roi_60d
+- ✅ **Meses Stock dashboard**: ahora usa vel_real (CORREGIDO)
+- ✅ **Curva Talles**: ahora corrige quiebre por talle (CORREGIDO)
+- ✅ **GMROI**: implementado (NUEVO)
+- ✅ **Rotación**: implementado (NUEVO)
 
 ---
 
