@@ -2351,8 +2351,16 @@ def render_dashboard():
     # TAB 1: DASHBOARD GLOBAL
     # ══════════════════════════════════════════════════════════════
     with tab_dashboard:
-        # Velocidad simple (sin quiebre detallado, para overview rápido)
-        df_f['vel_mes'] = df_f['ventas_12m'] / 12
+        # Velocidad REAL corregida por quiebre de stock
+        with st.spinner("Calculando velocidad real (quiebre)..."):
+            csrs_dash = df_f['csr'].tolist()
+            quiebres_dash = analizar_quiebre_batch(csrs_dash)
+            df_f['vel_mes'] = df_f['csr'].map(
+                lambda c: quiebres_dash.get(c, {}).get('vel_real', 0)
+            )
+            df_f['pct_quiebre'] = df_f['csr'].map(
+                lambda c: quiebres_dash.get(c, {}).get('pct_quiebre', 0)
+            )
         df_f['vel_dia'] = df_f['vel_mes'] / 30
         df_f['dias_stock'] = np.where(
             df_f['vel_dia'] > 0,
@@ -2384,13 +2392,14 @@ def render_dashboard():
             productos=('csr', 'count'),
             stock=('stock_total', 'sum'),
             ventas=('ventas_12m', 'sum'),
+            vel_real_sum=('vel_mes', 'sum'),
             criticos=('urgencia', lambda x: (x == 'CRITICO').sum()),
             bajos=('urgencia', lambda x: (x == 'BAJO').sum()),
         ).reset_index().sort_values('criticos', ascending=False)
 
         resumen_data['dias_prom'] = np.where(
-            resumen_data['ventas'] > 0,
-            (resumen_data['stock'] / (resumen_data['ventas'] / 365)).round(0),
+            resumen_data['vel_real_sum'] > 0,
+            (resumen_data['stock'] / (resumen_data['vel_real_sum'] / 30)).round(0),
             999
         )
 
@@ -2414,7 +2423,7 @@ def render_dashboard():
         st.subheader("Top 30 — Productos más urgentes")
         df_top = df_f.nsmallest(30, 'dias_stock')[
             ['descripcion', 'marca_desc', 'prov_nombre', 'stock_total',
-             'ventas_12m', 'vel_mes', 'dias_stock', 'urgencia']
+             'ventas_12m', 'vel_mes', 'pct_quiebre', 'dias_stock', 'urgencia']
         ].copy()
         df_top['dias_stock'] = df_top['dias_stock'].round(0).astype(int)
         df_top['vel_mes'] = df_top['vel_mes'].round(1)
@@ -2427,7 +2436,8 @@ def render_dashboard():
                 'prov_nombre': 'Proveedor',
                 'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
                 'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
-                'vel_mes': st.column_config.NumberColumn('Vel/mes', format="%.1f"),
+                'vel_mes': st.column_config.NumberColumn('Vel real/mes', format="%.1f"),
+                'pct_quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
                 'dias_stock': st.column_config.NumberColumn('Dias', format="%d"),
                 'urgencia': 'Urgencia',
             },
