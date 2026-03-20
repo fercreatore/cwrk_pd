@@ -19,8 +19,8 @@ from macro import (
     get_global_indicators, get_liquidity_signal, get_argentina_indicators,
     get_ar_decision_matrix, get_brecha_historica, EVENTOS_ECONOMICOS,
     get_regime_matching, get_macro_thresholds_live, get_threshold_summary,
-    get_sentiment_dashboard,
-), get_sentiment_dashboard, DATAROMA_SMART_MONEY
+    get_sentiment_dashboard, DATAROMA_SMART_MONEY,
+)
 from risk_engine import (
     calculate_concentration_metrics, calculate_component_var,
     calculate_correlation_matrix, run_all_stress_tests, run_stress_test,
@@ -561,6 +561,60 @@ with tab_macro:
                 st.warning(f"BTC -{'%.0f' % abs(btc['period_chg'])}% en 6m — en corrección fuerte")
             else:
                 st.info(f"BTC en rango ({btc['range_pct']:.0f}% del rango 6m)")
+
+    # --- MACRO THRESHOLDS: semáforos tipo Bernstein ---
+    st.markdown("---")
+    st.markdown("#### Semáforo Macro — Umbrales de Crisis")
+    st.caption("Indicadores estructurales con track record de décadas. Si se activan, cambia todo.")
+
+    @st.cache_data(ttl=3600, show_spinner="Calculando umbrales macro...")
+    def _get_thresholds():
+        return get_macro_thresholds_live()
+
+    thresholds = _get_thresholds()
+    if thresholds:
+        # Semáforo resumen
+        th_signal, th_desc, th_counts = get_threshold_summary(thresholds)
+        th_colors = {"VÍA LIBRE": "#44ff44", "ATENCIÓN": "#ffcc44", "CAUTELA": "#ff8844", "ALERTA ALTA": "#ff4444"}
+        th_color = th_colors.get(th_signal, "#888")
+
+        st.markdown(
+            f'<div style="background:#1a1a2e;border:2px solid {th_color};border-radius:12px;padding:16px;text-align:center;margin:8px 0;">'
+            f'<span style="color:{th_color};font-size:1.5rem;font-weight:700;">{th_signal}</span><br>'
+            f'<span style="color:#ccc;font-size:0.95rem;">{th_desc}</span></div>',
+            unsafe_allow_html=True,
+        )
+
+        # Cards por indicador
+        th_cols = st.columns(len(thresholds))
+        for i, t in enumerate(thresholds):
+            with th_cols[i]:
+                status = t.get("status", "N/A")
+                s_color = {"OK": "#44ff44", "WARNING": "#ffcc44", "PELIGRO": "#ff8844", "CRISIS": "#ff4444"}.get(status, "#888")
+                val = t.get("current_value")
+                unit = t.get("unit", "")
+
+                st.markdown(
+                    f'<div style="background:#1a1a2e;border:1px solid {s_color};border-radius:8px;padding:10px;text-align:center;min-height:180px;">'
+                    f'<span style="color:#aaa;font-size:0.7rem;">{t["name"]}</span><br>'
+                    f'<span style="color:{s_color};font-size:1.8rem;font-weight:700;">{val}{unit}</span><br>'
+                    f'<span style="color:{s_color};font-size:0.8rem;">{status}</span><br>'
+                    f'<span style="color:#666;font-size:0.6rem;">Peligro: {t.get("danger_zone", "?")}{unit} | Crisis: {t.get("crisis_zone", "?")}{unit}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+        # Interpretaciones expandibles
+        with st.expander("Detalle de cada indicador"):
+            for t in thresholds:
+                status = t.get("status", "N/A")
+                s_color = {"OK": "#44ff44", "WARNING": "#ffcc44", "PELIGRO": "#ff8844", "CRISIS": "#ff4444"}.get(status, "#888")
+                st.markdown(f'<span style="color:{s_color};font-weight:bold;">[{status}]</span> **{t["name"]}** ({t.get("source", "")})', unsafe_allow_html=True)
+                st.caption(t.get("interpretation", ""))
+                extra = t.get("extra") or t.get("extra_info")
+                if extra:
+                    st.caption(f"Live: {extra}")
+                st.markdown("")
 
     # --- CROSS-ANALYSIS: cruce de variables ---
     st.markdown("---")

@@ -769,8 +769,8 @@ def get_macro_thresholds_live():
                 tnx = yf.download("^TNX", period="5d", interval="1d", progress=False)
                 irx = yf.download("^IRX", period="5d", interval="1d", progress=False)
                 if not tnx.empty and not irx.empty:
-                    y10 = float(tnx["Close"].iloc[-1])
-                    y3m = float(irx["Close"].iloc[-1])
+                    y10 = float(tnx["Close"].squeeze().iloc[-1])
+                    y3m = float(irx["Close"].squeeze().iloc[-1])
                     # Estimate 2Y as weighted avg between 3M and 10Y
                     y2_est = y3m * 0.4 + y10 * 0.6  # approx
                     spread = round(y10 - y2_est, 2)
