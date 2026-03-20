@@ -132,15 +132,15 @@ class TiendaNubeClient:
     def listar_ordenes(self, page: int = 1, per_page: int = 50,
                        status: str = None, payment_status: str = None,
                        created_at_min: str = None, created_at_max: str = None) -> list:
+        """Lista órdenes. NOTA: TN API no soporta created_at_min/max como
+        query param en órdenes — el filtro de fecha se aplica client-side."""
         params = {'page': page, 'per_page': per_page}
         if status:
             params['status'] = status
         if payment_status:
             params['payment_status'] = payment_status
-        if created_at_min:
-            params['created_at_min'] = created_at_min
-        if created_at_max:
-            params['created_at_max'] = created_at_max
+        # TN API no acepta created_at_min/max en /orders (devuelve 404)
+        # El filtro de fecha se aplica en listar_todas_ordenes()
         return self._get('orders', params)
 
     def obtener_orden(self, order_id: int) -> dict:
@@ -148,18 +148,25 @@ class TiendaNubeClient:
 
     def listar_todas_ordenes(self, status: str = None, payment_status: str = None,
                               created_at_min: str = None, max_pages: int = 20) -> list:
-        """Pagina automáticamente hasta traer todas las órdenes."""
+        """Pagina automáticamente hasta traer todas las órdenes.
+        Filtra por fecha client-side porque TN API no soporta created_at_min."""
         todas = []
         for page in range(1, max_pages + 1):
             lote = self.listar_ordenes(
                 page=page, per_page=50, status=status,
-                payment_status=payment_status, created_at_min=created_at_min
+                payment_status=payment_status,
             )
             if not lote:
                 break
             todas.extend(lote)
             if len(lote) < 50:
                 break
+
+        # Filtro de fecha client-side
+        if created_at_min:
+            todas = [o for o in todas
+                     if (o.get('created_at') or '')[:10] >= created_at_min]
+
         return todas
 
     # ── Categorías ──

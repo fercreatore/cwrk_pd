@@ -27,10 +27,20 @@ USO:
 
 import json
 import os
+import ssl
 import sys
 import pyodbc
 import requests
+import urllib3
 from datetime import datetime, timedelta
+
+# Silenciar warnings de SSL para red interna
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# OpenSSL legacy config para SQL Server 2012 (no soporta TLS 1.2+)
+_openssl_legacy = os.path.join(os.path.dirname(__file__), 'openssl_legacy.cnf')
+if os.path.exists(_openssl_legacy) and 'OPENSSL_CONF' not in os.environ:
+    os.environ['OPENSSL_CONF'] = _openssl_legacy
 
 # Agregar raíz al path para imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -67,7 +77,7 @@ def _conn_string(base: str) -> str:
 
 CONN_STRING_ART = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.2.112;"
+    "SERVER=192.168.2.111;"
     "DATABASE=msgestion01art;"
     "UID=am;PWD=dl;"
     "Encrypt=no;"
@@ -88,7 +98,7 @@ LOG_FILE = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.json')
 
 # ── Config POS 109 ──
 # Endpoint del sistema del 109 para registrar ventas
-POS_109_URL = 'https://192.168.2.109/clz_ventas/api/tiendanube_gen_remito'
+POS_109_URL = 'http://192.168.2.109/clz_ventas/api/tiendanube_gen_remito'
 POS_109_USUARIO = {'id': 1, 'sucursal': 2}   # Fer Calaianov, Dep. VENTAS ML 1 (Nro Suc=1, Depo=1)
 POS_109_MEDIO_PAGO = {'id': 137}              # MERCADOLIBRE ONLINE API (usado para TN también)
 
@@ -876,7 +886,8 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
 # ── Flujo principal ──
 
 def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
-                           empresa: str = 'H4', nombre_tienda: str = None) -> dict:
+                           empresa: str = 'H4', nombre_tienda: str = None,
+                           directo: bool = False) -> dict:
     """
     Procesa órdenes pagadas de TiendaNube e inserta facturas B en el ERP.
 
@@ -885,12 +896,18 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
         dias_atras: Cantidad de días hacia atrás para buscar órdenes.
         empresa: 'H4' (msgestion03) o 'ABI' (msgestion01/CALZALINDO).
         nombre_tienda: Nombre de config TN alternativa (None = default).
+        directo: Si True, INSERT directo en ERP sin pasar por POS 109.
 
     Returns:
         dict con resumen de procesamiento.
     """
     base = _base_para_empresa(empresa)
-    modo = "DRY RUN" if dry_run else "FACTURACION REAL"
+    if dry_run:
+        modo = "DRY RUN"
+    elif directo:
+        modo = "INSERT DIRECTO ERP"
+    else:
+        modo = "FACTURACION REAL"
     print(f"\n{'='*60}")
     print(f"  FACTURADOR TiendaNube → ERP [{modo}]")
     print(f"  Empresa: {empresa} → {base}")
@@ -970,18 +987,33 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
     print()
 
     # --- 4. Procesar cada orden ---
-    print(f"[4/5] {'Simulando' if dry_run else 'Enviando al POS 109'}...")
+    if dry_run:
+        etiqueta_paso4 = 'Simulando'
+    elif directo:
+        etiqueta_paso4 = 'Insertando directo en ERP'
+    else:
+        etiqueta_paso4 = 'Enviando al POS 109'
+    print(f"[4/5] {etiqueta_paso4}...")
 
     procesadas = []
     errores = []
 
+    # Conexión ERP para modo directo (se abre una sola vez)
+    conn_erp = None
+    if not dry_run and directo:
+        conn_erp = conectar_erp(empresa)
+
     try:
+        # Para modo directo, obtener numero/orden una sola vez
+        if not dry_run and directo:
+            siguiente_numero = obtener_siguiente_numero(conn_erp, base)
+
         for orden in ordenes_nuevas:
             order_id = orden['id']
             order_number = orden.get('number', order_id)
             fecha_orden = orden.get('created_at', '')[:10]
 
-            # Armar payload para el 109
+            # Armar payload para el 109 (se usa también para dry-run y SKU check)
             payload = construir_payload_109(orden, articulos_erp)
 
             if not payload['productos']:
@@ -1017,9 +1049,63 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
                     'total': total,
                     'payload_109': payload,
                 })
-            else:
+
+            elif directo:
+                # ── INSERT directo en ERP (sin POS 109) ──
                 try:
-                    # Enviar al POS 109 — el 109 hace TODO (cliente, factura, stock)
+                    cabecera, detalles, skus_no_enc = construir_factura(
+                        orden, articulos_erp, siguiente_numero,
+                        obtener_siguiente_orden(conn_erp, base,
+                            orden.get('created_at', '')[:10])
+                    )
+
+                    if not detalles:
+                        raise Exception("Sin detalles para insertar")
+
+                    insertar_factura(conn_erp, cabecera, detalles, base, orden)
+
+                    print(f"  [OK]  Orden #{order_number} → ERP directo (fact #{siguiente_numero}) | "
+                          f"{len(detalles)} items | ${cabecera['monto_general']:,.0f} | {nombre_raw[:25]}")
+
+                    registrar_orden_procesada(
+                        order_id=order_id,
+                        order_number=order_number,
+                        tienda=tienda,
+                        fecha_orden=fecha_orden,
+                        cliente=nombre_raw,
+                        total=cabecera['monto_general'],
+                        renglones=len(detalles),
+                        payload={'modo': 'directo', 'numero_factura': siguiente_numero},
+                        respuesta_109={'modo': 'directo_erp'},
+                    )
+
+                    procesadas.append({
+                        'order_id': order_id,
+                        'order_number': order_number,
+                        'fecha': fecha_orden,
+                        'cliente': nombre_raw,
+                        'renglones': len(detalles),
+                        'total': cabecera['monto_general'],
+                        'numero_factura': siguiente_numero,
+                    })
+
+                    siguiente_numero += 1
+
+                except Exception as e:
+                    error_msg = f"Orden #{order_number} (TN {order_id}): {e}"
+                    print(f"  [ERR] {error_msg}")
+                    errores.append(error_msg)
+                    registrar_error(
+                        order_id=order_id,
+                        order_number=order_number,
+                        tienda=tienda,
+                        error_msg=str(e),
+                        payload=payload,
+                    )
+
+            else:
+                # ── Enviar al POS 109 ──
+                try:
                     resp_109 = enviar_venta_109(orden, articulos_erp)
 
                     if resp_109 and 'error' in resp_109:
@@ -1028,7 +1114,6 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
                     print(f"  [OK]  Orden #{order_number} → POS 109 | "
                           f"{renglones} items | ${total:,.0f} | {nombre_raw[:25]}")
 
-                    # Registrar como procesada en SQLite (anti-duplicados)
                     registrar_orden_procesada(
                         order_id=order_id,
                         order_number=order_number,
@@ -1053,7 +1138,6 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
                     error_msg = f"Orden #{order_number} (TN {order_id}): {e}"
                     print(f"  [ERR] {error_msg}")
                     errores.append(error_msg)
-                    # Registrar error en SQLite para auditoría
                     registrar_error(
                         order_id=order_id,
                         order_number=order_number,
@@ -1065,6 +1149,9 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
     except Exception as e:
         print(f"\n[ERROR GENERAL] {e}")
         errores.append(str(e))
+    finally:
+        if conn_erp:
+            conn_erp.close()
 
     # --- 5. Resumen ---
     print(f"\n{'='*60}")
@@ -1099,11 +1186,14 @@ if __name__ == '__main__':
                         help='Empresa destino: H4 (msgestion03) o ABI (msgestion01)')
     parser.add_argument('--tienda', type=str, default=None,
                         help='Nombre de config TN alternativa (default: tiendanube_config.json)')
+    parser.add_argument('--directo', action='store_true', default=False,
+                        help='INSERT directo en ERP sin pasar por POS 109')
     args = parser.parse_args()
 
     reporte = sincronizar_ordenes_tn(
         dry_run=args.dry_run, dias_atras=args.dias,
         empresa=args.empresa, nombre_tienda=args.tienda,
+        directo=args.directo,
     )
 
     if reporte.get('error'):
