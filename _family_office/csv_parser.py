@@ -10,8 +10,57 @@ import re
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
-# Dólar MEP aproximado — se puede actualizar manualmente o via API
-DOLAR_MEP = 1180.0
+# Dólar MEP — se obtiene en vivo de ArgentinaDatos/Yahoo, fallback manual
+_DOLAR_MEP_CACHE = {"value": None, "ts": 0}
+
+
+def get_dolar_mep_live(fallback=1180.0) -> float:
+    """Obtiene dólar MEP en vivo. Cache 10 min. Fallback si no hay conexión."""
+    import time
+    now = time.time()
+    if _DOLAR_MEP_CACHE["value"] and (now - _DOLAR_MEP_CACHE["ts"]) < 600:
+        return _DOLAR_MEP_CACHE["value"]
+
+    mep = None
+
+    # Intento 1: ArgentinaDatos API (MEP directo)
+    try:
+        import requests
+        r = requests.get("https://api.argentinadatos.com/v1/cotizaciones/dolares", timeout=5)
+        if r.status_code == 200:
+            for entry in reversed(r.json()):
+                if entry.get("casa") == "bolsa":  # MEP = "bolsa"
+                    mep = float(entry.get("venta", 0))
+                    if mep > 0:
+                        break
+    except Exception:
+        pass
+
+    # Intento 2: Calcular MEP implícito via GGAL (ADR vs local)
+    if not mep:
+        try:
+            import yfinance as yf
+            import pandas as pd
+            ggal_us = yf.download("GGAL", period="5d", interval="1d", progress=False)
+            ggal_ar = yf.download("GGAL.BA", period="5d", interval="1d", progress=False)
+            if not ggal_us.empty and not ggal_ar.empty:
+                us_p = float(ggal_us["Close"].iloc[-1].iloc[0] if isinstance(ggal_us["Close"].iloc[-1], pd.Series) else ggal_us["Close"].iloc[-1])
+                ar_p = float(ggal_ar["Close"].iloc[-1].iloc[0] if isinstance(ggal_ar["Close"].iloc[-1], pd.Series) else ggal_ar["Close"].iloc[-1])
+                if us_p > 0:
+                    mep = ar_p * 10 / us_p
+        except Exception:
+            pass
+
+    if mep and mep > 500:  # sanity check
+        _DOLAR_MEP_CACHE["value"] = round(mep, 2)
+        _DOLAR_MEP_CACHE["ts"] = now
+        return _DOLAR_MEP_CACHE["value"]
+
+    return fallback
+
+
+# Acceso directo al MEP — usar get_dolar_mep_live() en vez de DOLAR_MEP
+# (property() no funciona a nivel módulo, solo en clases)
 
 # Clasificación automática de activos por ticker/nombre
 ASSET_CLASS_RULES = [
@@ -86,7 +135,7 @@ def parse_cocos_csv(filepath, owner="", source="Cocos"):
                     cash.append({
                         "currency": instrumento if instrumento != "EXT" else "USD",
                         "amount": total,
-                        "source": "Cocos",
+                        "source": source,
                         "owner": owner,
                     })
                 continue
@@ -101,9 +150,10 @@ def parse_cocos_csv(filepath, owner="", source="Cocos"):
             asset_class = classify_asset(instrumento, ticker)
 
             # Convertir a USD si es ARS
+            dolar_mep = get_dolar_mep_live()
             if moneda == "ARS":
-                price_usd = precio / DOLAR_MEP
-                total_usd = total / DOLAR_MEP
+                price_usd = precio / dolar_mep
+                total_usd = total / dolar_mep
             else:
                 price_usd = precio
                 total_usd = total
@@ -113,9 +163,9 @@ def parse_cocos_csv(filepath, owner="", source="Cocos"):
                 "name": name,
                 "asset_class": asset_class,
                 "qty": cantidad,
-                "current_price_ars": precio if moneda == "ARS" else precio * DOLAR_MEP,
+                "current_price_ars": precio if moneda == "ARS" else precio * dolar_mep,
                 "current_price_usd": price_usd,
-                "market_value_ars": total if moneda == "ARS" else total * DOLAR_MEP,
+                "market_value_ars": total if moneda == "ARS" else total * dolar_mep,
                 "market_value_usd": total_usd,
                 "currency_original": moneda,
                 "source": source,
@@ -200,6 +250,9 @@ def load_all_portfolios():
                     positions, cash = parse_cocos_csv(filepath, owner=owner, source=source)
                     all_positions.extend(positions)
                     all_cash.extend(cash)
+                elif "nroticket" in first_line.lower() or "fechaejecucion" in first_line.lower():
+                    # Archivo de movimientos IOL — informativo, no es tenencia
+                    pass  # se ignora silenciosamente (no aporta posiciones)
                 else:
                     errors.append(f"{filename}: formato CSV no reconocido")
             except Exception as e:

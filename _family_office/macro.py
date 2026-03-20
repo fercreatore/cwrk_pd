@@ -461,6 +461,154 @@ def get_ar_decision_matrix(ar_indicators, global_data):
     return signals
 
 
+def get_regime_matching():
+    """
+    Busca en los últimos 10 años cuándo se dio una combinación similar a la actual:
+    - S&P500 RSI < 35 (sobrevendido)
+    - VIX > 20 (miedo elevado)
+    - Oro rally (>15% en 6m)
+    - BTC corrección (>-20% en 6m)
+    - EEM positivo (>0% en 6m)
+
+    Retorna lista de períodos similares y qué pasó después (forward returns).
+    """
+    import warnings
+    warnings.filterwarnings("ignore")
+
+    try:
+        # Descargar 10 años de datos
+        tickers = ["^GSPC", "^VIX", "GLD", "BTC-USD", "EEM"]
+        data = yf.download(tickers, period="10y", interval="1wk", progress=False, group_by="ticker")
+        if data.empty:
+            return None
+
+        # Extraer closes
+        closes = {}
+        for t in tickers:
+            try:
+                if t in data.columns.get_level_values(0):
+                    closes[t] = data[t]["Close"].dropna()
+            except Exception:
+                pass
+
+        if len(closes) < 4:  # necesitamos al menos S&P, VIX, GLD, BTC
+            return None
+
+        # Calcular RSI rolling del S&P500
+        sp = closes.get("^GSPC", pd.Series())
+        if sp.empty:
+            return None
+
+        delta = sp.diff()
+        gain = delta.where(delta > 0, 0.0).rolling(14).mean()
+        loss = (-delta.where(delta < 0, 0.0)).rolling(14).mean()
+        rs = gain / loss.replace(0, np.nan)
+        sp_rsi = 100 - (100 / (1 + rs))
+
+        # VIX
+        vix = closes.get("^VIX", pd.Series())
+
+        # Retornos 6m (26 semanas)
+        gld = closes.get("GLD", pd.Series())
+        btc = closes.get("BTC-USD", pd.Series())
+        eem = closes.get("EEM", pd.Series())
+
+        gld_ret_6m = gld.pct_change(26) * 100 if not gld.empty else pd.Series()
+        btc_ret_6m = btc.pct_change(26) * 100 if not btc.empty else pd.Series()
+        eem_ret_6m = eem.pct_change(26) * 100 if not eem.empty else pd.Series()
+
+        # Retornos forward del S&P (4w, 13w, 26w, 52w)
+        sp_fwd_4w = sp.pct_change(-4) * 100  # negativo = forward
+        sp_fwd_13w = sp.pct_change(-13) * 100
+        sp_fwd_26w = sp.pct_change(-26) * 100
+        sp_fwd_52w = sp.pct_change(-52) * 100
+
+        # Buscar semanas que cumplen los criterios (flexibles)
+        matches = []
+        for date in sp_rsi.index:
+            try:
+                rsi_val = sp_rsi.get(date)
+                vix_val = vix.get(date) if not vix.empty else None
+                gld_r = gld_ret_6m.get(date) if not gld_ret_6m.empty else None
+                btc_r = btc_ret_6m.get(date) if not btc_ret_6m.empty else None
+                eem_r = eem_ret_6m.get(date) if not eem_ret_6m.empty else None
+
+                if any(v is None or (isinstance(v, float) and np.isnan(v)) for v in [rsi_val, vix_val]):
+                    continue
+
+                # Criterios (más flexibles para encontrar más matches)
+                conditions_met = 0
+                if rsi_val < 35:
+                    conditions_met += 1
+                if vix_val > 20:
+                    conditions_met += 1
+                if gld_r is not None and not np.isnan(gld_r) and gld_r > 10:
+                    conditions_met += 1
+                if btc_r is not None and not np.isnan(btc_r) and btc_r < -15:
+                    conditions_met += 1
+                if eem_r is not None and not np.isnan(eem_r) and eem_r > 0:
+                    conditions_met += 1
+
+                if conditions_met >= 4:  # al menos 4 de 5 criterios
+                    fwd = {}
+                    for label, series in [("1m", sp_fwd_4w), ("3m", sp_fwd_13w),
+                                          ("6m", sp_fwd_26w), ("12m", sp_fwd_52w)]:
+                        val = series.get(date)
+                        if val is not None and not np.isnan(val):
+                            fwd[label] = round(float(val), 1)
+
+                    matches.append({
+                        "date": date,
+                        "sp_rsi": round(float(rsi_val), 1),
+                        "vix": round(float(vix_val), 1),
+                        "gld_6m": round(float(gld_r), 1) if gld_r is not None and not np.isnan(gld_r) else None,
+                        "btc_6m": round(float(btc_r), 1) if btc_r is not None and not np.isnan(btc_r) else None,
+                        "eem_6m": round(float(eem_r), 1) if eem_r is not None and not np.isnan(eem_r) else None,
+                        "conditions_met": conditions_met,
+                        "forward_returns": fwd,
+                    })
+            except Exception:
+                continue
+
+        if not matches:
+            return {"matches": [], "summary": "No se encontraron períodos similares en 10 años."}
+
+        # Agrupar matches cercanos (tomar el de mayor score por cada ventana de 8 semanas)
+        grouped = []
+        last_date = None
+        for m in sorted(matches, key=lambda x: x["date"]):
+            if last_date is None or (m["date"] - last_date).days > 56:
+                grouped.append(m)
+                last_date = m["date"]
+            elif m["conditions_met"] > grouped[-1]["conditions_met"]:
+                grouped[-1] = m
+                last_date = m["date"]
+
+        # Calcular estadísticas de forward returns
+        fwd_stats = {}
+        for period in ["1m", "3m", "6m", "12m"]:
+            vals = [m["forward_returns"].get(period) for m in grouped if period in m.get("forward_returns", {})]
+            vals = [v for v in vals if v is not None]
+            if vals:
+                fwd_stats[period] = {
+                    "avg": round(np.mean(vals), 1),
+                    "median": round(np.median(vals), 1),
+                    "min": round(min(vals), 1),
+                    "max": round(max(vals), 1),
+                    "positive_pct": round(sum(1 for v in vals if v > 0) / len(vals) * 100),
+                    "n": len(vals),
+                }
+
+        return {
+            "matches": grouped,
+            "forward_stats": fwd_stats,
+            "summary": f"Se encontraron {len(grouped)} períodos similares en los últimos 10 años.",
+        }
+
+    except Exception as e:
+        return {"matches": [], "summary": f"Error en análisis: {e}"}
+
+
 if __name__ == "__main__":
     print("=== GLOBAL ===")
     global_data = get_global_indicators()

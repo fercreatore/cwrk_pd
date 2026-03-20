@@ -2,7 +2,7 @@
 Rebalanceo por contribución mensual.
 No vende nada — solo decide cómo distribuir el aporte nuevo para acercarse al target.
 """
-from csv_parser import load_all_portfolios, DOLAR_MEP
+from csv_parser import load_all_portfolios, get_dolar_mep_live
 from config_fo import TARGET_ALLOCATION, APORTE_MENSUAL_ARS
 
 
@@ -21,7 +21,7 @@ def calculate_rebalance(aporte_ars=None, dolar_mep=None):
     if aporte_ars is None:
         aporte_ars = APORTE_MENSUAL_ARS
     if dolar_mep is None:
-        dolar_mep = DOLAR_MEP
+        dolar_mep = get_dolar_mep_live()
 
     aporte_usd = aporte_ars / dolar_mep
 

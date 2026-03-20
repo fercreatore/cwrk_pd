@@ -28,6 +28,12 @@ CASH_DEPLOY_ALERT = 20  # % — si cash > 20%, señal de que hay que invertir
 # Monedas relevantes
 CURRENCIES = ["USD", "ARS", "EUR", "BRL"]
 
+# Risk limits (hedge fund-grade)
+MAX_SINGLE_NAME_PCT = 25     # ninguna posición > 25% del portfolio
+HHI_ALERT_THRESHOLD = 2500   # alerta si HHI > 2500 (altamente concentrado)
+MAX_CLASS_PCT = 45            # ninguna asset class > 45%
+VAR_95_DAILY_LIMIT = -3.0    # VaR 95% diario máximo aceptable (%)
+
 # IBKR config (para cuando se conecte la API real)
 IBKR_CONFIG = {
     "host": "127.0.0.1",

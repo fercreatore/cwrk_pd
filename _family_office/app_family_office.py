@@ -7,14 +7,20 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-from csv_parser import load_all_portfolios, DOLAR_MEP
+from csv_parser import load_all_portfolios, get_dolar_mep_live
 from config_fo import (
     TARGET_ALLOCATION, REBALANCE_THRESHOLD_PCT, MAX_DRAWDOWN_ALERT,
     MAX_CONCENTRATION_TOP5, CASH_DEPLOY_ALERT, APORTE_MENSUAL_ARS,
 )
 from rebalancer import calculate_rebalance
 from indicators import calculate_portfolio_indicators, simulate_what_if, TICKER_MAP
-from macro import get_global_indicators, get_liquidity_signal, get_argentina_indicators, get_ar_decision_matrix, get_brecha_historica, EVENTOS_ECONOMICOS
+from macro import get_global_indicators, get_liquidity_signal, get_argentina_indicators, get_ar_decision_matrix, get_brecha_historica, EVENTOS_ECONOMICOS, get_regime_matching
+from risk_engine import (
+    calculate_concentration_metrics, calculate_component_var,
+    calculate_correlation_matrix, run_all_stress_tests, run_stress_test,
+    check_drawdown_alerts, calculate_risk_attribution, calculate_risk_score,
+    STRESS_SCENARIOS,
+)
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -84,7 +90,7 @@ if len(df_cash) > 0:
         if c["currency"] == "USD":
             cash_usd += c["amount"]
         elif c["currency"] == "ARS":
-            cash_usd += c["amount"] / DOLAR_MEP
+            cash_usd += c["amount"] / get_dolar_mep_live()
 
 portfolio_total_usd = total_usd + cash_usd
 cash_pct = (cash_usd / portfolio_total_usd * 100) if portfolio_total_usd > 0 else 0
@@ -102,7 +108,8 @@ with st.sidebar:
     st.markdown("### Filtros")
     selected_owners = st.multiselect("Miembros", owners, default=owners)
     st.markdown("---")
-    st.markdown(f"**Dólar MEP**: ${DOLAR_MEP:,.0f}")
+    mep_live = get_dolar_mep_live()
+    st.markdown(f"**Dólar MEP**: ${mep_live:,.0f} (live)")
     st.markdown("---")
     if load_errors:
         st.markdown("### Avisos")
@@ -120,8 +127,8 @@ else:
 st.markdown("## Family Office Dashboard")
 st.caption(f"Datos de: {', '.join(df['source'].unique())} | {len(positions)} posiciones | {len(owners)} miembros")
 
-tab_overview, tab_macro, tab_indicators, tab_rebalance, tab_positions, tab_conclusiones = st.tabs([
-    "📊 Overview", "🌎 Macro & Liquidez", "📈 Indicadores & What-If", "⚖️ Rebalanceo Mensual", "📋 Posiciones", "🎯 Conclusiones"
+tab_overview, tab_macro, tab_risk, tab_indicators, tab_rebalance, tab_positions, tab_conclusiones = st.tabs([
+    "📊 Overview", "🌎 Macro & Liquidez", "🛡 Risk Engine", "📈 Indicadores & What-If", "⚖️ Rebalanceo", "📋 Posiciones", "🎯 Conclusiones"
 ])
 
 # ============================================================
@@ -283,8 +290,7 @@ with tab_overview:
                 {"Exposición": "Pesificado", "US$": f"${pesificado:,.0f}", "%": f"{pesificado/total_exposure*100:.1f}%"},
             ])
             st.dataframe(fx_data, use_container_width=True, hide_index=True)
-        st.markdown(f"**Dólar MEP**: ${DOLAR_MEP:,.0f}")
-        st.caption("CEDEARs, bonos USD y crypto se consideran dolarizados")
+            st.caption("CEDEARs, bonos USD y crypto se consideran dolarizados")
 
     with col_by_class:
         st.markdown("### Detalle por Clase de Activo")
@@ -552,7 +558,229 @@ with tab_macro:
 
 
 # ============================================================
-# TAB 3: INDICADORES & WHAT-IF
+# TAB 3: RISK ENGINE
+# ============================================================
+with tab_risk:
+    st.subheader("Risk Engine")
+
+    # --- Risk Score ---
+    @st.cache_data(ttl=3600)
+    def _cached_risk_data(_positions_hash):
+        pos_list = df_filtered.to_dict("records")
+        port_ind = calculate_portfolio_indicators(pos_list)
+        concentration = calculate_concentration_metrics(pos_list)
+        dd_alerts = check_drawdown_alerts(pos_list)
+        risk_attr = calculate_risk_attribution(pos_list)
+        return port_ind, concentration, dd_alerts, risk_attr
+
+    pos_hash = hash(tuple(sorted([(p["ticker"], p["market_value_usd"]) for _, p in df_filtered.iterrows()])))
+
+    with st.spinner("Calculando riesgo..."):
+        try:
+            port_ind_risk, concentration, dd_alerts, risk_attr = _cached_risk_data(pos_hash)
+        except Exception as e:
+            st.error(f"Error calculando riesgo: {e}")
+            port_ind_risk = {}
+            concentration = {}
+            dd_alerts = []
+            risk_attr = {}
+
+    # --- KPIs de concentración ---
+    if concentration:
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("HHI", f"{concentration.get('hhi', 0):,.0f}",
+                   help="< 1500 diversificado, > 2500 concentrado")
+        c2.metric("Top 1", f"{concentration.get('top1_pct', 0):.1f}%",
+                   help=f"{concentration.get('top1_ticker', '')}")
+        c3.metric("Top 5", f"{concentration.get('top5_pct', 0):.1f}%")
+        c4.metric("Posiciones equiv.", f"{concentration.get('equivalent_positions', 0):.0f}",
+                   help="# efectivo de posiciones (1/HHI)")
+        c5.metric("Max clase", f"{concentration.get('max_class_pct', 0):.1f}%",
+                   help=concentration.get('max_class_name', ''))
+
+    # --- Risk Score Consolidado (cruza macro + portfolio) ---
+    try:
+        _g_data_risk = get_global_indicators()
+        _, _liq_score_risk, _ = get_liquidity_signal(_g_data_risk)
+    except Exception:
+        _liq_score_risk = 0
+
+    risk_score_data = calculate_risk_score(
+        df_filtered.to_dict("records"), port_ind_risk, macro_score=_liq_score_risk
+    )
+    rs = risk_score_data["score"]
+    rs_color = {"green": "#44ff44", "yellow": "#ffcc44", "orange": "#ff8844", "red": "#ff4444"}.get(risk_score_data["color"], "#888")
+    st.markdown(
+        f'<div style="background:#1a1a2e;border:2px solid {rs_color};border-radius:12px;padding:20px;margin:10px 0;text-align:center;">'
+        f'<span style="color:{rs_color};font-size:2.5rem;font-weight:700;">{rs}/100</span><br>'
+        f'<span style="color:{rs_color};font-size:1.2rem;">{risk_score_data["rating"]}</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    # Detalle de factores
+    factor_cols = st.columns(len(risk_score_data["factors"]))
+    for i, f in enumerate(risk_score_data["factors"]):
+        with factor_cols[i]:
+            pct_of_max = f["score"] / f["max"] * 100
+            bar_color = "#44ff44" if pct_of_max >= 70 else "#ffcc44" if pct_of_max >= 40 else "#ff4444"
+            st.markdown(
+                f'<div style="text-align:center;padding:4px;">'
+                f'<strong>{f["factor"]}</strong><br>'
+                f'<span style="color:{bar_color};font-size:1.3rem;">{f["score"]}/{f["max"]}</span><br>'
+                f'<span style="color:#888;font-size:0.75rem;">{f["detail"]}</span></div>',
+                unsafe_allow_html=True,
+            )
+
+    st.divider()
+
+    # --- Stress Scenarios ---
+    st.subheader("Stress Scenarios")
+    st.caption("¿Qué pasa con tu portfolio en cada escenario?")
+
+    pos_list = df_filtered.to_dict("records")
+    stress_results = run_all_stress_tests(pos_list)
+
+    if stress_results:
+        cols = st.columns(3)
+        for i, sr in enumerate(stress_results):
+            if "error" in sr:
+                continue
+            with cols[i % 3]:
+                color = "#ff4444" if sr["pnl_pct"] < -10 else "#ffaa00" if sr["pnl_pct"] < 0 else "#44ff44"
+                st.markdown(f"""
+                <div style="background:#1a1a2e;border:1px solid {color};border-radius:10px;padding:14px;margin:6px 0;">
+                    <strong>{sr['scenario_name']}</strong><br>
+                    <span style="font-size:12px;color:#888">{sr['scenario_desc']}</span><br>
+                    <span style="font-size:28px;font-weight:700;color:{color}">{sr['pnl_pct']:+.1f}%</span><br>
+                    <span style="color:{color}">US$ {sr['pnl_usd']:+,.0f}</span>
+                    <span style="color:#666"> → US$ {sr['stressed_total_usd']:,.0f}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+    st.divider()
+
+    # --- Component VaR ---
+    st.subheader("Component VaR — Contribución al riesgo por posición")
+    st.caption("¿Cuánto del VaR total aporta cada posición? Identifica las fuentes de riesgo.")
+
+    with st.spinner("Calculando Component VaR..."):
+        try:
+            cvar = calculate_component_var(pos_list)
+            if cvar["portfolio_var_pct"] != 0:
+                cv1, cv2, cv3 = st.columns(3)
+                cv1.metric("VaR 95% diario", f"{cvar['portfolio_var_pct']:.2f}%",
+                           help="Pérdida máxima diaria con 95% de confianza")
+                cv2.metric("VaR en USD", f"US$ {abs(cvar['portfolio_var_usd']):,.0f}")
+                cv3.metric("Vol anual portfolio", f"{cvar.get('portfolio_vol_annual', 0):.1f}%")
+
+                if cvar["components"]:
+                    cvar_rows = []
+                    for comp in cvar["components"]:
+                        cvar_rows.append({
+                            "Ticker": comp["ticker"],
+                            "Peso %": comp["weight_pct"],
+                            "Component VaR %": comp["component_var_pct"],
+                            "VaR USD": comp["component_var_usd"],
+                            "% del VaR total": comp["pct_of_total_var"],
+                        })
+                    df_cvar = pd.DataFrame(cvar_rows)
+                    st.dataframe(df_cvar, use_container_width=True, hide_index=True,
+                                 column_config={
+                                     "Peso %": st.column_config.NumberColumn(format="%.1f%%"),
+                                     "Component VaR %": st.column_config.NumberColumn(format="%.2f%%"),
+                                     "VaR USD": st.column_config.NumberColumn(format="US$ %,.0f"),
+                                     "% del VaR total": st.column_config.NumberColumn(format="%.1f%%"),
+                                 })
+            else:
+                st.info("Datos insuficientes para calcular Component VaR (se necesitan al menos 2 posiciones con data).")
+        except Exception as e:
+            st.warning(f"Error calculando Component VaR: {e}")
+
+    st.divider()
+
+    # --- Risk Attribution ---
+    st.subheader("Risk Attribution por Asset Class")
+    st.caption("¿De dónde viene el riesgo? Peso vs contribución al riesgo.")
+    if risk_attr and risk_attr.get("by_class"):
+        ra_data = []
+        for cls, data in risk_attr["by_class"].items():
+            ra_data.append({
+                "Clase": cls,
+                "Peso %": data["weight_pct"],
+                "Vol anual %": data["avg_vol_annual"],
+                "Risk % del total": data["risk_pct_of_total"],
+                "Risk/Peso ratio": round(data["risk_pct_of_total"] / data["weight_pct"], 2) if data["weight_pct"] > 0 else 0,
+            })
+        df_ra = pd.DataFrame(ra_data).sort_values("Risk % del total", ascending=False)
+        st.dataframe(df_ra, use_container_width=True, hide_index=True)
+
+        # Chart comparativo peso vs riesgo
+        fig_risk = go.Figure()
+        fig_risk.add_trace(go.Bar(name="Peso %", x=df_ra["Clase"], y=df_ra["Peso %"], marker_color="#4488ff"))
+        fig_risk.add_trace(go.Bar(name="Risk %", x=df_ra["Clase"], y=df_ra["Risk % del total"], marker_color="#ff4444"))
+        fig_risk.update_layout(barmode="group", height=350, margin=dict(t=30, b=30),
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02))
+        st.plotly_chart(fig_risk, use_container_width=True)
+
+    st.divider()
+
+    # --- Drawdown Alerts ---
+    st.subheader("Drawdown Alerts")
+    if dd_alerts:
+        for alert in dd_alerts:
+            sev_color = "#ff4444" if alert["severity"] == "CRITICAL" else "#ffaa00"
+            st.markdown(f"""
+            <div style="background:#2d1b1b;border-left:4px solid {sev_color};border-radius:6px;padding:10px 14px;margin:4px 0;">
+                <strong style="color:{sev_color}">{alert['severity']}</strong> —
+                <strong>{alert['ticker']}</strong>: {alert['drawdown_pct']:.1f}% desde máximo 6m
+                (${alert['peak_price']:.2f} → ${alert['current_price']:.2f})
+                | Peso: {alert['weight_pct']:.1f}%
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="ok-box">Sin alertas de drawdown. Todas las posiciones dentro de límites.</div>', unsafe_allow_html=True)
+
+    st.divider()
+
+    # --- Correlation Matrix (visual) ---
+    st.subheader("Correlation Matrix")
+    st.caption("Diversificación real entre posiciones. Azul = descorrelacionado (bueno), Rojo = correlacionado (riesgo)")
+
+    with st.spinner("Calculando correlaciones..."):
+        try:
+            corr_data = calculate_correlation_matrix(pos_list)
+            corr_matrix = corr_data.get("matrix")
+            if corr_matrix is not None and not corr_matrix.empty:
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Correlación promedio", f"{corr_data.get('avg_correlation', 0):.2f}")
+                c2.metric("Score diversificación", f"{corr_data.get('diversification_score', 0):.0f}/100")
+                max_p = corr_data.get("max_pair", {})
+                c3.metric("Par más correlacionado",
+                          f"{max_p.get('tickers', ('',''))[0]}/{max_p.get('tickers', ('',''))[1]}",
+                          f"ρ={max_p.get('correlation', 0):.2f}")
+
+                # Heatmap
+                fig_corr = go.Figure(data=go.Heatmap(
+                    z=corr_matrix.values,
+                    x=corr_matrix.columns,
+                    y=corr_matrix.index,
+                    colorscale="RdBu_r",
+                    zmid=0,
+                    zmin=-1, zmax=1,
+                    text=corr_matrix.round(2).values,
+                    texttemplate="%{text}",
+                    textfont={"size": 10},
+                ))
+                fig_corr.update_layout(height=500, margin=dict(t=30, b=30))
+                st.plotly_chart(fig_corr, use_container_width=True)
+            else:
+                st.info("No hay suficientes posiciones con datos de precio para calcular correlaciones.")
+        except Exception as e:
+            st.warning(f"Error calculando correlaciones: {e}")
+
+
+# ============================================================
+# TAB 4: INDICADORES & WHAT-IF
 # ============================================================
 with tab_indicators:
     st.markdown("### Indicadores del Portfolio")
@@ -760,7 +988,7 @@ with tab_rebalance:
     with col_input2:
         dolar_input = st.number_input(
             "Dólar MEP",
-            min_value=100.0, value=float(DOLAR_MEP), step=10.0,
+            min_value=100.0, value=float(mep_live), step=10.0,
             format="%.0f",
         )
     with col_input3:
@@ -874,13 +1102,28 @@ with tab_rebalance:
             row[cls] = round(pct, 1)
         projection_rows.append(row)
 
-        # Aplicar aporte del mes
+        # Proyectar aporte del mes hacia el target (sin releer CSVs)
         if month < 12:
-            month_result = calculate_rebalance(aporte_ars=aporte_ars, dolar_mep=dolar_input)
+            new_total = current_total + aporte_usd
+            total_needed = 0
+            needs = {}
+            for cls, target_pct in TARGET_ALLOCATION.items():
+                target_usd = new_total * target_pct / 100
+                current_usd = by_class_usd.get(cls, 0)
+                needed = max(target_usd - current_usd, 0)
+                needs[cls] = needed
+                total_needed += needed
+
             for cls in TARGET_ALLOCATION:
-                rec = month_result["recommendation"].get(cls, {})
-                by_class_usd[cls] = by_class_usd.get(cls, 0) + rec.get("alloc_usd", 0)
-            current_total += aporte_usd
+                if total_needed > 0:
+                    share = needs[cls] / total_needed
+                    by_class_usd[cls] = by_class_usd.get(cls, 0) + aporte_usd * share
+                else:
+                    # Todo sobreponderado — distribuir a la clase más subponderada
+                    least_cls = min(TARGET_ALLOCATION, key=lambda c: by_class_usd.get(c, 0) / new_total * 100 - TARGET_ALLOCATION[c])
+                    if cls == least_cls:
+                        by_class_usd[cls] = by_class_usd.get(cls, 0) + aporte_usd
+            current_total = new_total
 
     df_proj = pd.DataFrame(projection_rows)
 
@@ -1074,7 +1317,7 @@ with tab_conclusiones:
     actions = []
 
     # Rebalanceo — qué comprar
-    result_concl = calculate_rebalance(aporte_ars=APORTE_MENSUAL_ARS, dolar_mep=DOLAR_MEP)
+    result_concl = calculate_rebalance(aporte_ars=APORTE_MENSUAL_ARS, dolar_mep=mep_live)
     for cls in sorted(result_concl["recommendation"].keys(),
                       key=lambda x: result_concl["recommendation"][x]["alloc_ars"], reverse=True):
         rec = result_concl["recommendation"][cls]
@@ -1157,6 +1400,73 @@ with tab_conclusiones:
     else:
         st.markdown("Sin alertas activas. Continuar con el plan de rebalanceo mensual.")
 
+    # --- REGIME MATCHING HISTÓRICO ---
+    st.markdown("---")
+    st.markdown("#### 5. ¿Cuándo se dio este escenario antes?")
+    st.caption("Backtest: buscamos semanas con S&P sobrevendido + VIX alto + oro rally + BTC corrigiendo + emergentes positivos")
+
+    @st.cache_data(ttl=7200, show_spinner="Analizando 10 años de mercado...")
+    def _get_regime():
+        return get_regime_matching()
+
+    regime = _get_regime()
+
+    if regime and regime.get("matches"):
+        st.markdown(f"**{regime['summary']}**")
+
+        # Tabla de matches
+        match_rows = []
+        for m in regime["matches"]:
+            fwd = m.get("forward_returns", {})
+            match_rows.append({
+                "Fecha": m["date"].strftime("%Y-%m-%d") if hasattr(m["date"], "strftime") else str(m["date"]),
+                "S&P RSI": m["sp_rsi"],
+                "VIX": m["vix"],
+                "Oro 6m%": m.get("gld_6m", "—"),
+                "BTC 6m%": m.get("btc_6m", "—"),
+                "EEM 6m%": m.get("eem_6m", "—"),
+                "Crit.": m["conditions_met"],
+                "→ 1m%": fwd.get("1m", "—"),
+                "→ 3m%": fwd.get("3m", "—"),
+                "→ 6m%": fwd.get("6m", "—"),
+                "→ 12m%": fwd.get("12m", "—"),
+            })
+
+        df_regime = pd.DataFrame(match_rows)
+        st.dataframe(df_regime, use_container_width=True, hide_index=True)
+
+        # Forward return stats
+        fwd_stats = regime.get("forward_stats", {})
+        if fwd_stats:
+            st.markdown("##### Retornos del S&P500 después de escenarios similares")
+
+            stat_cols = st.columns(4)
+            for i, (period, label) in enumerate([("1m", "1 Mes"), ("3m", "3 Meses"), ("6m", "6 Meses"), ("12m", "12 Meses")]):
+                stats = fwd_stats.get(period, {})
+                if stats:
+                    with stat_cols[i]:
+                        avg = stats["avg"]
+                        color = "#44ff44" if avg > 0 else "#ff4444"
+                        pos_pct = stats.get("positive_pct", 0)
+                        st.markdown(
+                            f'<div style="background:#1a1a2e;border:1px solid {color};border-radius:10px;padding:14px;text-align:center;margin:4px 0;">'
+                            f'<span style="color:#888;font-size:0.85rem">{label}</span><br>'
+                            f'<span style="color:{color};font-size:1.8rem;font-weight:700">{avg:+.1f}%</span><br>'
+                            f'<span style="color:#aaa;font-size:0.8rem">Mediana: {stats["median"]:+.1f}%</span><br>'
+                            f'<span style="color:#888;font-size:0.75rem">Rango: {stats["min"]:+.1f}% a {stats["max"]:+.1f}%</span><br>'
+                            f'<span style="color:#aaa;font-size:0.8rem">Positivo: {pos_pct}% de las veces (n={stats["n"]})</span>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
+
+            st.markdown("")
+            st.info("**Interpretación**: estos son los retornos históricos del S&P500 en los 1/3/6/12 meses POSTERIORES "
+                    "a momentos con una combinación de variables similar a la actual. No es predicción, es contexto estadístico.")
+    elif regime:
+        st.info(regime.get("summary", "Sin datos"))
+    else:
+        st.warning("No se pudo ejecutar el análisis de regímenes históricos.")
+
     # --- RESUMEN EJECUTIVO ---
     st.markdown("---")
     st.markdown("#### Resumen Ejecutivo")
@@ -1213,5 +1523,5 @@ with tab_conclusiones:
 # FOOTER
 # ============================================================
 st.markdown("---")
-st.caption(f"Family Office v0.4 — Datos reales | {len(positions)} posiciones | Dólar MEP: ${DOLAR_MEP:,.0f}")
+st.caption(f"Family Office v0.5 — Datos reales | {len(positions)} posiciones | Dólar MEP: ${mep_live:,.0f}")
 st.caption("Para actualizar: descargá nuevos CSV de tenencia y reemplazá en _family_office/data/")
