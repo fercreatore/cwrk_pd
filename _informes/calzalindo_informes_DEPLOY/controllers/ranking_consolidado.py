@@ -244,6 +244,30 @@ def rank_productos():
         merged['numeracion'] = merged['csr'].apply(
             lambda c: get_numeracion_csr(c))
 
+        # vel_real por CSR (batch, usa vel_real.py auto-loaded como model)
+        try:
+            csrs_list = merged['csr'].tolist()
+            quiebres = analizar_quiebre_batch_dal(csrs_list)
+            merged['vel_real'] = merged['csr'].apply(
+                lambda c: quiebres.get(c, {}).get('vel_real', 0))
+            merged['vel_aparente'] = merged['csr'].apply(
+                lambda c: quiebres.get(c, {}).get('vel_aparente', 0))
+            merged['factor_quiebre'] = merged['csr'].apply(
+                lambda c: quiebres.get(c, {}).get('factor_quiebre', 1.0))
+            merged['pct_quiebre'] = merged['csr'].apply(
+                lambda c: quiebres.get(c, {}).get('pct_quiebre', 0))
+            # Marcar sub-comprados (factor_quiebre > 2x)
+            merged['alerta_quiebre'] = merged['factor_quiebre'].apply(
+                lambda f: 'SUB-COMPRADO %.1fx' % f if f >= 2.0 else '')
+            # Reordenar por vel_real descendente
+            merged = merged.sort_values('vel_real', ascending=False).reset_index(drop=True)
+        except Exception:
+            merged['vel_real'] = 0
+            merged['vel_aparente'] = 0
+            merged['factor_quiebre'] = 1.0
+            merged['pct_quiebre'] = 0
+            merged['alerta_quiebre'] = ''
+
         data = merged.to_json(orient='records')
     else:
         data = '[]'
