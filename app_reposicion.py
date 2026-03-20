@@ -2540,6 +2540,36 @@ def render_dashboard():
             labels=['CRITICO', 'BAJO', 'MEDIO', 'OK']
         )
 
+        # GMROI y Rotación
+        precios_venta_dash = obtener_precios_venta_batch(csrs_dash)
+        df_f['precio_costo'] = df_f['precio_fabrica'].fillna(0).astype(float)
+        df_f['precio_venta'] = df_f['csr'].map(
+            lambda c: precios_venta_dash.get(c, 0)
+        )
+        # Fallback: si no hay precio venta, estimar x2
+        df_f.loc[df_f['precio_venta'] <= 0, 'precio_venta'] = df_f.loc[
+            df_f['precio_venta'] <= 0, 'precio_costo'] * 2
+
+        # stock_costo = stock_actual * precio_costo
+        df_f['stock_costo'] = df_f['stock_total'] * df_f['precio_costo']
+        # ventas_costo_12m = ventas_12m * precio_costo
+        df_f['ventas_costo_12m'] = df_f['ventas_12m'] * df_f['precio_costo']
+        # margen_bruto_anual = vel_real * 12 * (precio_venta - precio_costo)
+        df_f['margen_bruto_anual'] = df_f['vel_mes'] * 12 * (df_f['precio_venta'] - df_f['precio_costo'])
+
+        # GMROI = margen_bruto_anual / stock_promedio_costo
+        df_f['gmroi'] = np.where(
+            df_f['stock_costo'] > 0,
+            df_f['margen_bruto_anual'] / df_f['stock_costo'],
+            0
+        )
+        # Rotación = ventas_costo_12m / stock_promedio_costo
+        df_f['rotacion'] = np.where(
+            df_f['stock_costo'] > 0,
+            df_f['ventas_costo_12m'] / df_f['stock_costo'],
+            0
+        )
+
         # KPIs globales
         c1, c2, c3, c4, c5 = st.columns(5)
         criticos = len(df_f[df_f['urgencia'] == 'CRITICO'])
@@ -2590,7 +2620,8 @@ def render_dashboard():
         st.subheader("Top 30 — Productos más urgentes")
         df_top = df_f.nsmallest(30, 'dias_stock')[
             ['descripcion', 'marca_desc', 'prov_nombre', 'stock_total',
-             'ventas_12m', 'vel_mes', 'pct_quiebre', 'dias_stock', 'urgencia']
+             'ventas_12m', 'vel_mes', 'pct_quiebre', 'dias_stock', 'urgencia',
+             'gmroi', 'rotacion']
         ].copy()
         df_top['dias_stock'] = df_top['dias_stock'].round(0).astype(int)
         df_top['vel_mes'] = df_top['vel_mes'].round(1)
@@ -2598,7 +2629,7 @@ def render_dashboard():
         st.dataframe(
             df_top,
             column_config={
-                'descripcion': st.column_config.TextColumn('Producto', width=280),
+                'descripcion': st.column_config.TextColumn('Producto', width=250),
                 'marca_desc': 'Marca',
                 'prov_nombre': 'Proveedor',
                 'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
@@ -2607,6 +2638,10 @@ def render_dashboard():
                 'pct_quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
                 'dias_stock': st.column_config.NumberColumn('Dias', format="%d"),
                 'urgencia': 'Urgencia',
+                'gmroi': st.column_config.NumberColumn('GMROI', format="%.1f",
+                    help="Margen bruto anual / stock a costo. >1 = rentable"),
+                'rotacion': st.column_config.NumberColumn('Rotación', format="%.1f",
+                    help="Ventas a costo 12m / stock a costo. >4 = alta rotación"),
             },
             use_container_width=True, hide_index=True,
         )
