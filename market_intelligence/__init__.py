@@ -24,6 +24,7 @@ from .facebook import FacebookAuditor
 from .whatsapp import WhatsAppChecker
 from .website_audit import WebsiteAuditor
 from .skills import SkillsAudit
+from .cross_analysis import CrossAnalyzer
 
 __all__ = [
     "MLScraper",
@@ -37,4 +38,5 @@ __all__ = [
     "WhatsAppChecker",
     "WebsiteAuditor",
     "SkillsAudit",
+    "CrossAnalyzer",
 ]

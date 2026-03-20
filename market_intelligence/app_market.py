@@ -24,11 +24,12 @@ from market_intelligence.facebook import FacebookAuditor
 from market_intelligence.whatsapp import WhatsAppChecker
 from market_intelligence.website_audit import WebsiteAuditor
 from market_intelligence.skills import SkillsAudit
+from market_intelligence.cross_analysis import CrossAnalyzer
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
-st.set_page_config(page_title="Market Intelligence", layout="wide")
-st.title("Market Intelligence — Importación")
+st.set_page_config(page_title="Market Intelligence", layout="wide", page_icon="📊")
+st.title("📊 Market Intelligence — Importación")
 
 # --- Sidebar config ---
 st.sidebar.header("Configuración")
@@ -42,12 +43,14 @@ ml_commission = st.sidebar.number_input("Comisión ML Premium %", value=16.0, st
 pages = st.sidebar.slider("Páginas ML por búsqueda", 1, 5, 2)
 
 # --- Tab layout ---
-tab_scan, tab_compare, tab_social, tab_website, tab_competitor, tab_history = st.tabs([
+tab_scan, tab_compare, tab_cross, tab_social, tab_website, tab_competitor, tab_export, tab_history = st.tabs([
     "Scan ML",
     "Comparar categorías",
+    "Dashboard Cruzado",
     "Redes Sociales",
     "Auditoría Web",
     "Competidores",
+    "Exportar",
     "Historial",
 ])
 
@@ -244,7 +247,230 @@ mochila urbana mujer,7"""
 
 
 # ============================
-# TAB 3: Redes Sociales
+# TAB 3: Dashboard Cruzado
+# ============================
+with tab_cross:
+    st.subheader("Dashboard Cruzado — Todas las variables")
+    st.caption("Análisis multidimensional: ML x Costos x Estacionalidad x Competencia")
+
+    cx_col1, cx_col2 = st.columns(2)
+    with cx_col1:
+        cx_query = st.text_input("Categoría a analizar", value="valijas carry on", key="cx_query")
+    with cx_col2:
+        cx_landed = st.number_input("Costo landed USD", value=12.0, step=0.5, key="cx_landed")
+
+    cx_add_competitors = st.checkbox("Incluir análisis de competidores", key="cx_comp")
+    cx_competitors = []
+    if cx_add_competitors:
+        cx_n = st.number_input("Cantidad", min_value=1, max_value=5, value=2, key="cx_n")
+        for ci in range(int(cx_n)):
+            with st.expander(f"Competidor {ci+1}", expanded=(ci == 0)):
+                cn = st.text_input("Nombre", key=f"cx_name_{ci}", value=f"Competidor {ci+1}")
+                cc1, cc2 = st.columns(2)
+                with cc1:
+                    cw = st.text_input("Website", key=f"cx_web_{ci}")
+                    cig = st.text_input("Instagram", key=f"cx_ig_{ci}")
+                with cc2:
+                    cfb = st.text_input("Facebook", key=f"cx_fb_{ci}")
+                    cwa = st.text_input("WhatsApp", key=f"cx_wa_{ci}")
+                cx_competitors.append({
+                    "name": cn,
+                    "website": cw or None,
+                    "instagram": cig or None,
+                    "facebook": cfb or None,
+                    "whatsapp": cwa or None,
+                })
+
+    if st.button("Ejecutar análisis cruzado", type="primary", key="btn_cross"):
+        cross = CrossAnalyzer(exchange_rate=exchange_rate, ml_commission=ml_commission)
+
+        with st.spinner("Escaneando MercadoLibre..."):
+            items = cross.scraper.search(cx_query, pages=pages)
+            ml_analysis = cross.scraper.analyze(items)
+
+        if not items:
+            st.error("No se encontraron resultados en ML")
+        else:
+            # Market depth
+            with st.spinner("Analizando profundidad de mercado..."):
+                depth = cross.market_depth_analysis(items, ml_analysis)
+
+            # Elasticity
+            elasticity = cross.price_elasticity_map(ml_analysis, cx_landed)
+
+            # Opportunity
+            opportunity = cross.analyzer.opportunity_analysis(ml_analysis, cx_landed, ml_commission)
+
+            # Seasonal
+            with st.spinner("Consultando Google Trends..."):
+                seasonal = cross.seasonal_opportunity_score(cx_query, cx_landed, ml_analysis)
+
+            # Competitive landscape
+            competitor_reports = []
+            if cx_competitors and cx_add_competitors:
+                with st.spinner("Auditando competidores..."):
+                    from market_intelligence.skills import SkillsAudit
+                    audit = SkillsAudit(exchange_rate=exchange_rate)
+                    for comp in cx_competitors:
+                        if any(v for k, v in comp.items() if k != "name"):
+                            report = audit.full_competitor_audit(**comp)
+                            competitor_reports.append(report)
+
+            landscape = cross.competitive_landscape(ml_analysis, competitor_reports)
+
+            # Verdict
+            verdict = cross._generate_verdict(opportunity, depth, seasonal, landscape)
+
+            # Save report
+            report = {
+                "query": cx_query, "timestamp": datetime.now().isoformat(),
+                "exchange_rate": exchange_rate, "landed_cost_usd": cx_landed,
+                "market_overview": ml_analysis, "market_depth": depth,
+                "price_elasticity": elasticity, "opportunity": opportunity,
+                "seasonal": seasonal, "competitive_landscape": landscape,
+                "verdict": verdict,
+            }
+            cross._save(report, f"cross_analysis_{cx_query.replace(' ', '_')}")
+
+            # ---- RENDER DASHBOARD ----
+            st.divider()
+
+            # VERDICT HERO
+            v_score = verdict["total_score"]
+            v_color = "#28a745" if v_score >= 60 else "#ffc107" if v_score >= 40 else "#dc3545"
+            st.markdown(
+                f'<div style="background:{v_color};padding:20px;border-radius:10px;text-align:center">'
+                f'<h1 style="color:white;margin:0">{verdict["verdict"]}</h1>'
+                f'<h3 style="color:white;margin:5px 0">{v_score}/100 pts</h3>'
+                f'<p style="color:white;margin:0">{verdict["action"]}</p></div>',
+                unsafe_allow_html=True,
+            )
+            st.write("")
+
+            # Score breakdown
+            st.subheader("Desglose del score")
+            bd = verdict.get("breakdown", {})
+            bd_cols = st.columns(4)
+            labels = {"margin": "Margen", "market": "Mercado", "seasonal": "Estacionalidad", "competition": "Competencia"}
+            for col, (key, label) in zip(bd_cols, labels.items()):
+                val = bd.get(key, 0)
+                col.metric(label, f"{val}/25")
+
+            # Market overview
+            st.subheader("Mercado ML")
+            mo_cols = st.columns(5)
+            mo_cols[0].metric("Items", ml_analysis.get("total_items", 0))
+            mo_cols[1].metric("Mediana", f"${ml_analysis.get('price_median', 0):,}")
+            mo_cols[2].metric("Rango", f"${ml_analysis.get('price_min', 0):,}—${ml_analysis.get('price_max', 0):,}")
+            mo_cols[3].metric("Envío gratis", f"{ml_analysis.get('free_shipping_pct', 0)}%")
+            mo_cols[4].metric("Con descuento", f"{ml_analysis.get('discounted_pct', 0)}%")
+
+            # Market depth
+            if depth:
+                st.subheader("Profundidad de mercado")
+                dp_cols = st.columns(4)
+                dp_cols[0].metric("Marcas únicas", depth.get("unique_brands", 0))
+                dp_cols[1].metric("Madurez", depth.get("market_maturity", "?"))
+                dp_cols[2].metric("Concentración (HHI)", depth.get("brand_concentration_hhi", 0))
+                dp_cols[3].metric("Marca líder", f"{depth.get('top_brand', '?')} ({depth.get('top_brand_share_pct', 0)}%)")
+
+            # Price elasticity
+            if elasticity:
+                st.subheader("Elasticidad de precio por segmento")
+                el_rows = []
+                for seg, data in elasticity.items():
+                    el_rows.append({
+                        "Segmento": seg.upper(),
+                        "Precio promedio": f"${data['avg_price']:,}",
+                        "Margen": f"{data['margin_pct']}%",
+                        "Ganancia/unidad": f"${data['profit_per_unit_ars']:,}",
+                        "Atractivo": data["attractiveness"],
+                    })
+                st.dataframe(pd.DataFrame(el_rows), use_container_width=True)
+
+            # Opportunity
+            if opportunity:
+                st.subheader("Oportunidad de importación")
+                op_cols = st.columns(4)
+                op_cols[0].metric("Landed ARS", f"${opportunity.get('landed_cost_ars', 0):,}")
+                op_cols[1].metric("Margen a mediana", f"{opportunity.get('margin_at_median', 0)}%")
+                op_cols[2].metric("Margen a Q1", f"{opportunity.get('margin_at_q1', 0)}%")
+                bep = opportunity.get('breakeven_price_25pct', 0)
+                op_cols[3].metric("Break-even 25%", f"${bep:,}" if bep != float('inf') else "N/A")
+
+                st.write(f"**Posicionamiento:** {opportunity.get('positioning', '')}")
+
+                if opportunity.get("suggested_prices"):
+                    sp_rows = []
+                    for label, price in opportunity["suggested_prices"].items():
+                        if price is not None:
+                            sp_rows.append({"Target": label, "Precio ML": f"${price:,}"})
+                    if sp_rows:
+                        st.table(pd.DataFrame(sp_rows))
+
+            # Seasonal
+            if seasonal.get("available"):
+                st.subheader("Estacionalidad (Google Trends)")
+                for kw, data in seasonal.get("seasonal_analysis", {}).items():
+                    s_cols = st.columns(5)
+                    s_cols[0].metric("Keyword", kw)
+                    s_cols[1].metric("Interés actual", data.get("current_interest", 0))
+                    s_cols[2].metric("Proyectado", data.get("projected_interest", 0))
+                    s_cols[3].metric("Factor", f"{data.get('seasonal_factor', 1.0)}x")
+                    s_cols[4].metric("Timing", data.get("import_timing", "?"))
+
+                rec = seasonal.get("recommendation", "")
+                if rec:
+                    st.info(f"**Recomendación:** {rec}")
+
+                related = seasonal.get("related_queries", {})
+                if related.get("rising"):
+                    st.write("**Queries en alza:**")
+                    rising_df = pd.DataFrame(related["rising"])
+                    st.dataframe(rising_df, use_container_width=True)
+
+            # Competitive landscape
+            if landscape.get("ml_brands"):
+                st.subheader("Paisaje competitivo")
+                st.metric("Intensidad competitiva", landscape.get("competitive_intensity", "?"))
+
+                if landscape.get("digital_leaders"):
+                    st.write("**Líderes digitales:**")
+                    dl_rows = []
+                    for dl in landscape["digital_leaders"]:
+                        dl_rows.append({
+                            "Competidor": dl["name"],
+                            "Score digital": dl["digital_score"],
+                            "Canales": ", ".join(dl["channels"]),
+                        })
+                    st.dataframe(pd.DataFrame(dl_rows), use_container_width=True)
+
+                if landscape.get("gaps"):
+                    st.write("**Gaps detectados (oportunidades):**")
+                    for gap in landscape["gaps"]:
+                        st.write(f"- **{gap['brand']}**: {gap['ml_share']}% ML share, score digital: {gap['digital_score'] or 'N/A'}")
+
+            # Brands chart
+            if ml_analysis.get("top_brands"):
+                st.subheader("Dominancia de marcas")
+                brands_df = pd.DataFrame(ml_analysis["top_brands"], columns=["Marca", "Items"])
+                st.bar_chart(brands_df.set_index("Marca"))
+
+            # Historical comparison
+            st.subheader("Evolución histórica")
+            evolution = cross.trend_over_time(cx_query)
+            if evolution and len(evolution) >= 2:
+                evo_df = pd.DataFrame(evolution)
+                evo_df["timestamp"] = pd.to_datetime(evo_df["timestamp"]).dt.strftime("%d/%m %H:%M")
+                st.line_chart(evo_df.set_index("timestamp")[["median_price", "margin_pct", "composite_score"]])
+            else:
+                st.info("Se necesitan al menos 2 scans previos para ver evolución. Ejecutá este análisis periódicamente.")
+
+            st.success("Análisis cruzado completo guardado en data/")
+
+
+# ============================
+# TAB 4: Redes Sociales
 # ============================
 with tab_social:
     st.subheader("Auditoría de Redes Sociales")
@@ -567,7 +793,173 @@ with tab_competitor:
 
 
 # ============================
-# TAB 6: Historial
+# TAB 7: Exportar
+# ============================
+with tab_export:
+    st.subheader("Exportar datos a Excel/CSV")
+    st.caption("Descargá los datos de análisis previos en formato editable")
+
+    if os.path.exists(DATA_DIR):
+        export_files = sorted(
+            [f for f in os.listdir(DATA_DIR) if f.endswith(".json")],
+            reverse=True,
+        )[:50]
+
+        if export_files:
+            selected_files = st.multiselect(
+                "Seleccioná archivos para exportar",
+                export_files,
+                default=export_files[:3] if len(export_files) >= 3 else export_files,
+            )
+
+            export_format = st.radio("Formato", ["Excel (.xlsx)", "CSV"], horizontal=True)
+
+            if st.button("Generar exportación", type="primary", key="btn_export"):
+                all_data = []
+                for f in selected_files:
+                    try:
+                        with open(os.path.join(DATA_DIR, f)) as fh:
+                            data = json.load(fh)
+
+                        # Flatten JSON to tabular
+                        flat = _flatten_for_export(data, f)
+                        all_data.extend(flat)
+                    except Exception as e:
+                        st.warning(f"Error al leer {f}: {e}")
+
+                if all_data:
+                    df_export = pd.DataFrame(all_data)
+
+                    if export_format == "CSV":
+                        csv = df_export.to_csv(index=False)
+                        st.download_button(
+                            label="Descargar CSV",
+                            data=csv,
+                            file_name=f"market_intelligence_{datetime.now().strftime('%Y%m%d')}.csv",
+                            mime="text/csv",
+                        )
+                    else:
+                        from io import BytesIO
+                        output = BytesIO()
+                        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                            df_export.to_excel(writer, index=False, sheet_name="Market Intelligence")
+                        st.download_button(
+                            label="Descargar Excel",
+                            data=output.getvalue(),
+                            file_name=f"market_intelligence_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        )
+
+                    st.dataframe(df_export, use_container_width=True)
+                    st.success(f"{len(all_data)} registros listos para exportar")
+                else:
+                    st.warning("No se pudieron leer datos de los archivos seleccionados")
+        else:
+            st.info("No hay archivos para exportar")
+    else:
+        st.info("Directorio de datos no encontrado")
+
+
+def _flatten_for_export(data, filename):
+    """Aplanar un JSON de análisis a filas tabulares."""
+    rows = []
+    base = {
+        "archivo": filename,
+        "timestamp": data.get("timestamp", ""),
+        "query": data.get("query", ""),
+    }
+
+    # Cross analysis
+    if "verdict" in data:
+        verdict = data.get("verdict", {})
+        opp = data.get("opportunity", {})
+        depth = data.get("market_depth", {})
+        market = data.get("market_overview", {})
+        row = {**base,
+            "tipo": "cross_analysis",
+            "total_items": market.get("total_items"),
+            "precio_mediana": market.get("price_median"),
+            "precio_q1": market.get("price_q1"),
+            "precio_q3": market.get("price_q3"),
+            "envio_gratis_pct": market.get("free_shipping_pct"),
+            "marcas_unicas": depth.get("unique_brands"),
+            "madurez_mercado": depth.get("market_maturity"),
+            "concentracion_hhi": depth.get("brand_concentration_hhi"),
+            "marca_lider": depth.get("top_brand"),
+            "landed_cost_ars": opp.get("landed_cost_ars"),
+            "margen_mediana_pct": opp.get("margin_at_median"),
+            "margen_q1_pct": opp.get("margin_at_q1"),
+            "breakeven_25pct": opp.get("breakeven_price_25pct"),
+            "posicionamiento": opp.get("positioning"),
+            "score_total": verdict.get("total_score"),
+            "veredicto": verdict.get("verdict"),
+            "accion": verdict.get("action"),
+        }
+        rows.append(row)
+
+    # ML analysis
+    elif "total_items" in data:
+        row = {**base,
+            "tipo": "ml_analysis",
+            "total_items": data.get("total_items"),
+            "precio_mediana": data.get("price_median"),
+            "precio_q1": data.get("price_q1"),
+            "precio_q3": data.get("price_q3"),
+            "precio_min": data.get("price_min"),
+            "precio_max": data.get("price_max"),
+            "envio_gratis_pct": data.get("free_shipping_pct"),
+            "descuento_prom_pct": data.get("avg_discount_pct"),
+        }
+        if data.get("top_brands"):
+            row["marcas_top"] = ", ".join(f"{b}({c})" for b, c in data["top_brands"][:5])
+        rows.append(row)
+
+    # Competitor audit
+    elif "competitor" in data:
+        summary = data.get("summary", {})
+        row = {**base,
+            "tipo": "competitor_audit",
+            "competidor": data.get("competitor"),
+            "score_digital": summary.get("digital_presence_score"),
+            "canales_activos": ", ".join(summary.get("channels_active", [])),
+            "canales_faltantes": ", ".join(summary.get("channels_missing", [])),
+            "fortalezas": "; ".join(summary.get("strengths", [])[:3]),
+            "debilidades": "; ".join(summary.get("weaknesses", [])[:3]),
+        }
+        rows.append(row)
+
+    # Website audit
+    elif "domain" in data:
+        row = {**base,
+            "tipo": "website_audit",
+            "dominio": data.get("domain"),
+            "score": data.get("score"),
+            "accesible": data.get("accessible"),
+            "ssl_valido": data.get("ssl", {}).get("valid"),
+            "response_ms": data.get("performance", {}).get("response_time_ms"),
+            "plataforma": data.get("ecommerce", {}).get("platform"),
+        }
+        rows.append(row)
+
+    # List of items (raw ML data, IG audit, etc.)
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict):
+                row = {**base, "tipo": "raw_data"}
+                row.update({k: v for k, v in item.items() if not isinstance(v, (dict, list))})
+                rows.append(row)
+
+    # Fallback: single flat dict
+    else:
+        row = {**base, "tipo": "other"}
+        row.update({k: v for k, v in data.items() if not isinstance(v, (dict, list))})
+        rows.append(row)
+
+    return rows
+
+
+# ============================
+# TAB 8: Historial
 # ============================
 with tab_history:
     st.subheader("Scans anteriores")
@@ -581,6 +973,7 @@ with tab_history:
         # Filtro por tipo
         file_types = {
             "Todos": "",
+            "Cross Analysis": "cross_analysis_",
             "ML Analysis": "_analysis.json",
             "Instagram": "instagram_",
             "Facebook": "facebook_",
