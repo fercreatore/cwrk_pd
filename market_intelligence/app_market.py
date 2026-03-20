@@ -887,6 +887,72 @@ with tab_competitor:
                 })
             st.dataframe(pd.DataFrame(comp_data), use_container_width=True)
 
+        # Benchmark: comparar mi negocio vs. competidores
+        st.divider()
+        st.subheader("Benchmark vs. tu negocio")
+        st.caption("Ingresá los datos de tu negocio para compararte contra los competidores")
+
+        bm_col1, bm_col2 = st.columns(2)
+        with bm_col1:
+            my_name = st.text_input("Tu negocio", value="H4 / CALZALINDO", key="bm_name")
+            my_web = st.text_input("Tu website", value="calzalindo.com.ar", key="bm_web")
+            my_ig = st.text_input("Tu Instagram", value="calzalindo_ok", key="bm_ig")
+        with bm_col2:
+            my_fb = st.text_input("Tu Facebook", key="bm_fb")
+            my_wa = st.text_input("Tu WhatsApp", key="bm_wa")
+
+        if st.button("Comparar con mi negocio", key="btn_benchmark"):
+            my_report = audit.full_competitor_audit(
+                name=my_name,
+                website=my_web or None,
+                instagram=my_ig or None,
+                facebook=my_fb or None,
+                whatsapp=my_wa or None,
+            )
+            all_reports = [my_report] + reports
+            my_score = my_report.get("summary", {}).get("digital_presence_score", 0)
+
+            st.markdown(f"### Tu Score: **{my_score}/100**")
+
+            # Position
+            scores = [(r["competitor"], r.get("summary", {}).get("digital_presence_score", 0)) for r in all_reports]
+            scores.sort(key=lambda x: x[1], reverse=True)
+            my_rank = next(i for i, (n, _) in enumerate(scores, 1) if n == my_name)
+            total = len(scores)
+
+            if my_rank == 1:
+                st.success(f"Sos el #1 de {total}. Liderás la presencia digital.")
+            elif my_rank <= total // 2:
+                st.info(f"Estás #{my_rank} de {total}. Por encima de la mediana.")
+            else:
+                st.warning(f"Estás #{my_rank} de {total}. Hay oportunidad de mejora.")
+
+            # Comparison table
+            bm_data = []
+            for name, score in scores:
+                is_me = name == my_name
+                bm_data.append({
+                    "": ">>> " if is_me else "",
+                    "Negocio": name,
+                    "Score": score,
+                    "Diferencia": f"{'+' if score >= my_score else ''}{score - my_score}" if not is_me else "---",
+                })
+            st.dataframe(pd.DataFrame(bm_data), use_container_width=True)
+
+            # My strengths/weaknesses
+            my_summary = my_report.get("summary", {})
+            bm_c1, bm_c2 = st.columns(2)
+            with bm_c1:
+                st.markdown("**Tus fortalezas:**")
+                for s in my_summary.get("strengths", []):
+                    st.write(f"+ {s}")
+            with bm_c2:
+                st.markdown("**A mejorar:**")
+                for w in my_summary.get("weaknesses", []):
+                    st.write(f"- {w}")
+                for ch in my_summary.get("channels_missing", []):
+                    st.write(f"- Canal faltante: {ch}")
+
         # Save
         all_data = {"reports": reports, "timestamp": datetime.now().isoformat()}
         audit.save_report(all_data, "full_competitor_audit")
