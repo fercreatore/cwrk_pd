@@ -5,7 +5,38 @@
 > LEER PRIMERO en cada sesión nueva para saber qué se hizo y qué falta.
 > AL CERRAR cada sesión, ACTUALIZAR con los cambios realizados.
 
-> Última actualización: 15 de marzo de 2026 — Mejoras app_carga.py: proveedor auto-detect + UX
+> Última actualización: 20 de marzo de 2026 — Refresh token ML + revisión facturador TN + batch publish
+
+---
+
+## 20 de marzo de 2026 — Overnight: token ML, facturador TN, batch publish
+
+### 1. refresh_token_ml.py (NUEVO)
+Script `multicanal/refresh_token_ml.py` para renovar access_token de ML automáticamente.
+Lee `mercadolibre_config.json`, verifica vigencia (TTL 6h, margen 90min), renueva vía OAuth2.
+Soporta `--check` y `--force`. Listo para cron cada 5h.
+
+### 2. Revisión facturador_tn.py — Qué falta para modo real
+
+**Estado actual**: dry-run funciona. Tiene modo `--directo` (INSERT ERP) y modo POS 109.
+
+**Payload POS 109 — Verificado OK** (post commit 23a4aa2):
+- Campos renombrados según endpoint de Luciano: `nro_doc`, `tipo_doc`, `condicion_iva`, `nombre`, `apellido`, `usuario_tn`, `usuario_tn_nick`, `mi_usuario`, `mi_medio_pago`, `productos`
+- `tenant: 'tiendanube'` para distinguir de ML
+
+**Pendientes para pasar a modo real**:
+1. **Medio de pago TN**: `mi_medio_pago.id=137` es "MERCADOLIBRE ONLINE API" — crear/asignar uno específico para TiendaNube (ej: "TIENDANUBE ONLINE API") o confirmar con Luciano que se use el mismo
+2. **Sucursal/depósito**: `usuario.sucursal=2`, `deposito=0` — validar contra la configuración real del POS 109
+3. **Campo telefono**: el payload no envía teléfono del cliente — verificar si el 109 lo requiere
+4. **Retry/cola**: no hay reintentos si el 109 falla (timeout 60s, luego error y sigue). Evaluar si implementar cola de reintentos
+5. **Webhook TN**: actualmente es polling (busca órdenes cada X tiempo). Para producción considerar webhook de TN para procesamiento en tiempo real
+6. **SKUs sin match**: productos sin SKU o sin match en ERP se skipean silenciosamente — en producción alertar al operador
+7. **Test end-to-end**: ejecutar `--dry-run` contra TN real y verificar que los payloads se armen correctamente con órdenes reales
+
+**NO es bug**: `operacion='+'` en ventas1 es correcto — MS Gestión usa '+' para facturas de venta; el descuento de stock se hace con UPDATE directo (líneas 744-749).
+
+### 3. Publicación masiva batch en canales.py (NUEVO)
+Función `publicar_batch()` en `CanalTiendaNube` y `CanalMercadoLibre` que toma artículos con stock+foto+SKU y publica de a lotes con rate limiting y reporte detallado
 
 ---
 
