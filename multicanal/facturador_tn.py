@@ -508,15 +508,15 @@ def construir_payload_109(orden: dict, articulos_erp: dict) -> dict:
         })
 
     payload = {
-        'pack_id': str(orden.get('id', '')),
+        'order_id': str(orden.get('id', '')),
         'nro_doc': dni_str,
         'tipo_doc': 96,
         'tipo_doc_descrip': 'DNI',
         'condicion_iva': 'C',
         'nombre': nombre,
         'apellido': apellido,
-        'usuario_ml': tn_id,
-        'usuario_ml_nick': email,
+        'usuario_tn': tn_id,
+        'usuario_tn_nick': email,
         'direccion': direccion,
         'cod_postal': str(cod_postal),
         'tenant': 'tiendanube',
