@@ -1,6 +1,6 @@
 """
 Módulo de imágenes — consulta fotos del producto en PostgreSQL (VPS clz_productos)
-y genera URLs o descarga binarios para publicar en TiendaNube / MercadoLibre.
+y genera URLs públicas para publicar en TiendaNube / MercadoLibre.
 
 La tabla producto_imagenes tiene:
   - cod_familia: primeros 8 chars del SKU base (agrupa talles)
@@ -9,20 +9,23 @@ La tabla producto_imagenes tiene:
   - archivo_final: ej "2722200048-01.jpeg"
   - estado: 'activo'
 
-Como las imágenes no están expuestas por HTTP, este módulo las lee
-directamente como bytes desde el filesystem del VPS via SSH/SFTP
-o las sirve como base64 para upload directo a las APIs.
+Las imágenes se sirven vía HTTPS desde el VPS:
+  https://n8n.calzalindo.com.ar/imagenes/{path_relativo}/{archivo_final}
 
 USO:
-    from multicanal.imagenes import buscar_imagenes_producto, obtener_imagen_bytes
+    from multicanal.imagenes import buscar_imagenes_producto, urls_producto, url_publica
 
     # Buscar fotos de un SKU
     fotos = buscar_imagenes_producto('2722200048')
-    # [{'archivo_final': '2722200048-01.jpeg', 'path': '2/2722200048/2722200048-01.jpeg', ...}]
 
-    # Para TiendaNube: subir imagen directo via API
-    from multicanal.imagenes import subir_imagen_a_tn
-    subir_imagen_a_tn(client, product_id, fotos[0])
+    # Obtener URLs públicas
+    urls = urls_producto('2722200048')
+    # ['https://n8n.calzalindo.com.ar/imagenes/2/2722200048/2722200048-01.jpeg', ...]
+
+    # Para TiendaNube: publicar con URLs de imagen
+    from multicanal.imagenes import imagenes_para_tn
+    images_payload = imagenes_para_tn('2722200048')
+    # [{'src': 'https://n8n.calzalindo.com.ar/imagenes/2/...'}, ...]
 """
 
 import os
@@ -31,10 +34,8 @@ import psycopg2
 
 PG_CONN_STRING = "postgresql://guille:Martes13%23@200.58.109.125:5432/clz_productos"
 
-# URL base para servir imágenes por HTTP.
-# Configurar después de instalar nginx en el VPS con nginx_imagenes.conf
-# Ejemplo: "https://calzalindo.com.ar/img" o "http://200.58.109.125:8088/img"
-IMAGE_BASE_URL = os.environ.get('CLZ_IMAGE_URL', 'http://200.58.109.125:8088/img')
+# URL base pública de imágenes en el VPS (servidas via n8n/nginx)
+IMAGE_BASE_URL = os.environ.get('CLZ_IMAGE_URL', 'https://n8n.calzalindo.com.ar/imagenes')
 
 
 def _get_pg_conn():
@@ -186,59 +187,48 @@ def urls_producto(sku: str) -> list:
     return [url_publica(f) for f in fotos]
 
 
-def obtener_imagen_base64(imagen: dict) -> str:
+def imagenes_para_tn(sku: str) -> list:
     """
-    Lee la imagen original del filesystem del VPS y la convierte a base64.
-    Requiere que el archivo exista en el path de imágenes del VPS.
+    Retorna lista de dicts con formato TiendaNube para el campo 'images'
+    al crear/actualizar un producto.
 
-    NOTA: Esta función solo funciona si se ejecuta en el VPS o si hay
-    acceso al filesystem montado. Para uso remoto, usar la versión SSH.
+    TiendaNube acepta: [{'src': 'https://...'}]
+
+    Args:
+        sku: codigo_sinonimo o producto_base
+
+    Returns:
+        [{'src': 'https://n8n.calzalindo.com.ar/imagenes/2/272.../272...-01.jpeg'}, ...]
     """
-    # Path en el VPS: /var/www/imagenes/{path_relativo}/{archivo_final}
-    # Ajustar según donde estén montadas las imágenes
-    posibles_bases = [
-        '/var/www/imagenes',
-        '/var/www/html/imagenes',
-        '/home/guille/imagenes',
-        '/opt/imagenes',
-    ]
+    fotos = buscar_imagenes_producto(sku)
+    return [{'src': url_publica(f)} for f in fotos]
 
-    path_rel = imagen['path_completo']
-    for base_path in posibles_bases:
-        full_path = os.path.join(base_path, path_rel)
-        if os.path.exists(full_path):
-            with open(full_path, 'rb') as f:
-                data = f.read()
-            return base64.b64encode(data).decode('utf-8')
 
-    return None
+def imagenes_para_ml(sku: str) -> list:
+    """
+    Retorna lista de dicts con formato MercadoLibre para el campo 'pictures'.
+
+    ML acepta: [{'source': 'https://...'}]
+    """
+    fotos = buscar_imagenes_producto(sku)
+    return [{'source': url_publica(f)} for f in fotos]
 
 
 def subir_imagen_a_tn(client, product_id: int, imagen: dict) -> dict:
     """
-    Sube una imagen del catálogo PostgreSQL a un producto de TiendaNube.
+    Sube una imagen a un producto existente de TiendaNube usando URL pública.
 
     TiendaNube acepta:
-    - src: URL pública de la imagen
-    - attachment: base64 encoded image
-
-    Como no hay URL pública, intentamos base64. Si no se puede leer
-    el archivo, retorna error.
+    - src: URL pública de la imagen (preferido)
+    - attachment: base64 encoded image (fallback)
     """
-    b64 = obtener_imagen_base64(imagen)
-    if not b64:
-        return {'ok': False, 'error': f"No se pudo leer {imagen['path_completo']}"}
-
-    ext = imagen.get('ext', '.jpeg').lstrip('.')
+    url = url_publica(imagen)
     data = {
-        'images': [{
-            'attachment': b64,
-            'filename': imagen['archivo_final'],
-        }]
+        'images': [{'src': url}]
     }
 
     try:
         result = client.actualizar_producto(product_id, data)
-        return {'ok': True, 'detalle': result}
+        return {'ok': True, 'url': url, 'detalle': result}
     except Exception as e:
-        return {'ok': False, 'error': str(e)}
+        return {'ok': False, 'error': str(e), 'url': url}
