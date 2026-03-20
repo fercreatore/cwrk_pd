@@ -336,10 +336,11 @@ class CanalMercadoLibre(CanalBase):
 
 # ── Publicación de producto nuevo (orquestador) ──
 
-# Conexión a réplica 112 (solo SELECT)
-_REPLICA_CONN_STRING = (
+# Conexión a producción 111 (SELECT para consultas de artículos)
+# NOTA: réplica 112 no tiene usuario am/dl configurado
+_ERP_CONN_STRING = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.2.112;"
+    "SERVER=192.168.2.111;"
     "DATABASE=msgestion01art;"
     "UID=am;PWD=dl;"
     "Encrypt=no;"
@@ -352,7 +353,7 @@ def _consultar_articulo_erp(codigo_sinonimo: str) -> dict:
     Retorna dict con datos del artículo o None si no existe.
     """
     import pyodbc
-    conn = pyodbc.connect(_REPLICA_CONN_STRING, timeout=15)
+    conn = pyodbc.connect(_ERP_CONN_STRING, timeout=15)
     try:
         cursor = conn.cursor()
 
@@ -484,7 +485,7 @@ def publicar_producto_nuevo(codigo_sinonimo: str, dry_run: bool = True,
     print(f"{'='*60}\n")
 
     # --- 1. Buscar artículo en ERP ---
-    print("[1/5] Buscando artículo en ERP (réplica 112)...")
+    print("[1/5] Buscando artículo en ERP (111)...")
     articulo = _consultar_articulo_erp(codigo_sinonimo)
     if not articulo:
         print(f"  ERROR: No se encontró artículo con codigo_sinonimo = '{codigo_sinonimo}'")
