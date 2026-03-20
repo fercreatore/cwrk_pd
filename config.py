@@ -1,14 +1,31 @@
 # config.py — Configuración de conexiones a SQL Server
 # EDITAR antes de usar: completar usuario y contraseña
 
+# ── FIX SSL: OpenSSL 3.x no permite TLS 1.0 (SQL Server 2012) ──
+# Crear config legacy si estamos en Mac/Linux y no existe
+import os as _os
+import platform as _platform
+import socket as _socket
+
+_is_windows = _platform.system() == "Windows"
+if not _is_windows:
+    _ssl_conf = "/tmp/openssl_legacy.cnf"
+    if not _os.path.exists(_ssl_conf):
+        with open(_ssl_conf, "w") as _f:
+            _f.write(
+                "openssl_conf = openssl_init\n"
+                "[openssl_init]\nssl_conf = ssl_sect\n"
+                "[ssl_sect]\nsystem_default = system_default_sect\n"
+                "[system_default_sect]\n"
+                "MinProtocol = TLSv1\nCipherString = DEFAULT@SECLEVEL=0\n"
+            )
+    _os.environ.setdefault("OPENSSL_CONF", _ssl_conf)
+
 # ── SERVIDOR ──────────────────────────────────────────
 # DELL-SVR = producción (192.168.2.111) — es el que acepta login SQL
-# DATASVRW = réplica (192.168.2.112) — también en LAN, usa Driver 17
-# Mac/remoto — usa Driver 18 con Encrypt=Optional
-import socket as _socket
-import platform as _platform
+# DATASVRW = réplica (192.168.2.112) — credenciales distintas (pendiente)
+# Mac/remoto — Driver 17 + fix SSL legacy
 _hostname = _socket.gethostname().upper()
-_is_windows = _platform.system() == "Windows"
 
 if _hostname in ("DELL-SVR", "DELLSVR"):
     SERVIDOR = "localhost"

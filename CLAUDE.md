@@ -33,8 +33,14 @@ También: app Streamlit para OCR de facturas PDF, sistema de talles 3 capas, map
 - SMB Windows: `administrador` / `cagr$2011`
 
 ### Conexión MCP
-**CRÍTICO**: `mcp__sql-replica__execute_sql_query` conecta a la RÉPLICA (112). Solo SELECT.
-INSERT va por Python en el 111 directamente.
+**`sql-replica`** → `@bytebase/dbhub` apuntando a **192.168.2.111** (producción), base `msgestionC`.
+- Requiere `OPENSSL_CONF=/tmp/openssl_legacy.cnf` (OpenSSL 3.x no permite TLS 1.0 de SQL Server 2012)
+- `config.py` crea el archivo automáticamente al importarse si no existe
+- Usar solo para SELECT. INSERT va por Python en el 111 directamente.
+
+**⚠️ Pendientes de conexión**:
+- **112 (réplica)**: el usuario `am/dl` no existe en el 112 — pendiente averiguar credenciales
+- **Metabase**: no está corriendo ni en localhost:3000 ni en 112:3000 — pendiente configurar
 
 ### Sincronización Mac ↔ 111
 **⚠️ NUNCA hacer rsync completo de la carpeta** — son 700MB+ de Excel/ZIP/PDF que no van al server.
