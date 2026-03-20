@@ -609,6 +609,360 @@ def get_regime_matching():
         return {"matches": [], "summary": f"Error en análisis: {e}"}
 
 
+# ============================================================
+# MACRO THRESHOLDS — Indicadores tipo Bernstein (umbrales históricos)
+# ============================================================
+
+# Datos estáticos actualizados periódicamente + live donde sea posible
+MACRO_THRESHOLDS = [
+    {
+        "name": "Energía / GDP",
+        "source": "BP/Bernstein/OECD",
+        "current_value": 4.5,  # 2025 est, Brent ~$65-70
+        "danger_zone": 7.0,
+        "crisis_zone": 8.0,
+        "unit": "%",
+        "history": [
+            (1973, 8.0, "Oil Crisis"),
+            (1980, 9.0, "Energy Crisis"),
+            (1990, 5.5, "Gulf War"),
+            (2000, 3.0, "Dot-com"),
+            (2008, 8.2, "GFC"),
+            (2014, 4.5, "Shale"),
+            (2020, 3.2, "COVID"),
+            (2022, 8.5, "Rusia"),
+            (2025, 4.5, "Hoy"),
+        ],
+        "interpretation": "Cada vez que energía superó 7-8% del GDP global → shock (1973, 1980, 2008, 2022). "
+                          "Hoy ~4.5% — lejos del peligro. Petróleo debería superar US$120 para activar.",
+    },
+    {
+        "name": "Buffett Indicator",
+        "source": "GuruFocus/Advisor Perspectives",
+        "current_value": 228,  # Feb 2026, 2do más alto de la historia
+        "danger_zone": 150,
+        "crisis_zone": 200,
+        "unit": "%",
+        "interpretation": "Market Cap total US / GDP. Media histórica: 85%. "
+                          "Dot-com: 140%, GFC: 110%, Dic 2025: 230% (récord). "
+                          "Hoy 228% = mercado +168% sobre media → mean reversion implica -40% potencial.",
+    },
+    {
+        "name": "CAPE Shiller",
+        "source": "GuruFocus/Multpl",
+        "current_value": 38.0,  # Mar 2026, 2do más alto en 155 años
+        "danger_zone": 30,
+        "crisis_zone": 40,
+        "unit": "x",
+        "interpretation": "PE ajustado por ciclo (10 años). Media: 17x. "
+                          "Dot-com: 44x (récord), Ene 2026: 40.6x. "
+                          "Cuando CAPE >30, retorno a 10 años promedia <4% anual.",
+    },
+    {
+        "name": "Yield Curve 10Y-2Y",
+        "source": "FRED T10Y2Y",
+        "current_value": 0.60,  # Feb 2026
+        "danger_zone": 0,
+        "crisis_zone": -0.5,
+        "unit": "pp",
+        "extra_info": "Inversión: Oct 2022 → Dic 2024 (26 meses, una de las más largas). "
+                      "Desinversión: Dic 2024. Ventana recesión: Jun 2025 → Dic 2026.",
+        "interpretation": "Curva invertida → recesión en 6-24 meses (100% track record desde 1955). "
+                          "Se desinvirtió hace 15 meses → ESTAMOS DENTRO de la ventana de recesión.",
+    },
+    {
+        "name": "Sahm Rule",
+        "source": "FRED SAHMREALTIME",
+        "current_value": 0.27,  # Feb 2026
+        "danger_zone": 0.50,
+        "crisis_zone": 0.80,
+        "unit": "pp",
+        "interpretation": "Sube desempleo 3m avg >0.5pp vs mínimo 12m → recesión. "
+                          "Triggered en las 11 recesiones post-1950. "
+                          "Jul 2024 llegó a 0.53 pero no hubo recesión (soft landing). Hoy 0.27 = OK.",
+    },
+    {
+        "name": "M2 Global",
+        "source": "FRED M2SL / MacroMicro",
+        "current_value": 4.6,  # YoY growth %
+        "danger_zone": -2,  # contracción = peligro
+        "crisis_zone": -5,
+        "unit": "% YoY",
+        "interpretation": "US M2 récord $22.4T (Dic 2025), +4.6% YoY. Mayor suba anual desde 2021. "
+                          "M2 en expansión → bullish para activos con ~10 semanas de lag. "
+                          "Contracción 2022-23 (1ra desde 1930s) ya se revirtió completamente.",
+    },
+    {
+        "name": "Credit Spreads HY",
+        "source": "FRED BAMLH0A0HYM2",
+        "current_value": 328,  # bps, Mar 2026
+        "danger_zone": 500,
+        "crisis_zone": 800,
+        "unit": "bp",
+        "interpretation": "HY OAS: media 20 años ~490bp. GFC: 2000bp, COVID: 1100bp. "
+                          "Hoy 328bp = complacencia. Spreads tight históricamente preceden widening súbito.",
+    },
+]
+
+
+def get_macro_thresholds_live():
+    """
+    Calcula indicadores de umbrales macro.
+    Usa datos estáticos actualizados + live de yfinance donde sea posible.
+    Retorna lista de dicts con estado actual de cada threshold.
+    """
+    results = []
+
+    for threshold in MACRO_THRESHOLDS:
+        t = threshold.copy()
+
+        val = t.get("current_value")
+        danger = t.get("danger_zone", 0)
+        crisis = t.get("crisis_zone", 0)
+
+        # Determinar status según la dirección del peligro
+        name = t["name"]
+
+        # Indicadores donde MAYOR = peor
+        if name in ("Energía / GDP", "Buffett Indicator", "CAPE Shiller",
+                     "Sahm Rule", "Credit Spreads HY"):
+            if val is not None:
+                if val >= crisis:
+                    t["status"] = "CRISIS"
+                elif val >= danger:
+                    t["status"] = "PELIGRO"
+                else:
+                    t["status"] = "OK"
+                t["pct_to_danger"] = round((danger - val) / max(danger, 1) * 100, 0) if val < danger else 0
+            else:
+                t["status"] = "N/A"
+
+        # Yield Curve: MENOR = peor (inversión)
+        elif "Yield Curve" in name:
+            if val is not None:
+                if val <= crisis:
+                    t["status"] = "CRISIS"
+                elif val <= danger:
+                    t["status"] = "PELIGRO"
+                else:
+                    # Positiva pero post-inversión = WARNING
+                    t["status"] = "WARNING"
+                    t["warning_reason"] = "Curva positiva pero en ventana post-inversión (6-24 meses)"
+            else:
+                t["status"] = "N/A"
+
+        # M2: MENOR = peor (contracción)
+        elif "M2" in name:
+            if val is not None:
+                if val <= crisis:
+                    t["status"] = "CRISIS"
+                elif val <= danger:
+                    t["status"] = "PELIGRO"
+                else:
+                    t["status"] = "OK"
+            else:
+                t["status"] = "N/A"
+
+        # Try to get live yield curve data
+        if "Yield Curve" in name:
+            try:
+                tnx = yf.download("^TNX", period="5d", interval="1d", progress=False)
+                irx = yf.download("^IRX", period="5d", interval="1d", progress=False)
+                if not tnx.empty and not irx.empty:
+                    y10 = float(tnx["Close"].iloc[-1])
+                    y3m = float(irx["Close"].iloc[-1])
+                    # Estimate 2Y as weighted avg between 3M and 10Y
+                    y2_est = y3m * 0.4 + y10 * 0.6  # approx
+                    spread = round(y10 - y2_est, 2)
+                    t["current_value"] = spread
+                    t["extra"] = f"10Y: {y10:.2f}% | 3M: {y3m:.2f}% | Spread est: {spread:+.2f}pp"
+                    # Re-evaluate status
+                    if spread <= crisis:
+                        t["status"] = "CRISIS"
+                    elif spread <= danger:
+                        t["status"] = "PELIGRO"
+                    else:
+                        t["status"] = "WARNING"
+                        t["warning_reason"] = "Positiva pero en ventana post-inversión"
+            except Exception:
+                pass
+
+        # Try to get live credit spreads via HYG/LQD
+        if "Credit Spreads" in name:
+            try:
+                hyg = yf.download("HYG", period="6mo", interval="1d", progress=False)
+                lqd = yf.download("LQD", period="6mo", interval="1d", progress=False)
+                if not hyg.empty and not lqd.empty:
+                    hyg_close = hyg["Close"].squeeze()
+                    lqd_close = lqd["Close"].squeeze()
+                    ratio = hyg_close / lqd_close
+                    current_ratio = float(ratio.iloc[-1])
+                    ratio_6m = float(ratio.iloc[0])
+                    chg = (current_ratio / ratio_6m - 1) * 100
+                    t["extra"] = f"HYG/LQD: {current_ratio:.3f} | 6m: {chg:+.1f}%"
+            except Exception:
+                pass
+
+        results.append(t)
+
+    return results
+
+
+# Resumen semáforo de todos los umbrales
+def get_threshold_summary(thresholds):
+    """Genera resumen de semáforo: cuántos en OK/WARNING/PELIGRO/CRISIS."""
+    counts = {"OK": 0, "WARNING": 0, "PELIGRO": 0, "CRISIS": 0}
+    for t in thresholds:
+        s = t.get("status", "N/A")
+        if s in counts:
+            counts[s] += 1
+
+    red = counts["CRISIS"]
+    amber = counts["PELIGRO"] + counts["WARNING"]
+    green = counts["OK"]
+
+    if red >= 2:
+        signal = "ALERTA ALTA"
+        desc = (f"{red} indicadores en crisis, {amber} en warning. "
+                "Valuaciones extremas — proteger capital, ser muy selectivo.")
+    elif red >= 1 or amber >= 3:
+        signal = "CAUTELA"
+        desc = (f"{red} crisis, {amber} warning, {green} OK. "
+                "Señales mixtas — invertir pero con protección (stops, diversificación).")
+    elif amber >= 2:
+        signal = "ATENCIÓN"
+        desc = (f"{amber} warning, {green} OK. "
+                "Condiciones aceptables pero monitorear de cerca.")
+    else:
+        signal = "VÍA LIBRE"
+        desc = f"Todos los indicadores en zona normal. Invertir con el plan."
+
+    return signal, desc, counts
+
+
+# ============================================================
+# SENTIMENT: Crypto Fear & Greed + DataRoma Smart Money
+# ============================================================
+
+def get_crypto_fear_greed():
+    """
+    Crypto Fear & Greed Index de alternative.me.
+    0 = Extreme Fear, 100 = Extreme Greed.
+    Cava lo usa como contrarian: extreme fear = oportunidad.
+    """
+    try:
+        r = requests.get("https://api.alternative.me/fng/?limit=30&format=json", timeout=10)
+        if r.status_code != 200:
+            return None
+        data = r.json().get("data", [])
+        if not data:
+            return None
+
+        current = int(data[0]["value"])
+        classification = data[0]["value_classification"]
+
+        # Tendencia: promedio últimos 7 vs últimos 30
+        values = [int(d["value"]) for d in data]
+        avg_7d = sum(values[:7]) / min(len(values), 7)
+        avg_30d = sum(values) / len(values)
+
+        # Días consecutivos en extreme fear
+        streak = 0
+        for d in data:
+            if d["value_classification"] == "Extreme Fear":
+                streak += 1
+            else:
+                break
+
+        return {
+            "value": current,
+            "classification": classification,
+            "avg_7d": round(avg_7d, 0),
+            "avg_30d": round(avg_30d, 0),
+            "extreme_fear_streak": streak,
+            "trend": "BAJANDO" if avg_7d < avg_30d else "SUBIENDO",
+            "history": values,
+            "signal": _crypto_fg_signal(current, streak),
+        }
+    except Exception:
+        return None
+
+
+def _crypto_fg_signal(value, streak):
+    """Señal contrarian basada en Fear & Greed."""
+    if value <= 10 and streak >= 7:
+        return ("EXTREME FEAR PROLONGADO", "COMPRA CONTRARIAN",
+                f"F&G={value}, {streak} días en extreme fear. Históricamente señal de piso.")
+    elif value <= 20:
+        return ("EXTREME FEAR", "OPORTUNIDAD",
+                f"F&G={value}. Mercado en pánico — como dice Cava, 'cuando todos venden, comprá'")
+    elif value <= 35:
+        return ("FEAR", "ATENCIÓN",
+                f"F&G={value}. Miedo pero no pánico. Ir de a poco.")
+    elif value <= 55:
+        return ("NEUTRAL", "NEUTRAL",
+                f"F&G={value}. Sin señal clara.")
+    elif value <= 75:
+        return ("GREED", "CAUTELA",
+                f"F&G={value}. Codicia — no es momento de comprar agresivo.")
+    else:
+        return ("EXTREME GREED", "VENDER/REDUCIR",
+                f"F&G={value}. Euforia — considerar tomar ganancias.")
+
+
+# DataRoma superinvestors — datos estáticos actualizados por trimestre
+# Se actualiza manualmente cada vez que salen los 13F filings (Q4 2025 = último)
+DATAROMA_SMART_MONEY = {
+    "last_update": "Q4 2025 (dic 2025)",
+    "top_buys": [
+        {"ticker": "MSFT", "buyers": 16, "sellers": 16, "net": 0, "signal": "ROTACIÓN"},
+        {"ticker": "AMZN", "buyers": 11, "sellers": 15, "net": -4, "signal": "MÁS VENDEN"},
+        {"ticker": "META", "buyers": 10, "sellers": 18, "net": -8, "signal": "MÁS VENDEN"},
+        {"ticker": "V", "buyers": 9, "sellers": 9, "net": 0, "signal": "ROTACIÓN"},
+        {"ticker": "TSM", "buyers": 8, "sellers": 9, "net": -1, "signal": "ROTACIÓN"},
+        {"ticker": "ASML", "buyers": 4, "sellers": 0, "net": 4, "signal": "COMPRA LIMPIA"},
+        {"ticker": "UBER", "buyers": 5, "sellers": 0, "net": 5, "signal": "COMPRA LIMPIA"},
+        {"ticker": "MELI", "buyers": 2, "sellers": 0, "net": 2, "signal": "COMPRA LIMPIA"},
+        {"ticker": "NVDA", "buyers": 6, "sellers": 6, "net": 0, "signal": "ROTACIÓN"},
+        {"ticker": "GOOGL", "buyers": 6, "sellers": 22, "net": -16, "signal": "VENTA MASIVA"},
+        {"ticker": "AAPL", "buyers": 0, "sellers": 12, "net": -12, "signal": "SOLO VENTA"},
+        {"ticker": "LLY", "buyers": 0, "sellers": 3, "net": -3, "signal": "SOLO VENTA"},
+    ],
+    "buffett_moves": {
+        "buys": ["CVX +6.6%", "CB +9.3%", "DPZ +12%", "NYT (NUEVO)"],
+        "sells": ["AMZN -77%", "AAPL -4.3%", "BAC -8.9%"],
+        "message": "Vendiendo tech, comprando seguros+energía+value",
+    },
+    "ackman_moves": {
+        "buys": ["META (NUEVO)", "AMZN (+)"],
+        "sells": ["BN (reduce)", "UBER (reduce)", "GOOG (reduce)"],
+        "message": "Concentra en META y AMZN, sale del resto",
+    },
+    # Holdings near 52-week lows (señal contrarian)
+    "near_52w_low": [
+        {"ticker": "V", "pct_above_low": 0.99},
+        {"ticker": "FOUR", "pct_above_low": 0.72},
+        {"ticker": "KHC", "pct_above_low": 0.65},
+        {"ticker": "MU", "pct_above_low": 0.00},
+        {"ticker": "DASH", "pct_above_low": 2.48},
+        {"ticker": "CPRT", "pct_above_low": 0.99},
+        {"ticker": "FISV", "pct_above_low": 2.06},
+    ],
+}
+
+
+def get_sentiment_dashboard():
+    """
+    Combina Crypto Fear & Greed + DataRoma Smart Money en un dashboard de sentimiento.
+    """
+    crypto_fg = get_crypto_fear_greed()
+
+    return {
+        "crypto_fear_greed": crypto_fg,
+        "smart_money": DATAROMA_SMART_MONEY,
+    }
+
+
 if __name__ == "__main__":
     print("=== GLOBAL ===")
     global_data = get_global_indicators()

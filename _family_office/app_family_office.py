@@ -15,7 +15,12 @@ from config_fo import (
 )
 from rebalancer import calculate_rebalance
 from indicators import calculate_portfolio_indicators, simulate_what_if, TICKER_MAP
-from macro import get_global_indicators, get_liquidity_signal, get_argentina_indicators, get_ar_decision_matrix, get_brecha_historica, EVENTOS_ECONOMICOS, get_regime_matching
+from macro import (
+    get_global_indicators, get_liquidity_signal, get_argentina_indicators,
+    get_ar_decision_matrix, get_brecha_historica, EVENTOS_ECONOMICOS,
+    get_regime_matching, get_macro_thresholds_live, get_threshold_summary,
+    get_sentiment_dashboard,
+), get_sentiment_dashboard, DATAROMA_SMART_MONEY
 from risk_engine import (
     calculate_concentration_metrics, calculate_component_var,
     calculate_correlation_matrix, run_all_stress_tests, run_stress_test,
@@ -128,8 +133,8 @@ else:
 st.markdown("## Family Office Dashboard")
 st.caption(f"Datos de: {', '.join(df['source'].unique())} | {len(positions)} posiciones | {len(owners)} miembros")
 
-tab_overview, tab_macro, tab_risk, tab_indicators, tab_rebalance, tab_positions, tab_conclusiones = st.tabs([
-    "📊 Overview", "🌎 Macro & Liquidez", "🛡 Risk Engine", "📈 Indicadores & What-If", "⚖️ Rebalanceo", "📋 Posiciones", "🎯 Conclusiones"
+tab_overview, tab_macro, tab_sentiment, tab_risk, tab_indicators, tab_rebalance, tab_positions, tab_conclusiones = st.tabs([
+    "📊 Overview", "🌎 Macro & Liquidez", "🎰 Sentimiento & Smart Money", "🛡 Risk Engine", "📈 Indicadores & What-If", "⚖️ Rebalanceo", "📋 Posiciones", "🎯 Conclusiones"
 ])
 
 # ============================================================
@@ -638,6 +643,160 @@ with tab_macro:
             st.markdown(f'<div class="{box_class}"><strong>{title}</strong>: {desc}</div>', unsafe_allow_html=True)
     else:
         st.info("Sin señales cruzadas activas — mercado en equilibrio relativo.")
+
+
+# ============================================================
+# TAB: SENTIMIENTO & SMART MONEY (Cava style)
+# ============================================================
+with tab_sentiment:
+    st.markdown("### Sentimiento & Smart Money")
+    st.caption("Crypto Fear & Greed (contrarian) + DataRoma superinvestors (smart money) — las fuentes que usa José Luis Cava")
+
+    @st.cache_data(ttl=1800, show_spinner="Cargando sentimiento...")
+    def _get_sentiment():
+        return get_sentiment_dashboard()
+
+    sentiment = _get_sentiment()
+
+    # --- CRYPTO FEAR & GREED ---
+    st.markdown("#### Crypto Fear & Greed Index")
+    cfg = sentiment.get("crypto_fear_greed")
+    if cfg:
+        fg_color = "#ff4444" if cfg["value"] <= 25 else "#ffaa00" if cfg["value"] <= 50 else "#44ff44" if cfg["value"] <= 75 else "#ff4444"
+        signal_name, signal_type, signal_desc = cfg["signal"]
+
+        col_fg1, col_fg2 = st.columns([1, 2])
+        with col_fg1:
+            st.markdown(
+                f'<div style="background:#1a1a2e;border:3px solid {fg_color};border-radius:16px;padding:30px;text-align:center;">'
+                f'<span style="color:{fg_color};font-size:4rem;font-weight:700;">{cfg["value"]}</span><br>'
+                f'<span style="color:{fg_color};font-size:1.2rem;">{cfg["classification"].upper()}</span><br>'
+                f'<span style="color:#888;font-size:0.9rem;">Racha: {cfg["extreme_fear_streak"]} días en extreme fear</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        with col_fg2:
+            # Signal box
+            sig_box = "buy-box" if signal_type in ("COMPRA CONTRARIAN", "OPORTUNIDAD") else "alert-box" if signal_type in ("VENDER/REDUCIR", "CAUTELA") else "info-box"
+            st.markdown(f'<div class="{sig_box}"><strong>{signal_name}</strong>: {signal_desc}</div>', unsafe_allow_html=True)
+
+            # Métricas
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Promedio 7d", f"{cfg['avg_7d']:.0f}")
+            m2.metric("Promedio 30d", f"{cfg['avg_30d']:.0f}")
+            m3.metric("Tendencia", cfg["trend"])
+
+            # Mini chart
+            if cfg.get("history"):
+                fig_fg = go.Figure(data=go.Scatter(
+                    y=list(reversed(cfg["history"])), mode="lines+markers",
+                    line=dict(color=fg_color, width=2),
+                    marker=dict(size=4),
+                ))
+                fig_fg.add_hline(y=25, line_dash="dash", line_color="#ff4444", line_width=0.5)
+                fig_fg.add_hline(y=75, line_dash="dash", line_color="#44ff44", line_width=0.5)
+                fig_fg.update_layout(
+                    height=180, margin=dict(t=5, b=5, l=30, r=10),
+                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#888"), showlegend=False,
+                    yaxis=dict(range=[0, 100]),
+                    xaxis=dict(title="Últimos 30 días"),
+                )
+                st.plotly_chart(fig_fg, use_container_width=True)
+    else:
+        st.warning("No se pudo cargar el Crypto Fear & Greed Index")
+
+    st.divider()
+
+    # --- DATAROMA SMART MONEY ---
+    st.markdown("#### DataRoma — ¿Qué hacen los superinvestors? (Q4 2025)")
+    st.caption("82 fondos trackeados. Datos de 13F filings (último: dic 2025). Fuente: dataroma.com")
+
+    sm = sentiment.get("smart_money", DATAROMA_SMART_MONEY)
+
+    # Tabla de buys/sells
+    col_sm1, col_sm2 = st.columns([3, 2])
+
+    with col_sm1:
+        st.markdown("##### Actividad por ticker — nuestro watchlist")
+        sm_rows = []
+        for entry in sm["top_buys"]:
+            signal_color = {"COMPRA LIMPIA": "#44ff44", "ROTACIÓN": "#ffcc44", "MÁS VENDEN": "#ff8844", "VENTA MASIVA": "#ff4444", "SOLO VENTA": "#ff4444"}.get(entry["signal"], "#888")
+            sm_rows.append({
+                "Ticker": entry["ticker"],
+                "Compran": entry["buyers"],
+                "Venden": entry["sellers"],
+                "Neto": entry["net"],
+                "Señal": entry["signal"],
+            })
+        df_sm = pd.DataFrame(sm_rows)
+        st.dataframe(df_sm, use_container_width=True, hide_index=True,
+                     column_config={
+                         "Neto": st.column_config.NumberColumn(format="%+d"),
+                     })
+
+    with col_sm2:
+        st.markdown("##### Lo que manda Buffett")
+        for action in sm["buffett_moves"]["buys"]:
+            st.markdown(f'<span style="color:#44ff44;">COMPRA</span> {action}', unsafe_allow_html=True)
+        for action in sm["buffett_moves"]["sells"]:
+            st.markdown(f'<span style="color:#ff4444;">VENDE</span> {action}', unsafe_allow_html=True)
+        st.caption(f"Lectura: {sm['buffett_moves']['message']}")
+
+        st.markdown("##### Ackman")
+        for action in sm["ackman_moves"]["buys"]:
+            st.markdown(f'<span style="color:#44ff44;">COMPRA</span> {action}', unsafe_allow_html=True)
+        for action in sm["ackman_moves"]["sells"]:
+            st.markdown(f'<span style="color:#ff4444;">VENDE</span> {action}', unsafe_allow_html=True)
+        st.caption(f"Lectura: {sm['ackman_moves']['message']}")
+
+    st.divider()
+
+    # --- NEAR 52-WEEK LOWS ---
+    st.markdown("##### Holdings de superinvestors cerca de mínimos 52 semanas")
+    st.caption("Señal contrarian: si los grandes tienen y está en mínimos, puede ser oportunidad")
+    if sm.get("near_52w_low"):
+        low_cols = st.columns(len(sm["near_52w_low"]))
+        for i, entry in enumerate(sm["near_52w_low"]):
+            with low_cols[i]:
+                st.metric(entry["ticker"], f"+{entry['pct_above_low']:.1f}%", "del mínimo 52s")
+
+    st.divider()
+
+    # --- CONCLUSIÓN SENTIMIENTO ---
+    st.markdown("#### Conclusión Sentimiento")
+
+    conclusions = []
+
+    # Crypto sentiment
+    if cfg and cfg["value"] <= 15 and cfg["extreme_fear_streak"] >= 14:
+        conclusions.append(("buy-box", "CRYPTO: EXTREME FEAR SOSTENIDO",
+            f"F&G={cfg['value']}, {cfg['extreme_fear_streak']} días seguidos. Históricamente es piso. "
+            "PERO: el smart money (DataRoma) NO toca crypto. Si entrás, que sea con plan de salida."))
+    elif cfg and cfg["value"] <= 25:
+        conclusions.append(("info-box", "CRYPTO: MIEDO",
+            f"F&G={cfg['value']}. Puede ser oportunidad contrarian pero la tendencia sigue negativa."))
+
+    # Smart money signals
+    compras_limpias = [e["ticker"] for e in sm["top_buys"] if e["signal"] == "COMPRA LIMPIA"]
+    ventas_masivas = [e["ticker"] for e in sm["top_buys"] if e["signal"] in ("VENTA MASIVA", "SOLO VENTA")]
+
+    if compras_limpias:
+        conclusions.append(("ok-box", "SMART MONEY COMPRA (sin venta)",
+            f"Solo entran, nadie sale: {', '.join(compras_limpias)}. Estos son los de mayor convicción."))
+
+    if ventas_masivas:
+        conclusions.append(("alert-box", "SMART MONEY SALE",
+            f"Más venden que compran: {', '.join(ventas_masivas)}. OJO con sobreponderar estos."))
+
+    # Buffett meta-signal
+    conclusions.append(("info-box", "BUFFETT SIGNAL",
+        "Vendió 77% de Amazon y sigue reduciendo Apple. Está acumulando cash y comprando value/seguros. "
+        "Esto históricamente anticipa corrección o recesión. Tener liquidez es clave."))
+
+    for box_class, title, desc in conclusions:
+        st.markdown(f'<div class="{box_class}"><strong>{title}</strong>: {desc}</div>', unsafe_allow_html=True)
 
 
 # ============================================================
@@ -1612,6 +1771,239 @@ with tab_conclusiones:
         st.info(regime.get("summary", "Sin datos"))
     else:
         st.warning("No se pudo ejecutar el análisis de regímenes históricos.")
+
+    # --- MACRO THRESHOLDS (estilo Bernstein) ---
+    st.markdown("---")
+    st.markdown("#### 6. Umbrales Macro — Señales de Shock Económico")
+    st.caption("Indicadores que históricamente predijeron crisis. Estilo Bernstein: energía/GDP, Buffett Indicator, CAPE, yield curve, credit spreads.")
+
+    @st.cache_data(ttl=3600, show_spinner="Calculando umbrales macro...")
+    def _get_thresholds():
+        return get_macro_thresholds_live()
+
+    thresholds = _get_thresholds()
+
+    if thresholds:
+        # Semáforo general
+        th_signal, th_desc, th_counts = get_threshold_summary(thresholds)
+        th_signal_colors = {
+            "VÍA LIBRE": "#44ff44", "ATENCIÓN": "#ffcc44",
+            "CAUTELA": "#ff8844", "ALERTA ALTA": "#ff4444",
+        }
+        th_color = th_signal_colors.get(th_signal, "#8888ff")
+        st.markdown(
+            f'<div style="background:#1a1a2e;border:2px solid {th_color};border-radius:10px;'
+            f'padding:14px;text-align:center;margin:8px 0;">'
+            f'<span style="color:{th_color};font-size:1.3rem;font-weight:700">'
+            f'Semáforo Macro: {th_signal}</span><br>'
+            f'<span style="color:#aaa;font-size:0.85rem">{th_desc}</span></div>',
+            unsafe_allow_html=True,
+        )
+
+        # Cards por indicador
+        status_colors = {
+            "OK": ("#1b2d1b", "#44ff44"),
+            "WARNING": ("#2d2d1b", "#ffcc44"),
+            "PELIGRO": ("#2d2d1b", "#ffaa00"),
+            "CRISIS": ("#2d1b1b", "#ff4444"),
+        }
+
+        # Primera fila: 4 indicadores
+        row1 = thresholds[:4]
+        row2 = thresholds[4:]
+
+        for row_data in [row1, row2]:
+            if not row_data:
+                continue
+            th_cols = st.columns(len(row_data))
+            for i, t in enumerate(row_data):
+                with th_cols[i]:
+                    val = t.get("current_value")
+                    status = t.get("status", "OK")
+                    bg, color = status_colors.get(status, ("#1b1b2d", "#8888ff"))
+
+                    if val is not None:
+                        if isinstance(val, float) and val == int(val):
+                            val_str = f"{int(val)}{t['unit']}"
+                        else:
+                            val_str = f"{val}{t['unit']}"
+                    else:
+                        val_str = "N/A"
+
+                    danger = t.get("danger_zone", 0)
+                    crisis = t.get("crisis_zone", 0)
+
+                    st.markdown(
+                        f'<div style="background:{bg};border:1px solid {color};border-radius:10px;padding:12px;text-align:center;margin:2px 0;">'
+                        f'<span style="color:#aaa;font-size:0.65rem">{t["name"]}</span><br>'
+                        f'<span style="color:{color};font-size:1.5rem;font-weight:700">{val_str}</span><br>'
+                        f'<span style="color:{color};font-size:0.8rem;font-weight:600">{status}</span><br>'
+                        f'<span style="color:#555;font-size:0.6rem">Peligro: {danger}{t["unit"]} | Crisis: {crisis}{t["unit"]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if t.get("extra"):
+                        st.caption(t["extra"])
+
+        # Gráfico de energía/GDP histórico (el de Bernstein)
+        energy_t = next((t for t in thresholds if "Energía" in t["name"]), None)
+        if energy_t and energy_t.get("history"):
+            st.markdown("##### Energía como % del GDP Global (Bernstein)")
+
+            hist_data = energy_t["history"]
+            years = [h[0] for h in hist_data]
+            values = [h[1] for h in hist_data]
+            labels = [h[2] for h in hist_data]
+
+            # Colores por zona
+            colors = []
+            for v in values:
+                if v >= 8.0:
+                    colors.append("#ff4444")
+                elif v >= 7.0:
+                    colors.append("#ffaa00")
+                else:
+                    colors.append("#44cc88")
+
+            fig_energy = go.Figure()
+            fig_energy.add_trace(go.Bar(
+                x=[str(y) for y in years], y=values,
+                marker_color=colors,
+                text=[f"{v}%<br>{l}" for v, l in zip(values, labels)],
+                textposition="outside",
+                textfont_size=9,
+            ))
+            fig_energy.add_hline(y=7, line_dash="dash", line_color="#ffaa00", line_width=1,
+                                  annotation_text="7% peligro", annotation_position="right")
+            fig_energy.add_hline(y=8, line_dash="dash", line_color="#ff4444", line_width=1,
+                                  annotation_text="8% crisis", annotation_position="right")
+
+            fig_energy.update_layout(
+                height=350, margin=dict(t=30, b=30, l=40, r=40),
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#ccc"),
+                yaxis_title="Fossil Fuel % del GDP",
+                showlegend=False,
+            )
+            st.plotly_chart(fig_energy, use_container_width=True)
+            st.caption("Fuente: BP Statistics, Bloomberg, IMF, Bernstein analysis. "
+                       "Cada vez que energía superó 7-8% del GDP → shock económico (1973, 1980, 2008, 2022).")
+
+        # Resumen de umbrales
+        with st.expander("Interpretación de cada umbral"):
+            for t in thresholds:
+                st.markdown(f"- **{t['name']}**: {t.get('interpretation', '')}")
+
+    # --- SENTIMENT DASHBOARD ---
+    st.markdown("---")
+    st.markdown("#### 7. Sentimiento de Mercado")
+
+    @st.cache_data(ttl=1800, show_spinner="Consultando sentimiento...")
+    def _get_sentiment():
+        return get_sentiment_dashboard()
+
+    sentiment = _get_sentiment()
+
+    if sentiment:
+        col_fg, col_sm = st.columns([1, 2])
+
+        # Crypto Fear & Greed
+        with col_fg:
+            fg = sentiment.get("crypto_fear_greed")
+            if fg:
+                val = fg["value"]
+                classification = fg["classification"]
+
+                # Color por nivel
+                if val <= 20:
+                    fg_color = "#ff4444"
+                elif val <= 40:
+                    fg_color = "#ff8844"
+                elif val <= 60:
+                    fg_color = "#ffcc44"
+                elif val <= 80:
+                    fg_color = "#88ff44"
+                else:
+                    fg_color = "#44ff44"
+
+                signal_name, signal_type, signal_desc = fg["signal"]
+
+                st.markdown(
+                    f'<div style="background:#1a1a2e;border:2px solid {fg_color};border-radius:12px;padding:18px;text-align:center;margin:4px 0;">'
+                    f'<span style="color:#aaa;font-size:0.85rem">Crypto Fear & Greed</span><br>'
+                    f'<span style="color:{fg_color};font-size:3rem;font-weight:700">{val}</span><br>'
+                    f'<span style="color:{fg_color};font-size:1rem;font-weight:600">{classification}</span><br>'
+                    f'<span style="color:#888;font-size:0.75rem">7d avg: {fg["avg_7d"]:.0f} | 30d avg: {fg["avg_30d"]:.0f} | Trend: {fg["trend"]}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                if fg["extreme_fear_streak"] > 0:
+                    st.warning(f"{fg['extreme_fear_streak']} dias consecutivos en Extreme Fear")
+
+                # Mini sparkline
+                if fg.get("history") and len(fg["history"]) > 5:
+                    fig_fg = go.Figure(data=go.Scatter(
+                        y=list(reversed(fg["history"])),
+                        mode="lines+markers",
+                        line=dict(color=fg_color, width=2),
+                        marker=dict(size=3),
+                    ))
+                    fig_fg.add_hline(y=20, line_dash="dot", line_color="#ff4444", line_width=0.5)
+                    fig_fg.add_hline(y=80, line_dash="dot", line_color="#44ff44", line_width=0.5)
+                    fig_fg.update_layout(
+                        height=150, margin=dict(t=5, b=5, l=20, r=20),
+                        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                        showlegend=False, xaxis=dict(visible=False),
+                        yaxis=dict(range=[0, 100], color="#666"),
+                    )
+                    st.plotly_chart(fig_fg, use_container_width=True)
+                    st.caption(f"Signal: **{signal_type}** — {signal_desc}")
+
+        # Smart Money (DataRoma)
+        with col_sm:
+            sm = sentiment.get("smart_money")
+            if sm:
+                st.markdown(f"**Smart Money Tracker** (DataRoma — {sm['last_update']})")
+
+                # Top buys/sells table
+                sm_rows = []
+                for entry in sm["top_buys"]:
+                    signal_color = {
+                        "COMPRA LIMPIA": "#44ff44",
+                        "ROTACIÓN": "#ffcc44",
+                        "MÁS VENDEN": "#ff8844",
+                        "VENTA MASIVA": "#ff4444",
+                        "SOLO VENTA": "#ff4444",
+                    }.get(entry["signal"], "#888")
+
+                    sm_rows.append({
+                        "Ticker": entry["ticker"],
+                        "Compran": entry["buyers"],
+                        "Venden": entry["sellers"],
+                        "Neto": entry["net"],
+                        "Signal": entry["signal"],
+                    })
+
+                df_sm = pd.DataFrame(sm_rows)
+                st.dataframe(df_sm, use_container_width=True, hide_index=True, height=300)
+
+                # Buffett y Ackman highlights
+                col_buf, col_ack = st.columns(2)
+                with col_buf:
+                    buf = sm["buffett_moves"]
+                    st.markdown(f"**Buffett**: {buf['message']}")
+                    st.caption(f"Compra: {', '.join(buf['buys'])}")
+                    st.caption(f"Vende: {', '.join(buf['sells'])}")
+                with col_ack:
+                    ack = sm["ackman_moves"]
+                    st.markdown(f"**Ackman**: {ack['message']}")
+                    st.caption(f"Compra: {', '.join(ack['buys'])}")
+                    st.caption(f"Vende: {', '.join(ack['sells'])}")
+
+                # Near 52w low
+                low_tickers = [e["ticker"] for e in sm.get("near_52w_low", [])]
+                if low_tickers:
+                    st.caption(f"Smart money holdings near 52w low (contrarian): {', '.join(low_tickers)}")
 
     # --- RESUMEN EJECUTIVO ---
     st.markdown("---")
