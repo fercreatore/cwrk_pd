@@ -275,6 +275,57 @@ def dashboard():
         recupero = []
 
     # =========================================================================
+    # BLOQUE 2b: RECUPERO REAL (corregido por quiebre de stock)
+    # t_recupero usa vel_aparente (ventas brutas / meses totales)
+    # vel_real = ventas solo en meses con stock / meses con stock
+    # Si un artículo estuvo quebrado 8 de 12 meses, vel_aparente subestima 3-5x
+    # t_recupero_real: días de recupero usando vel_real → más preciso
+    # =========================================================================
+    recupero_real = []
+    try:
+        sql_vel_real = """
+        SELECT
+            ri.industria,
+            AVG(ri.dias_50)                    AS dias_50_aparente,
+            AVG(ri.dias_75)                    AS dias_75_aparente,
+            AVG(ri.pct_vendido_al_pago)        AS pct_vendido_al_pago_aparente,
+            -- Dias de recupero ajustados por vel_real:
+            -- Si vel_real = 2x vel_aparente → recupero real = dias_50 / 2
+            AVG(CASE WHEN vr.factor_quiebre > 0
+                     THEN CAST(ri.dias_50 AS FLOAT) / vr.factor_quiebre
+                     ELSE CAST(ri.dias_50 AS FLOAT)
+                END)                           AS dias_50_real,
+            AVG(CASE WHEN vr.factor_quiebre > 0
+                     THEN CAST(ri.dias_75 AS FLOAT) / vr.factor_quiebre
+                     ELSE CAST(ri.dias_75 AS FLOAT)
+                END)                           AS dias_75_real,
+            -- pct_vendido_al_pago ajustado: si vendés más rápido, vendés más al pagar
+            AVG(CASE WHEN vr.factor_quiebre > 0
+                     THEN LEAST(ri.pct_vendido_al_pago * vr.factor_quiebre, 100)
+                     ELSE ri.pct_vendido_al_pago
+                END)                           AS pct_vendido_al_pago_real,
+            AVG(vr.factor_quiebre)             AS factor_quiebre_prom
+        FROM t_recupero_inversion ri
+        LEFT JOIN (
+            SELECT
+                ind.industria,
+                AVG(vra.factor_quiebre) AS factor_quiebre
+            FROM vel_real_articulo vra
+            JOIN msgestion01art.dbo.articulo a ON a.codigo_sinonimo = vra.codigo
+            LEFT JOIN map_subrubro_industria ind ON a.subrubro = ind.subrubro
+            WHERE vra.vel_aparente > 0
+            GROUP BY ind.industria
+        ) vr ON vr.industria = ri.industria
+        WHERE {where}
+        GROUP BY ri.industria
+        ORDER BY AVG(CAST(ri.dias_50 AS FLOAT) / ISNULL(NULLIF(vr.factor_quiebre, 0), 1))
+        """.format(where=where_recupero)
+        recupero_real = [_fix_row(r) for r in db_omicronvt.executesql(sql_vel_real, as_dict=True)]
+    except Exception:
+        # Si vel_real_articulo no existe todavía, continuar sin datos reales
+        recupero_real = []
+
+    # =========================================================================
     # BLOQUE 3: KPIs GLOBALES
     # =========================================================================
     sql_kpi_compromisos = """
@@ -338,6 +389,12 @@ def dashboard():
             'pct_vendido_al_pago': 0,
             'brecha': 0,
             'proveedores_presion': 0,
+            # Recupero real (corregido por quiebre)
+            'dias_50_real': 0,
+            'dias_75_real': 0,
+            'pct_vendido_al_pago_real': 0,
+            'factor_quiebre': 1.0,
+            'alerta_quiebre': '',
             # Calculados
             'semaforo': 'SIN DATOS',
         }
@@ -352,7 +409,11 @@ def dashboard():
                 'pct_cumplimiento': 0, 'unidades_pedidas': 0, 'unidades_recibidas': 0,
                 'inversion': 0, 'dias_50': 0, 'dias_75': 0, 'plazo_pago': 0,
                 'pct_vendido': 0, 'pct_vendido_al_pago': 0, 'brecha': 0,
-                'proveedores_presion': 0, 'semaforo': 'SIN DATOS',
+                'proveedores_presion': 0,
+                'dias_50_real': 0, 'dias_75_real': 0,
+                'pct_vendido_al_pago_real': 0, 'factor_quiebre': 1.0,
+                'alerta_quiebre': '',
+                'semaforo': 'SIN DATOS',
             }
         matriz[ind]['inversion'] = float(r.get('inversion_total') or 0)
         matriz[ind]['dias_50'] = round(float(r.get('dias_promedio_50') or 0), 0)
@@ -362,6 +423,28 @@ def dashboard():
         matriz[ind]['pct_vendido_al_pago'] = round(float(r.get('pct_vendido_al_pago_prom') or 0), 1)
         matriz[ind]['brecha'] = round(float(r.get('brecha_promedio') or 0), 0)
         matriz[ind]['proveedores_presion'] = int(r.get('proveedores_presion') or 0)
+
+    # Inyectar datos de recupero REAL (corregido por quiebre)
+    for r in recupero_real:
+        ind = r.get('industria') or 'Sin clasificar'
+        if ind in matriz:
+            dias_50_ap = matriz[ind]['dias_50']
+            dias_50_re = round(float(r.get('dias_50_real') or dias_50_ap), 0)
+            factor = round(float(r.get('factor_quiebre_prom') or 1.0), 2)
+
+            matriz[ind]['dias_50_real'] = dias_50_re
+            matriz[ind]['dias_75_real'] = round(float(r.get('dias_75_real') or matriz[ind]['dias_75']), 0)
+            matriz[ind]['pct_vendido_al_pago_real'] = round(float(r.get('pct_vendido_al_pago_real') or 0), 1)
+            matriz[ind]['factor_quiebre'] = factor
+
+            # Alerta cuando diferencia entre aparente y real > 50%
+            if dias_50_ap > 0 and dias_50_re > 0:
+                diff_pct = abs(dias_50_ap - dias_50_re) / dias_50_ap * 100
+                if diff_pct > 50:
+                    matriz[ind]['alerta_quiebre'] = (
+                        'QUIEBRE ALTO: recupero aparente %dd vs real %dd (factor %.1fx). '
+                        'El presupuesto subestima la demanda.' % (int(dias_50_ap), int(dias_50_re), factor)
+                    )
 
     # BLOQUE 4b: REMITOS SIN FACTURAR POR INDUSTRIA (deuda en formación)
     # Remitos de compra (cod 7, 36) - deuda en formación
