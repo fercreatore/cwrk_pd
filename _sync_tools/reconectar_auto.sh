@@ -107,8 +107,19 @@ connect_vpn() {
         return 0
     fi
 
-    log "${YELLOW}→ Conectando VPN '$vpn_name'...${NC}"
-    scutil --nc start "$vpn_name" 2>/dev/null
+    # Leer secreto IPSec desde Keychain
+    local ipsec_secret
+    ipsec_secret=$(security find-generic-password -a "VPN (L2TP)" -s "VPN IPSec Secret" -w 2>/dev/null)
+
+    if [ -z "$ipsec_secret" ]; then
+        log "${RED}✗ Falta secreto IPSec en Keychain${NC}"
+        log "  Guardalo con: security add-generic-password -a 'VPN (L2TP)' -s 'VPN IPSec Secret' -w 'TU_SECRETO'"
+        notify "❌ Falta secreto IPSec en Keychain"
+        return 1
+    fi
+
+    log "${YELLOW}→ Conectando VPN '$vpn_name' (con IPSec secret)...${NC}"
+    scutil --nc start "$vpn_name" --secret "$ipsec_secret" 2>/dev/null
 
     # Esperar conexión (máx 30 seg)
     for i in $(seq 1 30); do

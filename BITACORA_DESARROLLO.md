@@ -27,6 +27,25 @@ Gestión:
 - Desactivar: `launchctl unload ~/Library/LaunchAgents/com.cowork.vpn-reconectar.plist`
 - Ver log: `tail -f /tmp/vpn-reconectar.log`
 
+### Fix: IPSec shared secret para reconexión sin intervención humana
+El daemon fallaba con "Falta el secreto compartido IPSec" porque `scutil --nc start` necesita `--secret` para L2TP/IPSec.
+
+**Causa**: macOS L2TP requiere el secreto IPSec para conectar. Sin él, `scutil` abre el diálogo del sistema pidiendo credenciales (inútil para un daemon).
+
+**Solución**: Guardar el secreto en Keychain del usuario y leerlo antes de conectar.
+
+Pasos:
+1. Guardar secreto: `security add-generic-password -a 'VPN (L2TP)' -s 'VPN IPSec Secret' -w 'SECRETO'`
+2. El daemon lee con: `security find-generic-password -a 'VPN (L2TP)' -s 'VPN IPSec Secret' -w`
+3. Pasa a scutil: `scutil --nc start 'VPN (L2TP)' --secret "$SECRET"`
+
+Archivos modificados:
+- `~/Library/LaunchAgents/com.cowork.vpn-reconectar.plist` — lee secreto de Keychain antes de reconectar
+- `_sync_tools/reconectar_auto.sh` — `connect_vpn()` lee secreto y pasa `--secret`
+- `_sync_tools/instalar_vpn_daemon.sh` — verifica/pide secreto en Keychain al instalar
+
+**Después de aplicar**: recargar daemon con `bash _sync_tools/instalar_vpn_daemon.sh`
+
 ---
 
 ## 20 de marzo de 2026 — Overnight: token ML, facturador TN, batch publish
