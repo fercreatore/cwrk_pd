@@ -1,0 +1,90 @@
+{
+  "total_items": 58,
+  "items_with_price": 58,
+  "price_min": 44999,
+  "price_max": 900000,
+  "price_median": 199998,
+  "price_avg": 282846,
+  "price_q1": 144376,
+  "price_q3": 372307,
+  "top_brands": [],
+  "free_shipping_pct": 100.0,
+  "discounted_pct": 79.3,
+  "avg_discount_pct": 1.7,
+  "segments": {
+    "economico": {
+      "range": "$0 - $144,376",
+      "count": 15,
+      "items": [
+        {
+          "title": "Cerradura Inteligente Sinovision Bluetooth y Huella Digital ",
+          "price": 140444
+        },
+        {
+          "title": "Cerradura Inteligente Huella Digital App Tuya Wifi Global Ne",
+          "price": 117041
+        },
+        {
+          "title": "Cerradura Smart Biométrica Huella Digital Tarjeta Ic Código",
+          "price": 111465
+        }
+      ]
+    },
+    "medio": {
+      "range": "$144,376 - $199,998",
+      "count": 15,
+      "items": [
+        {
+          "title": "Cerradura Xst Digital Inteligente Biométrica Huella App Wif ",
+          "price": 169980
+        },
+        {
+          "title": "Cerradura Digital Inteligente Electronica Smart Wifi Nictom ",
+          "price": 179999
+        },
+        {
+          "title": "Cerradura Biometrica Inteligente Nurik Digital Huella Tarjet",
+          "price": 149990
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$199,998 - $372,307",
+      "count": 14,
+      "items": [
+        {
+          "title": "Cerradura Inteligente 7 Modos Huella Wifi Llave Camara App -",
+          "price": 250999
+        },
+        {
+          "title": "Cerradura biométrica digital WiFi Garen GA-FB0507 negra para",
+          "price": 372307
+        },
+        {
+          "title": "Cerradura Inteligente Wifi App H20b Lectura Biométrica Compa",
+          "price": 256001
+        }
+      ]
+    },
+    "premium": {
+      "range": "$372,307+",
+      "count": 14,
+      "items": [
+        {
+          "title": "Cerradura Inteligente Digital Electronica Novohome Reconocim",
+          "price": 479990
+        },
+        {
+          "title": "Cerradura Inteligente Dl06 Pro Ezviz Huella Wifi Bluetooth G",
+          "price": 900000
+        },
+        {
+          "title": "Ezviz CS-DL05 Cerradura Inteligente Con Huella Dactilar Colo",
+          "price": 384542
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-19T23:54:13.774197",
+  "query": "cerradura inteligente huella"
+}

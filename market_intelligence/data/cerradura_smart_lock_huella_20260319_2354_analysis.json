@@ -1,0 +1,90 @@
+{
+  "total_items": 50,
+  "items_with_price": 50,
+  "price_min": 22000,
+  "price_max": 1376000,
+  "price_median": 199998,
+  "price_avg": 311295,
+  "price_q1": 128000,
+  "price_q3": 349999,
+  "top_brands": [],
+  "free_shipping_pct": 98.0,
+  "discounted_pct": 44.0,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $128,000",
+      "count": 13,
+      "items": [
+        {
+          "title": "Cerradura Inteligente Digital Smart Lock Bluetooth Huella Ap",
+          "price": 109999
+        },
+        {
+          "title": "Cerradura Digital Inteligente Euro Wifi Huella Tarjeta App N",
+          "price": 105900
+        },
+        {
+          "title": "Ezviz L2 Smart Lock - Impresión digital y panel táctil",
+          "price": 128000
+        }
+      ]
+    },
+    "medio": {
+      "range": "$128,000 - $199,998",
+      "count": 13,
+      "items": [
+        {
+          "title": "Cerradura Dig. Inteligente Antirrobo C/visor / Huella / Nfc ",
+          "price": 190990
+        },
+        {
+          "title": "Cerradura Digital Smart M8 Exterior Wifi Huella Tarjeta App ",
+          "price": 161455
+        },
+        {
+          "title": "Cerradura Inteligente Huella Digital Rfid Electrica Ttlock",
+          "price": 199998
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$199,998 - $349,999",
+      "count": 12,
+      "items": [
+        {
+          "title": "Cerradura Inteligente Con Camara Wifi App Tuya Smart Lock",
+          "price": 296250
+        },
+        {
+          "title": "Cerradura Digital Inteligente Smart Codigo Huella App Ttlock",
+          "price": 231448
+        },
+        {
+          "title": "Cerradura Inteligente Philips Wifi Con Control App Y Huella",
+          "price": 284633
+        }
+      ]
+    },
+    "premium": {
+      "range": "$349,999+",
+      "count": 12,
+      "items": [
+        {
+          "title": "Cerradura Inteligente Digital Electronica Novohome Reconocim",
+          "price": 479990
+        },
+        {
+          "title": "Cerradura Inteligente Con Huella Dactilar Tarjetas Ezviz",
+          "price": 499000
+        },
+        {
+          "title": "Cerradura Inteligente Con Huella Dactilar Tarjetas Ezviz",
+          "price": 611000
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-19T23:54:25.156903",
+  "query": "cerradura smart lock huella"
+}

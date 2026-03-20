@@ -1,0 +1,137 @@
+[
+  {
+    "nombre": "Cerrajería Santa María",
+    "telefono": "5493412290091",
+    "tipo": "cerrajero",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:52"
+  },
+  {
+    "nombre": "Cerrajería Argentina",
+    "telefono": "543414494317",
+    "tipo": "cerrajero",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:53"
+  },
+  {
+    "nombre": "La Casa del Cerrajero",
+    "telefono": "543418561453",
+    "tipo": "cerrajero",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "mayorista",
+    "fecha_envio": "2026-03-20 14:54"
+  },
+  {
+    "nombre": "Anfrance Cerrajería",
+    "telefono": "5493415488852",
+    "tipo": "cerrajero",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:55"
+  },
+  {
+    "nombre": "Cerrajería Las 24hs",
+    "telefono": "5493462579090",
+    "tipo": "cerrajero",
+    "ciudad": "Venado Tuerto",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:56"
+  },
+  {
+    "nombre": "Cerrajería Cerramovil",
+    "telefono": "543462421700",
+    "tipo": "cerrajero",
+    "ciudad": "Venado Tuerto",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:56"
+  },
+  {
+    "nombre": "Cerrajería Hugo Paratore",
+    "telefono": "5493462429868",
+    "tipo": "cerrajero",
+    "ciudad": "Venado Tuerto",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:57"
+  },
+  {
+    "nombre": "SRG Broker Solari Ramirez",
+    "telefono": "543414482904",
+    "tipo": "consorcio",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:58"
+  },
+  {
+    "nombre": "Propiental SRL",
+    "telefono": "543414266084",
+    "tipo": "consorcio",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 14:59"
+  },
+  {
+    "nombre": "Calvagna Consorcios",
+    "telefono": "543414260298",
+    "tipo": "consorcio",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 15:06"
+  },
+  {
+    "nombre": "Adm. Stanich Ibañez Diaz",
+    "telefono": "543414116795",
+    "tipo": "consorcio",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 15:06"
+  },
+  {
+    "nombre": "Rosario Temporal",
+    "telefono": "5493415862569",
+    "tipo": "inmobiliaria",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "alquiler temporario",
+    "fecha_envio": "2026-03-20 15:03"
+  },
+  {
+    "nombre": "Imperio Propiedades",
+    "telefono": "5493417484055",
+    "tipo": "inmobiliaria",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 15:04"
+  },
+  {
+    "nombre": "Raffo Inmobiliaria",
+    "telefono": "5493413222904",
+    "tipo": "inmobiliaria",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 15:05"
+  },
+  {
+    "nombre": "Uno Propiedades",
+    "telefono": "543414245779",
+    "tipo": "inmobiliaria",
+    "ciudad": "Rosario",
+    "estado": "enviado",
+    "notas": "",
+    "fecha_envio": "2026-03-20 15:05"
+  }
+]

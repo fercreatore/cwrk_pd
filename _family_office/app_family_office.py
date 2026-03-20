@@ -860,20 +860,14 @@ with tab_risk:
     st.subheader("Risk Engine")
 
     # --- Risk Score ---
-    @st.cache_data(ttl=3600)
-    def _cached_risk_data(_positions_hash):
-        pos_list = df_filtered.to_dict("records")
-        port_ind = calculate_portfolio_indicators(pos_list)
-        concentration = calculate_concentration_metrics(pos_list)
-        dd_alerts = check_drawdown_alerts(pos_list)
-        risk_attr = calculate_risk_attribution(pos_list)
-        return port_ind, concentration, dd_alerts, risk_attr
-
-    pos_hash = hash(tuple(sorted([(p["ticker"], p["market_value_usd"]) for _, p in df_filtered.iterrows()])))
+    pos_list = df_filtered.to_dict("records")
 
     with st.spinner("Calculando riesgo..."):
         try:
-            port_ind_risk, concentration, dd_alerts, risk_attr = _cached_risk_data(pos_hash)
+            port_ind_risk = calculate_portfolio_indicators(pos_list)
+            concentration = calculate_concentration_metrics(pos_list)
+            dd_alerts = check_drawdown_alerts(pos_list)
+            risk_attr = calculate_risk_attribution(pos_list)
         except Exception as e:
             st.error(f"Error calculando riesgo: {e}")
             port_ind_risk = {}

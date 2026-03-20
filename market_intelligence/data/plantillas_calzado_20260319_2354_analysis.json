@@ -1,0 +1,99 @@
+{
+  "total_items": 50,
+  "items_with_price": 50,
+  "price_min": 3199,
+  "price_max": 50000,
+  "price_median": 26970,
+  "price_avg": 21958,
+  "price_q1": 11189,
+  "price_q3": 33000,
+  "top_brands": [
+    [
+      "Tab",
+      1
+    ],
+    [
+      "Puma",
+      1
+    ]
+  ],
+  "free_shipping_pct": 100.0,
+  "discounted_pct": 40.0,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $11,189",
+      "count": 13,
+      "items": [
+        {
+          "title": "Plantilla Par Elevadora Aumenta Tamaño Hasta 8 Cm Estatura C",
+          "price": 10857
+        },
+        {
+          "title": "Plantilla Ombu Confort Ergonómica Calzado Seguridad",
+          "price": 8999
+        },
+        {
+          "title": "Plantillas Ortopedicas Espuma Viscoelastica Calzado F Y M Co",
+          "price": 11189
+        }
+      ]
+    },
+    "medio": {
+      "range": "$11,189 - $26,970",
+      "count": 13,
+      "items": [
+        {
+          "title": "Plantillas Anatomicas Leal Brandy Memory Foam Confort Pu",
+          "price": 11479
+        },
+        {
+          "title": "Plantilla ergonómica Ombu Confort tamaño de la Plantilla 41",
+          "price": 11200
+        },
+        {
+          "title": "Plantillas Ultrasuaves 35-40 Gaon Par Tecnología Cloud 4d Un",
+          "price": 13990
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$26,970 - $33,000",
+      "count": 20,
+      "items": [
+        {
+          "title": "Plantillas Termoplant X3 Pares Confort Que No Se Aplastan 42",
+          "price": 33000
+        },
+        {
+          "title": "Plantillas Termoplant X3 Pares Confort Que No Se Aplastan 38",
+          "price": 33000
+        },
+        {
+          "title": "Plantillas Termoplant X3 Pares Confort Que No Se Aplastan 43",
+          "price": 33000
+        }
+      ]
+    },
+    "premium": {
+      "range": "$33,000+",
+      "count": 4,
+      "items": [
+        {
+          "title": "Plantillas Leal Brandy Confort Pu Memory Foam Pack 3 Pares T",
+          "price": 40110
+        },
+        {
+          "title": "Plantillas Termoplant X3 Pares Confort Que No Se Aplastan - ",
+          "price": 33690
+        },
+        {
+          "title": "Plantillas Para Calzado Por 40 Pares",
+          "price": 50000
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-19T23:54:45.044221",
+  "query": "plantillas calzado"
+}

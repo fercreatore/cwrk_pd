@@ -427,10 +427,10 @@ meses_nombres = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago'
             <thead>
                 <tr>
                     <th data-sort="string">Proveedor <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num">Pedidos <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num" title="Pedidos pendientes de entrega">Pedidos Pend. <span class="sort-arrow">&#9650;&#9660;</span></th>
                     <th data-sort="number" class="num" title="Remitos sin facturar 2026+">Remitos s/f <span class="sort-arrow">&#9650;&#9660;</span></th>
                     <th data-sort="number" class="num" title="Saldo neto cuenta corriente">Deuda CC <span class="sort-arrow">&#9650;&#9660;</span></th>
-                    <th data-sort="number" class="num" title="Pedidos + Remitos + Deuda CC">Total Comp. <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    <th data-sort="number" class="num" title="Pedidos pend. + Remitos s/f + Deuda CC">Total Comp. <span class="sort-arrow">&#9650;&#9660;</span></th>
                     <th data-sort="number" class="num">% Cumpl. <span class="sort-arrow">&#9650;&#9660;</span></th>
                     <th data-sort="number" class="num">Vencidas <span class="sort-arrow">&#9650;&#9660;</span></th>
                     <th data-sort="string">1er Pedido <span class="sort-arrow">&#9650;&#9660;</span></th>
@@ -441,7 +441,10 @@ meses_nombres = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago'
                 {{for p in proveedores_pedidos:}}
                 <tr>
                     <td>{{=p.get('proveedor', '-')}}</td>
-                    <td class="num" data-val="{{=p.get('comprometido', 0)}}">{{=fmt(p.get('comprometido', 0))}}</td>
+                    <td class="num" data-val="{{=p.get('pendiente', 0)}}">
+                        {{pp_val = float(p.get('pendiente', 0))}}
+                        {{if pp_val > 0:}}{{=fmt(pp_val)}}{{else:}}<span class="text-muted">-</span>{{pass}}
+                    </td>
                     <td class="num" data-val="{{=p.get('remitos_monto', 0)}}">
                         {{rm = float(p.get('remitos_monto', 0))}}
                         {{if rm > 0:}}<span style="color:#e67e22; font-weight:600;">{{=fmt(rm)}}</span><br><small class="text-muted">{{=p.get('remitos_cant', 0)}} rem.</small>

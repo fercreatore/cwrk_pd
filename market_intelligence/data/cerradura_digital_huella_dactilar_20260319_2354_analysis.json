@@ -1,0 +1,90 @@
+{
+  "total_items": 49,
+  "items_with_price": 49,
+  "price_min": 19999,
+  "price_max": 775479,
+  "price_median": 208118,
+  "price_avg": 254709,
+  "price_q1": 139999,
+  "price_q3": 351675,
+  "top_brands": [],
+  "free_shipping_pct": 100.0,
+  "discounted_pct": 55.1,
+  "avg_discount_pct": 0.0,
+  "segments": {
+    "economico": {
+      "range": "$0 - $139,999",
+      "count": 13,
+      "items": [
+        {
+          "title": "Cerradura Digital Montoya Huella Dactilar Color Gris",
+          "price": 19999
+        },
+        {
+          "title": "Cerradura digital Balingtech H03 color plateado/negro Huella",
+          "price": 59564
+        },
+        {
+          "title": "Cerradura Inteligente Wifi Tuya Huella Digital Pin Smart - N",
+          "price": 139999
+        }
+      ]
+    },
+    "medio": {
+      "range": "$139,999 - $208,118",
+      "count": 12,
+      "items": [
+        {
+          "title": "Cerradura Digital Inteligente Electronica Smart Wifi Nictom ",
+          "price": 179999
+        },
+        {
+          "title": "Cerradura Inteligente Sinovision Bluetooth y Huella Digital ",
+          "price": 140444
+        },
+        {
+          "title": "Cerradura Inteligente Biométrica Smart Wifi Moderna De Vidri",
+          "price": 198000
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$208,118 - $351,675",
+      "count": 12,
+      "items": [
+        {
+          "title": "Cerradura Digital Philips Ddl615 Huella, Clave, Tarjeta, Bt",
+          "price": 326000
+        },
+        {
+          "title": "Cerradura Inteligente Wifi App H20b Lectura Biométrica Compa",
+          "price": 256001
+        },
+        {
+          "title": "Cerradura Smart | Wifi Huella Exterior Premium | H2b Platead",
+          "price": 256001
+        }
+      ]
+    },
+    "premium": {
+      "range": "$351,675+",
+      "count": 12,
+      "items": [
+        {
+          "title": "Cerradura Inteligente Digital Electronica Novohome Reconocim",
+          "price": 479990
+        },
+        {
+          "title": "Cerradura Inteligente Con Huella Dactilar Tarjetas Ezviz",
+          "price": 499000
+        },
+        {
+          "title": "Ezviz CS-DL05 Cerradura Inteligente Con Huella Dactilar Colo",
+          "price": 384542
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-19T23:54:07.685574",
+  "query": "cerradura digital huella dactilar"
+}

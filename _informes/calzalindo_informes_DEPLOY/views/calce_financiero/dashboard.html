@@ -265,10 +265,10 @@
                             <tr>
                                 <th>Industria</th>
                                 <th class="text-right">Presupuesto</th>
-                                <th class="text-right">Comprometido</th>
-                                <th class="text-right" title="Remitos recibidos sin facturar (cod 7/36). Deuda en formación.">Recibido (s/fact)</th>
+                                <th class="text-right" title="Pedidos pendientes de entrega">Pedidos Pend.</th>
+                                <th class="text-right" title="Remitos recibidos sin facturar. Deuda en formación.">Remitos s/f</th>
                                 <th class="text-right" title="Saldo neto en cuenta corriente proveedor (facturas - pagos)">Deuda CC</th>
-                                <th class="text-right" title="Presupuesto - Pedidos - Remitos - Deuda CC">Disponible</th>
+                                <th class="text-right" title="Presupuesto - Pedidos pend. - Remitos s/f - Deuda CC">Disponible</th>
                                 <th>Cumplimiento</th>
                                 <th class="text-center">Dias 50%</th>
                                 <th class="text-center">Plazo Pago</th>
@@ -292,10 +292,11 @@
                                 {{else:}}<span class="text-muted">-</span>{{pass}}
                             </td>
                             <td class="text-right">
-                                <strong>{{=fmt(m['comprometido'])}}</strong>
-                                {{if m.get('pct_ejecutado', 0) > 0:}}
+                                {{pend = m.get('pendiente_recibir', 0)}}
+                                {{if pend > 0:}}
+                                <strong>{{=fmt(pend)}}</strong>
                                 <br><small class="text-muted">{{="%.0f" % m['pct_ejecutado']}}% del presup.</small>
-                                {{pass}}
+                                {{else:}}<span class="text-muted">-</span>{{pass}}
                             </td>
                             <td class="text-right">
                                 {{rem_m = m.get('remitos_monto', 0)}}

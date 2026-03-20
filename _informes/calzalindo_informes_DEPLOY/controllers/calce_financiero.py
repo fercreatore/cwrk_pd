@@ -468,8 +468,9 @@ def dashboard():
         m['remitos_cant'] = rem.get('cant', 0)
         m['remitos_dias_prom'] = rem.get('dias_promedio', 0)
         m['deuda_neta'] = deuda_industria.get(ind, 0)
-        # Fondos comprometidos = pedidos + remitos + deuda
-        m['fondos_comprometidos'] = m['comprometido'] + m['remitos_monto'] + m['deuda_neta']
+        # Fondos comprometidos = pedidos PENDIENTES + remitos s/f + deuda CC
+        # NO sumar pedidos ya entregados (esos ya estan en remitos)
+        m['fondos_comprometidos'] = m['pendiente_recibir'] + m['remitos_monto'] + m['deuda_neta']
         # Fecha estimada de pago: fecha promedio remito + plazo pago industria
         dias_prom_remito = rem.get('dias_promedio', 0)
         plazo = m.get('plazo_pago', 0)
@@ -912,9 +913,9 @@ def dashboard():
         if ind in presup_dict:
             p = presup_dict[ind]
             m['presupuesto'] = float(p.get('presupuesto_costo') or 0)
-            # Disponible real = presupuesto - pedidos - remitos sin facturar - deuda neta
-            disponible_base = float(p.get('disponible_costo') or 0)  # ya tiene presup - pedidos
-            m['disponible'] = disponible_base - m.get('remitos_monto', 0) - m.get('deuda_neta', 0)
+            # Disponible real = presupuesto - pedidos pendientes - remitos s/f - deuda CC
+            # disponible_costo ya tiene presup - pedidos totales, pero necesitamos usar pendiente_recibir
+            m['disponible'] = m['presupuesto'] - m.get('fondos_comprometidos', 0)
             m['pct_ejecutado'] = round(
                 m.get('fondos_comprometidos', 0) * 100.0 / m['presupuesto'], 1
             ) if m['presupuesto'] > 0 else 0
@@ -1479,21 +1480,22 @@ def detalle_industria():
         pp['remitos_monto'] = rem.get('monto', 0)
         pp['remitos_cant'] = rem.get('cant', 0)
         pp['deuda_neta'] = deuda_por_proveedor.get(pid, 0)
-        pp['fondos_comprometidos'] = float(pp.get('comprometido', 0)) + pp['remitos_monto'] + pp['deuda_neta']
+        # Total comp = pedidos PENDIENTES + remitos s/f + deuda CC (sin doble conteo)
+        pp['fondos_comprometidos'] = float(pp.get('pendiente', 0)) + pp['remitos_monto'] + pp['deuda_neta']
 
     # =========================================================================
     # 7. TOTALES DE LA INDUSTRIA (para KPIs arriba)
     # =========================================================================
     total_remitos = sum(pp.get('remitos_monto', 0) for pp in proveedores_pedidos)
     total_deuda = sum(pp.get('deuda_neta', 0) for pp in proveedores_pedidos)
-    total_comprometido = sum(m['comprometido'] for m in marcas_combinadas)
-    total_fondos = total_comprometido + total_remitos + total_deuda
+    total_pendiente = sum(float(m.get('pendiente', 0)) for m in marcas_combinadas)
+    total_fondos = total_pendiente + total_remitos + total_deuda
     total_presupuesto = sum(m['presupuesto'] for m in marcas_combinadas)
     total_presupuesto_ajustado = sum(m['presupuesto_ajustado'] for m in marcas_combinadas)
     total_disponible = total_presupuesto - total_fondos
     total_disponible_ajustado = total_presupuesto_ajustado - total_fondos
-    total_pct_ejecutado = round(total_comprometido * 100.0 / total_presupuesto, 1) if total_presupuesto > 0 else 0
-    total_pct_ejecutado_ajustado = round(total_comprometido * 100.0 / total_presupuesto_ajustado, 1) if total_presupuesto_ajustado > 0 else 0
+    total_pct_ejecutado = round(total_fondos * 100.0 / total_presupuesto, 1) if total_presupuesto > 0 else 0
+    total_pct_ejecutado_ajustado = round(total_fondos * 100.0 / total_presupuesto_ajustado, 1) if total_presupuesto_ajustado > 0 else 0
     total_vencido = sum(m['monto_vencido'] for m in marcas_combinadas)
 
     # =========================================================================

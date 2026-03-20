@@ -1,0 +1,191 @@
+[
+  {
+    "url": "https://calzalindo.com.ar",
+    "domain": "calzalindo.com.ar",
+    "timestamp": "2026-03-20T11:20:40.377587",
+    "accessible": true,
+    "ssl": {
+      "has_ssl": true,
+      "valid": false,
+      "issuer": null,
+      "expires": null,
+      "error": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)"
+    },
+    "performance": {
+      "status_code": 200,
+      "response_time_ms": 408,
+      "content_length_kb": 2602.5,
+      "redirects": 0,
+      "final_url": "https://calzalindo.com.ar/",
+      "server": "cloudflare",
+      "content_type": "text/html; charset=UTF-8",
+      "has_gzip": true,
+      "has_cache": true
+    },
+    "seo": {
+      "title": "Tienda Online de Calzalindo",
+      "title_length": 27,
+      "meta_description": "Compr&aacute; productos de Calzalindo por internet. Tenemos mujer, hombre y m&aacute;s. Hac&eacute; tu pedido y pagalo online.",
+      "meta_description_length": 126,
+      "h1_count": 1,
+      "h1_texts": [
+        "Calzalindo"
+      ],
+      "h2_count": 7,
+      "has_canonical": true,
+      "canonical_url": "https://calzalindo.com.ar/",
+      "has_robots_meta": false,
+      "has_og_tags": true,
+      "has_structured_data": true,
+      "images_without_alt": 5,
+      "total_images": 167,
+      "internal_links": 141,
+      "external_links": 149,
+      "has_sitemap_link": false,
+      "has_lang": true,
+      "lang": "es"
+    },
+    "social_links": {
+      "instagram": "https://instagram.com/calzalindo",
+      "facebook": "https://www.facebook.com/Calzalindo/",
+      "twitter": null,
+      "youtube": "https://www.youtube.com/channel/UCssCBIfQZ4Jr6G2EjtZ1z0g",
+      "tiktok": null,
+      "linkedin": null,
+      "whatsapp": "https://wa.me/5493462676300",
+      "pinterest": null
+    },
+    "ecommerce": {
+      "has_cart": true,
+      "has_product_pages": true,
+      "has_prices": true,
+      "has_search": true,
+      "has_login": true,
+      "has_payment_methods": true,
+      "payment_methods": [
+        "mercadopago",
+        "visa",
+        "mastercard",
+        "amex",
+        "naranja",
+        "transferencia"
+      ],
+      "platform": "Tiendanube"
+    },
+    "technologies": [
+      "Google Analytics",
+      "Google Tag Manager",
+      "Facebook Pixel",
+      "jQuery",
+      "Google Fonts",
+      "reCAPTCHA",
+      "WhatsApp Widget",
+      "Cloudflare",
+      "Server: cloudflare"
+    ],
+    "score": 82,
+    "issues": [
+      "SSL: certificado inválido o expirado",
+      "SEO: título longitud 27 (ideal 30-60)"
+    ],
+    "error": null,
+    "mobile": {
+      "has_viewport": true,
+      "has_responsive_meta": true,
+      "has_media_queries": false
+    }
+  },
+  {
+    "url": "https://samsonite.com.ar",
+    "domain": "samsonite.com.ar",
+    "timestamp": "2026-03-20T11:20:44.149184",
+    "accessible": true,
+    "ssl": {
+      "has_ssl": true,
+      "valid": false,
+      "issuer": null,
+      "expires": null,
+      "error": "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1028)"
+    },
+    "performance": {
+      "status_code": 200,
+      "response_time_ms": 721,
+      "content_length_kb": 1036.1,
+      "redirects": 0,
+      "final_url": "https://samsonite.com.ar/",
+      "server": "Vercel",
+      "content_type": "text/html; charset=utf-8",
+      "has_gzip": true,
+      "has_cache": true
+    },
+    "seo": {
+      "title": "Samsonite Argentina | Tienda Oficial | Equipaje, mochilas y accesorios | House of Samsonite Argentina",
+      "title_length": 101,
+      "meta_description": "Descubre nuestra gran variedad de valijas, mochilas, maletines y más ✓ Envío a todo Argentina ✓ Tu compañero de viaje lo encuentras aquí.",
+      "meta_description_length": 137,
+      "h1_count": 2,
+      "h1_texts": [
+        "FRAMELOCK",
+        "Colecciones Destacadas"
+      ],
+      "h2_count": 8,
+      "has_canonical": false,
+      "canonical_url": null,
+      "has_robots_meta": true,
+      "has_og_tags": true,
+      "has_structured_data": true,
+      "images_without_alt": 22,
+      "total_images": 55,
+      "internal_links": 122,
+      "external_links": 50,
+      "has_sitemap_link": false,
+      "has_lang": true,
+      "lang": "es"
+    },
+    "social_links": {
+      "instagram": "https://www.instagram.com/samsonitelatinoamerica/",
+      "facebook": "https://www.facebook.com/SamsoniteLatinoamerica",
+      "twitter": null,
+      "youtube": "https://www.youtube.com/@samsoniteamericalatina2490",
+      "tiktok": null,
+      "linkedin": null,
+      "whatsapp": null,
+      "pinterest": null
+    },
+    "ecommerce": {
+      "has_cart": true,
+      "has_product_pages": true,
+      "has_prices": true,
+      "has_search": false,
+      "has_login": true,
+      "has_payment_methods": true,
+      "payment_methods": [
+        "mercadopago",
+        "visa"
+      ],
+      "platform": "Shopify"
+    },
+    "technologies": [
+      "Google Analytics",
+      "Google Tag Manager",
+      "Facebook Pixel",
+      "React",
+      "Server: Vercel",
+      "Powered by: Next.js"
+    ],
+    "score": 70,
+    "issues": [
+      "SSL: certificado inválido o expirado",
+      "SEO: título longitud 101 (ideal 30-60)",
+      "SEO: 2 tags H1 (debería ser 1)",
+      "SEO: sin canonical URL",
+      "SEO: 22/55 imágenes sin alt"
+    ],
+    "error": null,
+    "mobile": {
+      "has_viewport": true,
+      "has_responsive_meta": true,
+      "has_media_queries": true
+    }
+  }
+]

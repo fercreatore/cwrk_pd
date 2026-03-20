@@ -1,0 +1,119 @@
+{
+  "total_items": 54,
+  "items_with_price": 54,
+  "price_min": 58990,
+  "price_max": 364998,
+  "price_median": 110378,
+  "price_avg": 143050,
+  "price_q1": 89995,
+  "price_q3": 192600,
+  "top_brands": [
+    [
+      "Amayra",
+      4
+    ],
+    [
+      "Unicross",
+      4
+    ],
+    [
+      "Wilson",
+      4
+    ],
+    [
+      "Samsonite",
+      3
+    ],
+    [
+      "Travel Tech",
+      2
+    ],
+    [
+      "American Tourister",
+      2
+    ],
+    [
+      "Primicia",
+      1
+    ]
+  ],
+  "free_shipping_pct": 100.0,
+  "discounted_pct": 87.0,
+  "avg_discount_pct": 0.7,
+  "segments": {
+    "economico": {
+      "range": "$0 - $89,995",
+      "count": 14,
+      "items": [
+        {
+          "title": "Valija Wacky Abs Rigida Carry On 20 Chica Carrion 4 Ruedas",
+          "price": 87000
+        },
+        {
+          "title": "Valija Carry On Rígida Cabina 4 Ruedas 360 Liviana Reforzada",
+          "price": 89000
+        },
+        {
+          "title": "Valija Check In 39907 Naranja",
+          "price": 58990
+        }
+      ]
+    },
+    "medio": {
+      "range": "$89,995 - $110,378",
+      "count": 14,
+      "items": [
+        {
+          "title": "Valija Carry On De Cabina Maleta De Viaje 20 Pulgadas 4 Rued",
+          "price": 104999
+        },
+        {
+          "title": "Valija Carry On Wanderlust Neo Hard Abs 20 Pulg Cerradura",
+          "price": 89999
+        },
+        {
+          "title": "Valija Carry On Maleta De Viaje Para Cabina 20 Pulgadas 4 Ru",
+          "price": 104999
+        }
+      ]
+    },
+    "medio_alto": {
+      "range": "$110,378 - $192,600",
+      "count": 13,
+      "items": [
+        {
+          "title": "Valija Carry On Cabina Viaje 20 Pulgadas Abs Livana 4 Ruedas",
+          "price": 119999
+        },
+        {
+          "title": "Valija Rigida Chica Carry On 20 Pulgadas Para Cabina Unicros",
+          "price": 119999
+        },
+        {
+          "title": "Valija Carry On 20 Pulgadas de Cabina Unicross 4 Ruedas para",
+          "price": 119999
+        }
+      ]
+    },
+    "premium": {
+      "range": "$192,600+",
+      "count": 13,
+      "items": [
+        {
+          "title": "Valija Cabina Samsonite Fiero 3.0 Carry On",
+          "price": 319000
+        },
+        {
+          "title": "Set Valija Carry On Aluminio+mini Valija Rigida T-onebag Ny",
+          "price": 364998
+        },
+        {
+          "title": "Valija De Cabina Xl Extra Large Londres Plateado",
+          "price": 197008
+        }
+      ]
+    }
+  },
+  "timestamp": "2026-03-19T23:54:31.848915",
+  "query": "valija rigida carry on"
+}
