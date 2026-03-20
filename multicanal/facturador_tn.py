@@ -503,6 +503,7 @@ def construir_payload_109(orden: dict, articulos_erp: dict) -> dict:
             continue
         productos.append({
             'sku': sku,
+            'codigo': art['codigo'],
             'cantidad': int(item.get('quantity', 0)),
             'precio': float(item.get('price', 0)),
         })
