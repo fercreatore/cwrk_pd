@@ -1191,6 +1191,362 @@ def buscar_sustitutos_activos_con_stock(codigo_mg, subrubro_cod):
     return resultado
 
 
+# ============================================================================
+# CURVA DE TALLE IDEAL (reverse-engineered from 3 years of sales)
+# ============================================================================
+
+@st.cache_data(ttl=600)
+def calcular_curva_talle_ideal(anios=3):
+    """
+    Reconstruye la distribución de talles REAL del mercado
+    a partir de 3 años de ventas, por género × subrubro.
+    Retorna DataFrame con: genero, subrubro, talle, pct_demanda (la curva ideal).
+    """
+    desde = (date.today() - relativedelta(years=anios)).replace(month=1, day=1)
+    sql = f"""
+        SELECT
+            a.rubro AS genero_cod,
+            a.subrubro AS sub_cod,
+            RTRIM(a.descripcion_5) AS talle,
+            SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                     WHEN v.operacion='-' THEN -v.cantidad END) AS vtas
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND v.fecha >= '{desde}'
+          AND a.estado = 'V'
+          AND a.rubro IN (1,3,4,5,6)
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+          AND RTRIM(a.descripcion_5) <> ''
+          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
+          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
+        GROUP BY a.rubro, a.subrubro, RTRIM(a.descripcion_5)
+        HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) > 0
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['talle_num'] = pd.to_numeric(df['talle'].str.replace(',', '.'), errors='coerce')
+    df = df.dropna(subset=['talle_num'])
+    df['vtas'] = df['vtas'].astype(float)
+
+    # Calcular % por categoría
+    totales = df.groupby(['genero_cod', 'sub_cod'])['vtas'].transform('sum')
+    df['pct_demanda'] = (df['vtas'] / totales * 100).round(2)
+
+    df['genero'] = df['genero_cod'].map(RUBRO_GENERO).fillna('OTRO')
+    return df.sort_values(['genero_cod', 'sub_cod', 'talle_num'])
+
+
+@st.cache_data(ttl=600)
+def calcular_stock_por_talle():
+    """
+    Distribución ACTUAL de stock por género × subrubro × talle.
+    Para comparar contra la curva ideal.
+    """
+    sql = f"""
+        SELECT
+            a.rubro AS genero_cod,
+            a.subrubro AS sub_cod,
+            RTRIM(a.descripcion_5) AS talle,
+            SUM(ISNULL(s.stock_actual, 0)) AS stock
+        FROM msgestion01art.dbo.articulo a
+        JOIN msgestionC.dbo.stock s ON s.articulo = a.codigo
+        WHERE s.deposito IN {DEPOS_SQL}
+          AND a.estado = 'V'
+          AND a.rubro IN (1,3,4,5,6)
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+          AND RTRIM(a.descripcion_5) <> ''
+          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
+          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
+        GROUP BY a.rubro, a.subrubro, RTRIM(a.descripcion_5)
+        HAVING SUM(ISNULL(s.stock_actual, 0)) > 0
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['talle_num'] = pd.to_numeric(df['talle'].str.replace(',', '.'), errors='coerce')
+    df = df.dropna(subset=['talle_num'])
+    df['stock'] = df['stock'].astype(float)
+
+    totales = df.groupby(['genero_cod', 'sub_cod'])['stock'].transform('sum')
+    df['pct_stock'] = (df['stock'] / totales * 100).round(2)
+    return df
+
+
+# ============================================================================
+# DETECTOR DE CANIBALIZACIÓN POR EMBEDDING
+# ============================================================================
+
+@st.cache_data(ttl=600)
+def obtener_ventas_semestrales():
+    """
+    Ventas por CSR (modelo) en dos semestres: S1 (hace 12-6 meses) y S2 (últimos 6 meses).
+    Para detectar tendencia (subió o bajó).
+    """
+    hoy = date.today()
+    hace_12 = (hoy - relativedelta(months=12)).replace(day=1)
+    hace_6 = (hoy - relativedelta(months=6)).replace(day=1)
+
+    sql = f"""
+        SELECT
+            LEFT(a.codigo_sinonimo, 10) AS csr,
+            MAX(a.descripcion_1) AS descripcion,
+            MAX(a.marca) AS marca,
+            MAX(a.proveedor) AS proveedor,
+            MAX(a.subrubro) AS subrubro,
+            SUM(CASE WHEN v.fecha < '{hace_6}'
+                THEN (CASE WHEN v.operacion='+' THEN v.cantidad
+                           WHEN v.operacion='-' THEN -v.cantidad END)
+                ELSE 0 END) AS vtas_s1,
+            SUM(CASE WHEN v.fecha >= '{hace_6}'
+                THEN (CASE WHEN v.operacion='+' THEN v.cantidad
+                           WHEN v.operacion='-' THEN -v.cantidad END)
+                ELSE 0 END) AS vtas_s2
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND v.fecha >= '{hace_12}'
+          AND a.estado = 'V'
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+          AND LEN(a.codigo_sinonimo) >= 10
+          AND LEFT(a.codigo_sinonimo, 10) <> '0000000000'
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
+        HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) > 5
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    df['csr'] = df['csr'].str.strip()
+    df['descripcion'] = df['descripcion'].str.strip()
+    df['vtas_s1'] = df['vtas_s1'].astype(float)
+    df['vtas_s2'] = df['vtas_s2'].astype(float)
+    df['delta_pct'] = np.where(
+        df['vtas_s1'] > 0,
+        ((df['vtas_s2'] - df['vtas_s1']) / df['vtas_s1'] * 100).round(1),
+        np.where(df['vtas_s2'] > 0, 999, 0)  # nuevo producto
+    )
+    df['tendencia'] = np.where(df['delta_pct'] > 20, 'SUBE',
+                      np.where(df['delta_pct'] < -20, 'BAJA', 'ESTABLE'))
+    return df
+
+
+def detectar_canibalizacion_embedding(csr_victima, subrubro_cod, df_ventas_sem):
+    """
+    Para un producto que BAJA, busca sustitutos por embedding que SUBEN.
+    Eso es canibalización: un producto nuevo se comió al viejo.
+    """
+    # Obtener un codigo MG del CSR
+    sql_cod = f"""
+        SELECT TOP 1 a.codigo FROM msgestion01art.dbo.articulo a
+        WHERE LEFT(a.codigo_sinonimo, 10) = '{csr_victima}' AND a.estado = 'V'
+    """
+    df_cod = query_df(sql_cod)
+    if df_cod.empty:
+        return []
+
+    codigo_mg = int(df_cod.iloc[0]['codigo'])
+
+    # Buscar similares por embedding
+    sustitutos = buscar_sustitutos_embedding(codigo_mg, subrubro_cod, top_n=10)
+    if not sustitutos:
+        return []
+
+    # Obtener CSR de cada sustituto
+    codigos_sust = [s['codigo_mg'] for s in sustitutos if s['codigo_mg']]
+    if not codigos_sust:
+        return []
+
+    filtro = ",".join(str(c) for c in codigos_sust)
+    sql_csr = f"""
+        SELECT a.codigo, LEFT(a.codigo_sinonimo, 10) AS csr
+        FROM msgestion01art.dbo.articulo a
+        WHERE a.codigo IN ({filtro})
+    """
+    df_csr = query_df(sql_csr)
+
+    resultados = []
+    for s in sustitutos:
+        if not s['codigo_mg']:
+            continue
+        match_csr = df_csr[df_csr['codigo'] == s['codigo_mg']]
+        if match_csr.empty:
+            continue
+
+        csr_sust = match_csr.iloc[0]['csr'].strip()
+        # Buscar ventas semestrales de este sustituto
+        match_ventas = df_ventas_sem[df_ventas_sem['csr'] == csr_sust]
+        if match_ventas.empty:
+            continue
+
+        v = match_ventas.iloc[0]
+        es_canibalizacion = v['tendencia'] == 'SUBE'
+
+        resultados.append({
+            'nombre': s['nombre'],
+            'similitud': s['similitud'],
+            'csr': csr_sust,
+            'descripcion': v['descripcion'],
+            'vtas_s1': int(v['vtas_s1']),
+            'vtas_s2': int(v['vtas_s2']),
+            'delta_pct': float(v['delta_pct']),
+            'tendencia': v['tendencia'],
+            'canibalizacion': es_canibalizacion,
+        })
+
+    # Ordenar: canibalización primero, luego por similitud
+    resultados.sort(key=lambda x: (-x['canibalizacion'], -x['similitud']))
+    return resultados
+
+
+@st.cache_data(ttl=600)
+def escaneo_canibalizacion_masivo(top_n=50):
+    """
+    Escaneo automático: busca TODOS los productos que bajaron >30%
+    y para cada uno verifica si hay un sustituto similar que subió.
+    Retorna lista de pares (víctima, caníbal, similitud, deltas).
+    """
+    df_sem = obtener_ventas_semestrales()
+    if df_sem.empty:
+        return pd.DataFrame()
+
+    # Productos que bajan fuerte (>30%) con ventas significativas
+    victimas = df_sem[
+        (df_sem['tendencia'] == 'BAJA') &
+        (df_sem['delta_pct'] < -30) &
+        (df_sem['vtas_s1'] >= 10)  # mínimo 10 pares en S1
+    ].nsmallest(top_n, 'delta_pct')
+
+    if victimas.empty:
+        return pd.DataFrame()
+
+    # Para cada víctima, obtener un codigo MG
+    csrs_victimas = victimas['csr'].tolist()
+    filtro = ",".join(f"'{c}'" for c in csrs_victimas)
+    sql_codigos = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               MIN(a.codigo) AS codigo_mg,
+               MIN(a.subrubro) AS subrubro
+        FROM msgestion01art.dbo.articulo a
+        WHERE LEFT(a.codigo_sinonimo, 10) IN ({filtro}) AND a.estado = 'V'
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
+    """
+    df_codigos = query_df(sql_codigos)
+    if df_codigos.empty:
+        return pd.DataFrame()
+
+    df_codigos['csr'] = df_codigos['csr'].str.strip()
+
+    # Productos que suben (candidatos caníbal)
+    candidatos_sube = df_sem[df_sem['tendencia'] == 'SUBE'].copy()
+
+    pares = []
+    conn_pg = get_pg_conn()
+    if not conn_pg:
+        return pd.DataFrame()
+
+    try:
+        cur = conn_pg.cursor()
+        for _, vic in victimas.iterrows():
+            csr_v = vic['csr']
+            match_cod = df_codigos[df_codigos['csr'] == csr_v]
+            if match_cod.empty:
+                continue
+
+            codigo_mg = int(match_cod.iloc[0]['codigo_mg'])
+            subrubro = int(match_cod.iloc[0]['subrubro'])
+
+            # Buscar producto en PG
+            cur.execute("""
+                SELECT DISTINCT p.id
+                FROM producto_variantes pv
+                JOIN productos p ON p.id = pv.producto_id
+                WHERE pv.codigo_mg = %s AND p.embedding IS NOT NULL
+                LIMIT 1
+            """, (codigo_mg,))
+            row = cur.fetchone()
+            if not row:
+                continue
+
+            prod_id = row[0]
+
+            # Buscar similares
+            cur.execute("""
+                SELECT p.id, p.nombre,
+                       1 - (p.embedding <=> ref.embedding) AS similitud
+                FROM productos p, productos ref
+                WHERE ref.id = %s AND p.id != ref.id
+                  AND p.embedding IS NOT NULL AND p.activo = true
+                ORDER BY p.embedding <=> ref.embedding
+                LIMIT 8
+            """, (prod_id,))
+
+            for r in cur.fetchall():
+                # Obtener codigo_mg del sustituto
+                cur.execute(
+                    "SELECT codigo_mg FROM producto_variantes WHERE producto_id = %s AND codigo_mg IS NOT NULL LIMIT 1",
+                    (r[0],)
+                )
+                var = cur.fetchone()
+                if not var:
+                    continue
+                cod_sust = var[0]
+
+                # Buscar CSR del sustituto
+                sql_csr_s = f"""
+                    SELECT LEFT(a.codigo_sinonimo, 10) AS csr
+                    FROM msgestion01art.dbo.articulo a WHERE a.codigo = {cod_sust}
+                """
+                df_csr_s = query_df(sql_csr_s)
+                if df_csr_s.empty:
+                    continue
+
+                csr_s = df_csr_s.iloc[0]['csr'].strip()
+
+                # Buscar en candidatos que suben
+                match_sube = candidatos_sube[candidatos_sube['csr'] == csr_s]
+                if match_sube.empty:
+                    continue
+
+                can = match_sube.iloc[0]
+                pares.append({
+                    'victima': vic['descripcion'][:45],
+                    'victima_csr': csr_v,
+                    'victima_s1': int(vic['vtas_s1']),
+                    'victima_s2': int(vic['vtas_s2']),
+                    'victima_delta': float(vic['delta_pct']),
+                    'canibal': can['descripcion'][:45],
+                    'canibal_csr': csr_s,
+                    'canibal_s1': int(can['vtas_s1']),
+                    'canibal_s2': int(can['vtas_s2']),
+                    'canibal_delta': float(can['delta_pct']),
+                    'similitud': round(r[2], 3),
+                })
+
+        conn_pg.close()
+    except Exception as e:
+        try:
+            conn_pg.close()
+        except Exception:
+            pass
+        st.warning(f"Error en escaneo de canibalización: {e}")
+        return pd.DataFrame()
+
+    if not pares:
+        return pd.DataFrame()
+
+    df_pares = pd.DataFrame(pares)
+    df_pares = df_pares.sort_values('similitud', ascending=False)
+    # Deduplicar: un caníbal puede aparecer para varias víctimas
+    df_pares = df_pares.drop_duplicates(subset=['victima_csr', 'canibal_csr'])
+    return df_pares
+
+
 def guardar_log(entry):
     log = cargar_log()
     log.append(entry)
@@ -1315,9 +1671,10 @@ def render_dashboard():
     st.sidebar.markdown(f"**{len(df_f)} productos**")
 
     # ── TABS ──
-    tab_surtido, tab_dashboard, tab_waterfall, tab_optimizar, tab_pedido, tab_historial = st.tabs([
+    (tab_surtido, tab_dashboard, tab_waterfall, tab_optimizar,
+     tab_curva, tab_canibal, tab_pedido, tab_historial) = st.tabs([
         "🗺️ Mapa Surtido", "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
-        "🛒 Armar Pedido", "📋 Historial"
+        "👟 Curva Talle", "🔬 Canibalización", "🛒 Armar Pedido", "📋 Historial"
     ])
 
     # ══════════════════════════════════════════════════════════════
@@ -1955,6 +2312,279 @@ def render_dashboard():
                         fuera.drop(columns=['acum_inversion', 'dentro_presupuesto', 'csr']),
                         use_container_width=True, hide_index=True,
                     )
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB: CURVA DE TALLE IDEAL
+    # ══════════════════════════════════════════════════════════════
+    with tab_curva:
+        st.subheader("Curva de Talle Ideal vs Stock Real")
+        st.caption("3 anios de ventas revelan la distribucion de talles que tu mercado REALMENTE pide. Compara contra lo que tenes en stock.")
+
+        if st.button("Calcular curva de talle", type="primary", key="btn_curva"):
+            with st.spinner("Analizando 3 anios de ventas por talle..."):
+                df_curva = calcular_curva_talle_ideal(anios=3)
+                df_stock_t = calcular_stock_por_talle()
+                sub_desc = cargar_subrubro_desc()
+                if not df_curva.empty:
+                    st.session_state['curva_data'] = {
+                        'demanda': df_curva, 'stock': df_stock_t, 'sub_desc': sub_desc
+                    }
+
+        if 'curva_data' in st.session_state:
+            cdata = st.session_state['curva_data']
+            df_dem = cdata['demanda']
+            df_stk = cdata['stock']
+            sub_desc = cdata['sub_desc']
+
+            # Selector de categoría
+            df_dem['categoria'] = df_dem['sub_cod'].map(sub_desc).fillna('?')
+            combos = df_dem.groupby(['genero_cod', 'genero', 'sub_cod', 'categoria']).agg(
+                vtas_total=('vtas', 'sum')
+            ).reset_index().sort_values('vtas_total', ascending=False)
+            combos = combos[combos['vtas_total'] >= 50]
+
+            opciones_curva = combos.apply(
+                lambda r: f"{r['genero']} > {r['categoria']} ({int(r['vtas_total'])} pares vendidos)",
+                axis=1
+            ).tolist()
+
+            if not opciones_curva:
+                st.warning("No hay categorias con suficientes ventas.")
+            else:
+                idx_c = st.selectbox("Categoria", range(len(opciones_curva)),
+                                      format_func=lambda i: opciones_curva[i],
+                                      key="curva_cat_sel")
+                row_c = combos.iloc[idx_c]
+                g_sel = int(row_c['genero_cod'])
+                s_sel = int(row_c['sub_cod'])
+
+                # Filtrar demanda y stock para esta categoría
+                dem_cat = df_dem[(df_dem['genero_cod'] == g_sel) & (df_dem['sub_cod'] == s_sel)].copy()
+                dem_cat = dem_cat.sort_values('talle_num')
+
+                stk_cat = pd.DataFrame()
+                if not df_stk.empty:
+                    stk_cat = df_stk[(df_stk['genero_cod'] == g_sel) & (df_stk['sub_cod'] == s_sel)].copy()
+
+                # Merge demanda + stock
+                if not stk_cat.empty:
+                    merged = pd.merge(
+                        dem_cat[['talle', 'talle_num', 'vtas', 'pct_demanda']],
+                        stk_cat[['talle', 'stock', 'pct_stock']],
+                        on='talle', how='outer'
+                    ).fillna(0)
+                else:
+                    merged = dem_cat[['talle', 'talle_num', 'vtas', 'pct_demanda']].copy()
+                    merged['stock'] = 0
+                    merged['pct_stock'] = 0
+
+                merged = merged.sort_values('talle_num')
+
+                # KPIs
+                kc1, kc2, kc3 = st.columns(3)
+                kc1.metric("Talles activos", len(merged[merged['vtas'] > 0]))
+                talle_top = merged.loc[merged['pct_demanda'].idxmax(), 'talle'] if not merged.empty else '?'
+                kc2.metric("Talle mas vendido", talle_top)
+                # Gap máximo
+                merged['gap'] = merged['pct_demanda'] - merged['pct_stock']
+                if not merged.empty:
+                    max_gap_row = merged.loc[merged['gap'].idxmax()]
+                    kc3.metric("Mayor deficit de stock",
+                               f"Talle {max_gap_row['talle']}",
+                               delta=f"{max_gap_row['gap']:+.1f}pp")
+
+                st.divider()
+
+                # Gráfico de barras comparativo
+                st.markdown("#### Demanda vs Stock (% de distribucion)")
+                chart_data = merged[['talle', 'pct_demanda', 'pct_stock']].set_index('talle')
+                chart_data.columns = ['% Demanda (ideal)', '% Stock (real)']
+                st.bar_chart(chart_data, color=['#1976d2', '#ff7043'])
+
+                st.divider()
+
+                # Tabla detallada
+                st.markdown("#### Detalle por talle")
+                merged['gap_visual'] = merged['gap'].apply(
+                    lambda g: f"+{g:.1f}" if g > 0 else f"{g:.1f}"
+                )
+                merged['status'] = merged['gap'].apply(
+                    lambda g: 'FALTA STOCK' if g > 5 else ('EXCESO' if g < -5 else 'OK')
+                )
+
+                st.dataframe(
+                    merged[['talle', 'vtas', 'pct_demanda', 'stock', 'pct_stock', 'gap', 'status']],
+                    column_config={
+                        'talle': st.column_config.TextColumn('Talle', width=60),
+                        'vtas': st.column_config.NumberColumn('Ventas 3a', format="%d"),
+                        'pct_demanda': st.column_config.NumberColumn('% Demanda', format="%.1f%%"),
+                        'stock': st.column_config.NumberColumn('Stock', format="%d"),
+                        'pct_stock': st.column_config.NumberColumn('% Stock', format="%.1f%%"),
+                        'gap': st.column_config.NumberColumn('Gap (pp)', format="%+.1f"),
+                        'status': 'Status',
+                    },
+                    use_container_width=True, hide_index=True,
+                )
+
+                st.divider()
+
+                # Recomendación
+                falta = merged[merged['gap'] > 3].sort_values('gap', ascending=False)
+                exceso = merged[merged['gap'] < -3].sort_values('gap')
+                if not falta.empty:
+                    talles_falta = ", ".join(falta['talle'].tolist())
+                    st.error(f"DEFICIT: Talles {talles_falta} — tu stock esta por debajo de la demanda real. Priorizar en proxima compra.")
+                if not exceso.empty:
+                    talles_exceso = ", ".join(exceso['talle'].tolist())
+                    st.warning(f"EXCESO: Talles {talles_exceso} — tenes mas stock del que el mercado pide. Evaluar liquidar o redistribuir.")
+                if falta.empty and exceso.empty:
+                    st.success("Tu distribucion de stock esta alineada con la demanda. Bien.")
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB: CANIBALIZACIÓN POR EMBEDDING
+    # ══════════════════════════════════════════════════════════════
+    with tab_canibal:
+        st.subheader("Detector de Canibalizacion")
+        st.caption("Productos que BAJAN mientras un sustituto similar SUBE = canibalizacion. "
+                   "No es quiebre, es el mercado moviéndose. Ahi es donde tenes que ir.")
+
+        modo_canibal = st.radio("Modo", ["Escaneo automatico", "Analizar producto puntual"],
+                                 horizontal=True, key="modo_canibal")
+
+        if modo_canibal == "Escaneo automatico":
+            st.markdown("Busca automaticamente pares victima-canibal en todo el catalogo. "
+                        "Requiere conexion a PostgreSQL (embeddings).")
+
+            if st.button("Escanear canibalizacion", type="primary", key="btn_scan_canibal"):
+                with st.spinner("Analizando tendencias + embeddings... (puede tardar 1-2 min)"):
+                    df_pares = escaneo_canibalizacion_masivo(top_n=30)
+                    st.session_state['canib_pares'] = df_pares
+
+            if 'canib_pares' in st.session_state:
+                df_pares = st.session_state['canib_pares']
+                if df_pares.empty:
+                    st.info("No se detectaron pares de canibalizacion (puede ser por falta de conexion a PostgreSQL "
+                            "o porque no hay productos con patron victima-canibal claro).")
+                else:
+                    st.success(f"Se detectaron **{len(df_pares)} pares** de posible canibalizacion.")
+
+                    ck1, ck2 = st.columns(2)
+                    ck1.metric("Pares detectados", len(df_pares))
+                    pares_perdidos = int(df_pares['victima_s1'].sum() - df_pares['victima_s2'].sum())
+                    ck2.metric("Pares vendidos perdidos (victimas)", f"{pares_perdidos:,}")
+
+                    st.divider()
+
+                    st.dataframe(
+                        df_pares,
+                        column_config={
+                            'victima': st.column_config.TextColumn('Victima (baja)', width=200),
+                            'victima_s1': st.column_config.NumberColumn('Vtas S1', format="%d",
+                                help="Ventas hace 12-6 meses"),
+                            'victima_s2': st.column_config.NumberColumn('Vtas S2', format="%d",
+                                help="Ventas ultimos 6 meses"),
+                            'victima_delta': st.column_config.NumberColumn('Delta%', format="%.0f%%"),
+                            'canibal': st.column_config.TextColumn('Canibal (sube)', width=200),
+                            'canibal_s1': st.column_config.NumberColumn('Vtas S1', format="%d"),
+                            'canibal_s2': st.column_config.NumberColumn('Vtas S2', format="%d"),
+                            'canibal_delta': st.column_config.NumberColumn('Delta%', format="%.0f%%"),
+                            'similitud': st.column_config.NumberColumn('Similitud', format="%.2f"),
+                            'victima_csr': None,  # ocultar
+                            'canibal_csr': None,
+                        },
+                        use_container_width=True, hide_index=True,
+                    )
+
+                    st.divider()
+                    st.markdown("#### Que significa esto")
+                    st.markdown(
+                        "- **Victima baja + Canibal sube + Similitud alta** = el mercado esta migrando de un producto a otro\n"
+                        "- **Accion**: NO reponer la victima. Reponer el canibal (es lo que el mercado quiere)\n"
+                        "- **Similitud > 0.85** = practicamente el mismo producto (distinto color/modelo)\n"
+                        "- **Similitud 0.70-0.85** = misma categoria, compiten por el mismo cliente\n"
+                        "- Si la victima tiene stock alto y el canibal stock bajo = **oportunidad de liquidacion + reposicion**"
+                    )
+
+        else:  # Analizar producto puntual
+            st.markdown("Selecciona un producto para ver si tiene canibales o victimas.")
+
+            with st.spinner("Cargando tendencias..."):
+                df_sem = obtener_ventas_semestrales()
+
+            if df_sem.empty:
+                st.warning("No se pudieron cargar las ventas semestrales.")
+            else:
+                # Mostrar productos que bajan
+                df_bajan = df_sem[df_sem['tendencia'] == 'BAJA'].sort_values('delta_pct')
+                marcas_d = cargar_marcas_dict()
+                df_bajan['marca_desc'] = df_bajan['marca'].map(
+                    lambda x: marcas_d.get(int(x), f"#{int(x)}") if pd.notna(x) else "?"
+                )
+
+                opciones_vic = df_bajan.head(100).apply(
+                    lambda r: f"{r['descripcion'][:40]} | {r['marca_desc']} | S1:{int(r['vtas_s1'])} S2:{int(r['vtas_s2'])} ({r['delta_pct']:+.0f}%)",
+                    axis=1
+                ).tolist()
+
+                if not opciones_vic:
+                    st.info("No hay productos con tendencia bajista.")
+                else:
+                    idx_vic = st.selectbox("Producto (bajando)", range(len(opciones_vic)),
+                                            format_func=lambda i: opciones_vic[i],
+                                            key="vic_sel")
+                    vic_row = df_bajan.iloc[idx_vic]
+
+                    if st.button("Buscar canibales", type="primary", key="btn_canibal_puntual"):
+                        with st.spinner("Buscando por embedding..."):
+                            resultados = detectar_canibalizacion_embedding(
+                                vic_row['csr'], int(vic_row['subrubro']), df_sem
+                            )
+                            st.session_state['canibal_puntual'] = {
+                                'victima': vic_row, 'resultados': resultados
+                            }
+
+                    if 'canibal_puntual' in st.session_state:
+                        cp = st.session_state['canibal_puntual']
+                        vic = cp['victima']
+                        res = cp['resultados']
+
+                        st.markdown(f"**Victima**: {vic['descripcion']} — "
+                                    f"S1: {int(vic['vtas_s1'])} → S2: {int(vic['vtas_s2'])} "
+                                    f"({vic['delta_pct']:+.0f}%)")
+
+                        if not res:
+                            st.info("No se encontraron canibales por embedding. "
+                                    "La caida puede ser por quiebre de stock o estacionalidad, no canibalizacion.")
+                        else:
+                            canibales = [r for r in res if r['canibalizacion']]
+                            no_canib = [r for r in res if not r['canibalizacion']]
+
+                            if canibales:
+                                st.error(f"CANIBALIZACION DETECTADA — {len(canibales)} productos similares subiendo")
+                                df_can = pd.DataFrame(canibales)
+                                st.dataframe(
+                                    df_can[['descripcion', 'similitud', 'vtas_s1', 'vtas_s2',
+                                            'delta_pct', 'tendencia']],
+                                    column_config={
+                                        'descripcion': st.column_config.TextColumn('Canibal', width=250),
+                                        'similitud': st.column_config.NumberColumn('Similitud', format="%.2f"),
+                                        'vtas_s1': st.column_config.NumberColumn('Vtas S1', format="%d"),
+                                        'vtas_s2': st.column_config.NumberColumn('Vtas S2', format="%d"),
+                                        'delta_pct': st.column_config.NumberColumn('Delta%', format="%.0f%%"),
+                                        'tendencia': 'Tendencia',
+                                    },
+                                    use_container_width=True, hide_index=True,
+                                )
+                                st.markdown("**Recomendacion**: No reponer la victima. "
+                                            "Redirigir presupuesto al canibal.")
+                            else:
+                                st.success("No hay canibalizacion. Los sustitutos similares tambien bajan o estan estables.")
+
+                            if no_canib:
+                                with st.expander(f"Sustitutos sin canibalizacion ({len(no_canib)})"):
+                                    st.dataframe(pd.DataFrame(no_canib)[
+                                        ['descripcion', 'similitud', 'vtas_s1', 'vtas_s2', 'delta_pct', 'tendencia']
+                                    ], use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════
     # TAB 4: ARMAR PEDIDO
