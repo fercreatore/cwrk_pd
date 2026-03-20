@@ -2,14 +2,32 @@
 Configuración del Family Office Dashboard
 """
 
-# Target allocation (%) — Objetivo: 15% anual USD, largo plazo, con liquidez para dips
-# Aprobado: marzo 2026
+# Target allocation (%) — Objetivo: 20% anual USD, agresivo, con liquidez para dips
+# Actualizado: marzo 2026 — rotación de FCI a CEDEARs para subir rendimiento
 TARGET_ALLOCATION = {
-    "Bonos Soberanos AR": 35,    # Hard-dollar (GD35/AE38/AL41) + BONCER (TX28/TX31) → 10% carry
-    "FCI / Money Market": 15,    # COCOUSDPA + FCI ARS → liquidez para oportunidades
-    "CEDEARs": 30,               # NVDA, MELI, growth stocks → motor de 15%+ USD
-    "Acciones AR": 10,           # Post-crash Merval, selectivas (TGNO4, AUSO)
-    "Crypto": 10,                # MSTR, IBIT, BITFC → apuesta asimétrica
+    "Bonos Soberanos AR": 30,    # Hard-dollar (GD35/AE38/AL41) + BONCER (TX28/TX31) → 10% carry
+    "FCI / Money Market": 8,     # COCOUSDPA solo — liquidez mínima para deployar en dips
+    "CEDEARs": 37,               # ASML, TSM, NVDA, GOOGL, META, V, LLY → motor de 20%+
+    "Acciones AR": 13,           # Post-crash Merval: TGNO4, AUSO, TRAN, GGAL, YPF
+    "Crypto": 12,                # BTC directo + MSTR/IBIT → apuesta asimétrica
+}
+
+# Watchlist de CEDEARs target para 20% anual — diversificado por sector
+CEDEAR_WATCHLIST = {
+    # Tier 1: Sobrevendidos HOY (RSI < 35) — comprar YA
+    "TSM":   {"sector": "Semiconductores", "tesis": "Fabrica chips NVDA/AAPL/AMD. RSI 33, +93% 1Y", "tier": 1},
+    "META":  {"sector": "Tech/Ads",        "tesis": "PE 26, cash machine, -20% 6m. AI infra", "tier": 1},
+    "V":     {"sector": "Pagos",           "tesis": "Monopolio pagos, RSI 16 extremo. Defensive", "tier": 1},
+    "LLY":   {"sector": "Pharma",          "tesis": "GLP-1 (Ozempic rival), RSI 18. Mega trend", "tier": 1},
+    "AAPL":  {"sector": "Tech/Consumer",   "tesis": "RSI 26, ecosystem 2B devices. Raro verla tan baja", "tier": 1},
+    # Tier 2: Buenos precios, buen momentum
+    "ASML":  {"sector": "Semiconductores", "tesis": "Monopolio EUV, +88% 1Y, pullback sano", "tier": 2},
+    "GOOGL": {"sector": "Tech/AI",         "tesis": "PE 28 más barata big tech. AI + search + cloud", "tier": 2},
+    "NVDA":  {"sector": "Semiconductores", "tesis": "Ya tenés — mantener, no agregar mucho más", "tier": 2},
+    # Tier 3: Para armar después
+    "AMZN":  {"sector": "Tech/Cloud",      "tesis": "AWS + retail. Momentum tibio hoy", "tier": 3},
+    "MELI":  {"sector": "LATAM/Fintech",   "tesis": "-32% 6m, recovery play. Alto riesgo LatAm", "tier": 3},
+    "AVGO":  {"sector": "Semiconductores", "tesis": "Networking AI, PE 63 caro. Esperar dip", "tier": 3},
 }
 
 # Aporte mensual en ARS

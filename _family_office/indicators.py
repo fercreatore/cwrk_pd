@@ -45,6 +45,25 @@ TICKER_MAP = {
     "IBB": "IBB",
     "BIOXC": "BIOX",
     "OKLOC": "OKLO",
+    # CEDEARs — targets para 20% anual
+    "ASML": "ASML", "ASMLC": "ASML",  # Monopolio litografía EUV
+    "TSM": "TSM", "TSMC": "TSM",      # TSMC — fabrica todos los chips
+    "GOOGL": "GOOGL", "GOOGLC": "GOOGL",
+    "GOOG": "GOOGL",
+    "META": "META", "METAC": "META",
+    "MSFT": "MSFT", "MSFTC": "MSFT",
+    "AAPL": "AAPL", "AAPLC": "AAPL",
+    "AMZNC": "AMZN",
+    "V": "V", "VC": "V",              # Visa — monopolio pagos
+    "LLY": "LLY", "LLYC": "LLY",     # Eli Lilly — GLP-1
+    "COST": "COST",                    # Costco — defensive growth
+    "UBER": "UBER",                    # Uber — mobility + delivery
+    "NFLX": "NFLX",                    # Netflix
+    "AMD": "AMD", "AMDC": "AMD",      # AMD — AI chips #2
+    "PLTR": "PLTR",                    # Palantir — AI/data
+    "SNOW": "SNOW",                    # Snowflake — data cloud
+    "CRWD": "CRWD",                    # CrowdStrike — cybersecurity
+    "PANW": "PANW",                    # Palo Alto — cybersecurity
     # Acciones argentinas (Yahoo usa .BA)
     "TGNO4": "TGNO4.BA",
     "TRAN": "TRAN.BA",

@@ -11,6 +11,7 @@ from csv_parser import load_all_portfolios, get_dolar_mep_live
 from config_fo import (
     TARGET_ALLOCATION, REBALANCE_THRESHOLD_PCT, MAX_DRAWDOWN_ALERT,
     MAX_CONCENTRATION_TOP5, CASH_DEPLOY_ALERT, APORTE_MENSUAL_ARS,
+    CEDEAR_WATCHLIST,
 )
 from rebalancer import calculate_rebalance
 from indicators import calculate_portfolio_indicators, simulate_what_if, TICKER_MAP
@@ -1142,11 +1143,11 @@ with tab_rebalance:
     st.markdown("#### Qué comprar este mes")
 
     suggestions = {
-        "CEDEARs": "**NVDA** (ya tenés, acumular en dips), **MELI** (growth LATAM), **AVGO** (semiconductores)",
-        "Crypto": "**IBIT** (Bitcoin ETF, menor volatilidad que MSTR), **MSTR** (ya tenés, leveraged BTC)",
-        "Acciones AR": "**TGNO4** (gas, dividendo 13%), **AUSO** (infraestructura), **TRAN** (energía). Merval -26% del pico — oportunidad",
+        "CEDEARs": "**Tier 1 (sobrevendidos)**: TSM, META, V, LLY, AAPL — comprar YA. **Tier 2**: ASML (monopolio EUV), GOOGL (PE 28). NVDA mantener, no agregar",
+        "Crypto": "**BTC directo** (cold wallet), **IBIT** (ETF regulado). MSTR solo si querés apalancamiento",
+        "Acciones AR": "**TGNO4** (gas, dividendo 13%), **YPF** (proxy Vaca Muerta), **GGAL** (proxy Merval). Post-crash -26% = oportunidad",
         "Bonos Soberanos AR": "**GD35/AE38** (carry ~10% USD), **TX28** (BONCER, cobertura CER)",
-        "FCI / Money Market": "**COCOUSDPA** (FCI USD, liquidez T+1 para deployar en dips)",
+        "FCI / Money Market": "**COCOUSDPA** solo — mínima liquidez para oportunidades. Rotar exceso a CEDEARs",
     }
 
     cols = st.columns(2)
@@ -1236,6 +1237,69 @@ with tab_rebalance:
 
     total_12m = portfolio_total_usd + (aporte_usd * 12)
     st.caption(f"Portfolio estimado en 12 meses (sin rendimiento): US$ {total_12m:,.0f} | Aporte total: US$ {aporte_usd * 12:,.0f}")
+
+    # --- WATCHLIST CEDEARS LIVE ---
+    st.markdown("---")
+    st.markdown("#### Watchlist CEDEARs — Señales para 20% anual")
+    st.caption("Datos live de Yahoo Finance. Tier 1 = sobrevendidos, comprar YA. Tier 2 = buen precio. Tier 3 = esperar.")
+
+    @st.cache_data(ttl=1800, show_spinner="Descargando datos de watchlist...")
+    def _get_watchlist_data():
+        import yfinance as yf
+        import numpy as np
+        rows = []
+        for ticker, info in CEDEAR_WATCHLIST.items():
+            try:
+                hist = yf.download(ticker, period="6mo", interval="1d", progress=False)
+                if hist.empty:
+                    continue
+                close = hist["Close"].squeeze()
+                current = float(close.iloc[-1])
+                chg_6m = (current / float(close.iloc[0]) - 1) * 100
+                # RSI
+                delta = close.diff()
+                gain = delta.where(delta > 0, 0.0).rolling(14).mean()
+                loss = (-delta.where(delta < 0, 0.0)).rolling(14).mean()
+                rs = gain / loss.replace(0, np.nan)
+                rsi = 100 - (100 / (1 + rs))
+                rsi_val = float(rsi.iloc[-1]) if not rsi.empty and not pd.isna(rsi.iloc[-1]) else None
+                # Drawdown from peak
+                peak = float(close.max())
+                dd = (current / peak - 1) * 100
+                rows.append({
+                    "Tier": info["tier"],
+                    "Ticker": ticker,
+                    "Sector": info["sector"],
+                    "Precio USD": current,
+                    "6m %": round(chg_6m, 1),
+                    "RSI": round(rsi_val, 0) if rsi_val else None,
+                    "DD Peak %": round(dd, 1),
+                    "Tesis": info["tesis"],
+                })
+            except Exception:
+                continue
+        return rows
+
+    wl_data = _get_watchlist_data()
+    if wl_data:
+        df_wl = pd.DataFrame(wl_data).sort_values(["Tier", "RSI"], ascending=[True, True])
+
+        # Colorear por tier
+        def tier_label(t):
+            return {1: "COMPRAR", 2: "ACUMULAR", 3: "ESPERAR"}.get(t, "?")
+
+        df_wl["Señal"] = df_wl["Tier"].apply(tier_label)
+
+        st.dataframe(
+            df_wl[["Señal", "Ticker", "Sector", "Precio USD", "6m %", "RSI", "DD Peak %", "Tesis"]],
+            use_container_width=True, hide_index=True, height=450,
+            column_config={
+                "Precio USD": st.column_config.NumberColumn(format="US$ %,.1f"),
+                "6m %": st.column_config.NumberColumn(format="%+.1f%%"),
+                "RSI": st.column_config.NumberColumn(format="%.0f"),
+                "DD Peak %": st.column_config.NumberColumn(format="%.1f%%"),
+            },
+        )
 
 
 # ============================================================
@@ -1410,11 +1474,11 @@ with tab_conclusiones:
         suggestion = ""
         if cls == "CEDEARs":
             if sp500_data and sp500_data.get("rsi") and sp500_data["rsi"] < 35:
-                suggestion = "S&P500 sobrevendido — BUEN MOMENTO para acumular NVDA, MELI, AVGO."
+                suggestion = "S&P500 sobrevendido — COMPRAR: TSM (RSI 33), META (PE 26), V (RSI 16), LLY (RSI 18). Después ASML y GOOGL."
             elif vix_val and vix_val > 25:
-                suggestion = "VIX alto — comprar de a poco. NVDA, MELI en dip son oportunidad."
+                suggestion = "VIX alto — ir de a poco. Priorizar: V (defensive), LLY (pharma), TSM (semiconductores). ASML y GOOGL en 2do tramo."
             else:
-                suggestion = "Condiciones normales. Acumular NVDA (ya tenés), MELI (growth LATAM)."
+                suggestion = "Armar basket diversificado: TSM + META + V + ASML + GOOGL. NVDA mantener, no sobreponderar."
 
         elif cls == "Bonos Soberanos AR":
             if rp_val and rp_val < 600:
@@ -1424,12 +1488,12 @@ with tab_conclusiones:
 
         elif cls == "Crypto":
             if btc_data and btc_data.get("rsi") and btc_data["rsi"] < 35:
-                suggestion = "BTC sobrevendido — buen punto de entrada. IBIT (ETF) o acumular BTC directo."
+                suggestion = "BTC sobrevendido — COMPRAR BTC directo (cold wallet) o IBIT (ETF). Mejor entry point del año."
             else:
-                suggestion = "Mantener exposición actual. IBIT como vehículo regulado, MSTR si querés apalancamiento."
+                suggestion = "Mantener BTC. IBIT como vehículo regulado. MSTR solo si querés apalancamiento extra."
 
         elif cls == "Acciones AR":
-            suggestion = "TGNO4 (gas, dividendo 13%), AUSO (infraestructura), TRAN (energía). Merval en precio atractivo post-corrección."
+            suggestion = "TGNO4 (gas, dividendo 13%), YPF (Vaca Muerta), GGAL (proxy Merval). Post-crash -26% = oportunidad generacional."
 
         elif cls == "FCI / Money Market":
             suggestion = "COCOUSDPA (FCI USD, liquidez T+1). Mantener como reserva para oportunidades."
@@ -1600,10 +1664,38 @@ with tab_conclusiones:
         unsafe_allow_html=True,
     )
 
+    # --- SIMULACIÓN 20% ANUAL ---
+    st.markdown("---")
+    st.markdown("#### Proyección: 20% anual USD con target allocation")
+
+    target_return = 0.20
+    sim_years = [1, 2, 3, 5, 10]
+    proj_cols = st.columns(len(sim_years))
+    for i, yr in enumerate(sim_years):
+        future = portfolio_total_usd * ((1 + target_return) ** yr)
+        gain = future - portfolio_total_usd
+        # Con aportes mensuales
+        monthly = aporte_usd if 'aporte_usd' in dir() else APORTE_MENSUAL_ARS / mep_live
+        future_with_aporte = portfolio_total_usd * ((1 + target_return) ** yr)
+        for m in range(yr * 12):
+            future_with_aporte += monthly * ((1 + target_return) ** ((yr * 12 - m) / 12))
+        with proj_cols[i]:
+            st.markdown(
+                f'<div style="background:#1a1a2e;border:1px solid #44aaff;border-radius:10px;padding:14px;text-align:center;margin:4px 0;">'
+                f'<span style="color:#888;font-size:0.8rem">{yr} año{"s" if yr>1 else ""}</span><br>'
+                f'<span style="color:#44ff44;font-size:1.5rem;font-weight:700">US$ {future_with_aporte:,.0f}</span><br>'
+                f'<span style="color:#888;font-size:0.75rem">Sin aportes: US$ {future:,.0f}</span><br>'
+                f'<span style="color:#aaa;font-size:0.7rem">+US$ {future_with_aporte - portfolio_total_usd:,.0f}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+    st.caption(f"Base: US$ {portfolio_total_usd:,.0f} | Aporte: US$ {APORTE_MENSUAL_ARS / mep_live:,.0f}/mes | Target: 20% anual USD")
+    st.caption("La cuenta: 30% bonos x10% + 37% CEDEARs x20% + 13% acciones AR x25% + 12% crypto x30% + 8% FCI x2% = ~17-20% ponderado")
+
 
 # ============================================================
 # FOOTER
 # ============================================================
 st.markdown("---")
-st.caption(f"Family Office v0.5 — Datos reales | {len(positions)} posiciones | Dólar MEP: ${mep_live:,.0f}")
+st.caption(f"Family Office v0.6 — Target 20% USD | {len(positions)} posiciones | Dólar MEP: ${mep_live:,.0f}")
 st.caption("Para actualizar: descargá nuevos CSV de tenencia y reemplazá en _family_office/data/")
