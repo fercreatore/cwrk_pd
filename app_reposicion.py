@@ -787,7 +787,7 @@ def cargar_subrubro_desc():
     """Carga descripciones de subrubro desde msgestion01."""
     sql = "SELECT codigo, RTRIM(descripcion) AS desc1 FROM msgestion01.dbo.subrubro"
     df = query_df(sql)
-    return {int(r['codigo']): r['desc1'].strip() for _, r in df.iterrows()} if not df.empty else {}
+    return {int(r['codigo']): (r['desc1'] or '').strip() for _, r in df.iterrows()} if not df.empty else {}
 
 
 RUBRO_GENERO = {1: 'DAMAS', 3: 'HOMBRES', 4: 'NIÑOS', 5: 'NIÑAS', 6: 'UNISEX'}
@@ -933,12 +933,16 @@ def calcular_alertas_talles():
     # Organizar en dicts
     vtas_dict = {}
     for _, r in df_vtas_mes.iterrows():
-        tk = r['tkey'].strip()
+        tk = r['tkey'].strip() if r['tkey'] else ''
+        if not tk:
+            continue
         vtas_dict.setdefault(tk, {})[(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
 
     comp_dict = {}
     for _, r in df_comp_mes.iterrows():
-        tk = r['tkey'].strip()
+        tk = r['tkey'].strip() if r['tkey'] else ''
+        if not tk:
+            continue
         comp_dict.setdefault(tk, {})[(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
 
     # Lista de meses hacia atrás
@@ -953,7 +957,11 @@ def calcular_alertas_talles():
 
     cob_list = []
     for _, row in df.iterrows():
-        tkey = f"{int(row['genero_cod'])}_{int(row['sub_cod'])}_{row['talle'].strip()}"
+        talle_val = row['talle'].strip() if row['talle'] else ''
+        if not talle_val:
+            cob_list.append(0)
+            continue
+        tkey = f"{int(row['genero_cod'])}_{int(row['sub_cod'])}_{talle_val}"
         stock_actual = float(row['stock'])
         v_d = vtas_dict.get(tkey, {})
         c_d = comp_dict.get(tkey, {})
@@ -1209,7 +1217,7 @@ def cargar_talles_categoria(genero_cod, subrubro_cod):
         vel_reales[talle] = round(vel_real, 2)
         pct_quiebres[talle] = round(meses_q / max(meses, 1) * 100, 1)
 
-    df['talle'] = df['talle'].str.strip()
+    df['talle'] = df['talle'].fillna('').str.strip()
     df['vel_real'] = df['talle'].map(vel_reales).fillna(0)
     df['pct_quiebre'] = df['talle'].map(pct_quiebres).fillna(0)
 
@@ -3543,10 +3551,10 @@ def render_dashboard():
                          disabled=lineas_validas.empty):
                 with st.spinner("Calculando quiebre, estacionalidad y recupero..."):
                     lineas_input = [{
-                        'codigo_sinonimo': r['codigo_sinonimo'].strip(),
+                        'codigo_sinonimo': (r['codigo_sinonimo'] or '').strip(),
                         'cantidad': r['cantidad'],
                         'precio_costo': r['precio_costo'],
-                        'descripcion': f"{r['marca']} {r['subrubro']}".strip(),
+                        'descripcion': f"{r['marca'] or ''} {r['subrubro'] or ''}".strip(),
                         'talle': r['talle'],
                     } for _, r in lineas_validas.iterrows()]
 
