@@ -13,6 +13,8 @@ Todas las apps Streamlit usan puertos fijos para evitar conflictos.
 | 8504 | *(libre)* | | | |
 | 8505 | Multicanal | `app_multicanal.py` | Mac | `streamlit run app_multicanal.py --server.port 8505` |
 | 8506 | Family Office | `_family_office/app_family_office.py` | Mac | `cd _family_office && streamlit run app_family_office.py --server.port 8506` |
+| 8507-8509 | *(libres)* | | | |
+| 8510 | Go! Get it | `gogetit/app.py` | **112** | `cd C:\gogetit && streamlit run app.py --server.port 8510` |
 
 ## Servidores
 
