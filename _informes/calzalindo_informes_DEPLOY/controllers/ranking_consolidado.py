@@ -55,10 +55,10 @@ def rank_marcas():
         Field('hasta', 'date', requires=IS_DATE()),
         Field('c_desde', 'date', label='Compras desde', requires=IS_EMPTY_OR(IS_DATE())),
         Field('c_hasta', 'date', label='Compras hasta', requires=IS_EMPTY_OR(IS_DATE())),
-        Field('linea', requires=IS_EMPTY_OR(IS_IN_DB(db1, 'lineas.codigo', '%(descripcion)s', multiple=True))),
-        Field('marca', requires=IS_EMPTY_OR(IS_IN_DB(db1, 'marcas.codigo', '%(descripcion)s', multiple=True))),
-        Field('rubro', requires=IS_EMPTY_OR(IS_IN_DB(db1, 'rubros.codigo', '%(descripcion)s', multiple=True))),
-        Field('subrubro', requires=IS_EMPTY_OR(IS_IN_DB(db1, 'subrubro.codigo', '%(descripcion)s', multiple=True))),
+        Field('linea', 'string', label='Línea (código)'),
+        Field('marca', 'string', label='Marca (código)'),
+        Field('rubro', 'string', label='Rubro (código)'),
+        Field('subrubro', 'string', label='Subrubro (código)'),
         Field('agrupador_marca', requires=IS_EMPTY_OR(IS_IN_DB(db_omicronvt, 'agrupador_marca', '%(nombre)s'))),
         Field('agrupador_subrubro', requires=IS_EMPTY_OR(IS_IN_DB(db_omicronvt, 'agrupador_subrubro', '%(nombre)s'))),
         Field('agrupador_rubro', requires=IS_EMPTY_OR(IS_IN_DB(db_omicronvt, 'agrupador_rubro', '%(nombre)s'))),
@@ -149,6 +149,47 @@ def rank_marcas():
             else:
                 merged['stock'] = 0
 
+            # vel_real agregado por marca (batch: CSRs de cada marca)
+            try:
+                # Obtener CSRs con marca para las marcas del resultado
+                marcas_ids = merged['marca'].tolist()
+                filtro_marcas = ",".join(str(int(m)) for m in marcas_ids if m)
+                if filtro_marcas:
+                    sql_vel_marca = """
+                    SELECT a.marca,
+                           AVG(vra.vel_real) AS vel_real_prom,
+                           AVG(vra.vel_aparente) AS vel_aparente_prom,
+                           CASE WHEN AVG(vra.vel_aparente) > 0
+                                THEN AVG(vra.vel_real) / AVG(vra.vel_aparente)
+                                ELSE 1.0
+                           END AS factor_quiebre
+                    FROM omicronvt.dbo.vel_real_articulo vra
+                    JOIN msgestion01art.dbo.articulo a ON a.codigo_sinonimo = vra.codigo
+                    WHERE a.marca IN (%s)
+                      AND vra.vel_aparente > 0
+                      AND a.marca NOT IN (1316, 1317, 1158, 436)
+                    GROUP BY a.marca
+                    """ % filtro_marcas
+                    vel_rows = dbC.executesql(sql_vel_marca, as_dict=True)
+                    vel_by_marca = {int(r['marca']): {
+                        'vel_real': round(float(r['vel_real_prom'] or 0), 2),
+                        'factor_quiebre': round(float(r['factor_quiebre'] or 1.0), 2),
+                    } for r in vel_rows}
+                    merged['vel_real'] = merged['marca'].apply(
+                        lambda m: vel_by_marca.get(int(m), {}).get('vel_real', 0))
+                    merged['factor_quiebre'] = merged['marca'].apply(
+                        lambda m: vel_by_marca.get(int(m), {}).get('factor_quiebre', 1.0))
+                    merged['alerta_quiebre'] = merged['factor_quiebre'].apply(
+                        lambda f: 'SUB-COMPRADO %.1fx' % f if f >= 2.0 else '')
+                else:
+                    merged['vel_real'] = 0
+                    merged['factor_quiebre'] = 1.0
+                    merged['alerta_quiebre'] = ''
+            except Exception:
+                merged['vel_real'] = 0
+                merged['factor_quiebre'] = 1.0
+                merged['alerta_quiebre'] = ''
+
             data = merged.to_json(orient='records')
 
             # Columnas para Tabulator
@@ -163,6 +204,10 @@ def rank_marcas():
                 "{title:'$Compras', field:'neto_c', sorter:'number', topCalc:'sum', "
                 " formatter:'money', formatterParams:{precision:0}},"
                 "{title:'Stock', field:'stock', sorter:'number', topCalc:'sum'},"
+                "{title:'Vel.Real', field:'vel_real', sorter:'number', "
+                " formatter:function(c){return c.getValue()>0?c.getValue().toFixed(1):'-';}},"
+                "{title:'F.Quiebre', field:'factor_quiebre', sorter:'number', "
+                " formatter:function(c){var v=c.getValue();return v>=2?'<span style=\"color:red;font-weight:bold\">'+v.toFixed(1)+'x</span>':v>1?v.toFixed(1)+'x':'-';}},"
             )
 
     return dict(
