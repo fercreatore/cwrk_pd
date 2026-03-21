@@ -876,8 +876,11 @@ def calcular_alertas_talles():
 
     calzado_filter = """
         a.estado = 'V' AND a.rubro IN (1,3,4,5,6)
-          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
-          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
+          AND ISNUMERIC(a.descripcion_5) = 1
+          AND a.descripcion_5 NOT LIKE '%e%' AND a.descripcion_5 NOT LIKE '%E%'
+          AND a.descripcion_5 NOT LIKE '%.%' AND a.descripcion_5 NOT LIKE '%,%'
+          AND a.descripcion_5 NOT LIKE '%-%' AND a.descripcion_5 NOT LIKE '%+%'
+          AND CAST(a.descripcion_5 AS INT) BETWEEN 17 AND 50
     """
     talle_key = "CAST(a.rubro AS VARCHAR) + '_' + CAST(a.subrubro AS VARCHAR) + '_' + RTRIM(a.descripcion_5)"
 
@@ -1570,8 +1573,11 @@ def calcular_curva_talle_ideal(anios=3):
           AND a.rubro IN (1,3,4,5,6)
           AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
           AND RTRIM(a.descripcion_5) <> ''
-          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
-          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
+          AND ISNUMERIC(a.descripcion_5) = 1
+          AND a.descripcion_5 NOT LIKE '%e%' AND a.descripcion_5 NOT LIKE '%E%'
+          AND a.descripcion_5 NOT LIKE '%.%' AND a.descripcion_5 NOT LIKE '%,%'
+          AND a.descripcion_5 NOT LIKE '%-%' AND a.descripcion_5 NOT LIKE '%+%'
+          AND CAST(a.descripcion_5 AS INT) BETWEEN 17 AND 50
         GROUP BY a.rubro, a.subrubro, RTRIM(a.descripcion_5)
         HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad
                         WHEN v.operacion='-' THEN -v.cantidad END) > 0
@@ -1611,8 +1617,11 @@ def calcular_stock_por_talle():
           AND a.rubro IN (1,3,4,5,6)
           AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
           AND RTRIM(a.descripcion_5) <> ''
-          AND ISNUMERIC(REPLACE(a.descripcion_5, ',', '.')) = 1
-          AND CAST(REPLACE(a.descripcion_5, ',', '.') AS FLOAT) BETWEEN 17 AND 50
+          AND ISNUMERIC(a.descripcion_5) = 1
+          AND a.descripcion_5 NOT LIKE '%e%' AND a.descripcion_5 NOT LIKE '%E%'
+          AND a.descripcion_5 NOT LIKE '%.%' AND a.descripcion_5 NOT LIKE '%,%'
+          AND a.descripcion_5 NOT LIKE '%-%' AND a.descripcion_5 NOT LIKE '%+%'
+          AND CAST(a.descripcion_5 AS INT) BETWEEN 17 AND 50
         GROUP BY a.rubro, a.subrubro, RTRIM(a.descripcion_5)
         HAVING SUM(ISNULL(s.stock_actual, 0)) > 0
     """
