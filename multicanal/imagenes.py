@@ -214,6 +214,196 @@ def imagenes_para_ml(sku: str) -> list:
     return [{'source': url_publica(f)} for f in fotos]
 
 
+def get_imagen_articulo(csr: str) -> str:
+    """
+    Retorna la URL pública de la imagen principal de un artículo por codigo_sinonimo.
+
+    Args:
+        csr: codigo_sinonimo (12 dígitos PPP+AAAAA+CC+TT) o producto_base (10 chars)
+
+    Returns:
+        URL string de la primera imagen activa, o '' si no tiene foto.
+    """
+    fotos = buscar_imagenes_producto(csr)
+    if not fotos:
+        return ''
+    return url_publica(fotos[0])
+
+
+def get_imagenes_articulos_batch(csrs: list) -> dict:
+    """
+    Busca la imagen principal para múltiples codigo_sinonimo de una vez.
+
+    Args:
+        csrs: lista de codigo_sinonimo (12 chars) o producto_base (10 chars)
+
+    Returns:
+        dict {csr: url_string} — solo incluye los que tienen foto
+    """
+    if not csrs:
+        return {}
+
+    imagenes_por_sku = buscar_imagenes_por_skus(csrs)
+    resultado = {}
+    for csr, fotos in imagenes_por_sku.items():
+        if fotos:
+            resultado[csr] = url_publica(fotos[0])
+    return resultado
+
+
+def vincular_imagenes_pedido(articulos: list, conn_string_fn=None, dry_run: bool = False) -> dict:
+    """
+    Vincula fotos del VPS a artículos del ERP automáticamente al cargar un pedido.
+
+    Para cada artículo:
+    1. Busca imagen en PostgreSQL (VPS) por codigo_sinonimo
+    2. Descarga el thumbnail desde la URL pública
+    3. Copia al server 111 (F:\\Macroges\\Imagenes\\) vía SMB
+    4. INSERT en tabla imagen del ERP
+
+    Args:
+        articulos: lista de dicts con 'codigo' (PK artículo) y 'codigo_sinonimo' (CSR 12 chars)
+        conn_string_fn: función que retorna connection string (default: config.get_conn_string)
+        dry_run: si True, solo reporta qué haría sin tocar BD ni archivos
+
+    Returns:
+        dict con 'vinculados', 'sin_foto', 'ya_tenian', 'errores'
+    """
+    import os as _os
+    import platform
+    import requests
+
+    resultado = {'vinculados': 0, 'sin_foto': 0, 'ya_tenian': 0, 'errores': [],
+                 'detalle': []}
+
+    if not articulos:
+        return resultado
+
+    # 1. Buscar fotos en batch para todos los CSRs
+    csrs = [a['codigo_sinonimo'] for a in articulos if a.get('codigo_sinonimo')]
+    imagenes = get_imagenes_articulos_batch(csrs)
+
+    # Mapear codigo → url y extension
+    art_con_foto = {}
+    for art in articulos:
+        csr = art.get('codigo_sinonimo', '')
+        if csr in imagenes:
+            url = imagenes[csr]
+            ext = url.rsplit('.', 1)[-1] if '.' in url else 'jpg'
+            art_con_foto[art['codigo']] = {'url': url, 'ext': ext, 'csr': csr}
+
+    sin_foto = [a for a in articulos if a['codigo'] not in art_con_foto]
+    resultado['sin_foto'] = len(sin_foto)
+
+    if dry_run:
+        for codigo, info in art_con_foto.items():
+            resultado['detalle'].append(
+                f"[DRY] Cód {codigo} (CSR {info['csr']}) → {info['url']}")
+            resultado['vinculados'] += 1
+        for a in sin_foto:
+            resultado['detalle'].append(
+                f"[DRY] Cód {a['codigo']} (CSR {a.get('codigo_sinonimo','?')}) → SIN FOTO en VPS")
+        return resultado
+
+    # 2. Conectar a ERP (111)
+    import pyodbc
+    if conn_string_fn:
+        conn_str = conn_string_fn('msgestion01')
+    else:
+        from config import get_conn_string
+        conn_str = get_conn_string('msgestion01')
+
+    conn = pyodbc.connect(conn_str, timeout=10)
+    cursor = conn.cursor()
+
+    # Rutas de imágenes
+    IMG_SMB_PATH = "/Volumes/macroges_imagenes"
+    IMG_SMB_URL = "//administrador:cagr$2011@192.168.2.111/Macroges/Imagenes"
+    IMG_WIN_PATH = r"F:\Macroges\Imagenes"
+
+    for codigo, info in art_con_foto.items():
+        try:
+            # Verificar si ya tiene imagen
+            cursor.execute(
+                "SELECT COUNT(*) FROM imagen WHERE tipo='AR' AND empresa=1 "
+                "AND sistema=0 AND codigo=0 AND numero=? AND renglon=1",
+                codigo
+            )
+            if cursor.fetchone()[0] > 0:
+                resultado['ya_tenian'] += 1
+                resultado['detalle'].append(f"Cód {codigo}: ya tiene imagen, skip")
+                continue
+
+            # Obtener nombre de archivo con función de Macroges
+            cursor.execute(
+                "SELECT dbo.f_sql_nombre_imagen(1,'AR',0,0,'',0,?,0,1,?) AS nombre",
+                codigo, info['ext']
+            )
+            row = cursor.fetchone()
+            if not row or not row.nombre:
+                resultado['errores'].append(f"Cód {codigo}: f_sql_nombre_imagen devolvió NULL")
+                continue
+
+            nombre_archivo = row.nombre.split("\\")[-1]
+
+            # Descargar imagen del VPS
+            resp = requests.get(info['url'], timeout=15, verify=False)
+            resp.raise_for_status()
+            foto_bytes = resp.content
+
+            # Copiar al server
+            if platform.system() == "Windows":
+                import socket
+                hostname = socket.gethostname().upper()
+                if hostname in ("DELL-SVR", "DELLSVR"):
+                    ruta_destino = f"{IMG_WIN_PATH}\\{nombre_archivo}"
+                else:
+                    unc_share = "\\\\192.168.2.111\\Macroges"
+                    import subprocess
+                    try:
+                        subprocess.run(
+                            ["net", "use", unc_share,
+                             "/user:administrador", "cagr$2011"],
+                            capture_output=True, timeout=10,
+                        )
+                    except Exception:
+                        pass
+                    ruta_destino = f"{unc_share}\\Imagenes\\{nombre_archivo}"
+                with open(ruta_destino, "wb") as f:
+                    f.write(foto_bytes)
+            else:
+                # Mac/Linux — SMB mount
+                import subprocess
+                if not _os.path.ismount(IMG_SMB_PATH):
+                    _os.makedirs(IMG_SMB_PATH, exist_ok=True)
+                    subprocess.run(
+                        ["mount_smbfs", IMG_SMB_URL, IMG_SMB_PATH],
+                        check=True, timeout=10
+                    )
+                ruta_destino = f"{IMG_SMB_PATH}/{nombre_archivo}"
+                with open(ruta_destino, "wb") as f:
+                    f.write(foto_bytes)
+
+            # INSERT en tabla imagen
+            cursor.execute(
+                "INSERT INTO imagen (empresa, tipo, sistema, codigo, letra, "
+                "sucursal, numero, orden, renglon, extencion) "
+                "VALUES (1, 'AR', 0, 0, '', 0, ?, 0, 1, ?)",
+                codigo, info['ext']
+            )
+            conn.commit()
+
+            resultado['vinculados'] += 1
+            resultado['detalle'].append(
+                f"Cód {codigo} (CSR {info['csr']}) → {nombre_archivo} OK")
+
+        except Exception as e:
+            resultado['errores'].append(f"Cód {codigo}: {e}")
+
+    conn.close()
+    return resultado
+
+
 def subir_imagen_a_tn(client, product_id: int, imagen: dict) -> dict:
     """
     Sube una imagen a un producto existente de TiendaNube usando URL pública.
