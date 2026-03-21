@@ -50,7 +50,26 @@ def rank_marcas():
 
     data = data_graf = desde = hasta = clxs = ""
 
-    # Cargar opciones de agrupadores via SQL directo (evita IS_IN_DB que requiere define_table)
+    # Helper Python 2: encode unicode a utf-8 para IS_IN_SET
+    def _u(val):
+        if isinstance(val, unicode):
+            return val.encode('utf-8')
+        return str(val) if val is not None else ''
+
+    # Cargar opciones de filtros via SQL directo (evita IS_IN_DB/define_table)
+    try:
+        opts_marca = db1.executesql('SELECT codigo, descripcion FROM marcas WHERE descripcion IS NOT NULL ORDER BY descripcion')
+    except Exception:
+        opts_marca = []
+    try:
+        opts_subrubro = db1.executesql('SELECT codigo, descripcion FROM subrubro WHERE descripcion IS NOT NULL ORDER BY descripcion')
+    except Exception:
+        opts_subrubro = []
+
+    # Rubros: valores fijos conocidos
+    opts_rubro = [(1, 'DAMAS'), (3, 'HOMBRES'), (4, 'NINOS'), (5, 'NINAS'), (6, 'UNISEX')]
+
+    # Agrupadores (omicronvt)
     try:
         agrup_marcas = db_omicronvt.executesql('SELECT id, nombre FROM agrupador_marca ORDER BY nombre')
     except Exception:
@@ -69,15 +88,21 @@ def rank_marcas():
         Field('hasta', 'date', requires=IS_DATE()),
         Field('c_desde', 'date', label='Compras desde', requires=IS_EMPTY_OR(IS_DATE())),
         Field('c_hasta', 'date', label='Compras hasta', requires=IS_EMPTY_OR(IS_DATE())),
-        Field('linea', 'string', label='Línea (código)'),
-        Field('marca', 'string', label='Marca (código)'),
-        Field('rubro', 'string', label='Rubro (código)'),
-        Field('subrubro', 'string', label='Subrubro (código)'),
-        Field('agrupador_marca', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1].encode('utf-8') if isinstance(r[1], unicode) else str(r[1])) for r in agrup_marcas]))),
-        Field('agrupador_subrubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1].encode('utf-8') if isinstance(r[1], unicode) else str(r[1])) for r in agrup_subr]))),
-        Field('agrupador_rubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1].encode('utf-8') if isinstance(r[1], unicode) else str(r[1])) for r in agrup_rubro]))),
-        Field('sinonimo', 'string', label='Código sinónimo'),
-        Field('descripcion', 'string', label='Descripción'),
+        Field('linea', 'string', label='Linea (codigo)'),
+        Field('marca', requires=IS_EMPTY_OR(IS_IN_SET(
+            [(str(r[0]), _u(r[1])) for r in opts_marca], multiple=True))),
+        Field('rubro', requires=IS_EMPTY_OR(IS_IN_SET(
+            [(str(r[0]), _u(r[1])) for r in opts_rubro], multiple=True))),
+        Field('subrubro', requires=IS_EMPTY_OR(IS_IN_SET(
+            [(str(r[0]), _u(r[1])) for r in opts_subrubro], multiple=True))),
+        Field('agrupador_marca', requires=IS_EMPTY_OR(IS_IN_SET(
+            [(str(r[0]), _u(r[1])) for r in agrup_marcas]))),
+        Field('agrupador_subrubro', requires=IS_EMPTY_OR(IS_IN_SET(
+            [(str(r[0]), _u(r[1])) for r in agrup_subr]))),
+        Field('agrupador_rubro', requires=IS_EMPTY_OR(IS_IN_SET(
+            [(str(r[0]), _u(r[1])) for r in agrup_rubro]))),
+        Field('sinonimo', 'string', label='Codigo sinonimo'),
+        Field('descripcion', 'string', label='Descripcion'),
     )
 
     if form.process().accepted:

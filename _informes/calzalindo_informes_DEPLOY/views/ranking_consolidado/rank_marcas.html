@@ -16,15 +16,27 @@
         <small style="color:#888;">Compras + Ventas + Stock consolidado</small>
     </h3>
 
+    <!-- BOTONES PERIODO RAPIDO -->
+    <div class="filtro-panel" style="padding:10px 15px;">
+        <strong style="margin-right:10px;">Periodo:</strong>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-default btn-periodo" data-d="2026-03-01" data-h="2026-08-31">OI 2026</button>
+            <button type="button" class="btn btn-sm btn-default btn-periodo" data-d="2025-09-01" data-h="2026-02-28">PV 2025</button>
+            <button type="button" class="btn btn-sm btn-default btn-periodo" data-d="2026-01-01" data-h="2026-06-30">H1 2026</button>
+            <button type="button" class="btn btn-sm btn-default btn-periodo" data-d="2025-07-01" data-h="2025-12-31">H2 2025</button>
+            <button type="button" class="btn btn-sm btn-info btn-periodo" id="btn-ult12m">Ultimos 12m</button>
+        </div>
+    </div>
+
     <!-- FORMULARIO -->
     <div class="filtro-panel">
         {{=form.custom.begin}}
         <div class="row">
             <div class="col-md-2">
-                <label>Desde</label>{{=form.custom.widget.desde}}
+                <label>Ventas desde</label>{{=form.custom.widget.desde}}
             </div>
             <div class="col-md-2">
-                <label>Hasta</label>{{=form.custom.widget.hasta}}
+                <label>Ventas hasta</label>{{=form.custom.widget.hasta}}
             </div>
             <div class="col-md-2">
                 <label>Compras desde</label>{{=form.custom.widget.c_desde}}
@@ -36,15 +48,15 @@
                 <label>Marca</label>{{=form.custom.widget.marca}}
             </div>
             <div class="col-md-2">
-                <label>Linea</label>{{=form.custom.widget.linea}}
+                <label>Rubro</label>{{=form.custom.widget.rubro}}
             </div>
         </div>
         <div class="row" style="margin-top:8px;">
             <div class="col-md-2">
-                <label>Rubro</label>{{=form.custom.widget.rubro}}
+                <label>Subrubro</label>{{=form.custom.widget.subrubro}}
             </div>
             <div class="col-md-2">
-                <label>Subrubro</label>{{=form.custom.widget.subrubro}}
+                <label>Linea</label>{{=form.custom.widget.linea}}
             </div>
             <div class="col-md-2">
                 <label>Agrup. Marca</label>{{=form.custom.widget.agrupador_marca}}
@@ -61,6 +73,32 @@
         </div>
         {{=form.custom.end}}
     </div>
+
+    <script>
+    // Botones de periodo rapido
+    document.querySelectorAll('.btn-periodo[data-d]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            document.getElementById('no_table_desde').value = this.getAttribute('data-d');
+            document.getElementById('no_table_hasta').value = this.getAttribute('data-h');
+            document.getElementById('no_table_c_desde').value = '';
+            document.getElementById('no_table_c_hasta').value = '';
+            // Submit del form
+            document.querySelector('form[id^="no_table"]').submit();
+        });
+    });
+    // Ultimos 12 meses
+    document.getElementById('btn-ult12m').addEventListener('click', function(){
+        var hoy = new Date();
+        var hace12 = new Date(hoy);
+        hace12.setFullYear(hace12.getFullYear() - 1);
+        function fmt(d){ return d.toISOString().slice(0,10); }
+        document.getElementById('no_table_desde').value = fmt(hace12);
+        document.getElementById('no_table_hasta').value = fmt(hoy);
+        document.getElementById('no_table_c_desde').value = '';
+        document.getElementById('no_table_c_hasta').value = '';
+        document.querySelector('form[id^="no_table"]').submit();
+    });
+    </script>
 
     {{if data:}}
     <!-- TABLA -->
