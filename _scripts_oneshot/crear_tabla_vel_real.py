@@ -18,8 +18,10 @@ from dateutil.relativedelta import relativedelta
 import pyodbc
 import pandas as pd
 
-# ── Conexión a RÉPLICA (solo SELECT) ──────────────────────────
-SERVIDOR_REPLICA = "192.168.2.112"
+# ── Conexión a producción 111 (solo SELECT) ──────────────────
+# Nota: el 112 (réplica) no tiene confirmado el login am/dl.
+# El 111 acepta am/dl y las queries son solo SELECT, sin riesgo.
+SERVIDOR_REPLICA = "192.168.2.111"
 USUARIO = "am"
 PASSWORD = "dl"
 
