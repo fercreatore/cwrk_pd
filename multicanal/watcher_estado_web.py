@@ -182,7 +182,8 @@ def obtener_articulos_web(conn_erp, estado_web='A', csr_filtro=None) -> list:
         SELECT a.codigo, a.descripcion_1, a.precio_costo, a.precio_venta,
                a.codigo_sinonimo, a.moneda, a.marca, a.estado, a.estado_web,
                m.denominacion AS marca_nombre,
-               ISNULL(s.stock_total, 0) AS stock
+               ISNULL(s.stock_total, 0) AS stock,
+               a.descripcion_web, a.depo_web
         FROM msgestion01art.dbo.articulo a
         LEFT JOIN msgestion01art.dbo.marca m ON m.codigo = a.marca
         LEFT JOIN (
@@ -200,7 +201,7 @@ def obtener_articulos_web(conn_erp, estado_web='A', csr_filtro=None) -> list:
 
     cols = ['codigo', 'descripcion', 'precio_costo', 'precio_venta',
             'codigo_sinonimo', 'moneda', 'marca', 'estado', 'estado_web',
-            'marca_nombre', 'stock']
+            'marca_nombre', 'stock', 'descripcion_web', 'depo_web']
 
     resultado = []
     for row in cursor.fetchall():
@@ -260,8 +261,8 @@ def publicar_modelo_tn(client, articulos: list, regla_tn, dry_run=True) -> dict:
     ref = articulos[0]
     csr_base = ref['codigo_sinonimo'][:10]
 
-    # Nombre: usar descripción sin el sufijo de talle
-    nombre = ref['descripcion']
+    # Nombre: preferir descripcion_web si existe, sino descripcion_1 sin talle
+    nombre = (ref.get('descripcion_web') or '').strip() or ref['descripcion']
     # Limpiar talle del nombre si está incluido
     csr_full = ref['codigo_sinonimo']
     if len(csr_full) > 10:
