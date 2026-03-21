@@ -5,7 +5,41 @@
 > LEER PRIMERO en cada sesión nueva para saber qué se hizo y qué falta.
 > AL CERRAR cada sesión, ACTUALIZAR con los cambios realizados.
 
-> Última actualización: 20 de marzo de 2026 — Modelo reposición operable v2 (4 deudas técnicas)
+> Última actualización: 21 de marzo de 2026 — Testing automático app_reposicion
+
+---
+
+## 21 de marzo de 2026 — Testing Automático
+
+### Sistema de tests para app_reposicion.py
+
+Se creó `_tests/` con 3 suites y un runner que genera reporte automático:
+
+| Archivo | Qué testea | Tests |
+|---------|-----------|-------|
+| `test_datos.py` | Conexión SQL Server 111, tablas con datos, nulls críticos, fechas coherentes | 12 |
+| `test_modelo.py` | Funciones puras del modelo (waterfall, ROI, cobertura), convergencia, rangos | 16 |
+| `test_ui.py` | Import sin errores, funciones existen, constantes, tabs, sin AttributeErrors | 12 |
+| `run_all.py` | Runner: ejecuta las 3 suites, genera `_informes/test_results_YYYY-MM-DD.md` | — |
+
+### Cómo correr los tests
+
+```bash
+# Desde Mac (requiere VPN/red local al 111)
+cd _tests
+python3 run_all.py
+
+# Suite individual
+python3 -m unittest test_datos -v
+python3 -m unittest test_modelo -v
+python3 -m unittest test_ui -v
+```
+
+El reporte se guarda en `_informes/test_results_HOY.md` con tabla resumen y detalle de fallos.
+
+**Nota**: `test_modelo.py` y `test_ui.py` mockean Streamlit para poder importar `app_reposicion.py` sin UI. `test_datos.py` usa el fix SSL (`_scripts_oneshot/openssl_legacy.cnf`) para conectar desde Mac.
+
+**Resultado primera corrida**: 40/40 PASS.
 
 ---
 
