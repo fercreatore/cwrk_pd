@@ -50,6 +50,20 @@ def rank_marcas():
 
     data = data_graf = desde = hasta = clxs = ""
 
+    # Cargar opciones de agrupadores via SQL directo (evita IS_IN_DB que requiere define_table)
+    try:
+        agrup_marcas = db_omicronvt.executesql('SELECT id, nombre FROM agrupador_marca ORDER BY nombre')
+    except Exception:
+        agrup_marcas = []
+    try:
+        agrup_subr = db_omicronvt.executesql('SELECT id, nombre FROM agrupador_subrubro ORDER BY nombre')
+    except Exception:
+        agrup_subr = []
+    try:
+        agrup_rubro = db_omicronvt.executesql('SELECT id, nombre FROM agrupador_rubro ORDER BY nombre')
+    except Exception:
+        agrup_rubro = []
+
     form = SQLFORM.factory(
         Field('desde', 'date', requires=IS_DATE()),
         Field('hasta', 'date', requires=IS_DATE()),
@@ -59,9 +73,9 @@ def rank_marcas():
         Field('marca', 'string', label='Marca (código)'),
         Field('rubro', 'string', label='Rubro (código)'),
         Field('subrubro', 'string', label='Subrubro (código)'),
-        Field('agrupador_marca', requires=IS_EMPTY_OR(IS_IN_DB(db_omicronvt, 'agrupador_marca', '%(nombre)s'))),
-        Field('agrupador_subrubro', requires=IS_EMPTY_OR(IS_IN_DB(db_omicronvt, 'agrupador_subrubro', '%(nombre)s'))),
-        Field('agrupador_rubro', requires=IS_EMPTY_OR(IS_IN_DB(db_omicronvt, 'agrupador_rubro', '%(nombre)s'))),
+        Field('agrupador_marca', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1]) for r in agrup_marcas]))),
+        Field('agrupador_subrubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1]) for r in agrup_subr]))),
+        Field('agrupador_rubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1]) for r in agrup_rubro]))),
         Field('sinonimo', 'string', label='Código sinónimo'),
         Field('descripcion', 'string', label='Descripción'),
     )
