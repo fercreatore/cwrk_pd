@@ -511,10 +511,18 @@ def cargar_productos_por_proveedor(proveedor_num):
 
 @st.cache_data(ttl=600)
 def cargar_marcas_dict():
-    """Dict de marcas: {codigo: descripcion}."""
+    """Dict de marcas: {codigo: descripcion}. Filtra descripciones vacías."""
     sql = "SELECT codigo, RTRIM(ISNULL(descripcion,'')) AS desc1 FROM msgestion01art.dbo.marcas"
     df = query_df(sql)
-    return {int(r['codigo']): (r['desc1'] or '').strip() for _, r in df.iterrows()} if not df.empty else {}
+    if df.empty:
+        return {}
+    result = {}
+    for _, r in df.iterrows():
+        cod = int(r['codigo'])
+        desc = (r['desc1'] or '').strip()
+        # Si la descripción está vacía, usar "Marca {cod}" en vez de dejar vacío
+        result[cod] = desc if desc else f"Marca {cod}"
+    return result
 
 
 @st.cache_data(ttl=600)
@@ -2213,14 +2221,18 @@ def render_dashboard():
         ).reset_index().sort_values('ventas', ascending=False)
         top_marcas = top_marcas[top_marcas['ventas'] > 10]
 
-        opciones_marca = top_marcas.apply(
+        opciones_marca = ["— Seleccionar marca —"] + top_marcas.apply(
             lambda r: f"{r['marca_desc']} ({int(r['ventas'])} vtas)", axis=1
         ).tolist()
-        codigos_marca = top_marcas['marca'].tolist()
+        codigos_marca = [None] + top_marcas['marca'].tolist()
 
         sel_idx = st.sidebar.selectbox("Marca", range(len(opciones_marca)),
                                         format_func=lambda i: opciones_marca[i],
                                         key="marca_filtro")
+
+        if sel_idx == 0:
+            st.info("Seleccioná una marca en el sidebar para ver los productos.")
+            return
         marca_sel_codigo = int(codigos_marca[sel_idx])
 
         with st.spinner(f"Cargando productos de {opciones_marca[sel_idx].split(' (')[0]}..."):
@@ -2232,14 +2244,18 @@ def render_dashboard():
         ).reset_index().sort_values('ventas', ascending=False)
         top_provs = top_provs[top_provs['ventas'] > 10]
 
-        opciones_prov = top_provs.apply(
+        opciones_prov = ["— Seleccionar proveedor —"] + top_provs.apply(
             lambda r: f"{r['prov_nombre']} ({int(r['ventas'])} vtas)", axis=1
         ).tolist()
-        codigos_prov = top_provs['proveedor'].tolist()
+        codigos_prov = [None] + top_provs['proveedor'].tolist()
 
         sel_idx_p = st.sidebar.selectbox("Proveedor", range(len(opciones_prov)),
                                           format_func=lambda i: opciones_prov[i],
                                           key="prov_filtro")
+
+        if sel_idx_p == 0:
+            st.info("Seleccioná un proveedor en el sidebar para ver los productos.")
+            return
         prov_sel_codigo = int(codigos_prov[sel_idx_p])
 
         with st.spinner(f"Cargando productos de {opciones_prov[sel_idx_p].split(' (')[0]}..."):
