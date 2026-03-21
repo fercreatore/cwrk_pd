@@ -72,7 +72,7 @@ def get_proxima_orden(cursor, empresa: str = None) -> int:
 # INSERT PRINCIPAL
 # ──────────────────────────────────────────────────────────────
 
-def insertar_pedido(cabecera: dict, renglones: list, dry_run: bool = True):
+def insertar_pedido(cabecera: dict, renglones: list, dry_run: bool = True, _standalone: bool = False):
     """
     Inserta la cabecera en pedico2 y los renglones en pedico1.
     Usa transacción: si falla cualquier renglón, hace rollback.
@@ -240,6 +240,8 @@ def insertar_pedido(cabecera: dict, renglones: list, dry_run: bool = True):
     except Exception as e:
         print(f"\n❌ ERROR al insertar pedido: {e}")
         print("   Rollback ejecutado — ningún dato fue guardado.")
+        if not _standalone:
+            raise
         return None
 
 
@@ -315,7 +317,7 @@ if __name__ == "__main__":
         },
     ]
 
-    numero = insertar_pedido(cabecera_prueba, renglones_prueba, dry_run=dry_run)
+    numero = insertar_pedido(cabecera_prueba, renglones_prueba, dry_run=dry_run, _standalone=True)
 
     if not dry_run and numero:
         print(f"\n\u2705 Verificar en SSMS:")

@@ -762,8 +762,14 @@ def insertar_pedido_produccion(proveedor_id, empresa, renglones_df,
     if not renglones:
         return None, "No hay renglones con cantidad > 0"
 
-    numero = insertar_pedido(cabecera, renglones, dry_run=False)
-    return numero, f"Pedido #{numero} insertado OK" if numero else "Error al insertar"
+    try:
+        numero = insertar_pedido(cabecera, renglones, dry_run=False)
+    except Exception as e:
+        return None, f"Error al insertar: {e}"
+
+    if numero:
+        return numero, f"Pedido #{numero} insertado — {len(renglones)} renglones en {empresa}"
+    return None, "Error desconocido al insertar pedido"
 
 
 # ============================================================================
@@ -3727,9 +3733,29 @@ def render_dashboard():
 
                         with col_ins:
                             if total_pares > 0 and prov_id:
+                                # Paso 1: resumen y confirmación
+                                renglones_activos = df_tp[df_tp['pedir'] > 0]
+                                st.info(
+                                    f"**Resumen pedido**\n\n"
+                                    f"- Proveedor: **{prov_pedido}** (#{prov_id})\n"
+                                    f"- Empresa: **{empresa}**\n"
+                                    f"- Renglones: **{len(renglones_activos)}**\n"
+                                    f"- Total pares: **{total_pares}**\n"
+                                    f"- Monto: **${total_monto:,.0f}**\n"
+                                    f"- Entrega: **{fecha_ent}**"
+                                )
+
+                                confirmar = st.checkbox(
+                                    "Confirmo que los datos son correctos — insertar en produccion",
+                                    key="chk_confirmar_insert")
+
                                 if st.button("⚡ INSERTAR EN ERP", type="primary",
-                                             use_container_width=True, key="btn_insert"):
-                                    with st.spinner("Insertando..."):
+                                             use_container_width=True, key="btn_insert",
+                                             disabled=not confirmar):
+                                    with st.spinner(
+                                        f"Insertando {total_pares} pares en "
+                                        f"{empresa} para {prov_pedido}..."
+                                    ):
                                         try:
                                             numero, msg = insertar_pedido_produccion(
                                                 prov_id, empresa, df_tp, obs, fecha_ent)
