@@ -23,28 +23,28 @@ log() {
     echo "[$ts] $*" | tee -a "$LOG"
 }
 
-# --- Leer último estado de bitácora ---
-get_last_context() {
-    local dir="$1" bitacora="$2"
-    local file="$dir/$bitacora"
-
-    if [[ -f "$file" ]]; then
-        # Extraer últimas 30 líneas como contexto
-        local context
-        context=$(tail -30 "$file" 2>/dev/null || echo "")
-        if [[ -n "$context" ]]; then
-            echo "Leé $bitacora y continuá desde donde quedaste en la última sesión. Contexto reciente del archivo: $(echo "$context" | head -10)"
-            return
-        fi
-    fi
-
-    # Fallback: buscar SESSION_LOG.md o BITACORA_DESARROLLO.md
-    for fallback in SESSION_LOG.md BITACORA_DESARROLLO.md CLAUDE.md; do
-        if [[ -f "$dir/$fallback" ]]; then
-            echo "Leé $fallback y continuá desde donde quedaste en la última sesión."
+# --- Auto-detectar bitácora en un directorio ---
+detect_bitacora() {
+    local dir="$1"
+    for candidate in SESSION_LOG.md BITACORA_DESARROLLO.md CLAUDE.md; do
+        if [[ -f "$dir/$candidate" ]]; then
+            echo "$candidate"
             return
         fi
     done
+    echo ""
+}
+
+# --- Leer último estado de bitácora ---
+get_last_context() {
+    local dir="$1"
+    local bitacora
+    bitacora=$(detect_bitacora "$dir")
+
+    if [[ -n "$bitacora" && -f "$dir/$bitacora" ]]; then
+        echo "Leé $bitacora y continuá desde donde quedaste en la última sesión."
+        return
+    fi
 
     echo "Revisá el estado del proyecto y continuá con las tareas pendientes."
 }
@@ -108,7 +108,7 @@ kill_session() {
 
 # --- Lanzar agente Claude en sesión tmux ---
 launch_agent() {
-    local name="$1" dir="$2" bitacora="$3"
+    local name="$1" dir="$2"
     local restart_file="$PIDS_DIR/${name}.restarts"
 
     # Verificar límite de restarts
@@ -129,7 +129,7 @@ launch_agent() {
 
     # Obtener contexto
     local prompt
-    prompt=$(get_last_context "$dir" "$bitacora")
+    prompt=$(get_last_context "$dir")
 
     # Matar sesión anterior si existe
     tmux kill-session -t "$name" 2>/dev/null || true
@@ -150,18 +150,18 @@ launch_agent() {
 }
 
 # --- Parsear projects.conf ---
+# Formato: NOMBRE|RUTA (2 campos, bitácora auto-detectada)
 parse_projects() {
     local projects=()
-    while IFS='|' read -r name dir bitacora; do
+    while IFS='|' read -r name dir _rest; do
         # Saltar comentarios y líneas vacías
         [[ "$name" =~ ^#.*$ ]] && continue
         [[ -z "$name" ]] && continue
         name=$(echo "$name" | xargs)  # trim
         dir=$(echo "$dir" | xargs)
-        bitacora=$(echo "$bitacora" | xargs)
         # Expandir ~
         dir="${dir/#\~/$HOME}"
-        projects+=("$name|$dir|$bitacora")
+        projects+=("$name|$dir")
     done < "$CONF"
     echo "${projects[@]}"
 }
@@ -176,7 +176,7 @@ print_status() {
     echo "╠══════════════════════════════════════════════════════════════╣"
 
     for project in $(parse_projects); do
-        IFS='|' read -r name dir bitacora <<< "$project"
+        IFS='|' read -r name dir <<< "$project"
         local status="?"
         local restarts=0
         local last_check
@@ -219,8 +219,8 @@ main() {
 
     # Lanzamiento inicial de todos los proyectos
     for project in $(parse_projects); do
-        IFS='|' read -r name dir bitacora <<< "$project"
-        launch_agent "$name" "$dir" "$bitacora"
+        IFS='|' read -r name dir <<< "$project"
+        launch_agent "$name" "$dir"
         sleep 5  # espacio entre lanzamientos para no saturar
     done
 
@@ -233,7 +233,7 @@ main() {
         log "--- CHECK $(date '+%H:%M:%S') ---"
 
         for project in $(parse_projects); do
-            IFS='|' read -r name dir bitacora <<< "$project"
+            IFS='|' read -r name dir <<< "$project"
 
             if session_alive "$name"; then
                 if claude_running_in_session "$name"; then
@@ -241,18 +241,18 @@ main() {
                     if is_stuck "$name"; then
                         log "STUCK: $name parece colgado (sin cambios en ${STUCK_TIMEOUT}s)"
                         kill_session "$name"
-                        launch_agent "$name" "$dir" "$bitacora"
+                        launch_agent "$name" "$dir"
                     else
                         log "OK: $name corriendo normalmente"
                     fi
                 else
                     log "FINISHED: $name terminó — relanzando"
                     kill_session "$name"
-                    launch_agent "$name" "$dir" "$bitacora"
+                    launch_agent "$name" "$dir"
                 fi
             else
                 log "DOWN: sesión $name no existe — relanzando"
-                launch_agent "$name" "$dir" "$bitacora"
+                launch_agent "$name" "$dir"
             fi
         done
 

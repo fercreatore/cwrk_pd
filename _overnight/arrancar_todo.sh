@@ -49,7 +49,7 @@ fi
 
 # Mostrar proyectos configurados
 echo "  Proyectos configurados:"
-while IFS='|' read -r name dir bitacora; do
+while IFS='|' read -r name dir _rest; do
     [[ "$name" =~ ^#.*$ ]] && continue
     [[ -z "$name" ]] && continue
     name=$(echo "$name" | xargs)
@@ -69,7 +69,7 @@ if tmux has-session -t orquestador 2>/dev/null; then
     tmux kill-session -t orquestador 2>/dev/null || true
 fi
 # Matar sesiones de proyectos anteriores
-while IFS='|' read -r name dir bitacora; do
+while IFS='|' read -r name dir _rest; do
     [[ "$name" =~ ^#.*$ ]] && continue
     [[ -z "$name" ]] && continue
     name=$(echo "$name" | xargs)
