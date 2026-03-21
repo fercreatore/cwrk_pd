@@ -73,9 +73,9 @@ def rank_marcas():
         Field('marca', 'string', label='Marca (código)'),
         Field('rubro', 'string', label='Rubro (código)'),
         Field('subrubro', 'string', label='Subrubro (código)'),
-        Field('agrupador_marca', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1]) for r in agrup_marcas]))),
-        Field('agrupador_subrubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1]) for r in agrup_subr]))),
-        Field('agrupador_rubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1]) for r in agrup_rubro]))),
+        Field('agrupador_marca', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1].encode('utf-8') if isinstance(r[1], unicode) else str(r[1])) for r in agrup_marcas]))),
+        Field('agrupador_subrubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1].encode('utf-8') if isinstance(r[1], unicode) else str(r[1])) for r in agrup_subr]))),
+        Field('agrupador_rubro', requires=IS_EMPTY_OR(IS_IN_SET([(str(r[0]), r[1].encode('utf-8') if isinstance(r[1], unicode) else str(r[1])) for r in agrup_rubro]))),
         Field('sinonimo', 'string', label='Código sinónimo'),
         Field('descripcion', 'string', label='Descripción'),
     )
