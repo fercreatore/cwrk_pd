@@ -1024,12 +1024,16 @@ def get_geopolitical_scenario():
     xle_outperform = (xle_ytd - sp_ytd) if xle_ytd is not None and sp_ytd is not None else None
     gld_ytd = ((float(gld.iloc[-1]) / float(gld.iloc[0])) - 1) * 100 if len(gld) > 1 else None
 
+    # Brent-WTI spread (indicador de supply route disruption)
+    brent_wti_spread = round(brent_now - wti_now, 2) if brent_now and wti_now else None
+
     raw = {
         "wti": wti_now, "brent": brent_now, "gld": gld_now, "vix": vix_now,
         "xle_ytd": round(xle_ytd, 1) if xle_ytd else None,
         "sp_ytd": round(sp_ytd, 1) if sp_ytd else None,
         "xle_outperform": round(xle_outperform, 1) if xle_outperform else None,
         "gld_ytd": round(gld_ytd, 1) if gld_ytd else None,
+        "brent_wti_spread": brent_wti_spread,
     }
 
     # --- Clasificación ---
@@ -1093,6 +1097,18 @@ def get_geopolitical_scenario():
         else:
             score_largo -= 1
             drivers_list.append(f"Oro {gld_ytd:+.1f}% YTD — sin demanda de refugio")
+
+    # Brent-WTI spread (supply route disruption indicator)
+    if brent_wti_spread is not None:
+        drivers["Brent-WTI Spread"] = {"value": round(brent_wti_spread, 2), "largo": 8, "corto": 3}
+        if brent_wti_spread > 8:
+            score_largo += 1
+            drivers_list.append(f"Spread Brent-WTI US${brent_wti_spread:.1f} > $8 — mercado priceando disruption de rutas")
+        elif brent_wti_spread < 3:
+            score_largo -= 1
+            drivers_list.append(f"Spread Brent-WTI US${brent_wti_spread:.1f} < $3 — sin prima por rutas marítimas")
+        else:
+            drivers_list.append(f"Spread Brent-WTI US${brent_wti_spread:.1f} — nivel normal")
 
     # --- Determinar escenario ---
     if score_largo >= 4:

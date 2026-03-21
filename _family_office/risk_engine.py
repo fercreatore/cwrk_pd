@@ -328,6 +328,17 @@ STRESS_SCENARIOS = {
             "Crypto": -20,                # risk-off, BTC correlaciona con equity en crisis
         },
     },
+    "desescalada_hormuz": {
+        "name": "Desescalada / Guerra corta",
+        "description": "Acuerdo diplomático, fin de hostilidades: WTI -20%, VIX -30%, risk-on rally",
+        "shocks": {
+            "Bonos Soberanos AR": +8,     # emergentes se benefician de risk-on
+            "FCI / Money Market": +1,      # ARS estable
+            "CEDEARs": +12,               # S&P rally, tech lidera
+            "Acciones AR": -5,            # energía AR corrige (petróleo baja), pero mercado AR sube (neto -5)
+            "Crypto": +15,                # risk-on, BTC sube con equity
+        },
+    },
 }
 
 

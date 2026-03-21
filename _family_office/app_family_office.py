@@ -747,31 +747,12 @@ with tab_geopolitics:
         largo = th.get("largo")
         corto = th.get("corto")
         unit = "%" if "YTD" in name or "vs" in name else ""
-        if "WTI" in name:
+        if "WTI" in name or "Spread" in name:
             unit = " USD"
 
-        # Status
-        if name == "WTI":
-            if val > largo:
-                status = "GUERRA LARGA"
-                s_color = "#ff4444"
-            elif val < corto:
-                status = "GUERRA CORTA"
-                s_color = "#44ff44"
-            else:
-                status = "ZONA GRIS"
-                s_color = "#ffcc44"
-        elif name == "VIX":
-            if val > largo:
-                status = "GUERRA LARGA"
-                s_color = "#ff4444"
-            elif val < corto:
-                status = "GUERRA CORTA"
-                s_color = "#44ff44"
-            else:
-                status = "ZONA GRIS"
-                s_color = "#ffcc44"
-        elif name == "XLE vs S&P":
+        # Status — directional indicators
+        directional = {"WTI", "VIX", "XLE vs S&P", "Brent-WTI Spread"}
+        if name in directional:
             if val > largo:
                 status = "GUERRA LARGA"
                 s_color = "#ff4444"
@@ -814,15 +795,19 @@ with tab_geopolitics:
 
     # --- DATOS CRUDOS ---
     st.markdown("---")
-    col_raw1, col_raw2, col_raw3, col_raw4 = st.columns(4)
+    col_raw1, col_raw2, col_raw3, col_raw4, col_raw5 = st.columns(5)
     with col_raw1:
         st.metric("WTI Crude", f"US$ {raw.get('wti', 0):,.1f}" if raw.get('wti') else "N/A")
     with col_raw2:
         st.metric("Brent", f"US$ {raw.get('brent', 0):,.1f}" if raw.get('brent') else "N/A")
     with col_raw3:
+        bws = raw.get('brent_wti_spread')
+        bws_delta = "Normal" if bws and bws < 5 else "Elevado" if bws and bws < 8 else "Disruption" if bws else ""
+        st.metric("Spread Brent-WTI", f"US$ {bws:,.2f}" if bws is not None else "N/A", bws_delta)
+    with col_raw4:
         xle_ytd = raw.get('xle_ytd')
         st.metric("XLE (Energía) YTD", f"{xle_ytd:+.1f}%" if xle_ytd is not None else "N/A")
-    with col_raw4:
+    with col_raw5:
         gld_ytd = raw.get('gld_ytd')
         st.metric("Oro (GLD) YTD", f"{gld_ytd:+.1f}%" if gld_ytd is not None else "N/A")
 
@@ -868,51 +853,143 @@ with tab_geopolitics:
     else:
         st.info("No tenés posiciones en energía. Si el escenario es GUERRA LARGA, considerar agregar VIST/YPF/XLE como hedge.")
 
-    # --- STRESS TEST HORMUZ ---
+    # --- STRESS TESTS: ESCALADA vs DESESCALADA ---
     st.markdown("---")
-    st.markdown("#### Stress Test: Escalada Hormuz")
-    st.caption("Bloqueo Estrecho de Hormuz: WTI +40%, VIX +60%, S&P -15%. "
-               "Tus acciones AR de energía (VIST/YPF/PAMP) actúan como hedge natural.")
+    st.markdown("#### Stress Test: Escalada vs Desescalada Hormuz")
+    st.caption("Dos escenarios opuestos para tu portfolio. Escalada = WTI +40%, risk-off. "
+               "Desescalada = acuerdo diplomático, WTI -20%, risk-on rally.")
 
     hormuz_result = run_stress_test(pos_list_geo, "escalada_hormuz")
+    desesc_result = run_stress_test(pos_list_geo, "desescalada_hormuz")
 
-    if "error" not in hormuz_result:
-        col_h1, col_h2, col_h3 = st.columns(3)
-        pnl_color = "#ff4444" if hormuz_result["pnl_pct"] < 0 else "#44ff44"
-        with col_h1:
+    col_esc, col_des = st.columns(2)
+
+    # --- Escalada ---
+    with col_esc:
+        st.markdown("##### Escalada (Guerra Larga)")
+        if "error" not in hormuz_result:
+            pnl_color = "#ff4444" if hormuz_result["pnl_pct"] < 0 else "#44ff44"
             st.markdown(
                 f'<div style="background:#1a1a2e;border:2px solid {pnl_color};border-radius:12px;padding:20px;text-align:center;">'
-                f'<span style="color:#aaa;">Impacto Hormuz</span><br>'
-                f'<span style="color:{pnl_color};font-size:2.5rem;font-weight:700;">{hormuz_result["pnl_pct"]:+.1f}%</span><br>'
+                f'<span style="color:#aaa;">Bloqueo Hormuz</span><br>'
+                f'<span style="color:{pnl_color};font-size:2.2rem;font-weight:700;">{hormuz_result["pnl_pct"]:+.1f}%</span><br>'
                 f'<span style="color:{pnl_color};">US$ {hormuz_result["pnl_usd"]:+,.0f}</span></div>',
                 unsafe_allow_html=True,
             )
-        with col_h2:
-            st.metric("Portfolio Pre-Shock", f"US$ {hormuz_result['current_total_usd']:,.0f}")
-        with col_h3:
-            st.metric("Portfolio Post-Shock", f"US$ {hormuz_result['stressed_total_usd']:,.0f}")
+            st.metric("Pre-Shock", f"US$ {hormuz_result['current_total_usd']:,.0f}")
+            st.metric("Post-Shock", f"US$ {hormuz_result['stressed_total_usd']:,.0f}")
+        else:
+            st.warning(f"Error: {hormuz_result.get('error')}")
 
-        # Detalle por clase
-        if hormuz_result.get("by_class"):
-            stress_rows = []
-            for cls, data in hormuz_result["by_class"].items():
-                stress_rows.append({
-                    "Clase": cls,
-                    "Actual USD": data["current_usd"],
-                    "Shock %": data["shock_pct"],
-                    "Post-Shock USD": data["stressed_usd"],
-                    "P&L USD": data["pnl_usd"],
-                })
-            df_stress = pd.DataFrame(stress_rows).sort_values("P&L USD")
-            st.dataframe(df_stress, use_container_width=True, hide_index=True,
-                         column_config={
-                             "Actual USD": st.column_config.NumberColumn(format="US$ %,.0f"),
-                             "Shock %": st.column_config.NumberColumn(format="%+d%%"),
-                             "Post-Shock USD": st.column_config.NumberColumn(format="US$ %,.0f"),
-                             "P&L USD": st.column_config.NumberColumn(format="US$ %+,.0f"),
-                         })
-    else:
-        st.warning(f"Error en stress test: {hormuz_result.get('error')}")
+    # --- Desescalada ---
+    with col_des:
+        st.markdown("##### Desescalada (Guerra Corta)")
+        if "error" not in desesc_result:
+            pnl_color_d = "#ff4444" if desesc_result["pnl_pct"] < 0 else "#44ff44"
+            st.markdown(
+                f'<div style="background:#1a1a2e;border:2px solid {pnl_color_d};border-radius:12px;padding:20px;text-align:center;">'
+                f'<span style="color:#aaa;">Acuerdo / Paz</span><br>'
+                f'<span style="color:{pnl_color_d};font-size:2.2rem;font-weight:700;">{desesc_result["pnl_pct"]:+.1f}%</span><br>'
+                f'<span style="color:{pnl_color_d};">US$ {desesc_result["pnl_usd"]:+,.0f}</span></div>',
+                unsafe_allow_html=True,
+            )
+            st.metric("Pre-Shock", f"US$ {desesc_result['current_total_usd']:,.0f}")
+            st.metric("Post-Shock", f"US$ {desesc_result['stressed_total_usd']:,.0f}")
+        else:
+            st.warning(f"Error: {desesc_result.get('error')}")
+
+    # Detalle por clase — tabla combinada
+    if "error" not in hormuz_result and "error" not in desesc_result:
+        st.markdown("##### Detalle por clase de activo")
+        all_classes = set(list(hormuz_result.get("by_class", {}).keys()) +
+                         list(desesc_result.get("by_class", {}).keys()))
+        combined_rows = []
+        for cls in sorted(all_classes):
+            esc_data = hormuz_result.get("by_class", {}).get(cls, {})
+            des_data = desesc_result.get("by_class", {}).get(cls, {})
+            combined_rows.append({
+                "Clase": cls,
+                "Actual USD": esc_data.get("current_usd", des_data.get("current_usd", 0)),
+                "Escalada %": esc_data.get("shock_pct", 0),
+                "Escalada P&L": esc_data.get("pnl_usd", 0),
+                "Desescalada %": des_data.get("shock_pct", 0),
+                "Desescalada P&L": des_data.get("pnl_usd", 0),
+            })
+        df_combined = pd.DataFrame(combined_rows)
+        st.dataframe(df_combined, use_container_width=True, hide_index=True,
+                     column_config={
+                         "Actual USD": st.column_config.NumberColumn(format="US$ %,.0f"),
+                         "Escalada %": st.column_config.NumberColumn(format="%+d%%"),
+                         "Escalada P&L": st.column_config.NumberColumn(format="US$ %+,.0f"),
+                         "Desescalada %": st.column_config.NumberColumn(format="%+d%%"),
+                         "Desescalada P&L": st.column_config.NumberColumn(format="US$ %+,.0f"),
+                     })
+
+    # --- PLAYBOOK: GUERRA LARGA vs CORTA ---
+    st.markdown("---")
+    st.markdown("#### Playbook: Guerra Larga vs Guerra Corta")
+    st.caption("Qué hacer en cada escenario. Basado en tu portfolio actual y exposición a energía.")
+
+    playbook_data = [
+        {"Dimensión": "Petróleo (WTI)",
+         "Guerra Larga": "WTI >$90, Brent >$100. Spread B-W se amplía.",
+         "Guerra Corta": "WTI <$75, normalización. Spread B-W se comprime."},
+        {"Dimensión": "Energía AR (VIST/YPF/PAMP)",
+         "Guerra Larga": "COMPRAR — hedge natural. Vaca Muerta exporta a precio intl. Target 8-12% portfolio.",
+         "Guerra Corta": "HOLD — corrección transitoria. LNG y regalías dan piso. No panic sell."},
+        {"Dimensión": "CEDEARs Tech",
+         "Guerra Larga": "REDUCIR — S&P cae 10-15%, tech lidera caída. Esperar VIX >35 para reentrar.",
+         "Guerra Corta": "COMPRAR — rally risk-on. Tech lidera recuperación. NVDA, MELI, GOOGL."},
+        {"Dimensión": "Bonos AR",
+         "Guerra Larga": "CAUTELA — emergentes sufren. Solo bonos cortos (AL30/GD30). Evitar duration larga.",
+         "Guerra Corta": "AUMENTAR — risk-on global beneficia deuda AR. GD35/AL41 atractivos."},
+        {"Dimensión": "Crypto (BTC/ETH)",
+         "Guerra Larga": "REDUCIR a mínimo — BTC correlaciona con equity en crisis. -20% a -40%.",
+         "Guerra Corta": "HOLD/AUMENTAR — risk-on, BTC rebota rápido. +15% a +30%."},
+        {"Dimensión": "Cash / FCI MM",
+         "Guerra Larga": "AUMENTAR — dry powder para comprar en pánico. Target 15-20% portfolio.",
+         "Guerra Corta": "DESPLEGAR — comprar activos de riesgo con el cash acumulado."},
+        {"Dimensión": "Oro (GLD/IAU)",
+         "Guerra Larga": "COMPRAR — flight to safety. GLD como cobertura. Target 5-8%.",
+         "Guerra Corta": "REDUCIR — oro pierde atractivo si risk-on. Rotar a equity."},
+    ]
+
+    df_playbook = pd.DataFrame(playbook_data)
+    st.dataframe(df_playbook, use_container_width=True, hide_index=True,
+                 column_config={
+                     "Dimensión": st.column_config.TextColumn(width="medium"),
+                     "Guerra Larga": st.column_config.TextColumn(width="large"),
+                     "Guerra Corta": st.column_config.TextColumn(width="large"),
+                 })
+
+    # --- PROBABILIDAD Y TIMELINE ---
+    st.markdown("---")
+    st.markdown("#### Probabilidad Estimada y Timeline")
+
+    prob_largo = max(10, min(90, 50 + geo_score * 8))
+    prob_corto = 100 - prob_largo
+
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        p_color_l = "#ff4444" if prob_largo > 50 else "#888"
+        st.markdown(
+            f'<div style="background:#1a1a2e;border:2px solid {p_color_l};border-radius:12px;padding:16px;text-align:center;">'
+            f'<span style="color:{p_color_l};font-size:2rem;font-weight:700;">{prob_largo}%</span><br>'
+            f'<span style="color:#ccc;">Guerra Larga</span><br>'
+            f'<span style="color:#888;font-size:0.85rem;">Escalada → bloqueo Hormuz → WTI >$100<br>'
+            f'Timeline: 6-18 meses de conflicto abierto</span></div>',
+            unsafe_allow_html=True,
+        )
+    with col_p2:
+        p_color_c = "#44ff44" if prob_corto > 50 else "#888"
+        st.markdown(
+            f'<div style="background:#1a1a2e;border:2px solid {p_color_c};border-radius:12px;padding:16px;text-align:center;">'
+            f'<span style="color:{p_color_c};font-size:2rem;font-weight:700;">{prob_corto}%</span><br>'
+            f'<span style="color:#ccc;">Guerra Corta</span><br>'
+            f'<span style="color:#888;font-size:0.85rem;">Acuerdo diplomático → desescalada → WTI <$75<br>'
+            f'Timeline: resolución en 1-3 meses</span></div>',
+            unsafe_allow_html=True,
+        )
 
     # --- RECOMENDACIÓN ---
     st.markdown("---")
