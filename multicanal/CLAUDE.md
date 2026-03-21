@@ -23,6 +23,10 @@ Módulo omnicanal: publicación de productos, sincronización de stock/precios, 
 | `refresh_token_ml.py` | Auto-refresh OAuth2 ML cada 5h |
 | `imagenes.py` | Fotos desde PostgreSQL (`clz_productos`), URLs públicas VPS |
 | `reglas_canales.json` | Reglas de pricing por canal (comisión, margen, redondeo) |
+| `watcher_estado_web.py` | Publica automáticamente en TN artículos con estado_web='A' |
+| `whatsapp_catalogo.py` | Envío de catálogo por WhatsApp (Meta Cloud API + Chatwoot) |
+| `publicar_freelance.py` | Genera mensajes WA para vendedores freelance (foto+precio+link) |
+| `publicaciones.db` | SQLite: registro de publicaciones en TN (watcher) |
 
 ---
 
@@ -52,6 +56,19 @@ python -m multicanal.refresh_token_ml
 
 # Publicar producto nuevo en TN (dry-run)
 python -c "from multicanal.canales import publicar_producto_nuevo; publicar_producto_nuevo('272220004835', dry_run=True)"
+
+# Watcher: publicar automáticamente artículos con estado_web='A'
+python -m multicanal.watcher_estado_web --dry-run
+python -m multicanal.watcher_estado_web --csr 272220004835 --dry-run
+python -m multicanal.watcher_estado_web --loop  # cada 10 min
+
+# WhatsApp catálogo: enviar producto por WA
+python -m multicanal.whatsapp_catalogo --csr 272220004835 --preview
+python -m multicanal.whatsapp_catalogo --csr 272220004835 --telefono 5493462672330
+
+# Freelance: generar mensaje para vendedor
+python -m multicanal.publicar_freelance --csr 272220004835
+python -m multicanal.publicar_freelance --csr 272220004835 --enviar 5493462672330
 ```
 
 ---
@@ -63,9 +80,27 @@ python -c "from multicanal.canales import publicar_producto_nuevo; publicar_prod
 - Lee stock de `msgestionC.dbo.stock`
 - INSERT va directo al 111 via pyodbc (igual que pipeline de pedidos)
 
+## ESTADO_WEB (campo ERP)
+
+El campo `estado_web` en `msgestion01art.dbo.articulo` controla qué se publica:
+- `'A'` = Activo para web → **publicar** (10,372 artículos)
+- `'V'` = Visible (65,409 artículos) → no publicar por ahora
+- `NULL` = sin estado web (283,565 artículos)
+
+El watcher (`watcher_estado_web.py`) consulta estado_web='A' y publica/sincroniza.
+
+## WHATSAPP (Meta Cloud API)
+
+Infraestructura compartida con `market_intelligence/enviar_whatsapp_cerraduras.py`:
+- Chatwoot: `chat.calzalindo.com.ar` (account 3, inbox 9)
+- Meta Phone Number ID: `1046697335188691`
+- Template aprobado: `promo_mejores_clientes` (para contactos sin ventana 24hs)
+- Mensajes directos: requieren ventana 24hs abierta (contacto escribió primero)
+
 ## QUÉ NO TOCAR
 
 - `ordenes_procesadas.json` / `ordenes_procesadas.db` — logs de idempotencia, no borrar
+- `publicaciones.db` — registro de publicaciones TN del watcher, no borrar
 - Rate limits hardcodeados (TN: 2 req/s, ML: 1 req/s, Meta: 5 req/s)
 - Fórmula de precio en `reglas_canales.json` — validada con Fernando
 
