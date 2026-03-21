@@ -511,8 +511,9 @@ def cargar_productos_por_proveedor(proveedor_num):
 
 @st.cache_data(ttl=600)
 def cargar_marcas_dict():
-    """Dict de marcas: {codigo: descripcion}. Filtra descripciones vacías."""
-    sql = "SELECT codigo, RTRIM(ISNULL(descripcion,'')) AS desc1 FROM msgestion01art.dbo.marcas"
+    """Dict de marcas: {codigo: descripcion}.
+    Usa msgestionC.dbo.marcas (836 registros) — NO msgestion01art que está vacía."""
+    sql = "SELECT codigo, RTRIM(ISNULL(descripcion,'')) AS desc1 FROM msgestionC.dbo.marcas"
     df = query_df(sql)
     if df.empty:
         return {}
@@ -520,7 +521,6 @@ def cargar_marcas_dict():
     for _, r in df.iterrows():
         cod = int(r['codigo'])
         desc = (r['desc1'] or '').strip()
-        # Si la descripción está vacía, usar "Marca {cod}" en vez de dejar vacío
         result[cod] = desc if desc else f"Marca {cod}"
     return result
 
