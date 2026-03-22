@@ -2217,6 +2217,15 @@ def render_dashboard():
     # Filtros sidebar: selección de marca O proveedor para drill-down
     modo_filtro = st.sidebar.radio("Filtrar por", ["Marca", "Proveedor"], horizontal=True)
 
+    # Reset filtro opuesto al cambiar de modo (evita índice stale que apunta a marca/prov incorrecta)
+    prev_modo = st.session_state.get('_modo_filtro_prev', None)
+    if prev_modo is not None and prev_modo != modo_filtro:
+        if modo_filtro == "Marca" and 'marca_filtro' in st.session_state:
+            st.session_state['marca_filtro'] = 0
+        elif modo_filtro == "Proveedor" and 'prov_filtro' in st.session_state:
+            st.session_state['prov_filtro'] = 0
+    st.session_state['_modo_filtro_prev'] = modo_filtro
+
     if modo_filtro == "Marca":
         # Top marcas por ventas
         top_marcas = df_resumen.groupby(['marca', 'marca_desc']).agg(
@@ -2226,12 +2235,16 @@ def render_dashboard():
 
         opciones_marca = ["— Seleccionar marca —"] + top_marcas.apply(
             lambda r: f"{r['marca_desc']} ({int(r['ventas'])} vtas)", axis=1
-        ).tolist()
+        ).values.tolist()
         codigos_marca = [None] + top_marcas['marca'].tolist()
 
         sel_idx = st.sidebar.selectbox("Marca", range(len(opciones_marca)),
                                         format_func=lambda i: opciones_marca[i],
                                         key="marca_filtro")
+
+        # Bounds check: clamp index if list changed (e.g., cache expired)
+        if sel_idx >= len(codigos_marca):
+            sel_idx = 0
 
         if sel_idx == 0:
             st.info("Seleccioná una marca en el sidebar para ver los productos.")
@@ -2249,12 +2262,16 @@ def render_dashboard():
 
         opciones_prov = ["— Seleccionar proveedor —"] + top_provs.apply(
             lambda r: f"{r['prov_nombre']} ({int(r['ventas'])} vtas)", axis=1
-        ).tolist()
+        ).values.tolist()
         codigos_prov = [None] + top_provs['proveedor'].tolist()
 
         sel_idx_p = st.sidebar.selectbox("Proveedor", range(len(opciones_prov)),
                                           format_func=lambda i: opciones_prov[i],
                                           key="prov_filtro")
+
+        # Bounds check: clamp index if list changed
+        if sel_idx_p >= len(codigos_prov):
+            sel_idx_p = 0
 
         if sel_idx_p == 0:
             st.info("Seleccioná un proveedor en el sidebar para ver los productos.")
@@ -2406,7 +2423,7 @@ def render_dashboard():
             opciones_cat = df_vis.apply(
                 lambda r: f"{r['genero']} > {r['categoria']} ({int(r['ventas_12m'])} vtas, cob {r['cobertura_dias']}d)",
                 axis=1
-            ).tolist()
+            ).values.tolist()
 
             if opciones_cat:
                 idx_cat = st.selectbox("Categoria", range(len(opciones_cat)),
@@ -2624,7 +2641,7 @@ def render_dashboard():
                         opciones_sust = df_urgentes.apply(
                             lambda r: f"{r['descripcion'][:45]} | {r['marca_desc']} | Stock:{int(r['stock_total'])} | Cob:{r['cob_dias']}d",
                             axis=1
-                        ).tolist()
+                        ).values.tolist()
                         codigos_sust = df_urgentes['csr'].tolist()
 
                         idx_sust = st.selectbox("Modelo urgente", range(len(opciones_sust)),
@@ -2817,7 +2834,7 @@ def render_dashboard():
         opciones = df_f_sorted.apply(
             lambda r: f"{r['descripcion'][:50]} | {r['marca_desc']} | Stock:{int(r['stock_total'])} | Vtas:{int(r['ventas_12m'])}",
             axis=1
-        ).tolist()
+        ).values.tolist()
         csrs = df_f_sorted['csr'].tolist()
 
         if not opciones:
@@ -3089,7 +3106,7 @@ def render_dashboard():
             opciones_curva = combos.apply(
                 lambda r: f"{r['genero']} > {r['categoria']} ({int(r['vtas_total'])} pares vendidos)",
                 axis=1
-            ).tolist()
+            ).values.tolist()
 
             if not opciones_curva:
                 st.warning("No hay categorias con suficientes ventas.")
@@ -3267,7 +3284,7 @@ def render_dashboard():
                 opciones_vic = df_bajan.head(100).apply(
                     lambda r: f"{r['descripcion'][:40]} | {r['marca_desc']} | S1:{int(r['vtas_s1'])} S2:{int(r['vtas_s2'])} ({r['delta_pct']:+.0f}%)",
                     axis=1
-                ).tolist()
+                ).values.tolist()
 
                 if not opciones_vic:
                     st.info("No hay productos con tendencia bajista.")

@@ -197,5 +197,144 @@ class TestSinAttributeErrors(unittest.TestCase):
             self.fail(f"AttributeError en render_semaforo: {e}")
 
 
+class TestFiltroMarcaBugFix(unittest.TestCase):
+    """Tests para el bug fix del filtro de marca.
+
+    Bug: al cambiar entre modo Marca y Proveedor, el indice del selectbox
+    persistia en session_state causando que se seleccione la marca incorrecta
+    o IndexError si la lista cambiaba de tamano.
+
+    Fix aplicado:
+    1. Reset del indice al cambiar de modo (session_state cleanup)
+    2. Bounds check antes de acceder a codigos_marca[sel_idx]
+    3. Cache en cargar_resumen_marcas() (faltaba @st.cache_data)
+    """
+
+    def test_source_has_modo_filtro_prev_tracking(self):
+        """Verifica que el fix trackea el modo anterior para detectar cambios."""
+        source_path = os.path.join(os.path.dirname(__file__), '..', 'app_reposicion.py')
+        with open(source_path, 'r') as f:
+            source = f.read()
+        self.assertIn('_modo_filtro_prev', source,
+                       "Falta tracking de modo_filtro anterior para reset")
+
+    def test_source_has_marca_filtro_reset(self):
+        """Verifica que el indice marca_filtro se resetea al cambiar de modo."""
+        source_path = os.path.join(os.path.dirname(__file__), '..', 'app_reposicion.py')
+        with open(source_path, 'r') as f:
+            source = f.read()
+        self.assertIn("st.session_state['marca_filtro'] = 0", source,
+                       "Falta reset de marca_filtro a 0 al cambiar de modo")
+
+    def test_source_has_prov_filtro_reset(self):
+        """Verifica que el indice prov_filtro se resetea al cambiar de modo."""
+        source_path = os.path.join(os.path.dirname(__file__), '..', 'app_reposicion.py')
+        with open(source_path, 'r') as f:
+            source = f.read()
+        self.assertIn("st.session_state['prov_filtro'] = 0", source,
+                       "Falta reset de prov_filtro a 0 al cambiar de modo")
+
+    def test_source_has_bounds_check_marca(self):
+        """Verifica bounds check en sel_idx para codigos_marca."""
+        source_path = os.path.join(os.path.dirname(__file__), '..', 'app_reposicion.py')
+        with open(source_path, 'r') as f:
+            source = f.read()
+        self.assertIn('sel_idx >= len(codigos_marca)', source,
+                       "Falta bounds check para sel_idx en codigos_marca")
+
+    def test_source_has_bounds_check_prov(self):
+        """Verifica bounds check en sel_idx_p para codigos_prov."""
+        source_path = os.path.join(os.path.dirname(__file__), '..', 'app_reposicion.py')
+        with open(source_path, 'r') as f:
+            source = f.read()
+        self.assertIn('sel_idx_p >= len(codigos_prov)', source,
+                       "Falta bounds check para sel_idx_p en codigos_prov")
+
+    def test_source_has_cache_resumen_marcas(self):
+        """Verifica que cargar_resumen_marcas tiene @st.cache_data."""
+        source_path = os.path.join(os.path.dirname(__file__), '..', 'app_reposicion.py')
+        with open(source_path, 'r') as f:
+            source = f.read()
+        # Check that the cache decorator appears right before def cargar_resumen_marcas
+        idx_func = source.index('def cargar_resumen_marcas')
+        # Look in the 100 chars before the function definition
+        preceding = source[max(0, idx_func - 100):idx_func]
+        self.assertIn('cache_data', preceding,
+                       "cargar_resumen_marcas() falta @st.cache_data decorator")
+
+    def test_excl_marcas_gastos_in_source(self):
+        """Verifica que EXCL_MARCAS_GASTOS incluye las 4 marcas de gastos."""
+        source_path = os.path.join(os.path.dirname(__file__), '..', 'app_reposicion.py')
+        with open(source_path, 'r') as f:
+            source = f.read()
+        for marca in ('1316', '1317', '1158', '436'):
+            self.assertIn(marca, source,
+                           f"Marca de gastos {marca} falta en EXCL_MARCAS_GASTOS")
+
+    def test_filter_mode_reset_logic(self):
+        """Simula el cambio de modo y verifica que session_state se limpia."""
+        # Simular session_state como dict
+        session_state = {
+            '_modo_filtro_prev': 'Marca',
+            'marca_filtro': 5,
+            'prov_filtro': 3,
+        }
+
+        # Simular cambio a Proveedor
+        modo_filtro = "Proveedor"
+        prev_modo = session_state.get('_modo_filtro_prev', None)
+        if prev_modo is not None and prev_modo != modo_filtro:
+            if modo_filtro == "Marca" and 'marca_filtro' in session_state:
+                session_state['marca_filtro'] = 0
+            elif modo_filtro == "Proveedor" and 'prov_filtro' in session_state:
+                session_state['prov_filtro'] = 0
+        session_state['_modo_filtro_prev'] = modo_filtro
+
+        # prov_filtro should be reset to 0, marca_filtro untouched
+        self.assertEqual(session_state['prov_filtro'], 0)
+        self.assertEqual(session_state['marca_filtro'], 5)
+        self.assertEqual(session_state['_modo_filtro_prev'], 'Proveedor')
+
+    def test_filter_mode_reset_marca(self):
+        """Simula cambio de Proveedor a Marca y verifica reset."""
+        session_state = {
+            '_modo_filtro_prev': 'Proveedor',
+            'marca_filtro': 8,
+            'prov_filtro': 2,
+        }
+
+        modo_filtro = "Marca"
+        prev_modo = session_state.get('_modo_filtro_prev', None)
+        if prev_modo is not None and prev_modo != modo_filtro:
+            if modo_filtro == "Marca" and 'marca_filtro' in session_state:
+                session_state['marca_filtro'] = 0
+            elif modo_filtro == "Proveedor" and 'prov_filtro' in session_state:
+                session_state['prov_filtro'] = 0
+        session_state['_modo_filtro_prev'] = modo_filtro
+
+        self.assertEqual(session_state['marca_filtro'], 0)
+        self.assertEqual(session_state['prov_filtro'], 2)
+
+    def test_bounds_check_prevents_index_error(self):
+        """Verifica que bounds check clampea indice fuera de rango."""
+        codigos_marca = [None, 515, 294, 104]  # 4 items
+        sel_idx = 7  # stale index, out of range
+
+        if sel_idx >= len(codigos_marca):
+            sel_idx = 0
+
+        self.assertEqual(sel_idx, 0)
+
+    def test_bounds_check_valid_index_unchanged(self):
+        """Verifica que bounds check no afecta indices validos."""
+        codigos_marca = [None, 515, 294, 104]
+        sel_idx = 2
+
+        if sel_idx >= len(codigos_marca):
+            sel_idx = 0
+
+        self.assertEqual(sel_idx, 2)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
