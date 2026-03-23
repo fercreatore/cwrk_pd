@@ -3292,9 +3292,53 @@ def render_dashboard():
 
             if st.button("🔍 Analizar waterfall", type="primary", key="btn_wf"):
                 with st.spinner("Analizando quiebre + estacionalidad..."):
-                    # Quiebre
-                    quiebre = analizar_quiebre_batch([csr_sel])
-                    q = quiebre.get(csr_sel, {})
+                    # vel_real desde tabla materializada (por talle, 12 chars)
+                    sql_vr = f"""
+                        SELECT v.codigo, v.vel_real, v.vel_aparente,
+                               v.meses_quebrado, v.meses_con_stock, v.factor_quiebre
+                        FROM omicronvt.dbo.vel_real_articulo v
+                        WHERE LEFT(v.codigo, 10) = '{csr_sel}'
+                    """
+                    df_vr = query_df(sql_vr)
+
+                    # Stock actual excluyendo depósitos 198, 199
+                    sql_stk = f"""
+                        SELECT ISNULL(SUM(s.stock_actual), 0) AS stock
+                        FROM msgestionC.dbo.stock s
+                        JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
+                        WHERE LEFT(a.codigo_sinonimo, 10) = '{csr_sel}'
+                          AND s.deposito NOT IN (198, 199)
+                    """
+                    df_stk = query_df(sql_stk)
+                    stock_actual = float(df_stk.iloc[0]['stock']) if not df_stk.empty else 0
+
+                    if not df_vr.empty:
+                        # Promedio vel_real ponderado por vel_aparente (proxy de demanda)
+                        df_vr['vel_real'] = df_vr['vel_real'].astype(float)
+                        df_vr['vel_aparente'] = df_vr['vel_aparente'].astype(float)
+                        peso_total = df_vr['vel_aparente'].sum()
+                        if peso_total > 0:
+                            vel_real = (df_vr['vel_real'] * df_vr['vel_aparente']).sum() / peso_total
+                        else:
+                            vel_real = df_vr['vel_real'].mean()
+                        meses_q = int(df_vr['meses_quebrado'].max())
+                        meses_ok = int(df_vr['meses_con_stock'].max())
+                        meses_total = max(meses_q + meses_ok, 1)
+                        pct_quiebre = round(meses_q / meses_total * 100, 1)
+                    else:
+                        # Fallback Python
+                        quiebre_fb = analizar_quiebre_batch([csr_sel])
+                        fb = quiebre_fb.get(csr_sel, {})
+                        vel_real = fb.get('vel_real', 0)
+                        pct_quiebre = fb.get('pct_quiebre', 0)
+                        meses_q = fb.get('meses_quebrado', 0)
+
+                    q = {
+                        'stock_actual': stock_actual,
+                        'vel_real': round(vel_real, 2),
+                        'pct_quiebre': pct_quiebre,
+                        'meses_quebrado': meses_q,
+                    }
 
                     # Estacionalidad
                     factores = factor_estacional_batch([csr_sel])
@@ -3309,10 +3353,7 @@ def render_dashboard():
                     precios_v = obtener_precios_venta_batch([csr_sel])
                     precio_venta = precios_v.get(csr_sel, 0)
 
-                    stock_actual = q.get('stock_actual', 0)
-                    vel_real = q.get('vel_real', 0)
                     vel_diaria = vel_real / 30
-
                     stock_disponible = stock_actual + cant_pend
 
                     # Waterfall
