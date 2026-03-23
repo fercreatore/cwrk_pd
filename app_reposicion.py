@@ -351,7 +351,7 @@ def pendientes_por_sinonimo(df_pend):
 # ============================================================================
 
 def _conn_112(base):
-    """Conexión directa al 112 con fix SSL legacy para consultas de pedidos."""
+    """Conexión directa al 112 (réplica) para consultas de lectura."""
     old_val = os.environ.get('OPENSSL_CONF')
     if os.path.exists(OPENSSL_LEGACY_CNF):
         os.environ['OPENSSL_CONF'] = OPENSSL_LEGACY_CNF
@@ -359,6 +359,30 @@ def _conn_112(base):
         conn_str = (
             f"DRIVER={{{_DRIVER_MAC}}};"
             f"SERVER=192.168.2.112;"
+            f"DATABASE={base};"
+            f"UID=am;PWD=dl;"
+            f"Connection Timeout=15;"
+            f"TrustServerCertificate=yes;Encrypt=no;"
+        )
+        return pyodbc.connect(conn_str, timeout=15)
+    finally:
+        if old_val is None:
+            os.environ.pop('OPENSSL_CONF', None)
+        else:
+            os.environ['OPENSSL_CONF'] = old_val
+
+
+# omicronvt = analítica en 111, NO réplica (112 la sobreescribe cada noche
+# perdiendo los INSERTs en vel_real_articulo y otras tablas propias)
+def _conn_111(base):
+    """Conexión directa al 111 (producción) para bases analíticas como omicronvt."""
+    old_val = os.environ.get('OPENSSL_CONF')
+    if os.path.exists(OPENSSL_LEGACY_CNF):
+        os.environ['OPENSSL_CONF'] = OPENSSL_LEGACY_CNF
+    try:
+        conn_str = (
+            f"DRIVER={{{_DRIVER_MAC}}};"
+            f"SERVER=192.168.2.111;"
             f"DATABASE={base};"
             f"UID=am;PWD=dl;"
             f"Connection Timeout=15;"
