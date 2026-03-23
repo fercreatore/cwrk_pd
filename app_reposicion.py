@@ -2562,7 +2562,8 @@ def render_dashboard():
     # ══════════════════════════════════════════════════════════════
     with tab_surtido:
         st.subheader("Mapa de Surtido por Categoria")
-        st.caption("Cobertura por genero x subrubro. Rojo = menos de 30 dias. Drill-down a piramide de precios y sustitutos.")
+        st.caption("Cobertura por genero x subrubro **de la marca/proveedor seleccionado**. "
+                   "Rojo = menos de 30 dias. Drill-down a piramide de precios y sustitutos.")
 
         # Construir mapa directamente desde df_f (ya filtrado por marca/proveedor)
         sub_desc = cargar_subrubro_desc()
