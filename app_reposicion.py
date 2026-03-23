@@ -313,6 +313,79 @@ def factor_estacional_batch(codigos_sinonimo, anios=3):
 
 
 # ============================================================================
+# ANOMALÍAS DE STOCK (remitos eliminados, errores auditoría)
+# ============================================================================
+
+@st.cache_data(ttl=300)
+def detectar_anomalias_stock(codigos_sinonimo):
+    """
+    Detecta anomalías de stock por artículo: remitos eliminados, stock negativo.
+    Retorna dict {csr: {ok: bool, nivel: 'OK'|'REVISAR'|'IRREAL', anomalias: [str]}}
+    """
+    if not codigos_sinonimo:
+        return {}
+
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+    filtro = ",".join(f"'{c}'" for c in codigos_sinonimo)
+
+    # Entradas (remitos código 7) y salidas (código 95 POS) por depósito
+    sql_mov = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               v.deposito,
+               SUM(CASE WHEN v.codigo = 7 AND v.operacion = '+' THEN v.cantidad ELSE 0 END) AS entradas_remito,
+               SUM(CASE WHEN v.codigo = 95 AND v.operacion = '-' THEN v.cantidad ELSE 0 END) AS salidas_pos
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo IN (7, 95)
+          AND LEFT(a.codigo_sinonimo, 10) IN ({filtro})
+          AND v.fecha >= '{desde}'
+        GROUP BY LEFT(a.codigo_sinonimo, 10), v.deposito
+    """
+
+    # Stock actual por depósito
+    sql_stk = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               s.deposito,
+               SUM(s.stock_actual) AS stock_dep
+        FROM msgestionC.dbo.stock s
+        JOIN msgestion01art.dbo.articulo a ON s.articulo = a.codigo
+        WHERE LEFT(a.codigo_sinonimo, 10) IN ({filtro})
+          AND s.deposito IN {DEPOS_SQL}
+        GROUP BY LEFT(a.codigo_sinonimo, 10), s.deposito
+    """
+
+    df_mov = query_df(sql_mov)
+    df_stk = query_df(sql_stk)
+
+    resultados = {}
+    for csr in codigos_sinonimo:
+        anomalias = []
+
+        # Check remito eliminado: salidas > entradas en algún depósito
+        if not df_mov.empty:
+            df_c = df_mov[df_mov['csr'].str.strip() == csr]
+            for _, r in df_c.iterrows():
+                if r['salidas_pos'] > r['entradas_remito'] and r['entradas_remito'] > 0:
+                    anomalias.append(f"REMITO_ELIMINADO dep={int(r['deposito'])}")
+
+        # Check stock negativo en depósito principal
+        if not df_stk.empty:
+            df_s = df_stk[(df_stk['csr'].str.strip() == csr) & (df_stk['deposito'] == 1)]
+            for _, r in df_s.iterrows():
+                if r['stock_dep'] < -5:
+                    anomalias.append(f"ERROR_AUDITORIA dep=1 stk={int(r['stock_dep'])}")
+
+        if not anomalias:
+            resultados[csr] = {'ok': True, 'nivel': 'OK', 'anomalias': []}
+        elif any('ERROR_AUDITORIA' in a for a in anomalias):
+            resultados[csr] = {'ok': False, 'nivel': 'IRREAL', 'anomalias': anomalias}
+        else:
+            resultados[csr] = {'ok': False, 'nivel': 'REVISAR', 'anomalias': anomalias}
+
+    return resultados
+
+
+# ============================================================================
 # PEDIDOS PENDIENTES (stock en tránsito)
 # ============================================================================
 
@@ -2705,6 +2778,27 @@ def render_dashboard():
                 else:
                     st.info("Sin datos de talle para esta categoria.")
 
+                # ── ANOMALÍAS DE STOCK en esta categoría ──
+                df_cat_prods = df_f[
+                    (df_f['rubro'] == genero_sel) & (df_f['subrubro'] == sub_sel)
+                ]
+                if not df_cat_prods.empty:
+                    csrs_cat = df_cat_prods['csr'].tolist()
+                    anomalias_cat = detectar_anomalias_stock(csrs_cat)
+                    hay_anomalias = [c for c, v in anomalias_cat.items() if v.get('anomalias')]
+                    if hay_anomalias:
+                        st.divider()
+                        st.markdown("#### Anomalias de stock detectadas")
+                        for csr_a in hay_anomalias:
+                            info = anomalias_cat[csr_a]
+                            icono = {'IRREAL': '🔴', 'REVISAR': '🟡'}.get(info['nivel'], '🟢')
+                            desc = df_cat_prods.loc[df_cat_prods['csr'] == csr_a, 'descripcion']
+                            desc_str = desc.iloc[0] if not desc.empty else csr_a
+                            st.warning(
+                                f"{icono} **{desc_str}** (CSR {csr_a}): "
+                                f"{', '.join(info['anomalias'])}"
+                            )
+
                 st.divider()
 
                 # ── CURVA IDEAL DEL SUBRUBRO (lógica omicron) ──
@@ -2958,6 +3052,16 @@ def render_dashboard():
             labels=['CRITICO', 'BAJO', 'MEDIO', 'OK']
         )
 
+        # Anomalías de stock (remitos eliminados, errores auditoría)
+        with st.spinner("Detectando anomalias de stock..."):
+            anomalias_dash = detectar_anomalias_stock(csrs_dash)
+        df_f['stock_ok'] = df_f['csr'].map(
+            lambda c: anomalias_dash.get(c, {}).get('nivel', 'OK')
+        )
+        df_f['anomalia_detalle'] = df_f['csr'].map(
+            lambda c: ', '.join(anomalias_dash.get(c, {}).get('anomalias', []))
+        )
+
         # GMROI y Rotación
         precios_venta_dash = obtener_precios_venta_batch(csrs_dash)
         df_f['precio_costo'] = df_f['precio_fabrica'].fillna(0).astype(float)
@@ -3044,12 +3148,15 @@ def render_dashboard():
         df_top = df_f.nsmallest(30, 'dias_stock')[
             ['csr', 'descripcion', 'marca_desc', 'prov_nombre', 'stock_total',
              'ventas_12m', 'vel_mes', 'vel_ajustada', 'temp_pct', 'pct_quiebre',
-             'dias_stock', 'urgencia', 'gmroi', 'rotacion']
+             'dias_stock', 'urgencia', 'stock_ok', 'gmroi', 'rotacion']
         ].copy()
         df_top['dias_stock'] = df_top['dias_stock'].round(0).astype(int)
         df_top['vel_mes'] = df_top['vel_mes'].round(1)
         df_top['vel_ajustada'] = df_top['vel_ajustada'].round(1)
         df_top['temp_pct'] = df_top['temp_pct'].round(2)
+        # Semáforo stock_ok
+        stock_ok_map = {'OK': '🟢', 'REVISAR': '🟡', 'IRREAL': '🔴'}
+        df_top['stock_ok'] = df_top['stock_ok'].map(stock_ok_map).fillna('🟢')
 
         # Cruzar con pedidos
         df_top = cruzar_pedidos_top(df_top, df_pedidos_erp)
@@ -3088,6 +3195,8 @@ def render_dashboard():
                 'pct_quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
                 'dias_stock': st.column_config.NumberColumn('Dias', format="%d"),
                 'urgencia': 'Urgencia',
+                'stock_ok': st.column_config.TextColumn('Stock OK', width=60,
+                    help="🟢 confiable | 🟡 revisar (remito eliminado) | 🔴 irreal (stock negativo)"),
                 'gmroi': st.column_config.NumberColumn('GMROI', format="%.1f",
                     help="Margen bruto anual / stock a costo. >1 = rentable"),
                 'rotacion': st.column_config.NumberColumn('Rotación', format="%.1f",
