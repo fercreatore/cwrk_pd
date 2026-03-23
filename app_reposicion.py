@@ -51,6 +51,10 @@ LOG_FILE = os.path.join(os.path.dirname(__file__), 'pedidos_log.json')
 
 CONN_REPLICA = get_conn_string("msgestionC")
 
+# Conexión directa al 112 para pedidos ERP (con fix SSL legacy)
+OPENSSL_LEGACY_CNF = os.path.join(os.path.dirname(__file__), '_scripts_oneshot', 'openssl_legacy.cnf')
+_DRIVER_MAC = "ODBC Driver 17 for SQL Server"
+
 # ============================================================================
 # PAGE CONFIG
 # ============================================================================
@@ -340,6 +344,143 @@ def pendientes_por_sinonimo(df_pend):
         monto_pendiente=('monto_pendiente', 'sum')
     ).to_dict('index')
     return grp
+
+
+# ============================================================================
+# PEDIDOS ERP (cruce con Top 30)
+# ============================================================================
+
+def _conn_112(base):
+    """Conexión directa al 112 con fix SSL legacy para consultas de pedidos."""
+    old_val = os.environ.get('OPENSSL_CONF')
+    if os.path.exists(OPENSSL_LEGACY_CNF):
+        os.environ['OPENSSL_CONF'] = OPENSSL_LEGACY_CNF
+    try:
+        conn_str = (
+            f"DRIVER={{{_DRIVER_MAC}}};"
+            f"SERVER=192.168.2.112;"
+            f"DATABASE={base};"
+            f"UID=am;PWD=dl;"
+            f"Connection Timeout=15;"
+            f"TrustServerCertificate=yes;Encrypt=no;"
+        )
+        return pyodbc.connect(conn_str, timeout=15)
+    finally:
+        if old_val is None:
+            os.environ.pop('OPENSSL_CONF', None)
+        else:
+            os.environ['OPENSSL_CONF'] = old_val
+
+
+@st.cache_data(ttl=120)
+def obtener_pedidos_erp():
+    """
+    Consulta pedidos cargados (pedico2+pedico1) en ambas bases del ERP.
+    Retorna DataFrame con: csr (10 dígitos), cant_pedida, fecha_entrega,
+    proveedor (denominacion), estado, empresa.
+    """
+    sql_template = """
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               SUM(p1.cantidad) AS cant_pedida,
+               MAX(p2.fecha_entrega) AS fecha_entrega,
+               RTRIM(p2.denominacion) AS proveedor,
+               p2.estado,
+               '{empresa}' AS empresa
+        FROM {base}.dbo.pedico2 p2
+        JOIN {base}.dbo.pedico1 p1
+             ON p1.empresa = p2.empresa AND p1.numero = p2.numero AND p1.codigo = p2.codigo
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = p1.articulo
+        WHERE p2.codigo = 8
+          AND LEN(a.codigo_sinonimo) >= 10
+        GROUP BY LEFT(a.codigo_sinonimo, 10), p2.denominacion, p2.estado
+    """
+    queries = [
+        (sql_template.format(base='MSGESTION01', empresa='CALZALINDO'), 'msgestion01'),
+        (sql_template.format(base='MSGESTION03', empresa='H4'), 'msgestion03'),
+    ]
+
+    frames = []
+    # Intentar primero por 112, fallback a conexión existente
+    for sql, base in queries:
+        try:
+            conn_112 = _conn_112(base)
+            df = pd.read_sql(sql, conn_112)
+            conn_112.close()
+        except Exception:
+            # Fallback: usar msgestionC con la conexión existente
+            sql_c = sql.replace(f'{base.upper()}.dbo.pedico2', 'msgestionC.dbo.pedico2')
+            sql_c = sql_c.replace(f'{base.upper()}.dbo.pedico1', 'msgestionC.dbo.pedico1')
+            df = query_df(sql_c)
+        if not df.empty:
+            frames.append(df)
+
+    if not frames:
+        return pd.DataFrame(columns=['csr', 'cant_pedida', 'fecha_entrega',
+                                     'proveedor', 'estado', 'empresa'])
+    df_all = pd.concat(frames, ignore_index=True)
+    df_all['csr'] = df_all['csr'].str.strip()
+    return df_all
+
+
+def cruzar_pedidos_top(df_top, df_pedidos):
+    """
+    Cruza Top 30 urgentes con pedidos ERP.
+    Agrega columnas: Pedido, Cant. Pedida, Fecha Entrega, Alerta (semáforo).
+    """
+    if df_pedidos.empty:
+        df_top['Pedido'] = 'No'
+        df_top['Cant. Pedida'] = 0
+        df_top['Fecha Entrega'] = None
+        df_top['Alerta'] = '🔴'
+        return df_top
+
+    # Solo pedidos vigentes (estado V = pendiente)
+    df_vig = df_pedidos[df_pedidos['estado'] == 'V'].copy()
+
+    # Agrupar por CSR: sumar cantidad, tomar fecha_entrega más próxima
+    if df_vig.empty:
+        ped_agg = pd.DataFrame(columns=['csr', 'cant_pedida', 'fecha_entrega'])
+    else:
+        ped_agg = df_vig.groupby('csr').agg(
+            cant_pedida=('cant_pedida', 'sum'),
+            fecha_entrega=('fecha_entrega', 'min')  # la más próxima
+        ).reset_index()
+
+    # Merge
+    df_top = df_top.merge(ped_agg, on='csr', how='left')
+    df_top['Pedido'] = np.where(df_top['cant_pedida'].fillna(0) > 0, 'Si', 'No')
+    df_top['Cant. Pedida'] = df_top['cant_pedida'].fillna(0).astype(int)
+
+    # Fecha de quiebre proyectada = hoy + dias_stock
+    hoy = pd.Timestamp(date.today())
+    df_top['fecha_quiebre'] = hoy + pd.to_timedelta(df_top['dias_stock'].clip(upper=999), unit='D')
+
+    # Convertir fecha_entrega a datetime
+    df_top['Fecha Entrega'] = pd.to_datetime(df_top['fecha_entrega'], errors='coerce')
+
+    # Alerta semáforo
+    def calcular_alerta(row):
+        if row['Pedido'] == 'No':
+            return '🔴'  # sin pedido
+        fe = row['Fecha Entrega']
+        fq = row['fecha_quiebre']
+        if pd.isna(fe):
+            return '🔴'
+        # Margen: diferencia entre entrega y quiebre
+        margen = (fq - fe).days
+        if margen > 15:
+            return '🟢'  # llega bien antes del quiebre
+        elif margen >= 0:
+            return '🟡'  # llega cerca
+        else:
+            return '🔴'  # llega tarde
+
+    df_top['Alerta'] = df_top.apply(calcular_alerta, axis=1)
+
+    # Limpiar columnas auxiliares
+    df_top.drop(columns=['cant_pedida', 'fecha_entrega', 'fecha_quiebre'], inplace=True, errors='ignore')
+
+    return df_top
 
 
 # ============================================================================
@@ -2794,18 +2935,44 @@ def render_dashboard():
 
         # Top productos más urgentes
         st.subheader("Top 30 — Productos más urgentes")
+
+        # Cruce con pedidos ERP
+        with st.spinner("Consultando pedidos en ERP..."):
+            df_pedidos_erp = obtener_pedidos_erp()
+
         df_top = df_f.nsmallest(30, 'dias_stock')[
-            ['descripcion', 'marca_desc', 'prov_nombre', 'stock_total',
+            ['csr', 'descripcion', 'marca_desc', 'prov_nombre', 'stock_total',
              'ventas_12m', 'vel_mes', 'pct_quiebre', 'dias_stock', 'urgencia',
              'gmroi', 'rotacion']
         ].copy()
         df_top['dias_stock'] = df_top['dias_stock'].round(0).astype(int)
         df_top['vel_mes'] = df_top['vel_mes'].round(1)
 
+        # Cruzar con pedidos
+        df_top = cruzar_pedidos_top(df_top, df_pedidos_erp)
+
+        # Guardar en session para tab Armar Pedido
+        st.session_state['df_top_pedidos'] = df_top
+        st.session_state['df_pedidos_erp'] = df_pedidos_erp
+
+        # Filtro: Solo sin pedido
+        solo_sin_pedido = st.checkbox("Solo sin pedido", value=False, key="filtro_sin_pedido")
+        if solo_sin_pedido:
+            df_top = df_top[df_top['Pedido'] == 'No']
+
+        # KPIs de pedidos
+        n_con = len(df_top[df_top['Pedido'] == 'Si'])
+        n_sin = len(df_top[df_top['Pedido'] == 'No'])
+        n_rojo = len(df_top[df_top['Alerta'] == '🔴'])
+        cp1, cp2, cp3 = st.columns(3)
+        cp1.metric("Con pedido", n_con)
+        cp2.metric("Sin pedido", n_sin)
+        cp3.metric("Alerta roja", n_rojo)
+
         st.dataframe(
-            df_top,
+            df_top.drop(columns=['csr']),
             column_config={
-                'descripcion': st.column_config.TextColumn('Producto', width=250),
+                'descripcion': st.column_config.TextColumn('Producto', width=200),
                 'marca_desc': 'Marca',
                 'prov_nombre': 'Proveedor',
                 'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
@@ -2818,6 +2985,11 @@ def render_dashboard():
                     help="Margen bruto anual / stock a costo. >1 = rentable"),
                 'rotacion': st.column_config.NumberColumn('Rotación', format="%.1f",
                     help="Ventas a costo 12m / stock a costo. >4 = alta rotación"),
+                'Pedido': st.column_config.TextColumn('Pedido', width=60),
+                'Cant. Pedida': st.column_config.NumberColumn('Cant. Pedida', format="%d"),
+                'Fecha Entrega': st.column_config.DateColumn('Fecha Entrega', format="DD/MM/YYYY"),
+                'Alerta': st.column_config.TextColumn('Alerta', width=50,
+                    help="🟢 llega antes del quiebre | 🟡 llega cerca | 🔴 llega tarde o sin pedido"),
             },
             use_container_width=True, hide_index=True,
         )
@@ -3524,6 +3696,37 @@ def render_dashboard():
     # ══════════════════════════════════════════════════════════════
     with tab_pedido:
         st.subheader("🛒 Armar y enviar pedido")
+
+        # Resumen: urgentes sin pedido vs con pedido
+        if 'df_top_pedidos' in st.session_state:
+            df_tp = st.session_state['df_top_pedidos']
+            con_pedido = df_tp[df_tp['Pedido'] == 'Si']
+            sin_pedido = df_tp[df_tp['Pedido'] == 'No']
+
+            st.markdown("#### Resumen pedidos ERP vs urgentes")
+            rp1, rp2 = st.columns(2)
+            with rp1:
+                st.metric("Urgentes SIN pedido", len(sin_pedido))
+                if not sin_pedido.empty:
+                    st.caption("Requieren acción inmediata:")
+                    for _, r in sin_pedido.head(10).iterrows():
+                        st.markdown(
+                            f"- 🔴 **{r['descripcion'][:40]}** — "
+                            f"Stock: {int(r['stock_total'])}, "
+                            f"Vel: {r['vel_mes']:.1f}/mes, "
+                            f"Dias: {int(r['dias_stock'])}"
+                        )
+            with rp2:
+                st.metric("Urgentes CON pedido en camino", len(con_pedido))
+                if not con_pedido.empty:
+                    for _, r in con_pedido.head(10).iterrows():
+                        fe_str = r['Fecha Entrega'].strftime('%d/%m') if pd.notna(r['Fecha Entrega']) else '?'
+                        st.markdown(
+                            f"- {r['Alerta']} **{r['descripcion'][:40]}** — "
+                            f"Pedido: {int(r['Cant. Pedida'])} un., "
+                            f"Entrega: {fe_str}"
+                        )
+            st.divider()
 
         subtab_simular, subtab_roi = st.tabs(["📊 Simulador de Recupero", "⚡ Pedido desde ROI"])
 
