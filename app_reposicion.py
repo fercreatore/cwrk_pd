@@ -567,6 +567,7 @@ def cargar_productos_por_marca(marca_codigo):
                MAX(a.descripcion_1) AS descripcion,
                MAX(a.marca) AS marca,
                MAX(a.proveedor) AS proveedor,
+               MAX(a.rubro) AS rubro,
                MAX(a.subrubro) AS subrubro,
                MAX(a.precio_fabrica) AS precio_fabrica,
                SUM(ISNULL(s.stk, 0)) AS stock_total,
@@ -613,6 +614,7 @@ def cargar_productos_por_proveedor(proveedor_num):
                MAX(a.descripcion_1) AS descripcion,
                MAX(a.marca) AS marca,
                MAX(a.proveedor) AS proveedor,
+               MAX(a.rubro) AS rubro,
                MAX(a.subrubro) AS subrubro,
                MAX(a.precio_fabrica) AS precio_fabrica,
                SUM(ISNULL(s.stk, 0)) AS stock_total,
@@ -2468,6 +2470,14 @@ def render_dashboard():
         with st.spinner("Cargando mapa de surtido..."):
             df_mapa = cargar_mapa_surtido()
             df_alertas_talles, detalle_talles_dict = calcular_alertas_talles()
+
+        # Filtrar mapa a categorías presentes en df_f (marca/proveedor seleccionado)
+        if not df_f.empty and 'rubro' in df_f.columns and 'subrubro' in df_f.columns:
+            cats_en_filtro = set(zip(df_f['rubro'].dropna().astype(int),
+                                     df_f['subrubro'].dropna().astype(int)))
+            df_mapa = df_mapa[df_mapa.apply(
+                lambda r: (int(r['genero_cod']), int(r['sub_cod'])) in cats_en_filtro, axis=1
+            )].copy()
 
         if df_mapa.empty:
             st.warning("No se pudo cargar el mapa de surtido.")
