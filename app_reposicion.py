@@ -2491,20 +2491,61 @@ def render_dashboard():
         st.subheader("Mapa de Surtido por Categoria")
         st.caption("Cobertura por genero x subrubro. Rojo = menos de 30 dias. Drill-down a piramide de precios y sustitutos.")
 
-        with st.spinner("Cargando mapa de surtido..."):
-            df_mapa = cargar_mapa_surtido()
+        # Construir mapa directamente desde df_f (ya filtrado por marca/proveedor)
+        sub_desc = cargar_subrubro_desc()
+        df_mapa = df_f.groupby(
+            [df_f['rubro'].astype(int), df_f['subrubro'].astype(int)]
+        ).agg(
+            modelos=('csr', 'nunique'),
+            stock_total=('stock_total', 'sum'),
+            ventas_12m=('ventas_12m', 'sum'),
+            precio_min=('precio_fabrica', 'min'),
+            precio_max=('precio_fabrica', 'max'),
+            precio_avg=('precio_fabrica', 'mean'),
+        ).reset_index()
+        df_mapa.rename(columns={'rubro': 'genero_cod', 'subrubro': 'sub_cod'}, inplace=True)
+        df_mapa['genero'] = df_mapa['genero_cod'].map(RUBRO_GENERO).fillna('OTRO')
+        df_mapa['categoria'] = df_mapa['sub_cod'].map(sub_desc).fillna('?')
+        df_mapa['vel_diaria'] = df_mapa['ventas_12m'] / 365
+        df_mapa['cobertura_dias'] = np.where(
+            df_mapa['vel_diaria'] > 0,
+            df_mapa['stock_total'] / df_mapa['vel_diaria'],
+            999
+        ).astype(int)
+        df_mapa['urgencia'] = pd.cut(
+            df_mapa['cobertura_dias'],
+            bins=[-1, 30, 60, 120, 9999],
+            labels=['CRITICO', 'BAJO', 'MEDIO', 'OK']
+        )
+
+        # Factor estacional s_t por categoría
+        with st.spinner("Calculando factor estacional por categoria..."):
+            csrs_mapa = df_f['csr'].tolist()
+            factores_est_mapa = factor_estacional_batch(csrs_mapa)
+            mes_act = date.today().month
+            mes_prox = (mes_act % 12) + 1
+            df_f['_s_t'] = df_f['csr'].map(
+                lambda c: factores_est_mapa.get(c, {}).get(mes_prox, 1.0)
+                / max(factores_est_mapa.get(c, {}).get(mes_act, 1.0), 0.1)
+            )
+            s_t_cat = df_f.groupby(
+                [df_f['rubro'].astype(int), df_f['subrubro'].astype(int)]
+            )['_s_t'].mean().reset_index()
+            s_t_cat.rename(columns={'rubro': 'genero_cod', 'subrubro': 'sub_cod'}, inplace=True)
+            df_mapa = df_mapa.merge(s_t_cat, on=['genero_cod', 'sub_cod'], how='left')
+            df_mapa['_s_t'] = df_mapa['_s_t'].fillna(1.0).round(2)
+            df_mapa['vel_diaria_est'] = df_mapa['vel_diaria'] * df_mapa['_s_t']
+            df_mapa['cobertura_est'] = np.where(
+                df_mapa['vel_diaria_est'] > 0,
+                df_mapa['stock_total'] / df_mapa['vel_diaria_est'],
+                999
+            ).astype(int)
+
+        with st.spinner("Cargando alertas de talles..."):
             df_alertas_talles, detalle_talles_dict = calcular_alertas_talles()
 
-        # Filtrar mapa a categorías presentes en df_f (marca/proveedor seleccionado)
-        if not df_f.empty and 'rubro' in df_f.columns and 'subrubro' in df_f.columns:
-            cats_en_filtro = set(zip(df_f['rubro'].dropna().astype(int),
-                                     df_f['subrubro'].dropna().astype(int)))
-            df_mapa = df_mapa[df_mapa.apply(
-                lambda r: (int(r['genero_cod']), int(r['sub_cod'])) in cats_en_filtro, axis=1
-            )].copy()
-
         if df_mapa.empty:
-            st.warning("No se pudo cargar el mapa de surtido.")
+            st.warning("No hay categorias con datos para esta marca/proveedor.")
         else:
             # Merge talles críticos al mapa
             if not df_alertas_talles.empty:
@@ -2523,8 +2564,8 @@ def render_dashboard():
                 'talles_criticos', ascending=False)
             if not alertas_activas.empty:
                 total_talles_crit = int(alertas_activas['talles_criticos'].sum())
-                st.error(f"⚠️ **{total_talles_crit} talles críticos** en {len(alertas_activas)} categorías — stock 0 con demanda o menos de 30 días")
-                with st.expander(f"Ver detalle de {total_talles_crit} talles críticos", expanded=False):
+                st.error(f"**{total_talles_crit} talles criticos** en {len(alertas_activas)} categorias — stock 0 con demanda o menos de 30 dias")
+                with st.expander(f"Ver detalle de {total_talles_crit} talles criticos", expanded=False):
                     for _, row in alertas_activas.head(15).iterrows():
                         st.markdown(
                             f"**{row['genero']} > {row['categoria']}** — "
@@ -2533,7 +2574,7 @@ def render_dashboard():
                         )
 
             # KPIs globales del surtido
-            c1, c2, c3, c4 = st.columns(4)
+            c1, c2, c3, c4, c5 = st.columns(5)
             criticos_cat = len(df_mapa[df_mapa['urgencia'] == 'CRITICO'])
             bajos_cat = len(df_mapa[df_mapa['urgencia'] == 'BAJO'])
             total_talles_crit_all = int(df_mapa['talles_criticos'].sum())
@@ -2541,6 +2582,9 @@ def render_dashboard():
             c2.metric("Cat. CRITICAS (<30d)", criticos_cat)
             c3.metric("Talles criticos", total_talles_crit_all)
             c4.metric("Stock total (pares)", f"{int(df_mapa['stock_total'].sum()):,}")
+            s_t_prom = df_mapa['_s_t'].mean()
+            c5.metric("Factor estacional", f"{s_t_prom:.2f}",
+                       delta=f"{(s_t_prom - 1) * 100:+.0f}%" if abs(s_t_prom - 1) > 0.05 else None)
 
             st.divider()
 
@@ -2570,7 +2614,8 @@ def render_dashboard():
             # Tabla principal
             st.dataframe(
                 df_vis[['genero', 'categoria', 'modelos', 'stock_total', 'ventas_12m',
-                        'cobertura_dias', 'urgencia', 'talles_criticos', 'talles_detalle',
+                        'cobertura_dias', '_s_t', 'cobertura_est', 'urgencia',
+                        'talles_criticos', 'talles_detalle',
                         'precio_min', 'precio_max']],
                 column_config={
                     'genero': st.column_config.TextColumn('Genero', width=90),
@@ -2579,6 +2624,10 @@ def render_dashboard():
                     'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
                     'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
                     'cobertura_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
+                    '_s_t': st.column_config.NumberColumn('s(t)', format="%.2f",
+                        help="Factor estacional: >1 = temporada alta, <1 = temporada baja"),
+                    'cobertura_est': st.column_config.NumberColumn('Cob.Est', format="%d",
+                        help="Cobertura ajustada por factor estacional"),
                     'urgencia': 'Urgencia',
                     'talles_criticos': st.column_config.NumberColumn('T.Crit', format="%d",
                         help="Talles con menos de 30 dias de cobertura o sin stock"),

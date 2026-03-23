@@ -12,11 +12,27 @@ Uso:
 import os
 import sys
 import argparse
+import platform
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
 import pyodbc
 import pandas as pd
+
+# ── Fix SSL para SQL Server 2012 (TLS 1.0) ──────────────────
+_is_windows = platform.system() == "Windows"
+if not _is_windows:
+    _ssl_conf = "/tmp/openssl_legacy.cnf"
+    if not os.path.exists(_ssl_conf):
+        with open(_ssl_conf, "w") as _f:
+            _f.write(
+                "openssl_conf = openssl_init\n"
+                "[openssl_init]\nssl_conf = ssl_sect\n"
+                "[ssl_sect]\nsystem_default = system_default_sect\n"
+                "[system_default_sect]\n"
+                "MinProtocol = TLSv1\nCipherString = DEFAULT@SECLEVEL=0\n"
+            )
+    os.environ.setdefault("OPENSSL_CONF", _ssl_conf)
 
 # ── Conexión a producción 111 (solo SELECT) ──────────────────
 # Nota: el 112 (réplica) no tiene confirmado el login am/dl.
@@ -25,9 +41,6 @@ SERVIDOR_REPLICA = "192.168.2.111"
 USUARIO = "am"
 PASSWORD = "dl"
 
-# Detectar driver disponible
-import platform
-_is_windows = platform.system() == "Windows"
 _DRIVER = "ODBC Driver 17 for SQL Server"
 
 

@@ -171,7 +171,11 @@ BEGIN
         WHERE v.codigo IN (1,3,6,8,21,23,61,63)
           AND ind.industria = p.industria
           AND YEAR(v.fecha) = p.anio_base
-          AND MONTH(v.fecha) BETWEEN p.mes_desde AND p.mes_hasta
+          AND (
+              (p.mes_desde <= p.mes_hasta AND MONTH(v.fecha) BETWEEN p.mes_desde AND p.mes_hasta)
+              OR
+              (p.mes_desde > p.mes_hasta AND (MONTH(v.fecha) >= p.mes_desde OR MONTH(v.fecha) <= p.mes_hasta))
+          )
     ) vta
     -- Factor de quiebre promedio por industria (desde vel_real_articulo)
     OUTER APPLY (

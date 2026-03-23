@@ -1364,6 +1364,41 @@ def detalle_industria():
         pass
 
     # =========================================================================
+    # 3b2. FACTOR QUIEBRE POR MARCA (vel_real por industria+marca)
+    # =========================================================================
+    factor_quiebre_marca = {}
+    try:
+        sql_fq_marca = """
+        SELECT
+            RTRIM(m.descripcion) AS marca,
+            AVG(vra.vel_aparente)   AS vel_aparente_prom,
+            AVG(vra.vel_real)       AS vel_real_prom,
+            CASE WHEN AVG(vra.vel_aparente) > 0
+                 THEN AVG(vra.vel_real) / AVG(vra.vel_aparente)
+                 ELSE 1.0
+            END AS factor_quiebre,
+            COUNT(*) AS articulos_vel
+        FROM vel_real_articulo vra
+        JOIN msgestion01art.dbo.articulo a ON a.codigo_sinonimo = vra.codigo
+        JOIN msgestionC.dbo.marcas m ON a.marca = m.codigo
+        LEFT JOIN map_subrubro_industria ind ON a.subrubro = ind.subrubro
+        WHERE ind.industria = '%s'
+          AND vra.vel_aparente > 0
+          AND a.marca NOT IN (1316, 1317, 1158, 436)
+        GROUP BY RTRIM(m.descripcion)
+        """ % industria_safe
+        for r in db_omicronvt.executesql(sql_fq_marca, as_dict=True):
+            r = _fix_row(r)
+            factor_quiebre_marca[r['marca']] = {
+                'vel_aparente': round(float(r.get('vel_aparente_prom') or 0), 2),
+                'vel_real': round(float(r.get('vel_real_prom') or 0), 2),
+                'factor_quiebre': round(float(r.get('factor_quiebre') or 1.0), 2),
+                'articulos_vel': int(r.get('articulos_vel') or 0),
+            }
+    except Exception:
+        pass  # vel_real_articulo no existe todavia
+
+    # =========================================================================
     # 3c. TENDENCIA MENSUAL para esta industria
     # =========================================================================
     tendencia_meses = []
@@ -1413,6 +1448,9 @@ def detalle_industria():
         presup_uds_ajustado = int(presup_uds * factor_tendencia_uds)
         comprometido = float(mp.get('comprometido') or 0)
 
+        fq = factor_quiebre_marca.get(m_nombre_clean, {})
+        fq_factor = fq.get('factor_quiebre', 1.0)
+        presup_quiebre = presup_costo * fq_factor
         marcas_combinadas.append({
             'marca': m_nombre_clean,
             'proveedores': int(mp.get('proveedores') or 0),
@@ -1433,6 +1471,13 @@ def detalle_industria():
             'disponible_ajustado': presup_ajustado - comprometido,
             'pct_ejecutado': round(comprometido * 100.0 / presup_costo, 1) if presup_costo > 0 else 0,
             'pct_ejecutado_ajustado': round(comprometido * 100.0 / presup_ajustado, 1) if presup_ajustado > 0 else 0,
+            # vel_real / factor_quiebre por marca
+            'vel_aparente': fq.get('vel_aparente', 0),
+            'vel_real': fq.get('vel_real', 0),
+            'factor_quiebre': fq_factor,
+            'presupuesto_quiebre': round(presup_quiebre, 0),
+            'pct_ejecutado_quiebre': round(comprometido * 100.0 / presup_quiebre, 1) if presup_quiebre > 0 else 0,
+            'alerta_quiebre': 'SUB-COMPRADO %.1fx' % fq_factor if fq_factor >= 2.0 else '',
         })
         marcas_vistas.add(m_nombre_clean)
 
@@ -1445,6 +1490,9 @@ def detalle_industria():
             presup_ajustado = presup_costo * factor_tendencia
             presup_uds = int(presup.get('presupuesto_unidades') or 0)
             presup_uds_ajustado = int(presup_uds * factor_tendencia_uds)
+            fq = factor_quiebre_marca.get(m_nombre, {})
+            fq_factor = fq.get('factor_quiebre', 1.0)
+            presup_quiebre = presup_costo * fq_factor
             marcas_combinadas.append({
                 'marca': m_nombre,
                 'proveedores': 0, 'pedidos': 0,
@@ -1460,6 +1508,13 @@ def detalle_industria():
                 'disponible_ajustado': presup_ajustado,
                 'pct_ejecutado': 0,
                 'pct_ejecutado_ajustado': 0,
+                # vel_real / factor_quiebre por marca
+                'vel_aparente': fq.get('vel_aparente', 0),
+                'vel_real': fq.get('vel_real', 0),
+                'factor_quiebre': fq_factor,
+                'presupuesto_quiebre': round(presup_quiebre, 0),
+                'pct_ejecutado_quiebre': 0,
+                'alerta_quiebre': 'SUB-COMPRADO %.1fx' % fq_factor if fq_factor >= 2.0 else '',
             })
 
     # =========================================================================
@@ -1603,6 +1658,7 @@ def detalle_industria():
     # =========================================================================
     # 7. TOTALES DE LA INDUSTRIA (para KPIs arriba)
     # =========================================================================
+    total_comprometido = sum(m['comprometido'] for m in marcas_combinadas)
     total_remitos = sum(pp.get('remitos_monto', 0) for pp in proveedores_pedidos)
     total_deuda = sum(pp.get('deuda_neta', 0) for pp in proveedores_pedidos)
     total_pendiente = sum(float(m.get('pendiente', 0)) for m in marcas_combinadas)

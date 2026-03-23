@@ -73,7 +73,8 @@ class TiendaNubeClient:
         r = self._session.post(url, json=data, timeout=30)
         if self._handle_rate_limit(r):
             r = self._session.post(url, json=data, timeout=30)
-        r.raise_for_status()
+        if not r.ok:
+            raise requests.HTTPError(f'{r.status_code} {r.reason}: {r.text}', response=r)
         return r.json()
 
     def _put(self, endpoint: str, data: dict) -> dict:
@@ -104,8 +105,10 @@ class TiendaNubeClient:
     def crear_producto(self, nombre: str, variantes: list, **kwargs) -> dict:
         """
         Crea producto en TN.
-        variantes: [{'price': '90000', 'stock': 10, 'sku': 'ABC123', 'values': [{'es': 'Negro'}, {'es': '42'}]}]
-        kwargs: description, handle, categories, images, etc.
+        variantes: [{'price': '90000', 'stock': 10, 'sku': 'ABC123', 'values': [{'es': '42'}]}]
+        kwargs: description, handle, categories, images, attributes, etc.
+        Nota: si las variantes usan 'values', hay que pasar 'attributes' para definir
+        los ejes (ej: [{'es': 'Talle'}, {'es': 'Color'}]).
         """
         data = {
             'name': {'es': nombre},

@@ -359,12 +359,12 @@ def _consultar_articulo_erp(codigo_sinonimo: str) -> dict:
 
         # Buscar artículo
         cursor.execute("""
-            SELECT a.codigo, a.descripcion_1, a.precio_costo, a.precio_venta,
+            SELECT a.codigo, a.descripcion_1, a.precio_costo, a.precio_1,
                    a.codigo_sinonimo, a.codigo_barra, a.moneda,
                    a.grupo, a.marca, a.estado,
-                   m.denominacion AS marca_nombre
+                   ISNULL(m.descripcion, '') AS marca_nombre
             FROM msgestion01art.dbo.articulo a
-            LEFT JOIN msgestion01art.dbo.marca m ON m.codigo = a.marca
+            LEFT JOIN msgestionC.dbo.marcas m ON m.codigo = a.marca
             WHERE a.codigo_sinonimo = ?
               AND a.codigo_sinonimo <> ''
         """, (codigo_sinonimo,))
@@ -378,7 +378,7 @@ def _consultar_articulo_erp(codigo_sinonimo: str) -> dict:
             'precio_costo': float(row[2] or 0),
             'precio_venta': float(row[3] or 0),
             'codigo_sinonimo': (row[4] or '').strip(),
-            'codigo_barra': (row[5] or '').strip() if row[5] else '',
+            'codigo_barra': str(int(row[5])) if row[5] else '',
             'moneda': int(row[6] or 0),
             'grupo': int(row[7] or 0),
             'marca': int(row[8] or 0),
@@ -411,11 +411,11 @@ def _buscar_variantes_por_modelo(codigo_sinonimo: str) -> list:
         return []
 
     producto_base = codigo_sinonimo[:10]
-    conn = pyodbc.connect(_REPLICA_CONN_STRING, timeout=15)
+    conn = pyodbc.connect(_ERP_CONN_STRING, timeout=15)
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT a.codigo, a.descripcion_1, a.precio_costo, a.precio_venta,
+            SELECT a.codigo, a.descripcion_1, a.precio_costo, a.precio_1,
                    a.codigo_sinonimo, a.estado,
                    ISNULL(s.stock_total, 0) AS stock
             FROM msgestion01art.dbo.articulo a
@@ -574,14 +574,19 @@ def publicar_producto_nuevo(codigo_sinonimo: str, dry_run: bool = True,
         }
         # Si hay talle, agregarlo como atributo de variante
         if v['talle_code']:
-            variante_tn['values'] = [{'es': f"Talle {v['talle_code']}"}]
+            variante_tn['values'] = [{'es': v['talle_code']}]
         variantes_tn.append(variante_tn)
+
+    # Si hay variantes con 'values' (talles), definir el eje de atributos
+    tiene_talles = any(v.get('values') for v in variantes_tn)
 
     payload = {
         'name': {'es': nombre_producto},
         'published': True,
         'variants': variantes_tn,
     }
+    if tiene_talles:
+        payload['attributes'] = [{'es': 'Talle'}]
 
     if imagenes_tn:
         payload['images'] = imagenes_tn

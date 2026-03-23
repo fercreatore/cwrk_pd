@@ -29,6 +29,7 @@ import json
 import os
 import ssl
 import sys
+import time
 import pyodbc
 import requests
 import urllib3
@@ -139,29 +140,6 @@ def guardar_config_tienda(store_id: str, access_token: str, nombre_tienda: str =
 # ── Persistencia de órdenes procesadas (SQLite) ──
 
 SQLITE_DB = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.db')
-
-def _init_sqlite():
-    """Crea la tabla si no existe."""
-    import sqlite3
-    conn = sqlite3.connect(SQLITE_DB)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS ordenes (
-            order_id TEXT PRIMARY KEY,
-            order_number INTEGER,
-            tienda TEXT DEFAULT 'default',
-            fecha_orden TEXT,
-            cliente TEXT,
-            total REAL,
-            renglones INTEGER,
-            payload TEXT,
-            respuesta_109 TEXT,
-            fecha_proceso TEXT,
-            estado TEXT DEFAULT 'OK'
-        )
-    """)
-    conn.commit()
-    return conn
-
 
 def orden_ya_procesada(order_id: str, tienda: str = 'default') -> bool:
     """Verifica si una orden ya fue enviada al 109. CRITICO: evita duplicados."""
@@ -480,6 +458,8 @@ def construir_payload_109(orden: dict, articulos_erp: dict) -> dict:
     email = (customer.get('email') or '').strip()
     tn_id = str(customer.get('id', ''))
 
+    telefono = (customer.get('phone') or '').strip()
+
     # Dirección
     billing_addr = orden.get('billing_address') or ''
     billing_num = orden.get('billing_number') or ''
@@ -521,6 +501,7 @@ def construir_payload_109(orden: dict, articulos_erp: dict) -> dict:
         'direccion': direccion,
         'cod_postal': str(cod_postal),
         'tenant': 'tiendanube',
+        'telefono': telefono,
         'mi_usuario': POS_109_USUARIO,
         'mi_medio_pago': POS_109_MEDIO_PAGO,
         'productos': productos,
@@ -529,10 +510,14 @@ def construir_payload_109(orden: dict, articulos_erp: dict) -> dict:
     return payload
 
 
+MAX_REINTENTOS_109 = 3
+ESPERA_ENTRE_REINTENTOS = [5, 15, 30]  # segundos, backoff creciente
+
+
 def enviar_venta_109(orden: dict, articulos_erp: dict) -> dict:
     """
-    Envía la venta al POS del 109 de forma SÍNCRONA.
-    Espera la respuesta completa antes de retornar.
+    Envía la venta al POS del 109 de forma SÍNCRONA con reintentos.
+    Reintenta hasta MAX_REINTENTOS_109 veces en caso de timeout o error de conexión.
     Retorna la respuesta o None si no está configurado.
     """
     if not POS_109_URL:
@@ -543,28 +528,36 @@ def enviar_venta_109(orden: dict, articulos_erp: dict) -> dict:
     if not payload['productos']:
         return {'error': 'Sin productos válidos para 109'}
 
-    try:
-        # POST síncrono — espera respuesta completa antes de continuar
-        resp = requests.post(POS_109_URL, json=payload, timeout=60, verify=False)
-        resp.raise_for_status()
-        if resp.headers.get('content-type', '').startswith('application/json'):
-            result = resp.json()
-        else:
-            result = {'status': resp.status_code, 'text': resp.text[:500]}
-        return result
-    except requests.Timeout:
-        return {'error': f'Timeout (60s) al conectar con {POS_109_URL}'}
-    except requests.ConnectionError as e:
-        return {'error': f'No se pudo conectar al 109: {e}'}
-    except requests.HTTPError as e:
-        body = ''
+    ultimo_error = None
+    for intento in range(MAX_REINTENTOS_109):
         try:
-            body = e.response.text[:500]
-        except Exception:
-            pass
-        return {'error': f'HTTP {e.response.status_code}: {body}'}
-    except requests.RequestException as e:
-        return {'error': str(e)}
+            resp = requests.post(POS_109_URL, json=payload, timeout=60, verify=False)
+            resp.raise_for_status()
+            if resp.headers.get('content-type', '').startswith('application/json'):
+                result = resp.json()
+            else:
+                result = {'status': resp.status_code, 'text': resp.text[:500]}
+            return result
+        except (requests.Timeout, requests.ConnectionError) as e:
+            ultimo_error = e
+            if intento < MAX_REINTENTOS_109 - 1:
+                espera = ESPERA_ENTRE_REINTENTOS[intento]
+                print(f"    [RETRY] Intento {intento + 1}/{MAX_REINTENTOS_109} falló "
+                      f"({type(e).__name__}), reintentando en {espera}s...")
+                time.sleep(espera)
+            continue
+        except requests.HTTPError as e:
+            body = ''
+            try:
+                body = e.response.text[:500]
+            except Exception:
+                pass
+            return {'error': f'HTTP {e.response.status_code}: {body}'}
+        except requests.RequestException as e:
+            return {'error': str(e)}
+
+    # Agotados los reintentos
+    return {'error': f'Falló después de {MAX_REINTENTOS_109} intentos: {ultimo_error}'}
 
 
 # ── Log de errores (SQLite) ──
@@ -867,7 +860,7 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
             'precio': precio,
             'cantidad': cantidad,
             'total_item': total_item,
-            'unidades': 0,
+            'unidades': cantidad,
             'deposito': DEPOSITO,
             'operacion': '+',
             'estado': ESTADO,
@@ -1030,7 +1023,15 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
                 if skus_no_enc:
                     msg += f" (SKUs no encontrados: {', '.join(skus_no_enc[:5])})"
                 print(msg)
-                errores.append(f"Orden #{order_number}: sin artículos válidos en ERP")
+                error_msg = f"Orden #{order_number}: sin artículos válidos en ERP. SKUs: {', '.join(skus_no_enc[:10])}"
+                errores.append(error_msg)
+                registrar_error(
+                    order_id=order_id,
+                    order_number=order_number,
+                    tienda=tienda,
+                    error_msg=error_msg,
+                    payload={'skus_no_encontrados': skus_no_enc},
+                )
                 continue
 
             customer = orden.get('customer', {})
@@ -1179,8 +1180,8 @@ def sincronizar_ordenes_tn(dry_run: bool = True, dias_atras: int = 7,
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Facturar órdenes TiendaNube → ERP MS Gestión')
-    parser.add_argument('--dry-run', action='store_true', default=False,
-                        help='Solo mostrar qué se insertaría (default: False)')
+    parser.add_argument('--ejecutar', action='store_true', default=False,
+                        help='Modo real: procesar órdenes (sin esto, es dry-run)')
     parser.add_argument('--dias', type=int, default=7,
                         help='Días hacia atrás para buscar órdenes (default: 7)')
     parser.add_argument('--empresa', type=str, default='H4',
@@ -1191,8 +1192,10 @@ if __name__ == '__main__':
                         help='INSERT directo en ERP sin pasar por POS 109')
     args = parser.parse_args()
 
+    dry_run = not args.ejecutar
+
     reporte = sincronizar_ordenes_tn(
-        dry_run=args.dry_run, dias_atras=args.dias,
+        dry_run=dry_run, dias_atras=args.dias,
         empresa=args.empresa, nombre_tienda=args.tienda,
         directo=args.directo,
     )
