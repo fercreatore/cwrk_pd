@@ -2855,7 +2855,25 @@ def render_dashboard():
             df_f['pct_quiebre'] = df_f['csr'].map(
                 lambda c: quiebres_dash.get(c, {}).get('pct_quiebre', 0)
             )
-        df_f['vel_dia'] = df_f['vel_mes'] / 30
+        # Factor estacional: ajustar vel_real por temporada
+        with st.spinner("Calculando factor estacional..."):
+            factores_est = factor_estacional_batch(csrs_dash)
+        mes_actual = date.today().month
+        mes_proxima = (mes_actual % 12) + 1  # mes siguiente (lead time ~30d)
+        df_f['s_actual'] = df_f['csr'].map(
+            lambda c: factores_est.get(c, {}).get(mes_actual, 1.0)
+        )
+        df_f['s_proxima'] = df_f['csr'].map(
+            lambda c: factores_est.get(c, {}).get(mes_proxima, 1.0)
+        )
+        df_f['temp_pct'] = df_f['s_proxima']
+        df_f['vel_ajustada'] = np.where(
+            df_f['s_actual'] > 0.1,
+            df_f['vel_mes'] * (df_f['s_proxima'] / df_f['s_actual']),
+            df_f['vel_mes']
+        )
+
+        df_f['vel_dia'] = df_f['vel_ajustada'] / 30
         df_f['dias_stock'] = np.where(
             df_f['vel_dia'] > 0,
             df_f['stock_total'] / df_f['vel_dia'],
@@ -2952,11 +2970,13 @@ def render_dashboard():
 
         df_top = df_f.nsmallest(30, 'dias_stock')[
             ['csr', 'descripcion', 'marca_desc', 'prov_nombre', 'stock_total',
-             'ventas_12m', 'vel_mes', 'pct_quiebre', 'dias_stock', 'urgencia',
-             'gmroi', 'rotacion']
+             'ventas_12m', 'vel_mes', 'vel_ajustada', 'temp_pct', 'pct_quiebre',
+             'dias_stock', 'urgencia', 'gmroi', 'rotacion']
         ].copy()
         df_top['dias_stock'] = df_top['dias_stock'].round(0).astype(int)
         df_top['vel_mes'] = df_top['vel_mes'].round(1)
+        df_top['vel_ajustada'] = df_top['vel_ajustada'].round(1)
+        df_top['temp_pct'] = df_top['temp_pct'].round(2)
 
         # Cruzar con pedidos
         df_top = cruzar_pedidos_top(df_top, df_pedidos_erp)
@@ -2988,6 +3008,10 @@ def render_dashboard():
                 'stock_total': st.column_config.NumberColumn('Stock', format="%d"),
                 'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
                 'vel_mes': st.column_config.NumberColumn('Vel real/mes', format="%.1f"),
+                'vel_ajustada': st.column_config.NumberColumn('Vel ajust.', format="%.1f",
+                    help="Vel real ajustada por factor estacional (temporada proxima / actual)"),
+                'temp_pct': st.column_config.NumberColumn('Temp%', format="%.2f",
+                    help="Factor estacional prox. mes. <0.5 = fuera de temporada (rojo)"),
                 'pct_quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
                 'dias_stock': st.column_config.NumberColumn('Dias', format="%d"),
                 'urgencia': 'Urgencia',
