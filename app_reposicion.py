@@ -2612,7 +2612,7 @@ def render_dashboard():
         # Construir mapa directamente desde df_f (ya filtrado por marca/proveedor)
         sub_desc = cargar_subrubro_desc()
         df_mapa = df_f.groupby(
-            [df_f['rubro'].astype(int), df_f['subrubro'].astype(int)]
+            [df_f['rubro'].fillna(0).astype(int), df_f['subrubro'].fillna(0).astype(int)]
         ).agg(
             modelos=('csr', 'nunique'),
             stock_total=('stock_total', 'sum'),
@@ -2647,7 +2647,7 @@ def render_dashboard():
                 / max(factores_est_mapa.get(c, {}).get(mes_act, 1.0), 0.1)
             )
             s_t_cat = df_f.groupby(
-                [df_f['rubro'].astype(int), df_f['subrubro'].astype(int)]
+                [df_f['rubro'].fillna(0).astype(int), df_f['subrubro'].fillna(0).astype(int)]
             )['_s_t'].mean().reset_index()
             s_t_cat.rename(columns={'rubro': 'genero_cod', 'subrubro': 'sub_cod'}, inplace=True)
             df_mapa = df_mapa.merge(s_t_cat, on=['genero_cod', 'sub_cod'], how='left')
