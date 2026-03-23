@@ -382,7 +382,7 @@ def obtener_pedidos_erp():
     sql_template = """
         SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
                SUM(p1.cantidad) AS cant_pedida,
-               MAX(p2.fecha_entrega) AS fecha_entrega,
+               MAX(p1.fecha_entrega) AS fecha_entrega,
                RTRIM(p2.denominacion) AS proveedor,
                p2.estado,
                '{empresa}' AS empresa
