@@ -264,6 +264,50 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
 
 
 # ============================================================================
+# VEL_REAL DESDE TABLA MATERIALIZADA (omicronvt)
+# ============================================================================
+
+@st.cache_data(ttl=300)
+def obtener_vel_real_tabla(codigos_csr):
+    """
+    Obtiene vel_real pre-calculada de omicronvt.dbo.vel_real_articulo.
+    Agrega por CSR (LEFT 10) sumando vel_real de todos los talles.
+    Retorna dict {csr: {vel_real, vel_aparente, pct_quiebre, meses_quebrado}}.
+    """
+    if not codigos_csr:
+        return {}
+
+    filtro = ",".join(f"'{c}'" for c in codigos_csr)
+    sql = f"""
+        SELECT LEFT(codigo, 10) AS csr,
+               SUM(vel_real) AS vel_real,
+               SUM(vel_aparente) AS vel_aparente,
+               AVG(factor_quiebre) AS factor_quiebre,
+               MAX(meses_quebrado) AS meses_quebrado,
+               MAX(meses_con_stock) + MAX(meses_quebrado) AS meses_total
+        FROM omicronvt.dbo.vel_real_articulo
+        WHERE LEFT(codigo, 10) IN ({filtro})
+        GROUP BY LEFT(codigo, 10)
+    """
+    df = query_df(sql)
+    if df.empty:
+        return {}
+
+    resultados = {}
+    for _, r in df.iterrows():
+        csr = r['csr'].strip()
+        meses_total = max(int(r['meses_total'] or 12), 1)
+        meses_q = int(r['meses_quebrado'] or 0)
+        resultados[csr] = {
+            'vel_real': round(float(r['vel_real'] or 0), 2),
+            'vel_aparente': round(float(r['vel_aparente'] or 0), 2),
+            'pct_quiebre': round(meses_q / meses_total * 100, 1),
+            'meses_quebrado': meses_q,
+        }
+    return resultados
+
+
+# ============================================================================
 # ESTACIONALIDAD
 # ============================================================================
 
@@ -3013,16 +3057,28 @@ def render_dashboard():
     # TAB 1: DASHBOARD GLOBAL
     # ══════════════════════════════════════════════════════════════
     with tab_dashboard:
-        # Velocidad REAL corregida por quiebre de stock
-        with st.spinner("Calculando velocidad real (quiebre)..."):
-            csrs_dash = df_f['csr'].tolist()
-            quiebres_dash = analizar_quiebre_batch(csrs_dash)
-            df_f['vel_mes'] = df_f['csr'].map(
-                lambda c: quiebres_dash.get(c, {}).get('vel_real', 0)
-            )
-            df_f['pct_quiebre'] = df_f['csr'].map(
-                lambda c: quiebres_dash.get(c, {}).get('pct_quiebre', 0)
-            )
+        # Velocidad REAL: primero desde tabla materializada, fallback Python
+        csrs_dash = df_f['csr'].tolist()
+        with st.spinner("Cargando velocidad real (tabla materializada)..."):
+            vel_tabla = obtener_vel_real_tabla(csrs_dash)
+
+        # Fallback: CSRs no encontrados en la tabla → calcular en Python
+        csrs_sin_tabla = [c for c in csrs_dash if c not in vel_tabla]
+        if csrs_sin_tabla:
+            with st.spinner(f"Calculando quiebre para {len(csrs_sin_tabla)} productos sin tabla..."):
+                quiebres_fallback = analizar_quiebre_batch(csrs_sin_tabla)
+        else:
+            quiebres_fallback = {}
+
+        # Merge: tabla tiene prioridad, fallback completa
+        quiebres_dash = {**quiebres_fallback, **vel_tabla}
+
+        df_f['vel_mes'] = df_f['csr'].map(
+            lambda c: quiebres_dash.get(c, {}).get('vel_real', 0)
+        )
+        df_f['pct_quiebre'] = df_f['csr'].map(
+            lambda c: quiebres_dash.get(c, {}).get('pct_quiebre', 0)
+        )
         # Factor estacional: ajustar vel_real por temporada
         with st.spinner("Calculando factor estacional..."):
             factores_est = factor_estacional_batch(csrs_dash)
