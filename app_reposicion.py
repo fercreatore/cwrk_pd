@@ -219,18 +219,23 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
         meses_lista.append((cursor.year, cursor.month))
         cursor -= relativedelta(months=1)
 
+    # Pre-calcular factores estacionales para desestacionalizar
+    factores_est = factor_estacional_batch(codigos_sinonimo)
+
     # Reconstruir quiebre para cada codigo_sinonimo
     resultados = {}
     for cs in codigos_sinonimo:
         stock_actual = stock_dict.get(cs, 0)
         v_dict = ventas_by_cs.get(cs, {})
         c_dict = compras_by_cs.get(cs, {})
+        f_est = factores_est.get(cs, {m: 1.0 for m in range(1, 13)})
 
         stock_fin = stock_actual
         meses_q = 0
         meses_ok = 0
         ventas_total = 0
         ventas_ok = 0
+        ventas_desest = 0  # ventas desestacionalizadas (meses OK)
 
         for anio, mes in meses_lista:
             v = v_dict.get((anio, mes), 0)
@@ -243,19 +248,43 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
             else:
                 meses_ok += 1
                 ventas_ok += v
+                # Desestacionalizar: dividir ventas por factor del mes
+                s_t = max(f_est.get(mes, 1.0), 0.1)
+                ventas_desest += v / s_t
 
             stock_fin = stock_inicio
 
         vel_ap = ventas_total / max(meses, 1)
-        vel_real = ventas_ok / max(meses_ok, 1) if meses_ok > 0 else vel_ap
+
+        # vel_real v3: desestacionalizada + corrección disponibilidad
+        pct_q = meses_q / max(meses, 1)
+        if meses_ok > 0:
+            vel_base = ventas_desest / meses_ok
+        elif ventas_total > 0:
+            # Quiebre 100%: fallback vel_aparente × 1.15
+            vel_base = vel_ap * 1.15
+        else:
+            vel_base = 0
+
+        # Factor corrección por disponibilidad (demanda latente reprimida)
+        if pct_q > 0.5:
+            factor_disp = 1.20
+        elif pct_q > 0.3:
+            factor_disp = 1.10
+        else:
+            factor_disp = 1.0
+
+        vel_real = vel_base * factor_disp
 
         resultados[cs] = {
             'stock_actual': stock_actual,
             'meses_quebrado': meses_q,
             'meses_ok': meses_ok,
-            'pct_quiebre': round(meses_q / max(meses, 1) * 100, 1),
+            'pct_quiebre': round(pct_q * 100, 1),
             'vel_aparente': round(vel_ap, 2),
             'vel_real': round(vel_real, 2),
+            'vel_base_desest': round(vel_base, 2),
+            'factor_disp': factor_disp,
             'ventas_total': ventas_total,
             'ventas_ok': ventas_ok,
         }
@@ -298,11 +327,28 @@ def obtener_vel_real_tabla(codigos_csr):
         csr = r['csr'].strip()
         meses_total = max(int(r['meses_total'] or 12), 1)
         meses_q = int(r['meses_quebrado'] or 0)
+        pct_q = meses_q / meses_total
+        vel_raw = float(r['vel_real'] or 0)
+        vel_ap = float(r['vel_aparente'] or 0)
+
+        # Quiebre 100%: fallback vel_aparente × 1.15
+        if vel_raw == 0 and vel_ap > 0 and pct_q > 0.75:
+            vel_raw = vel_ap * 1.15
+
+        # Factor corrección por disponibilidad
+        if pct_q > 0.5:
+            factor_disp = 1.20
+        elif pct_q > 0.3:
+            factor_disp = 1.10
+        else:
+            factor_disp = 1.0
+
         resultados[csr] = {
-            'vel_real': round(float(r['vel_real'] or 0), 2),
-            'vel_aparente': round(float(r['vel_aparente'] or 0), 2),
-            'pct_quiebre': round(meses_q / meses_total * 100, 1),
+            'vel_real': round(vel_raw * factor_disp, 2),
+            'vel_aparente': round(vel_ap, 2),
+            'pct_quiebre': round(pct_q * 100, 1),
             'meses_quebrado': meses_q,
+            'factor_disp': factor_disp,
         }
     return resultados
 
@@ -3150,14 +3196,20 @@ def render_dashboard():
         )
 
         # KPIs globales
-        c1, c2, c3, c4, c5 = st.columns(5)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         criticos = len(df_f[df_f['urgencia'] == 'CRITICO'])
         bajos = len(df_f[df_f['urgencia'] == 'BAJO'])
+        # Confianza del modelo: % productos con quiebre moderado (<30%)
+        n_alta_conf = len(df_f[df_f['pct_quiebre'] < 30])
+        pct_conf = round(n_alta_conf / max(len(df_f), 1) * 100)
         c1.metric("Productos filtrados", len(df_f))
         c2.metric("CRITICOS (<15d)", criticos)
         c3.metric("BAJOS (15-30d)", bajos)
         c4.metric("Stock total (pares)", f"{int(df_f['stock_total'].sum()):,}")
         c5.metric("Ventas 12m (pares)", f"{int(df_f['ventas_12m'].sum()):,}")
+        c6.metric("Modelo v3", f"{pct_conf}% conf.",
+                  help="Modelo v3: desestacionalización + corrección disponibilidad. "
+                       "Target MAPE <15%. Confianza = % productos con <30% quiebre")
 
         st.divider()
 
