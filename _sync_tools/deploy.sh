@@ -12,8 +12,8 @@
 #   ./deploy.sh archivo _scripts_oneshot/mi_archivo.xlsx
 # =============================================================
 
-MOUNT="/Volumes/cowork_111"
-MOUNT_WEB2PY="/Volumes/web2py_111"
+MOUNT="$HOME/mnt/cowork_111"
+MOUNT_WEB2PY="$HOME/mnt/web2py_111"
 SMB_URL='//administrador:cagr$2011@192.168.2.111/c$/cowork_pedidos'
 SMB_URL_WEB2PY='//administrador:cagr$2011@192.168.2.111/c$/web2py_src/applications/calzalindo_informes'
 SRC="$HOME/Desktop/cowork_pedidos"
@@ -33,7 +33,7 @@ _montar_share() {
     local mount_point="$1"
     local smb_url="$2"
     local label="$3"
-    if mount | grep -q "$mount_point"; then
+    if mount | grep -qF "$mount_point"; then
         echo -e "${GREEN}✓ $label ya montado${NC}"
     else
         echo -e "${YELLOW}Montando $label...${NC}"

@@ -7,8 +7,8 @@
 # de carga de pedidos en el servidor réplica .112
 # =============================================================
 
-MOUNT_112="/Volumes/datasvrw_c"
-SMB_URL_112='//administrador:cagr$2011@192.168.2.112/c$'
+MOUNT_112="$HOME/mnt/compartido_112"
+SMB_URL_112='//administrador:cagr$2011@192.168.2.112/compartido'
 SRC="$HOME/Desktop/cowork_pedidos"
 DEST="$MOUNT_112/cowork_pedidos_app"
 
@@ -36,12 +36,12 @@ APP_FILES=(
 
 # --- Verificar/montar SMB ---
 montar_112() {
-    if mount | grep -q "datasvrw_c"; then
+    if mount | grep -qF "$MOUNT_112"; then
         echo -e "${GREEN}✓ SMB .112 ya montado${NC}"
     else
-        echo -e "${YELLOW}Montando SMB al .112 (C$)...${NC}"
-        sudo mkdir -p "$MOUNT_112" 2>/dev/null
-        sudo mount_smbfs "$SMB_URL_112" "$MOUNT_112"
+        echo -e "${YELLOW}Montando SMB al .112 (compartido)...${NC}"
+        mkdir -p "$MOUNT_112" 2>/dev/null
+        mount_smbfs "$SMB_URL_112" "$MOUNT_112"
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✓ Montado OK en $MOUNT_112${NC}"
         else
@@ -51,8 +51,8 @@ montar_112() {
     fi
     # Crear carpeta destino si no existe
     if [ ! -d "$DEST" ]; then
-        echo -e "${YELLOW}Creando C:\\cowork_pedidos_app en .112...${NC}"
-        sudo mkdir -p "$DEST"
+        echo -e "${YELLOW}Creando carpeta cowork_pedidos_app en compartido...${NC}"
+        mkdir -p "$DEST"
         echo -e "${GREEN}✓ Carpeta creada${NC}"
     fi
 }
@@ -63,7 +63,7 @@ deploy_app() {
     # Copiar archivos principales
     for f in "${APP_FILES[@]}"; do
         if [ -f "$SRC/$f" ]; then
-            sudo cp "$SRC/$f" "$DEST/$f"
+            cp "$SRC/$f" "$DEST/$f"
             echo -e "${GREEN}  ✓ $f${NC}"
         else
             echo -e "${RED}  ✗ No existe: $f${NC}"
@@ -72,28 +72,28 @@ deploy_app() {
 
     # Copiar carpeta .streamlit si existe
     if [ -d "$SRC/.streamlit" ]; then
-        sudo mkdir -p "$DEST/.streamlit" 2>/dev/null
-        sudo cp "$SRC/.streamlit/"* "$DEST/.streamlit/" 2>/dev/null
+        mkdir -p "$DEST/.streamlit" 2>/dev/null
+        cp "$SRC/.streamlit/"* "$DEST/.streamlit/" 2>/dev/null
         echo -e "${GREEN}  ✓ .streamlit/${NC}"
     fi
 
     # Copiar carpeta logos si existe
     if [ -d "$SRC/logos" ]; then
-        sudo mkdir -p "$DEST/logos" 2>/dev/null
-        sudo cp "$SRC/logos/"* "$DEST/logos/" 2>/dev/null
+        mkdir -p "$DEST/logos" 2>/dev/null
+        cp "$SRC/logos/"* "$DEST/logos/" 2>/dev/null
         echo -e "${GREEN}  ✓ logos/${NC}"
     fi
 
     # Copiar tests
     if [ -d "$SRC/tests" ]; then
-        sudo mkdir -p "$DEST/tests" 2>/dev/null
-        sudo cp "$SRC/tests/"*.py "$DEST/tests/" 2>/dev/null
+        mkdir -p "$DEST/tests" 2>/dev/null
+        cp "$SRC/tests/"*.py "$DEST/tests/" 2>/dev/null
         echo -e "${GREEN}  ✓ tests/${NC}"
     fi
 
     # Copiar scripts de arranque
-    sudo cp "$SRC/_sync_tools/iniciar_streamlit.bat" "$DEST/" 2>/dev/null
-    sudo cp "$SRC/_sync_tools/instalar_streamlit.bat" "$DEST/" 2>/dev/null
+    cp "$SRC/_sync_tools/iniciar_streamlit.bat" "$DEST/" 2>/dev/null
+    cp "$SRC/_sync_tools/instalar_streamlit.bat" "$DEST/" 2>/dev/null
     echo -e "${GREEN}  ✓ .bat de arranque${NC}"
 
     echo ""
