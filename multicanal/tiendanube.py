@@ -17,7 +17,7 @@ import os
 import time
 import requests
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import List, Optional, Union
 
 
 # ── Config persistente ──
@@ -60,7 +60,7 @@ class TiendaNubeClient:
             return True
         return False
 
-    def _get(self, endpoint: str, params: dict = None) -> dict | list:
+    def _get(self, endpoint: str, params: dict = None):
         url = f'{self.base_url}/{endpoint}'
         r = self._session.get(url, params=params, timeout=30)
         if self._handle_rate_limit(r):
@@ -84,6 +84,15 @@ class TiendaNubeClient:
             r = self._session.put(url, json=data, timeout=30)
         r.raise_for_status()
         return r.json()
+
+    def _delete(self, endpoint: str) -> bool:
+        """DELETE request a la API de TiendaNube."""
+        url = f'{self.base_url}/{endpoint}'
+        r = self._session.delete(url, timeout=30)
+        if self._handle_rate_limit(r):
+            r = self._session.delete(url, timeout=30)
+        r.raise_for_status()
+        return r.status_code in (200, 204)
 
     # ── Tienda info ──
     def info_tienda(self) -> dict:
@@ -123,13 +132,28 @@ class TiendaNubeClient:
         return self._put(f'products/{product_id}', data)
 
     def actualizar_variante(self, product_id: int, variant_id: int,
-                            precio: float = None, stock: int = None) -> dict:
+                            precio: float = None, stock: int = None,
+                            precio_oferta: float = None) -> dict:
         data = {}
         if precio is not None:
             data['price'] = str(precio)
         if stock is not None:
             data['stock'] = stock
+        if precio_oferta is not None:
+            data['promotional_price'] = str(precio_oferta)
         return self._put(f'products/{product_id}/variants/{variant_id}', data)
+
+    def eliminar_producto(self, product_id: int) -> bool:
+        """Elimina un producto de TiendaNube (despublicación REAL, no pausa)."""
+        return self._delete(f'products/{product_id}')
+
+    def crear_imagen_producto(self, product_id: int, src_url: str,
+                              position: int = None) -> dict:
+        """Sube una imagen a un producto de TN desde URL pública."""
+        data = {'src': src_url}
+        if position is not None:
+            data['position'] = position
+        return self._post(f'products/{product_id}/images', data)
 
     # ── Órdenes ──
     def listar_ordenes(self, page: int = 1, per_page: int = 50,
@@ -155,10 +179,16 @@ class TiendaNubeClient:
         Filtra por fecha client-side porque TN API no soporta created_at_min."""
         todas = []
         for page in range(1, max_pages + 1):
-            lote = self.listar_ordenes(
-                page=page, per_page=50, status=status,
-                payment_status=payment_status,
-            )
+            try:
+                lote = self.listar_ordenes(
+                    page=page, per_page=50, status=status,
+                    payment_status=payment_status,
+                )
+            except requests.HTTPError as e:
+                # TN devuelve 404 cuando no hay más páginas (en vez de lista vacía)
+                if e.response is not None and e.response.status_code == 404:
+                    break
+                raise
             if not lote:
                 break
             todas.extend(lote)

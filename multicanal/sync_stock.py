@@ -1,20 +1,29 @@
 """
-Sincronización de stock ERP (SQL Server) → TiendaNube.
+Sincronización de stock ERP (SQL Server) / PostgreSQL → TiendaNube.
 
 Lee todos los productos de TN, busca el artículo correspondiente en el ERP
-por codigo_sinonimo, obtiene stock real (depósitos 0 y 1) y actualiza TN
-cuando hay diferencia.
+o en PostgreSQL (clz_productos) por codigo_sinonimo, obtiene stock real
+(depósitos parametrizables) y actualiza TN cuando hay diferencia.
 
 USO:
     # Dry run (solo muestra cambios sin aplicar)
     python -m multicanal.sync_stock --dry-run
 
-    # Ejecutar sync real
-    python -m multicanal.sync_stock
+    # Ejecutar sync real con PostgreSQL (default)
+    python -m multicanal.sync_stock --fuente pg
+
+    # Ejecutar sync real con ERP SQL Server
+    python -m multicanal.sync_stock --fuente erp
+
+    # Depósitos específicos
+    python -m multicanal.sync_stock --depositos 0,1,2
+
+    # Despublicar producto de TiendaNube
+    python -m multicanal.sync_stock --despublicar 12345678
 
     # Desde código
     from multicanal.sync_stock import sincronizar_stock
-    reporte = sincronizar_stock(dry_run=True)
+    reporte = sincronizar_stock(dry_run=True, fuente='pg', depositos=[0, 1])
 """
 
 import pyodbc
@@ -26,6 +35,11 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from multicanal.tiendanube import TiendaNubeClient, cargar_config
+
+try:
+    from multicanal.pg_productos import obtener_stock_pg, actualizar_timestamp_sync, marcar_eliminado
+except ImportError:
+    from pg_productos import obtener_stock_pg, actualizar_timestamp_sync, marcar_eliminado
 
 
 # ── Conexión ERP ──
@@ -77,7 +91,7 @@ def obtener_stock_erp(conn, codigos_sinonimo: list) -> dict:
         cursor.execute(query, lote)
         for row in cursor.fetchall():
             sku = row[0].strip() if row[0] else ''
-            stock = int(row[1])
+            stock = int(round(row[1]))
             if sku:
                 resultado[sku] = stock
 
@@ -99,7 +113,7 @@ def obtener_stock_erp(conn, codigos_sinonimo: list) -> dict:
             cursor.execute(query2, no_encontrados)
             for row in cursor.fetchall():
                 barra = str(row[0]).strip() if row[0] else ''
-                stock = int(row[1])
+                stock = int(round(row[1]))
                 if barra and barra not in resultado:
                     resultado[barra] = stock
 
@@ -123,7 +137,7 @@ def obtener_productos_tn(client: TiendaNubeClient, max_pages: int = 200) -> list
     return todos
 
 
-def sincronizar_stock(dry_run: bool = True) -> dict:
+def sincronizar_stock(dry_run: bool = True, depositos: list = None, fuente: str = 'pg') -> dict:
     """
     Flujo principal de sincronización.
 
@@ -203,13 +217,19 @@ def sincronizar_stock(dry_run: bool = True) -> dict:
             'errores': [],
         }
 
-    # --- 3. Obtener stock del ERP ---
-    print("[3/4] Consultando stock en ERP (SQL Server 111)...")
-    conn = conectar_erp()
-    try:
-        stock_erp = obtener_stock_erp(conn, skus_unicos)
-    finally:
-        conn.close()
+    # --- 3. Obtener stock ---
+    if fuente == 'pg':
+        print("[3/4] Consultando stock en PostgreSQL (clz_productos)...")
+        stock_erp = obtener_stock_pg(skus_unicos, depositos=depositos or [0, 1])
+        print(f"       Fuente: PostgreSQL clz_productos (depósitos: {depositos or [0, 1]})")
+    else:
+        print("[3/4] Consultando stock en ERP (SQL Server 111)...")
+        conn = conectar_erp()
+        try:
+            stock_erp = obtener_stock_erp(conn, skus_unicos)
+        finally:
+            conn.close()
+        print(f"       Fuente: ERP SQL Server (depósitos: 0, 1)")
 
     encontrados = len(stock_erp)
     no_encontrados_skus = [s for s in skus_unicos if s not in stock_erp]
@@ -258,6 +278,11 @@ def sincronizar_stock(dry_run: bool = True) -> dict:
                 client.actualizar_variante(product_id, variant_id, stock=stock_nuevo)
                 print(f"  [OK]  {sku:20s} | {nombre[:30]:30s} | TN:{stock_tn:4d} → ERP:{stock_nuevo:4d}")
                 actualizados.append(cambio)
+                if not dry_run:
+                    try:
+                        actualizar_timestamp_sync(sku[:10], tipo='stock')
+                    except Exception:
+                        pass  # tracking es best-effort
             except Exception as e:
                 error_msg = f"Error actualizando {sku} (prod={product_id}, var={variant_id}): {e}"
                 print(f"  [ERR] {error_msg}")
@@ -292,12 +317,32 @@ def sincronizar_stock(dry_run: bool = True) -> dict:
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser(description='Sync stock ERP → TiendaNube')
+    parser = argparse.ArgumentParser(description='Sync stock ERP/PG → TiendaNube')
     parser.add_argument('--dry-run', action='store_true', default=False,
                         help='Solo mostrar cambios sin aplicar (default: False)')
+    parser.add_argument('--despublicar', type=int, default=None,
+                        help='ID de producto TN a eliminar (despublicación real)')
+    parser.add_argument('--depositos', type=str, default='0,1',
+                        help='Depósitos a sumar, separados por coma (default: 0,1)')
+    parser.add_argument('--fuente', choices=['pg', 'erp'], default='pg',
+                        help='Fuente de stock: pg (PostgreSQL) o erp (SQL Server)')
     args = parser.parse_args()
 
-    reporte = sincronizar_stock(dry_run=args.dry_run)
+    if args.despublicar:
+        from multicanal.tiendanube import TiendaNubeClient
+        config = cargar_config()
+        client = TiendaNubeClient(
+            store_id=config['store_id'],
+            access_token=config['access_token'],
+        )
+        client.eliminar_producto(args.despublicar)
+        marcar_eliminado(str(args.despublicar))
+        print(f"Producto {args.despublicar} eliminado de TiendaNube.")
+        sys.exit(0)
+
+    depositos = [int(d) for d in args.depositos.split(',')]
+
+    reporte = sincronizar_stock(dry_run=args.dry_run, depositos=depositos, fuente=args.fuente)
 
     if reporte.get('error'):
         sys.exit(1)

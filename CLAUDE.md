@@ -1,6 +1,6 @@
 # CLAUDE.md — Fuente Única de Verdad
 ## Proyecto Integral ERP — H4 / CALZALINDO
-> Última actualización: 23 de marzo de 2026
+> Última actualización: 30 de marzo de 2026
 
 > **LEER PRIMERO**. Este archivo tiene todo lo necesario para retomar sin preguntar.
 > Si el usuario quiere trabajar otro proyecto → leer `ESTADO_PROYECTOS.md`
@@ -64,6 +64,23 @@ Mount manual: `sudo mount_smbfs '//administrador:cagr$2011@192.168.2.111/c$/cowo
 LaunchAgent cada 30s verifica VPN L2TP y reconecta leyendo secreto IPSec de Keychain.
 - Instalar: `bash _sync_tools/instalar_vpn_daemon.sh`
 - Log: `tail -f /tmp/vpn-reconectar.log`
+
+### Infraestructura Externa (Guille) — 200.58.109.125
+
+Servidor VPS administrado por Guille. Corre servicios orientados al cliente final.
+
+- **PostgreSQL** (puerto 5432):
+  - `clz_productos` — Catálogo productos normalizado, embeddings pgvector, imágenes. Sync parcial desde ERP (ETL externo). **Fuente de datos para multicanal/ sync stock/precios**
+  - `clz_clientes` — Tracking bot Linda (conversaciones, búsquedas, aprendizajes)
+- **MySQL** (puerto 3306):
+  - `clz_ventas` — Terceros (réplica parcial ERP) + programa puntos "Calzalindo Pasos"
+- **Servicios**:
+  - **calzalindo-admin** (Node.js, :3000) — Panel admin catálogo, sync TN
+  - **clz-bot** (Python/FastAPI, :8000) — Bot "Linda" ventas WhatsApp (GPT-4o + pgvector)
+  - **Chatwoot** — chat.calzalindo.com.ar — Inbox omnicanal WhatsApp/web
+  - **n8n** — n8n.calzalindo.com.ar — Automatizaciones + hosting imágenes productos
+- **MCP postgres-clz**: Configurado, apunta a clz_productos
+- **Credenciales**: En `.env` de cada proyecto (NO en config.py del ERP)
 
 ---
 
@@ -136,7 +153,7 @@ LaunchAgent cada 30s verifica VPN L2TP y reconecta leyendo secreto IPSec de Keyc
 
 ---
 
-## ESTADO REAL — 23 de marzo de 2026
+## ESTADO REAL — 30 de marzo de 2026
 
 ### ✅ Deployado y funcionando en producción (111)
 
@@ -149,6 +166,10 @@ LaunchAgent cada 30s verifica VPN L2TP y reconecta leyendo secreto IPSec de Keyc
 | Serie secuencial YYMM0001 | ✅ En reportes.py | Serie condicional: YYMM si CLZ, ' ' si H4 |
 | UPSERT pedico1_entregas | ✅ Aplicado | IF EXISTS/UPDATE/ELSE/INSERT |
 | Fix stock serie cleanup | ✅ Ejecutado | Remito WB, valijas, series '2603' |
+| multicanal/pg_productos.py | ✅ Creado | Lectura stock/precios desde PG, tracking publicaciones SQLite |
+| sync_stock.py mejorado | ✅ Listo | --fuente pg/erp, --depositos param, --despublicar |
+| sync_precios.py mejorado | ✅ Listo | --fuente pg/erp, precio_oferta/promotional_price |
+| tiendanube.py mejorado | ✅ Listo | eliminar_producto(), crear_imagen(), precio_oferta |
 
 ### ✅ Pedidos insertados en producción
 
@@ -158,32 +179,54 @@ LaunchAgent cada 30s verifica VPN L2TP y reconecta leyendo secreto IPSec de Keyc
 | CARMEL RINGO #134069 | 9 mar | `insertar_carmel_ringo.py` | 30 | $1,130,100 | H4 |
 | DIADORA #1134068 | 12 mar | `insertar_diadora.py` | 48 | — | H4 |
 | ATOMIK RUNFLEX #1134069 | 12 mar | `insertar_atomik_runflex.py` | 120 | — | H4 |
+| Timmis Folclore Ent1 #1134086 | 25-26 mar | `insertar_timmis_folclore_ent1.py` | 143 | $3,470,000 | CALZALINDO |
+| Zotz Folclore #1134087 | 25-26 mar | `insertar_timmis_folclore_ent1.py` | 132 | $3,200,000 | CALZALINDO |
+| GO CZL Folclore #1134088 | 25-26 mar | `insertar_timmis_folclore_ent1.py` | 133 | $3,230,000 | CALZALINDO |
+| **Total Folclore OI26** | | | **408** | **$9,890,000** | **CALZALINDO** |
 
-### ⚠️ Desarrollado en Mac, NO deployado al 111
+### ✅ Deployado noche del 25-mar-2026
 
-| Componente | Estado | Acción necesaria |
-|-----------|--------|------------------|
-| `vel_real_articulo` (tabla omicronvt) | SQL generado 21-mar (`vel_real_articulo_20260321.sql`, ~2400 INSERTs) | Ejecutar SQL en 111. **Verificado: tabla NO existe en producción** |
-| calce_financiero.py (vel_real) | Código listo, hace try/except si tabla no existe | `./deploy.sh web2py` |
-| ranking_consolidado.py (vel_real) | Código listo, fallback a DAL si tabla no existe | `./deploy.sh web2py` |
-| crear_presupuesto_industria.sql | Usa vel_real_articulo con OUTER APPLY + ISNULL fallback | Ejecutar en 111 |
-| app_reposicion.py v2 | vel_real en dashboard, GMROI, Rotación, curva talles corregida | Corre en Mac, no requiere deploy |
-| Tests app_reposicion (`_tests/`) | 40/40 PASS (21-mar) | Corren en Mac |
-| Curva ideal omicron → app_reposicion | 3 funciones extraídas de omicron_informes_controller | En Mac |
-| Auto-detección proveedor en app_carga | Por nombre archivo + por códigos artículo | `./deploy.sh scripts` |
-| crear_tabla_vel_real.py | Script generador, listo | `./deploy.sh scripts` + ejecutar en 111 |
+| Componente | Estado | Detalles |
+|-----------|--------|----------|
+| `vel_real_articulo` (omicronvt) | ✅ **46,794 filas en producción** | Ejecutado desde Mac via pyodbc, SQL del 23-mar |
+| `proveedor_asignacion_base` (omicronvt) | ✅ **1,238 proveedores** | 1,090 H4 + 148 CALZALINDO, con overrides manuales |
+| `fix_capas_2_y_3` (msgestion01) | ✅ **aliases_talles: 58, regla_talle_subrubro: 57** | Sistema 3 capas de talles completo |
+| calce_financiero.py + ranking (vel_real) | ✅ Deployado | `./deploy.sh web2py` |
+| Scripts + pipeline + oneshot | ✅ Deployado (2x) | Incluye fix descuento en paso4 |
+| Fix `descuento_reng1/reng2` en paso4 | ✅ Aplicado | INSERT pedico1 ahora graba descuento proveedor + bonificación factura |
+| `construir_sinonimo()` Reebok | ✅ Ya funciona | Maneja prefijos RBK, códigos largos, últimos 5 dígitos |
+
+### PEDIDOS INVIERNO 2026 — Estado al 30-mar
+
+| Proveedor | Prov# | Pares | Monto s/IVA | Estado |
+|-----------|-------|-------|-------------|--------|
+| Floyd (medias, docenas) | 641 | 4,908 (409 doc) | $7.37M | ❌ Pendiente INSERT |
+| Atomik/VICBOR | 594 | 1,078 | $45.5M | ❌ Pendiente INSERT |
+| El Faraón | 118 | 828 | — | ❌ Pendiente INSERT |
+| DasLuz | — | 197 | $2.97M | ❌ Pendiente INSERT |
+| Action Team | — | 103 | $2.6M | ❌ Pendiente INSERT |
+| John Foos (Distrigroup) | 860 | 88 | $4.2M | ❌ Pendiente INSERT |
+| Escorpio | — | 60 | $515K | ❌ Pendiente INSERT |
+| GTN Campus Negro | 104 | 26 | $572K | ❌ Pendiente INSERT |
+| **Subtotal pendientes** | | **~7,288** | **~$63.7M** | |
+| OLK/Olympikus (Global Brands) | 722 | 504 | — | ⏳ Esperar confirmación Cecchini |
+
+**Notas imputación**: Floyd cuenta en DOCENAS (×12). Atomik usa códigos alfa VICBOR que matchean sinónimos ERP. Escorpio usa talles dobles (23/24, 25/26, etc.).
 
 ### ❌ Pendiente de desarrollo/ejecución
 
 | Tarea | Detalle |
 |-------|---------|
-| `crear_tabla_asignacion.py` | Crear `proveedor_asignacion_base` (359 registros) en 111 |
-| `fix_capas_2_y_3.sql` | Sistema 3 capas de talles — ejecutar en 111 |
-| Fix `construir_sinonimo()` | En `paso8_carga_factura.py` para Reebok (sinónimo 12 dígitos) |
-| Probar INSERT FLEXAGON | FLEXAGON ENERGY TR 4 por app Streamlit end-to-end |
-| Confirmar `descuento_1` | Que se grabe con bonificación de factura |
-| GTN Resto | ~530 pares pendientes de los 656 del pedido 2 meses |
-| `recrear_diadora_1134068.py` | Restaurar pedido Diadora si fue borrado por incidente DELETE |
+| GTN Campus Negro | 26 pares, prov 104, msgestion01 — script en preparación |
+| Pedidos invierno 2026 | 7 proveedores, ~7,288 pares — ver tabla arriba |
+| OLK/Olympikus | 504 pares — esperar confirmación Cecchini (proveedor GLOBAL BRANDS prov 722) |
+| Vel_real sync | Actualizar copias #2/#3/#4 al algoritmo v3 (7 gaps documentados en AUDIT_VEL_REAL_20260325.md) |
+| Presupuesto industria | crear_presupuesto_industria.sql — usa vel_real_articulo (tabla existe, 46,794 filas) |
+| Sprint 1 reposición | Motor decisión unificado + auto-INSERT desde UI + botón "Confirmar Pedido" |
+| Sprint 2 | Catálogo auto-parse + sync 4 copias vel_real + deploy al 112 |
+| Sprint 3 | Macro variables (BCRA/INDEC APIs) + Holt-Winters para ítems A/B |
+| Sprint 4 | Feedback loop auto-calibración |
+| Sprint 5 | Conector XL (app.xl.com.ar) |
 | Facturador TN modo real | Medio pago TN, sucursal/depósito, webhook, SKUs sin match |
 
 ---
@@ -241,10 +284,63 @@ cowork_pedidos/
 | `config.py` | Conexión SQL + 6 proveedores + `calcular_precios()` |
 | `paso4_insertar_pedido.py` | INSERT pedico2+pedico1 con routing empresa→base |
 | `app_carga.py` | Streamlit: carga facturas/pedidos con OCR |
-| `app_reposicion.py` | Streamlit: reposición con quiebre, waterfall, GMROI |
+| `app_reposicion.py` | Streamlit: reposición con quiebre, waterfall, GMROI (10 tabs) |
 | `app_h4.py` | Streamlit: dashboard principal H4 |
 | `ocr_factura.py` | Parser OCR PDFs (fitz + pdfplumber) |
 | `_sync_tools/deploy.sh` | Deploy Mac→111 (scripts y/o web2py) |
+
+### app_reposicion.py — Tabs (10)
+
+1. Mapa Surtido
+2. Dashboard
+3. Waterfall
+4. Optimizar Compra (ROI engine)
+5. Curva Talle
+6. Canibalización
+7. Emergentes
+8. Nichos
+9. Armar Pedido
+10. Historial
+
+### app_reposicion.py — Constantes clave
+
+| Constante | Descripción |
+|-----------|-------------|
+| `PG_CONN_STRING` | PostgreSQL pgvector para embeddings de sustitutos |
+| `RUBRO_GENERO` | Mapping rubro → género (H/M/N/U) |
+| `EXCL_MARCAS_GASTOS` | `'(1316,1317,1158,436)'` — excluir de todas las queries comerciales |
+| `SUBRUBRO_TEMPORADA` | Mapping 20 subrubros → ventana compra/venta OI/PV |
+| `NICHOS_PREDEFINIDOS` | Nichos estacionales predefinidos (COMUNION, etc.) |
+| `BACKTESTING_CALIBRACION` | Parámetros calibración demanda |
+| `ESTACIONALIDAD_MENSUAL` | Factores estacionales mensuales por subrubro |
+
+### app_reposicion.py — Funciones principales (al 30-mar)
+
+| Función | Descripción |
+|---------|-------------|
+| `cargar_subrubro_desc()` | Descripción de subrubros |
+| `cargar_mapa_surtido()` | Mapa completo artículo→subrubro→temporada |
+| `cargar_piramide_precios()` | Distribución de precios por segmento |
+| `get_pg_conn()` | Conexión PostgreSQL |
+| `buscar_sustitutos_embedding()` | Sustitutos via pgvector cosine similarity |
+| `buscar_sustitutos_activos_con_stock()` | Sustitutos con stock real |
+| `presupuesto_pares()` | Presupuesto auto del mismo período año anterior |
+| `distribucion_genero()` | Split H/M/N por subrubro |
+| `distribucion_color()` | Distribución colores del catálogo |
+| `precio_techo()` | P90 de precios vendidos en el período |
+| `curva_talles_real()` | Curva real de ventas por talle |
+| `talles_escasez_cronica()` | Talles que siempre faltan (≥2 años) |
+| `calcular_curva_ideal()` | Curva ideal de compra por talle |
+| `calcular_pedido_modelo()` | Pedido modelo respetando curva ideal |
+| `calcular_safety_stock()` | Safety stock Poisson + nivel de servicio |
+| `clasificar_abc_xyz()` | Segmentación ABC (ingresos) × XYZ (regularidad) |
+| `proyectar_entregas_mensuales()` | Cashflow de entregas por mes |
+| `unificar_proveedores()` | Agrupa ventas de mismo producto/distinto proveedor |
+| `analizar_nicho_producto()` | Análisis de un nicho específico |
+| `detectar_nichos_descubiertos()` | Nichos con demanda pero sin oferta |
+| `detectar_nichos_por_subrubro()` | Nichos por subrubro × temporada |
+| `es_temporada_compra()` | Bool: ¿es momento de comprar este subrubro? |
+| `factor_estacional_subrubro()` | Factor de ajuste estacional por subrubro |
 
 ---
 
@@ -254,8 +350,68 @@ cowork_pedidos/
 2. Si el usuario quiere trabajar otro proyecto → leer `ESTADO_PROYECTOS.md`
 3. **NO reescribir .py sin leerlos primero** — los fixes ya están aplicados
 4. INSERT solo via Python en el 111 (NUNCA via MCP sql-replica)
-5. Toda consulta SELECT va por MCP sql-replica
+5. Toda consulta SELECT va por MCP sql-replica (si disponible) o pyodbc directo
 6. Para proyección de compras: SIEMPRE hacer análisis de quiebre antes de calcular velocidad
+
+---
+
+## SI CORRÉS EN EL SERVIDOR 112 (CLAUDE CODE)
+
+Cuando Claude Code corre en `C:\cowork_pedidos\` del 112 (DATASVRW):
+
+### Entorno
+- **Python**: `C:\Users\fer\AppData\Local\Programs\Python\Python314\python.exe` (3.14)
+- **pyodbc**: Funciona con ODBC Driver 17. pymssql NO.
+- **Working dir**: `C:\cowork_pedidos\`
+- **Streamlit apps**: corren acá (app_carga.py en :8503, app_h4.py en :8502)
+
+### Conexión SQL directa (sin MCP)
+El 112 tiene acceso pyodbc a AMBOS servidores:
+```python
+# Al 111 (producción) — para INSERT y SELECT
+import pyodbc
+conn = pyodbc.connect(
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=192.168.2.111;DATABASE=msgestionC;"
+    "UID=am;PWD=dl;TrustServerCertificate=yes"
+)
+
+# Al 112 local (réplica) — solo SELECT
+conn = pyodbc.connect(
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=192.168.2.112;DATABASE=msgestionC;"
+    "UID=am;PWD=dl;TrustServerCertificate=yes"
+)
+```
+
+### Qué podés hacer directo (sin deploy)
+- Editar app_carga.py, app_h4.py → los cambios se ven al recargar Streamlit
+- Reiniciar Streamlit: buscar el proceso y reiniciar, o pedir al usuario
+- Ejecutar scripts INSERT en el 111 via pyodbc
+- Ejecutar SQL directo en el 111 (CREATE TABLE, INSERT, UPDATE)
+- Correr tests: `py -3 -m pytest tests/`
+
+### Qué NO podés hacer desde el 112
+- Tocar web2py (está en el 111 en `C:\web2py_src\`)
+- Ejecutar scripts que requieren estar en el 111 (usar pyodbc remoto en su lugar)
+
+### Restart Streamlit
+```cmd
+:: Ver procesos Streamlit corriendo
+tasklist | findstr streamlit
+:: O buscar por puerto
+netstat -ano | findstr :8503
+
+:: Reiniciar app_carga
+cd C:\cowork_pedidos
+C:\Users\fer\AppData\Local\Programs\Python\Python314\python.exe -m streamlit run app_carga.py --server.port 8503
+```
+
+### Deploy web2py al 111 (desde el 112)
+Si necesitás actualizar web2py, copiá los archivos via red:
+```cmd
+copy /Y _informes\calzalindo_informes_DEPLOY\*.py \\192.168.2.111\c$\web2py_src\applications\calzalindo_informes\
+```
 
 ---
 
@@ -263,6 +419,14 @@ cowork_pedidos/
 
 | Fecha | Qué se hizo |
 |-------|------------|
+| 26-30 mar | Pedidos folclore (Timmis/Zotz/GO CZL) insertados: 408p $9.89M msgestion01 (#1134086-88) |
+| 26-30 mar | app_reposicion.py: tab Nichos, detector nichos descubiertos, SUBRUBRO_TEMPORADA, EXCL_MARCAS_GASTOS |
+| 26-30 mar | app_reposicion.py: ROI optimizer con horizonte configurable, safety stock Poisson, ABC-XYZ |
+| 26-30 mar | app_reposicion.py: 10 tabs, pgvector sustitutos, curva talle real con escasez crónica |
+| 26-30 mar | Pedidos invierno 2026: 7 proveedores pendientes INSERT (~7,288 pares, ~$63.7M) |
+| 26-30 mar | AUDIT vel_real: 7 gaps documentados, plan sync 4 copias (v3 solo en copy #1) |
+| 26-30 mar | OLK/Olympikus 504 pares calculados, esperando confirmación Cecchini |
+| 23 mar | resolver_talle.py integrado en pipeline (paso2+paso8). aliases_faltantes.sql ejecutado. Mejoras UX app_carga: proveedor auto-detect, selectbox vacío, default NP. Sección Claude Code 112 en CLAUDE.md |
 | 21 mar | Testing automático app_reposicion: 3 suites, 40 tests, runner con reporte |
 | 20 mar | Modelo reposición v2: fix vel_real en dashboard, GMROI, Rotación, curva talles con quiebre |
 | 20 mar | Curva ideal extraída de omicron → app_reposicion (3 funciones) |

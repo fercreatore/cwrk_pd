@@ -14,7 +14,7 @@ Módulo omnicanal: publicación de productos, sincronización de stock/precios, 
 | `canales.py` | Clases base + wrappers API (TN, ML, Meta). Publicación batch con rate limiting |
 | `tiendanube.py` | Cliente API TiendaNube (productos, órdenes, store info) |
 | `precios.py` | Motor de pricing: costo + comisión + margen → precio por canal |
-| `facturador_tn.py` | Órdenes pagadas TN → INSERT ventas2/ventas1 (tipo B). Soporta H4 y ABI |
+| `facturador_tn.py` | Órdenes pagadas TN → POST al POS 109 (NO insert directo). SQLite anti-duplicados + log errores |
 | `facturador_ml.py` | Ventas ML → INSERT ventas2/ventas1 (tipo B). Dedup con SQLite |
 | `sync_stock.py` | Stock ERP → TiendaNube (depósitos 0+1) |
 | `sync_stock_ml.py` | Stock ERP → MercadoLibre (multiget API) |
@@ -26,6 +26,7 @@ Módulo omnicanal: publicación de productos, sincronización de stock/precios, 
 | `watcher_estado_web.py` | Publica automáticamente en TN artículos con estado_web='A' |
 | `whatsapp_catalogo.py` | Envío de catálogo por WhatsApp (Meta Cloud API + Chatwoot) |
 | `publicar_freelance.py` | Genera mensajes WA para vendedores freelance (foto+precio+link) |
+| `pg_productos.py` | Queries a PostgreSQL `clz_productos`: stock por depósito, precios (precio + precio_oferta), variantes. Usado por sync_stock y sync_precios como fuente PG |
 | `publicaciones.db` | SQLite: registro de publicaciones en TN (watcher) |
 
 ---
@@ -48,8 +49,23 @@ python -m multicanal.facturador_tn --dry-run
 # Solo ABI/CALZALINDO
 python -m multicanal.facturador_tn --dry-run --empresa ABI
 
-# Sync stock TN
+# Sync stock (PG default, depósitos 0+1)
 python -m multicanal.sync_stock --dry-run
+
+# Sync stock con depósitos específicos
+python -m multicanal.sync_stock --dry-run --depositos 0,1,2,6,7,8
+
+# Sync stock desde ERP (fallback)
+python -m multicanal.sync_stock --dry-run --fuente erp
+
+# Despublicar producto de TN
+python -m multicanal.sync_stock --despublicar 12345678
+
+# Sync precios (PG default, incluye precio_oferta)
+python -m multicanal.sync_precios --dry-run
+
+# Sync precios desde ERP
+python -m multicanal.sync_precios --dry-run --fuente erp
 
 # Refresh token ML
 python -m multicanal.refresh_token_ml
@@ -70,6 +86,33 @@ python -m multicanal.whatsapp_catalogo --csr 272220004835 --telefono 54934626723
 python -m multicanal.publicar_freelance --csr 272220004835
 python -m multicanal.publicar_freelance --csr 272220004835 --enviar 5493462672330
 ```
+
+---
+
+## Fuentes de datos
+
+### PostgreSQL clz_productos (default)
+Fuente principal para sync stock y precios. Base `clz_productos` en 200.58.109.125:5432.
+- Stock: tabla `producto_variante_stock` (por depósito parametrizable)
+- Precios: tabla `producto_variantes` (precio + precio_oferta)
+- Conexión: via `PG_CONN_STRING` importado de `imagenes.py`
+- Ventaja: misma fuente que calzalindo-admin y clz-bot, evita pisarse
+
+### ERP SQL Server (fallback)
+Fuente original, sigue disponible con `--fuente erp`.
+- Stock: `msgestionC.dbo.stock` depósitos 0+1
+- Precios: `msgestion01art.dbo.articulo.precio_costo` + `precios.py`
+- Conexión: pyodbc a 192.168.2.111
+
+---
+
+## Tracking de publicaciones
+
+SQLite `publicaciones.db` tabla `tn_sync`:
+- Registra qué productos se publicaron a TN
+- Guarda variant_map (mapeo local→TN)
+- Timestamps de último sync stock/precio
+- Tag `sync:cowork` para identificar origen
 
 ---
 
@@ -118,7 +161,7 @@ https://n8n.calzalindo.com.ar/imagenes/{path_relativo}/{archivo_final}
 
 ## AUTH HEADERS
 
-- **TiendaNube**: Header `Authentication: bearer {token}` (NO `Authorization`) — verificado 2026-03-20
+- **TiendaNube**: Header `Authentication: bearer {token}` (NO `Authorization` — TN usa header no estándar, verificado con curl 2026-03-24)
 - **MercadoLibre**: Header `Authorization: Bearer {token}` (estándar OAuth2)
 - **Meta**: Header `Authorization: Bearer {token}` (estándar OAuth2)
 

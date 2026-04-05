@@ -1,13 +1,19 @@
 """
-Sincronización de precios ERP → TiendaNube.
+Sincronización de precios → TiendaNube.
 
-Lee productos de TN, busca el costo en el ERP por codigo_sinonimo,
-calcula el precio correcto según las reglas del canal TN y actualiza
-donde haya diferencia.
+Dos fuentes posibles:
+  - pg (default): PostgreSQL clz_productos — precio final + precio_oferta
+  - erp: SQL Server ERP — costo + cálculo de precio por regla de canal
+
+Lee productos de TN con sus variantes y SKUs, obtiene el precio
+de la fuente seleccionada y actualiza donde haya diferencia.
 
 USO:
-    # Dry run (solo muestra cambios sin aplicar)
+    # Dry run desde PostgreSQL (default)
     python -m multicanal.sync_precios --dry-run
+
+    # Dry run desde ERP (SQL Server)
+    python -m multicanal.sync_precios --dry-run --fuente erp
 
     # Ejecutar sync real
     python -m multicanal.sync_precios
@@ -17,7 +23,7 @@ USO:
 
     # Desde código
     from multicanal.sync_precios import sincronizar_precios
-    reporte = sincronizar_precios(dry_run=True)
+    reporte = sincronizar_precios(dry_run=True, fuente='pg')
 """
 
 import pyodbc
@@ -30,6 +36,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from multicanal.tiendanube import TiendaNubeClient, cargar_config
 from multicanal.precios import calcular_precio_canal, cargar_reglas, REGLAS_DEFAULT
 from multicanal.sync_stock import obtener_productos_tn
+
+try:
+    from multicanal.pg_productos import obtener_precios_pg, actualizar_timestamp_sync
+except ImportError:
+    from pg_productos import obtener_precios_pg, actualizar_timestamp_sync
 
 
 # ── Conexión ERP ──
@@ -88,7 +99,7 @@ def obtener_costos_erp(conn, codigos_sinonimo: list, cotiz_usd: float = 1170.0) 
 
 
 def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0,
-                        cotiz_usd: float = 1170.0) -> dict:
+                        cotiz_usd: float = 1170.0, fuente: str = 'pg') -> dict:
     """
     Flujo principal de sincronización de precios.
 
@@ -100,20 +111,24 @@ def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0,
     Args:
         dry_run: Si True, solo muestra cambios sin aplicar.
         tolerancia_pct: Porcentaje mínimo de diferencia para actualizar (default 2%).
+        fuente: 'pg' usa PostgreSQL clz_productos, 'erp' usa SQL Server directo.
     """
     modo = "DRY RUN" if dry_run else "SYNC REAL"
+    fuente_label = "PostgreSQL clz_productos" if fuente == 'pg' else "ERP SQL Server"
     print(f"\n{'='*60}")
-    print(f"  SYNC PRECIOS ERP → TiendaNube [{modo}]")
+    print(f"  SYNC PRECIOS → TiendaNube [{modo}]")
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"  Fuente: {fuente_label}")
     print(f"  Tolerancia: {tolerancia_pct}%")
-    print(f"  Cotización USD: ${cotiz_usd:,.0f}")
+    if fuente == 'erp':
+        print(f"  Cotización USD: ${cotiz_usd:,.0f}")
     print(f"{'='*60}\n")
 
     # --- Cargar regla de pricing para TN ---
     reglas = cargar_reglas(REGLAS_FILE)
-    regla_tn = reglas.get('tiendanube')
+    regla_tn = reglas.get('tiendanube_pagonube') or reglas.get('tiendanube')
     if not regla_tn:
-        regla_tn = REGLAS_DEFAULT.get('tiendanube')
+        regla_tn = REGLAS_DEFAULT.get('tiendanube_pagonube')
     if not regla_tn:
         print("ERROR: No hay regla de pricing para tiendanube.")
         return {'error': 'Sin regla tiendanube'}
@@ -168,78 +183,156 @@ def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0,
             'errores': [],
         }
 
-    # --- 3. Obtener costos del ERP ---
-    print("[3/4] Consultando costos en ERP...")
-    conn = conectar_erp()
-    try:
-        costos_erp = obtener_costos_erp(conn, skus_unicos, cotiz_usd=cotiz_usd)
-    finally:
-        conn.close()
-
-    print(f"       {len(costos_erp)} SKUs con costo en ERP")
-    no_encontrados = [s for s in skus_unicos if s not in costos_erp]
-    if no_encontrados:
-        print(f"       {len(no_encontrados)} SKUs sin costo en ERP:")
-        for s in no_encontrados[:10]:
-            print(f"         - {s}")
-        if len(no_encontrados) > 10:
-            print(f"         ... y {len(no_encontrados) - 10} más")
-    print()
-
-    # --- 4. Comparar y actualizar ---
-    print(f"[4/4] Comparando precios y {'mostrando cambios' if dry_run else 'actualizando TN'}...")
+    # --- 3. Obtener precios según fuente ---
     actualizados = []
     errores = []
     sin_cambio = 0
 
-    for product_id, variant_id, sku, nombre, precio_tn in variantes:
-        if sku not in costos_erp:
-            continue
+    if fuente == 'pg':
+        # ── Fuente PostgreSQL ──
+        print("[3/4] Consultando precios en PostgreSQL clz_productos...")
+        precios_pg = obtener_precios_pg(skus_unicos)
+        print(f"       {len(precios_pg)} SKUs con precio en PostgreSQL")
+        no_encontrados = [s for s in skus_unicos if s not in precios_pg]
+        if no_encontrados:
+            print(f"       {len(no_encontrados)} SKUs sin precio en PostgreSQL:")
+            for s in no_encontrados[:10]:
+                print(f"         - {s}")
+            if len(no_encontrados) > 10:
+                print(f"         ... y {len(no_encontrados) - 10} más")
+        print()
 
-        costo = costos_erp[sku]
-        resultado = calcular_precio_canal(costo, regla_tn)
-        if 'error' in resultado:
-            continue
+        # --- 4. Comparar y actualizar (fuente PG) ---
+        print(f"[4/4] Comparando precios y {'mostrando cambios' if dry_run else 'actualizando TN'}...")
 
-        precio_correcto = resultado['precio_venta']
+        for product_id, variant_id, sku, nombre, precio_tn in variantes:
+            if sku not in precios_pg:
+                continue
 
-        # Verificar si la diferencia supera la tolerancia
-        if precio_tn > 0:
-            diff_pct = abs(precio_correcto - precio_tn) / precio_tn * 100
-        else:
-            diff_pct = 100.0
+            precio_correcto = precios_pg[sku]['precio']
+            precio_oferta = precios_pg[sku].get('precio_oferta')
 
-        if diff_pct <= tolerancia_pct:
-            sin_cambio += 1
-            continue
+            # Verificar si la diferencia supera la tolerancia
+            if precio_tn > 0:
+                diff_pct = abs(precio_correcto - precio_tn) / precio_tn * 100
+            else:
+                diff_pct = 100.0
 
-        cambio = {
-            'product_id': product_id,
-            'variant_id': variant_id,
-            'sku': sku,
-            'nombre': nombre,
-            'costo_erp': costo,
-            'precio_tn_anterior': precio_tn,
-            'precio_correcto': precio_correcto,
-            'diferencia_pct': round(diff_pct, 1),
-            'margen_real': resultado['margen_real'],
-        }
+            if diff_pct <= tolerancia_pct:
+                sin_cambio += 1
+                continue
 
-        if dry_run:
-            direccion = "↑" if precio_correcto > precio_tn else "↓"
-            print(f"  [DRY] {sku:20s} | {nombre[:25]:25s} | "
-                  f"${precio_tn:>10,.0f} {direccion} ${precio_correcto:>10,.0f} "
-                  f"({diff_pct:+.1f}%) | margen {resultado['margen_real']}%")
-            actualizados.append(cambio)
-        else:
-            try:
-                client.actualizar_variante(product_id, variant_id, precio=precio_correcto)
-                print(f"  [OK]  {sku:20s} | ${precio_tn:,.0f} → ${precio_correcto:,.0f}")
+            cambio = {
+                'product_id': product_id,
+                'variant_id': variant_id,
+                'sku': sku,
+                'nombre': nombre,
+                'precio_tn_anterior': precio_tn,
+                'precio_correcto': precio_correcto,
+                'precio_oferta': precio_oferta,
+                'diferencia_pct': round(diff_pct, 1),
+            }
+
+            if dry_run:
+                direccion = "↑" if precio_correcto > precio_tn else "↓"
+                oferta_str = f" (oferta ${precio_oferta:,.0f})" if precio_oferta else ""
+                print(f"  [DRY] {sku:20s} | {nombre[:25]:25s} | "
+                      f"${precio_tn:>10,.0f} {direccion} ${precio_correcto:>10,.0f} "
+                      f"({diff_pct:+.1f}%){oferta_str}")
                 actualizados.append(cambio)
-            except Exception as e:
-                error_msg = f"Error actualizando precio {sku}: {e}"
-                print(f"  [ERR] {error_msg}")
-                errores.append(error_msg)
+            else:
+                try:
+                    client.actualizar_variante(
+                        product_id, variant_id,
+                        precio=precio_correcto,
+                        precio_oferta=precio_oferta,
+                    )
+                    oferta_str = f" (oferta ${precio_oferta:,.0f})" if precio_oferta else ""
+                    print(f"  [OK]  {sku:20s} | ${precio_tn:,.0f} → ${precio_correcto:,.0f}{oferta_str}")
+                    actualizados.append(cambio)
+                    try:
+                        actualizar_timestamp_sync(sku[:10], tipo='precio')
+                    except Exception:
+                        pass
+                except Exception as e:
+                    error_msg = f"Error actualizando precio {sku}: {e}"
+                    print(f"  [ERR] {error_msg}")
+                    errores.append(error_msg)
+
+        skus_con_precio = len(precios_pg)
+
+    else:
+        # ── Fuente ERP (SQL Server) — comportamiento original ──
+        print("[3/4] Consultando costos en ERP...")
+        conn = conectar_erp()
+        try:
+            costos_erp = obtener_costos_erp(conn, skus_unicos, cotiz_usd=cotiz_usd)
+        finally:
+            conn.close()
+
+        print(f"       {len(costos_erp)} SKUs con costo en ERP")
+        no_encontrados = [s for s in skus_unicos if s not in costos_erp]
+        if no_encontrados:
+            print(f"       {len(no_encontrados)} SKUs sin costo en ERP:")
+            for s in no_encontrados[:10]:
+                print(f"         - {s}")
+            if len(no_encontrados) > 10:
+                print(f"         ... y {len(no_encontrados) - 10} más")
+        print()
+
+        # --- 4. Comparar y actualizar (fuente ERP) ---
+        print(f"[4/4] Comparando precios y {'mostrando cambios' if dry_run else 'actualizando TN'}...")
+
+        for product_id, variant_id, sku, nombre, precio_tn in variantes:
+            if sku not in costos_erp:
+                continue
+
+            costo = costos_erp[sku]
+            resultado = calcular_precio_canal(costo, regla_tn)
+            if 'error' in resultado:
+                continue
+
+            precio_correcto = resultado['precio_venta']
+
+            # Verificar si la diferencia supera la tolerancia
+            if precio_tn > 0:
+                diff_pct = abs(precio_correcto - precio_tn) / precio_tn * 100
+            else:
+                diff_pct = 100.0
+
+            if diff_pct <= tolerancia_pct:
+                sin_cambio += 1
+                continue
+
+            cambio = {
+                'product_id': product_id,
+                'variant_id': variant_id,
+                'sku': sku,
+                'nombre': nombre,
+                'costo_erp': costo,
+                'precio_tn_anterior': precio_tn,
+                'precio_correcto': precio_correcto,
+                'diferencia_pct': round(diff_pct, 1),
+                'margen_real': resultado['margen_real'],
+            }
+
+            if dry_run:
+                direccion = "↑" if precio_correcto > precio_tn else "↓"
+                print(f"  [DRY] {sku:20s} | {nombre[:25]:25s} | "
+                      f"${precio_tn:>10,.0f} {direccion} ${precio_correcto:>10,.0f} "
+                      f"({diff_pct:+.1f}%) | margen {resultado['margen_real']}%")
+                actualizados.append(cambio)
+            else:
+                try:
+                    client.actualizar_variante(product_id, variant_id, precio=precio_correcto)
+                    print(f"  [OK]  {sku:20s} | ${precio_tn:,.0f} → ${precio_correcto:,.0f}")
+                    actualizados.append(cambio)
+                except Exception as e:
+                    error_msg = f"Error actualizando precio {sku}: {e}"
+                    print(f"  [ERR] {error_msg}")
+                    errores.append(error_msg)
+
+        skus_con_precio = len(costos_erp)
 
     # --- Resumen ---
     print(f"\n{'='*60}")
@@ -247,7 +340,7 @@ def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0,
     print(f"{'='*60}")
     print(f"  Productos TN:         {len(productos)}")
     print(f"  Variantes con SKU:    {len(variantes)}")
-    print(f"  SKUs con costo ERP:   {len(costos_erp)}")
+    print(f"  SKUs con precio:      {skus_con_precio}")
     print(f"  Dentro de tolerancia: {sin_cambio}")
     print(f"  Actualizados:         {len(actualizados)}")
     if errores:
@@ -264,7 +357,7 @@ def sincronizar_precios(dry_run: bool = True, tolerancia_pct: float = 2.0,
     return {
         'total_productos': len(productos),
         'total_variantes': len(variantes),
-        'skus_con_costo': len(costos_erp),
+        'skus_con_precio': skus_con_precio,
         'sin_cambio': sin_cambio,
         'actualizados': actualizados,
         'errores': errores,
@@ -280,10 +373,12 @@ if __name__ == '__main__':
                         help='Porcentaje mínimo de diferencia para actualizar (default: 2%%)')
     parser.add_argument('--cotiz-usd', type=float, default=1170.0,
                         help='Cotización USD para artículos importados (default: 1170)')
+    parser.add_argument('--fuente', choices=['pg', 'erp'], default='pg',
+                        help='Fuente de precios: pg (PostgreSQL) o erp (SQL Server)')
     args = parser.parse_args()
 
     reporte = sincronizar_precios(dry_run=args.dry_run, tolerancia_pct=args.tolerancia,
-                                  cotiz_usd=args.cotiz_usd)
+                                  cotiz_usd=args.cotiz_usd, fuente=args.fuente)
 
     if reporte.get('error'):
         sys.exit(1)
