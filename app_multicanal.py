@@ -135,12 +135,15 @@ if pagina == '🏠 Dashboard':
         df = pd.DataFrame([
             {
                 'Canal': r['canal_descripcion'],
-                'Precio venta': f"${r['precio_venta']:,.0f}",
-                'Margen real': f"{r['margen_real']}%",
-                'Ganancia $': f"${r['ganancia_neta']:,.0f}",
-                'Comisión plat.': f"${r['comision_plataforma']:,.0f}",
-                'Comisión pago': f"${r['comision_pago']:,.0f}",
-                'Ingreso neto': f"${r['ingreso_neto']:,.0f}",
+                'PVP c/IVA': f"${r['precio_venta']:,.0f}",
+                'P.Neto': f"${r['precio_neto']:,.0f}",
+                'Margen': f"{r['margen_real']}%",
+                'En mano': f"{r['margen_en_mano']}%",
+                'Ganancia': f"${r['ganancia_neta']:,.0f}",
+                'Comisiones': f"${r['comision_plataforma'] + r['comision_pago']:,.0f}",
+                'IVA s/com.': f"${r['iva_sobre_comisiones']:,.0f}",
+                'Envío': f"${r['costo_envio']:,.0f}",
+                'Retenciones': f"${r['retenciones']:,.0f}",
             }
             for r in resultados.values()
             if 'error' not in r
@@ -173,9 +176,10 @@ elif pagina == '📊 Análisis ML':
                 COUNT(DISTINCT CAST(v2.numero AS VARCHAR) + '-' + CAST(v2.sucursal AS VARCHAR)) as facturas,
                 SUM(v1.cantidad) as pares,
                 SUM(v1.total_item) as facturacion,
+                SUM(v1.total_item / 1.21) as facturacion_neta,
                 SUM(v1.cantidad * ({costo_pesos})) as costo_total,
                 CASE WHEN SUM(v1.total_item) > 0
-                    THEN ROUND((SUM(v1.total_item) - SUM(v1.cantidad * ({costo_pesos}))) / SUM(v1.total_item) * 100, 1)
+                    THEN ROUND((SUM(v1.total_item / 1.21) - SUM(v1.cantidad * ({costo_pesos}))) / SUM(v1.total_item / 1.21) * 100, 1)
                     ELSE 0 END as margen_bruto_pct
             FROM msgestion03.dbo.ventas2 v2
             JOIN msgestion03.dbo.ventas1 v1
@@ -200,9 +204,10 @@ elif pagina == '📊 Análisis ML':
 
             # KPIs
             total_fact = df_mensual['facturacion'].sum()
+            total_fact_neto = df_mensual['facturacion_neta'].sum()
             total_pares = df_mensual['pares'].sum()
             total_costo = df_mensual['costo_total'].sum()
-            margen_global = round((total_fact - total_costo) / total_fact * 100, 1) if total_fact > 0 else 0
+            margen_global = round((total_fact_neto - total_costo) / total_fact_neto * 100, 1) if total_fact_neto > 0 else 0
 
             c1, c2, c3, c4 = st.columns(4)
             c1.metric('Facturación total', f"${total_fact:,.0f}")
@@ -215,7 +220,7 @@ elif pagina == '📊 Análisis ML':
             # Tabla mensual
             st.subheader('Evolución mensual')
             df_show = df_mensual.copy()
-            df_show.columns = ['Mes', 'Facturas', 'Pares', 'Facturación', 'Costo', 'Margen bruto %', 'Margen neto ML %', 'Ticket prom']
+            df_show.columns = ['Mes', 'Facturas', 'Pares', 'Facturación', 'Fact. Neta', 'Costo', 'Margen bruto %', 'Margen neto ML %', 'Ticket prom']
             st.dataframe(df_show, use_container_width=True, hide_index=True)
 
             # Gráficos
@@ -238,16 +243,16 @@ elif pagina == '📊 Análisis ML':
                 SELECT
                     CASE
                         WHEN ({costo_pesos}) <= 100 THEN '1. SIN COSTO'
-                        WHEN v1.precio / ({costo_pesos}) < 1.5 THEN '2. BAJO (<1.5x)'
-                        WHEN v1.precio / ({costo_pesos}) < 2.0 THEN '3. AJUSTADO (1.5-2x)'
-                        WHEN v1.precio / ({costo_pesos}) < 2.5 THEN '4. NORMAL (2-2.5x)'
-                        WHEN v1.precio / ({costo_pesos}) < 3.0 THEN '5. BUENO (2.5-3x)'
+                        WHEN (v1.precio / 1.21) / ({costo_pesos}) < 1.5 THEN '2. BAJO (<1.5x)'
+                        WHEN (v1.precio / 1.21) / ({costo_pesos}) < 2.0 THEN '3. AJUSTADO (1.5-2x)'
+                        WHEN (v1.precio / 1.21) / ({costo_pesos}) < 2.5 THEN '4. NORMAL (2-2.5x)'
+                        WHEN (v1.precio / 1.21) / ({costo_pesos}) < 3.0 THEN '5. BUENO (2.5-3x)'
                         ELSE '6. ALTO (3x+)'
                     END as rango,
                     COUNT(*) as ventas,
                     SUM(v1.cantidad) as pares,
                     SUM(v1.total_item) as facturacion,
-                    ROUND(AVG(v1.precio), 0) as pvta_prom,
+                    ROUND(AVG(v1.precio / 1.21), 0) as pvta_neto_prom,
                     ROUND(AVG({costo_pesos}), 0) as costo_prom
                 FROM msgestion03.dbo.ventas2 v2
                 JOIN msgestion03.dbo.ventas1 v1
@@ -258,10 +263,10 @@ elif pagina == '📊 Análisis ML':
                 AND v1.operacion = '+' AND a.precio_costo > 0
                 GROUP BY CASE
                     WHEN ({costo_pesos}) <= 100 THEN '1. SIN COSTO'
-                    WHEN v1.precio / ({costo_pesos}) < 1.5 THEN '2. BAJO (<1.5x)'
-                    WHEN v1.precio / ({costo_pesos}) < 2.0 THEN '3. AJUSTADO (1.5-2x)'
-                    WHEN v1.precio / ({costo_pesos}) < 2.5 THEN '4. NORMAL (2-2.5x)'
-                    WHEN v1.precio / ({costo_pesos}) < 3.0 THEN '5. BUENO (2.5-3x)'
+                    WHEN (v1.precio / 1.21) / ({costo_pesos}) < 1.5 THEN '2. BAJO (<1.5x)'
+                    WHEN (v1.precio / 1.21) / ({costo_pesos}) < 2.0 THEN '3. AJUSTADO (1.5-2x)'
+                    WHEN (v1.precio / 1.21) / ({costo_pesos}) < 2.5 THEN '4. NORMAL (2-2.5x)'
+                    WHEN (v1.precio / 1.21) / ({costo_pesos}) < 3.0 THEN '5. BUENO (2.5-3x)'
                     ELSE '6. ALTO (3x+)'
                 END
                 ORDER BY rango
@@ -271,18 +276,75 @@ elif pagina == '📊 Análisis ML':
                 df_markup.columns = ['Rango', 'Ventas', 'Pares', 'Facturación', 'Pvta prom', 'Costo prom']
                 st.dataframe(df_markup, use_container_width=True, hide_index=True)
 
-                # Alerta de sin costo
+                # Alerta de sin costo — con detalle expandible
                 sin_costo = df_markup[df_markup['Rango'] == '1. SIN COSTO']
                 if not sin_costo.empty:
-                    st.warning(f"**{int(sin_costo.iloc[0]['Pares'])} pares** vendidos SIN COSTO REAL cargado "
-                               f"(${sin_costo.iloc[0]['Facturación']:,.0f} facturados). Actualizar precio_costo en el ERP.")
+                    pares_sc = int(sin_costo.iloc[0]['Pares'])
+                    fact_sc = sin_costo.iloc[0]['Facturación']
+                    with st.expander(f"**{pares_sc} pares** vendidos SIN COSTO REAL (${fact_sc:,.0f} facturados) — click para ver detalle", expanded=False):
+                        try:
+                            sql_sin_costo = f"""
+                                SELECT
+                                    v1.articulo as codigo,
+                                    a.descripcion_1 as descripcion,
+                                    SUM(v1.cantidad) as pares,
+                                    SUM(v1.total_item) as facturacion,
+                                    ROUND(AVG(v1.precio), 0) as pvta_prom,
+                                    ROUND(AVG({costo_pesos}), 0) as costo_cargado
+                                FROM msgestion03.dbo.ventas2 v2
+                                JOIN msgestion03.dbo.ventas1 v1
+                                    ON v1.numero = v2.numero AND v1.codigo = v2.codigo AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+                                LEFT JOIN msgestion01art.dbo.articulo a ON a.codigo = v1.articulo
+                                WHERE v2.codigo NOT IN (7, 36) AND v1.deposito = 1
+                                AND v2.fecha_comprobante >= DATEADD(MONTH, -{meses_atras}, GETDATE())
+                                AND v1.operacion = '+'
+                                AND ({costo_pesos}) <= 100
+                                GROUP BY v1.articulo, a.descripcion_1
+                                ORDER BY SUM(v1.total_item) DESC
+                            """
+                            df_sc = pd.read_sql(sql_sin_costo, conn)
+                            df_sc.columns = ['Código', 'Descripción', 'Pares', 'Facturación', 'Pvta prom', 'Costo cargado']
+                            st.dataframe(df_sc, use_container_width=True, hide_index=True)
+                            st.caption("Estos artículos tienen precio_costo = 0 o muy bajo en el ERP. Actualizar para calcular rentabilidad real.")
+                        except Exception as e:
+                            st.error(f"Error cargando detalle sin costo: {e}")
 
                 bajo = df_markup[df_markup['Rango'].isin(['2. BAJO (<1.5x)', '3. AJUSTADO (1.5-2x)'])]
                 if not bajo.empty:
                     pares_bajo = int(bajo['Pares'].sum())
                     fact_bajo = bajo['Facturación'].sum()
-                    st.warning(f"**{pares_bajo} pares** con markup < 2x (${fact_bajo:,.0f}). "
-                               f"Margen neto ML < 34%. Revisar precios.")
+                    with st.expander(f"**{pares_bajo} pares** con markup < 2x (${fact_bajo:,.0f}) — click para ver detalle", expanded=False):
+                        try:
+                            sql_bajo_markup = f"""
+                                SELECT
+                                    v1.articulo as codigo,
+                                    a.descripcion_1 as descripcion,
+                                    SUM(v1.cantidad) as pares,
+                                    SUM(v1.total_item) as facturacion,
+                                    ROUND(AVG(v1.precio / 1.21), 0) as pvta_neto,
+                                    ROUND(AVG({costo_pesos}), 0) as costo,
+                                    ROUND(AVG(v1.precio / 1.21) / NULLIF(AVG({costo_pesos}), 0), 2) as markup_x,
+                                    CASE WHEN AVG(v1.precio / 1.21) > 0
+                                        THEN ROUND((AVG(v1.precio / 1.21) - AVG({costo_pesos})) / AVG(v1.precio / 1.21) * 100, 1)
+                                        ELSE 0 END as margen_pct
+                                FROM msgestion03.dbo.ventas2 v2
+                                JOIN msgestion03.dbo.ventas1 v1
+                                    ON v1.numero = v2.numero AND v1.codigo = v2.codigo AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+                                LEFT JOIN msgestion01art.dbo.articulo a ON a.codigo = v1.articulo
+                                WHERE v2.codigo NOT IN (7, 36) AND v1.deposito = 1
+                                AND v2.fecha_comprobante >= DATEADD(MONTH, -{meses_atras}, GETDATE())
+                                AND v1.operacion = '+' AND ({costo_pesos}) > 100
+                                AND (v1.precio / 1.21) / ({costo_pesos}) < 2.0
+                                GROUP BY v1.articulo, a.descripcion_1
+                                HAVING SUM(v1.cantidad) >= 1
+                                ORDER BY SUM(v1.total_item) DESC
+                            """
+                            df_bajo = pd.read_sql(sql_bajo_markup, conn)
+                            df_bajo.columns = ['Código', 'Descripción', 'Pares', 'Facturación', 'Pvta neto', 'Costo', 'Markup x', 'Margen %']
+                            st.dataframe(df_bajo, use_container_width=True, hide_index=True)
+                            st.caption("Ordenados por facturación (mayor impacto primero). Markup < 2x = margen neto ML probablemente negativo después de comisiones.")
+                        except Exception as e:
+                            st.error(f"Error cargando detalle bajo markup: {e}")
             except Exception as e:
                 st.error(f"Error markup: {e}")
 
@@ -300,13 +362,13 @@ elif pagina == '📊 Análisis ML':
                     SUM(v1.total_item) as facturacion,
                     ROUND(AVG(v1.precio), 0) as pvta,
                     ROUND(AVG({costo_pesos}), 0) as costo,
-                    CASE WHEN AVG(v1.precio) > 0
-                        THEN ROUND((AVG(v1.precio) - AVG({costo_pesos})) / AVG(v1.precio) * 100, 1)
+                    CASE WHEN AVG(v1.precio / 1.21) > 0
+                        THEN ROUND((AVG(v1.precio / 1.21) - AVG({costo_pesos})) / AVG(v1.precio / 1.21) * 100, 1)
                         ELSE 0 END as margen_bruto,
-                    CASE WHEN AVG(v1.precio) > 0
-                        THEN ROUND((AVG(v1.precio) - AVG({costo_pesos})) / AVG(v1.precio) * 100 - {comision_ml*100}, 1)
+                    CASE WHEN AVG(v1.precio / 1.21) > 0
+                        THEN ROUND((AVG(v1.precio / 1.21) - AVG({costo_pesos})) / AVG(v1.precio / 1.21) * 100 - {comision_ml*100}, 1)
                         ELSE 0 END as margen_neto_ml,
-                    ROUND(AVG(v1.precio) / NULLIF(AVG({costo_pesos}), 0), 2) as markup_x
+                    ROUND(AVG(v1.precio / 1.21) / NULLIF(AVG({costo_pesos}), 0), 2) as markup_x
                 FROM msgestion03.dbo.ventas2 v2
                 JOIN msgestion03.dbo.ventas1 v1
                     ON v1.numero = v2.numero AND v1.codigo = v2.codigo AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
@@ -546,7 +608,7 @@ elif pagina == '🛒 Tienda Nube':
 
                                 # Calcular precio TN
                                 from multicanal.precios import calcular_precio_canal, REGLAS_DEFAULT
-                                regla_tn = st.session_state.reglas.get('tiendanube', REGLAS_DEFAULT.get('tiendanube'))
+                                regla_tn = st.session_state.reglas.get('tiendanube_pagonube') or st.session_state.reglas.get('tiendanube') or REGLAS_DEFAULT.get('tiendanube_pagonube')
                                 precio_calc = calcular_precio_canal(costo, regla_tn)
                                 precio_sugerido = precio_calc.get('precio_venta', 0)
 
@@ -709,7 +771,7 @@ elif pagina == '🔄 Sincronización':
                 with st.spinner('Sincronizando stock...'):
                     try:
                         from multicanal.sync_stock import sincronizar_stock
-                        reporte = sincronizar_stock(dry_run=dry_run_mode)
+                        reporte = sincronizar_stock(dry_run=dry_run_mode, fuente='erp')
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
@@ -815,7 +877,7 @@ elif pagina == '🔄 Sincronización':
                     try:
                         from multicanal.sync_precios import sincronizar_precios
                         reporte = sincronizar_precios(dry_run=dry_run_mode, tolerancia_pct=tolerancia,
-                                                      cotiz_usd=cotiz_usd_sync)
+                                                      cotiz_usd=cotiz_usd_sync, fuente='erp')
                         if reporte.get('error'):
                             st.error(reporte['error'])
                         else:
@@ -859,21 +921,36 @@ elif pagina == '🔄 Sincronización':
 
         with tab_facturar:
             st.subheader('Facturar órdenes TiendaNube → ERP')
-            st.markdown('Procesa órdenes pagadas de TN e inserta factura B + descuento de stock en el ERP.')
-            col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
-            with col_cfg1:
-                dias_facturar = st.slider('Últimos N días', 1, 30, 7, key='dias_fact')
-            with col_cfg2:
+            st.markdown('Procesa órdenes pagadas de TN y las envía al POS 109 para registrar la venta y descontar stock en el ERP.')
+
+            # ── Filtros Tier 1 ──
+            col_f1, col_f2, col_f3 = st.columns(3)
+            with col_f1:
+                dias_facturar = st.slider('Últimos N días', 1, 60, 7, key='dias_fact')
+            with col_f2:
                 empresa_tn = st.selectbox('Empresa destino', ['H4', 'ABI'], index=0, key='empresa_tn',
                                           help='H4 → msgestion03 | ABI → msgestion01 (CALZALINDO)')
-            with col_cfg3:
-                modo_facturar = st.selectbox('Modo', ['Directo ERP', 'POS 109'], index=0, key='modo_fact',
-                                              help='Directo: INSERT en ventas2/ventas1. POS 109: vía endpoint Luciano.')
+            with col_f3:
+                modo_facturar = st.selectbox('Modo', ['POS 109', 'Directo ERP'], index=0, key='modo_fact',
+                                              help='POS 109: envía al endpoint del 109 (recomendado).')
 
-            # ── Vista previa: órdenes pendientes de facturar ──
+            # ── Filtros Tier 2 (avanzados) ──
+            with st.expander('Filtros avanzados'):
+                col_fa1, col_fa2, col_fa3, col_fa4 = st.columns(4)
+                with col_fa1:
+                    filtro_estado = st.selectbox('Estado', ['Pendientes', 'Ya facturadas', 'Todas'], key='filtro_estado_tn')
+                with col_fa2:
+                    filtro_monto_min = st.number_input('Monto mínimo $', value=0, step=1000, key='filtro_monto_min')
+                with col_fa3:
+                    filtro_monto_max = st.number_input('Monto máximo $', value=0, step=1000, key='filtro_monto_max',
+                                                        help='0 = sin límite')
+                with col_fa4:
+                    filtro_buscar = st.text_input('Buscar (cliente, SKU, #orden)', key='filtro_buscar_tn',
+                                                   placeholder='ej: Rodolfo, 668296...')
+
+            # ── Cargar órdenes ──
             @st.cache_data(ttl=60, show_spinner='Consultando TiendaNube...')
             def _cargar_ordenes_pendientes(_dias):
-                """Trae órdenes pagadas y separa pendientes vs ya procesadas."""
                 from multicanal.tiendanube import TiendaNubeClient, cargar_config as tn_cargar_cfg
                 from multicanal.facturador_tn import (
                     orden_ya_procesada, buscar_articulos_por_sku, conectar_erp_art,
@@ -888,7 +965,6 @@ elif pagina == '🔄 Sincronización':
                 fecha_min = (datetime.now() - timedelta(days=_dias)).strftime('%Y-%m-%d')
                 ordenes = client.listar_todas_ordenes(payment_status='paid', created_at_min=fecha_min)
 
-                # Mapear SKUs
                 todos_skus = set()
                 for o in ordenes:
                     for item in o.get('products', []):
@@ -913,6 +989,8 @@ elif pagina == '🔄 Sincronización':
                     nombre = (customer.get('name') or '').strip()
                     productos = o.get('products', [])
                     items_detalle = []
+                    skus_ok = 0
+                    skus_fail = 0
                     total = 0
                     for item in productos:
                         sku = (item.get('sku') or '').strip()
@@ -920,6 +998,10 @@ elif pagina == '🔄 Sincronización':
                         precio = float(item.get('price', 0))
                         nombre_prod = (item.get('name') or '').strip()
                         en_erp = sku in articulos_erp
+                        if en_erp:
+                            skus_ok += 1
+                        else:
+                            skus_fail += 1
                         items_detalle.append({
                             'sku': sku or '(sin SKU)',
                             'producto': nombre_prod[:40],
@@ -930,6 +1012,14 @@ elif pagina == '🔄 Sincronización':
                         })
                         total += precio * cant
 
+                    # Validación: ¿se puede facturar?
+                    facturable = skus_ok > 0  # al menos 1 producto matchea en ERP
+                    problema = ''
+                    if skus_fail > 0 and skus_ok == 0:
+                        problema = 'Sin SKUs en ERP'
+                    elif skus_fail > 0:
+                        problema = f'{skus_fail} SKU(s) sin match'
+
                     resultado.append({
                         'order_id': o['id'],
                         'numero': o.get('number', o['id']),
@@ -938,10 +1028,14 @@ elif pagina == '🔄 Sincronización':
                         'email': (customer.get('email') or ''),
                         'total': round(total, 2),
                         'items': len(productos),
+                        'pares': sum(i['cantidad'] for i in items_detalle),
                         'estado_pago': o.get('payment_status', ''),
                         'estado_envio': o.get('shipping_status', ''),
                         'ya_procesada': ya,
+                        'facturable': facturable,
+                        'problema': problema,
                         'detalle': items_detalle,
+                        'orden_raw': o,
                     })
 
                 return resultado, None
@@ -951,35 +1045,250 @@ elif pagina == '🔄 Sincronización':
             if err_preview:
                 st.warning(err_preview)
             elif ordenes_preview is not None:
+
+                # ── Aplicar filtros ──
+                ordenes_filtradas = ordenes_preview.copy()
+
+                if filtro_estado == 'Pendientes':
+                    ordenes_filtradas = [o for o in ordenes_filtradas if not o['ya_procesada']]
+                elif filtro_estado == 'Ya facturadas':
+                    ordenes_filtradas = [o for o in ordenes_filtradas if o['ya_procesada']]
+
+                if filtro_monto_min > 0:
+                    ordenes_filtradas = [o for o in ordenes_filtradas if o['total'] >= filtro_monto_min]
+                if filtro_monto_max > 0:
+                    ordenes_filtradas = [o for o in ordenes_filtradas if o['total'] <= filtro_monto_max]
+
+                if filtro_buscar.strip():
+                    q = filtro_buscar.strip().lower()
+                    ordenes_filtradas = [o for o in ordenes_filtradas if (
+                        q in str(o['numero']).lower() or
+                        q in o['cliente'].lower() or
+                        q in o['email'].lower() or
+                        any(q in i['sku'].lower() for i in o['detalle'])
+                    )]
+
+                # ── Métricas ──
                 pendientes = [o for o in ordenes_preview if not o['ya_procesada']]
                 procesadas_prev = [o for o in ordenes_preview if o['ya_procesada']]
-
-                c1, c2, c3 = st.columns(3)
+                c1, c2, c3, c4 = st.columns(4)
                 c1.metric('Total órdenes', len(ordenes_preview))
                 c2.metric('Ya facturadas', len(procesadas_prev))
                 c3.metric('Pendientes', len(pendientes))
+                c4.metric('Mostrando', len(ordenes_filtradas))
 
-                if pendientes:
-                    st.markdown('#### Órdenes pendientes de facturar')
-                    for o in pendientes:
-                        with st.expander(
-                            f"**#{o['numero']}** — {o['fecha']} — {o['cliente']} — "
-                            f"${o['total']:,.0f} — {o['items']} item(s)"
-                        ):
-                            st.caption(f"Email: {o['email']} | Pago: {o['estado_pago']} | Envío: {o['estado_envio']}")
-                            df_items = pd.DataFrame(o['detalle'])
-                            df_items['en_erp'] = df_items['en_erp'].map({True: 'OK', False: 'NO ENCONTRADO'})
-                            df_items['subtotal'] = df_items['subtotal'].apply(lambda x: f"${x:,.0f}")
-                            df_items['precio'] = df_items['precio'].apply(lambda x: f"${x:,.0f}")
-                            df_items.columns = ['SKU', 'Producto', 'Cant', 'Precio', 'Subtotal', 'En ERP']
-                            st.dataframe(df_items, use_container_width=True, hide_index=True)
+                if ordenes_filtradas:
+                    # ── Tabla interactiva con checkboxes ──
+                    df_tabla = pd.DataFrame([{
+                        'Facturar': not o['ya_procesada'] and o['facturable'],
+                        '#': o['numero'],
+                        'Fecha': o['fecha'],
+                        'Cliente': o['cliente'][:30],
+                        'Pares': o['pares'],
+                        'Total': o['total'],
+                        'Items': o['items'],
+                        'Envío': o['estado_envio'] or '-',
+                        'ERP': 'OK' if o['facturable'] else 'FALTA',
+                        'Estado': 'Facturada' if o['ya_procesada'] else ('Problema' if o['problema'] else 'Pendiente'),
+                        'Nota': o['problema'] if o['problema'] else ('Ya procesada' if o['ya_procesada'] else ''),
+                    } for o in ordenes_filtradas])
 
-                            skus_faltantes = [i for i in o['detalle'] if not i['en_erp']]
-                            if skus_faltantes:
-                                st.warning(f"{len(skus_faltantes)} SKU(s) no encontrados en ERP — no se van a facturar")
+                    # Botones seleccionar/deseleccionar
+                    col_sa1, col_sa2, col_sa3 = st.columns([1, 1, 4])
+                    with col_sa1:
+                        if st.button('Seleccionar facturables', key='btn_sel_all_tn'):
+                            st.session_state['tn_select_all'] = True
+                    with col_sa2:
+                        if st.button('Deseleccionar todos', key='btn_desel_all_tn'):
+                            st.session_state['tn_select_all'] = False
+
+                    if st.session_state.get('tn_select_all') is True:
+                        df_tabla['Facturar'] = df_tabla.apply(
+                            lambda r: r['Estado'] == 'Pendiente' and r['ERP'] == 'OK', axis=1)
+                        st.session_state['tn_select_all'] = None
+                    elif st.session_state.get('tn_select_all') is False:
+                        df_tabla['Facturar'] = False
+                        st.session_state['tn_select_all'] = None
+
+                    # Ordenamiento
+                    col_sort1, col_sort2 = st.columns([2, 1])
+                    with col_sort1:
+                        sort_col = st.selectbox('Ordenar por', ['Fecha', 'Total', 'Pares', 'Cliente', '#'],
+                                                 key='sort_col_tn', index=0)
+                    with col_sort2:
+                        sort_dir = st.radio('Orden', ['Desc', 'Asc'], horizontal=True, key='sort_dir_tn')
+
+                    sort_map = {'Fecha': 'Fecha', 'Total': 'Total', 'Pares': 'Pares',
+                                'Cliente': 'Cliente', '#': '#'}
+                    df_tabla = df_tabla.sort_values(sort_map[sort_col], ascending=(sort_dir == 'Asc'))
+
+                    edited_df = st.data_editor(
+                        df_tabla,
+                        column_config={
+                            'Facturar': st.column_config.CheckboxColumn('Facturar', default=False),
+                            'Total': st.column_config.NumberColumn('Total', format='$%,.0f'),
+                            'Estado': st.column_config.TextColumn('Estado'),
+                        },
+                        disabled=['#', 'Fecha', 'Cliente', 'Pares', 'Total', 'Items', 'Envío',
+                                  'ERP', 'Estado', 'Nota'],
+                        hide_index=True,
+                        use_container_width=True,
+                        key='editor_ordenes_tn',
+                    )
+
+                    # ── Resumen de selección ──
+                    seleccionadas = edited_df[edited_df['Facturar'] == True]
+                    n_sel = len(seleccionadas)
+                    total_sel = seleccionadas['Total'].sum() if n_sel > 0 else 0
+                    pares_sel = int(seleccionadas['Pares'].sum()) if n_sel > 0 else 0
+
+                    if n_sel > 0:
+                        st.info(f"**{n_sel} orden(es) seleccionadas** — {pares_sel} pares — ${total_sel:,.0f} total")
+
+                    # ── Detalle expandible de cada orden ──
+                    with st.expander('Ver detalle de productos por orden'):
+                        numeros_sel = set(seleccionadas['#'].tolist()) if n_sel > 0 else set()
+                        for o in ordenes_filtradas:
+                            if o['numero'] in numeros_sel or not numeros_sel:
+                                emoji = 'Facturar' if o['numero'] in numeros_sel else ''
+                                st.markdown(f"**#{o['numero']}** — {o['cliente']} — ${o['total']:,.0f} {emoji}")
+                                df_det = pd.DataFrame(o['detalle'])
+                                df_det['en_erp'] = df_det['en_erp'].map({True: 'OK', False: 'FALTA'})
+                                df_det['precio'] = df_det['precio'].apply(lambda x: f"${x:,.0f}")
+                                df_det['subtotal'] = df_det['subtotal'].apply(lambda x: f"${x:,.0f}")
+                                df_det.columns = ['SKU', 'Producto', 'Cant', 'Precio', 'Subtotal', 'En ERP']
+                                st.dataframe(df_det, use_container_width=True, hide_index=True)
+
+                    st.divider()
+
+                    # ── Acciones ──
+                    def _facturar_seleccionadas(dry_run_mode):
+                        nums_facturar = set(seleccionadas['#'].tolist())
+                        ordenes_a_procesar = [o for o in ordenes_filtradas
+                                              if o['numero'] in nums_facturar and not o['ya_procesada']]
+
+                        if not ordenes_a_procesar:
+                            st.warning('No hay órdenes seleccionadas para facturar.')
+                            return
+
+                        usar_directo = modo_facturar == 'Directo ERP'
+                        modo_txt = 'DRY RUN' if dry_run_mode else 'REAL'
+
+                        from multicanal.facturador_tn import (
+                            construir_payload_109, enviar_venta_109, buscar_articulos_por_sku,
+                            conectar_erp_art, registrar_orden_procesada, registrar_error,
+                            orden_ya_procesada,
+                        )
+
+                        # Buscar artículos ERP para las órdenes seleccionadas
+                        todos_skus = set()
+                        for o in ordenes_a_procesar:
+                            for item in o['orden_raw'].get('products', []):
+                                sku = (item.get('sku') or '').strip()
+                                if sku:
+                                    todos_skus.add(sku)
+
+                        articulos_erp = {}
+                        if todos_skus:
+                            try:
+                                conn_art = conectar_erp_art()
+                                articulos_erp = buscar_articulos_por_sku(conn_art, list(todos_skus))
+                                conn_art.close()
+                            except Exception as e:
+                                st.error(f'Error conectando al ERP: {e}')
+                                return
+
+                        resultados = []
+                        with st.status(f'Procesando {len(ordenes_a_procesar)} órdenes [{modo_txt}]...', expanded=True) as status:
+                            for i, o in enumerate(ordenes_a_procesar):
+                                orden_raw = o['orden_raw']
+                                order_id = str(o['order_id'])
+                                order_number = o['numero']
+
+                                # Doble-check dedup
+                                if orden_ya_procesada(order_id, 'default'):
+                                    st.write(f"⏭️ #{order_number} — ya procesada, salteo")
+                                    continue
+
+                                payload = construir_payload_109(orden_raw, articulos_erp)
+
+                                if not payload['productos']:
+                                    st.write(f"⚠️ #{order_number} — sin productos válidos en ERP")
+                                    resultados.append({'order': order_number, 'status': 'skip', 'message': 'Sin SKUs en ERP'})
+                                    continue
+
+                                total_orden = sum(p['precio'] * p['cantidad'] for p in payload['productos'])
+                                renglones = len(payload['productos'])
+
+                                if dry_run_mode:
+                                    st.write(f"🔍 #{order_number} — {o['cliente'][:25]} — "
+                                             f"{renglones} items — ${total_orden:,.0f}")
+                                    resultados.append({'order': order_number, 'status': 'ok',
+                                                       'message': f'DRY: ${total_orden:,.0f}'})
+                                else:
+                                    try:
+                                        resp = enviar_venta_109(orden_raw, articulos_erp)
+                                        if resp and 'error' in resp:
+                                            raise Exception(resp['error'])
+
+                                        registrar_orden_procesada(
+                                            order_id=order_id, order_number=order_number,
+                                            tienda='default', fecha_orden=o['fecha'],
+                                            cliente=o['cliente'], total=total_orden,
+                                            renglones=renglones, payload=payload,
+                                            respuesta_109=resp,
+                                        )
+                                        st.write(f"✅ #{order_number} — {o['cliente'][:25]} — ${total_orden:,.0f}")
+                                        resultados.append({'order': order_number, 'status': 'ok',
+                                                           'message': f'Facturada ${total_orden:,.0f}'})
+                                    except Exception as e:
+                                        st.write(f"❌ #{order_number} — {e}")
+                                        registrar_error(order_id, order_number, 'default', str(e), payload)
+                                        resultados.append({'order': order_number, 'status': 'error',
+                                                           'message': str(e)})
+
+                            # Resumen final
+                            ok = [r for r in resultados if r['status'] == 'ok']
+                            errors = [r for r in resultados if r['status'] == 'error']
+                            skips = [r for r in resultados if r['status'] == 'skip']
+
+                            if dry_run_mode:
+                                total_dry = sum(float(r['message'].replace('DRY: $', '').replace(',', ''))
+                                               for r in ok if r['message'].startswith('DRY'))
+                                status.update(label=f'DRY RUN: {len(ok)} facturables, ${total_dry:,.0f}', state='complete')
+                            elif errors:
+                                status.update(label=f'{len(ok)} OK, {len(errors)} errores, {len(skips)} salteos',
+                                              state='error')
+                            else:
+                                status.update(label=f'{len(ok)} órdenes facturadas correctamente', state='complete')
+
+                        if not dry_run_mode and ok:
+                            _cargar_ordenes_pendientes.clear()
+
+                        # Retry de errores
+                        if errors and not dry_run_mode:
+                            st.warning(f'{len(errors)} orden(es) con error:')
+                            for e in errors:
+                                st.markdown(f"- **#{e['order']}**: {e['message']}")
+
+                    col_btn1, col_btn2, col_btn3 = st.columns(3)
+                    with col_btn1:
+                        if st.button('Dry run seleccionadas', key='btn_dry_tn', disabled=n_sel == 0):
+                            _facturar_seleccionadas(dry_run_mode=True)
+                    with col_btn2:
+                        confirmar_fact = st.checkbox(f'Confirmo facturar {n_sel} orden(es)', key='conf_facturar')
+                        if st.button('Facturar seleccionadas', key='btn_fact_real_tn',
+                                     type='primary', disabled=not confirmar_fact or n_sel == 0):
+                            _facturar_seleccionadas(dry_run_mode=False)
+                    with col_btn3:
+                        if n_sel > 0:
+                            csv_export = seleccionadas.to_csv(index=False).encode('utf-8')
+                            st.download_button('Exportar CSV', csv_export, 'ordenes_tn.csv', 'text/csv')
+
                 else:
-                    st.success('No hay órdenes pendientes de facturar.')
+                    st.success('No hay órdenes con esos filtros.')
 
+                # ── Historial facturadas ──
                 if procesadas_prev:
                     with st.expander(f'Ya facturadas ({len(procesadas_prev)})'):
                         df_ya = pd.DataFrame([{
@@ -991,57 +1300,6 @@ elif pagina == '🔄 Sincronización':
                         st.dataframe(df_ya, use_container_width=True, hide_index=True)
 
             st.divider()
-
-            # ── Botones de acción ──
-            def _ejecutar_facturacion(dry_run_mode):
-                usar_directo = modo_facturar == 'Directo ERP'
-                with st.spinner('Procesando órdenes...'):
-                    try:
-                        from multicanal.facturador_tn import sincronizar_ordenes_tn
-                        reporte = sincronizar_ordenes_tn(dry_run=dry_run_mode, dias_atras=dias_facturar,
-                                                         empresa=empresa_tn, directo=usar_directo)
-                        if reporte.get('error'):
-                            st.error(reporte['error'])
-                        else:
-                            procesadas = reporte.get('procesadas', [])
-                            n_proc = len(procesadas) if isinstance(procesadas, list) else 0
-
-                            if isinstance(procesadas, list) and procesadas:
-                                df_fact = pd.DataFrame([{
-                                    'Orden TN': p['order_number'],
-                                    'Fecha': p['fecha'],
-                                    'Cliente': p['cliente'][:25],
-                                    'Items': p['renglones'],
-                                    'Total': f"${p['total']:,.0f}",
-                                } for p in procesadas])
-                                st.dataframe(df_fact, use_container_width=True, hide_index=True)
-
-                            if not dry_run_mode and n_proc > 0:
-                                total_fact = sum(p['total'] for p in procesadas)
-                                st.success(f"{n_proc} órdenes facturadas. Total: ${total_fact:,.0f}")
-                                _cargar_ordenes_pendientes.clear()
-
-                            if n_proc == 0 and not reporte.get('errores'):
-                                st.info('No hay órdenes nuevas para facturar.')
-
-                            if reporte.get('errores'):
-                                for err in reporte['errores']:
-                                    st.error(err)
-                    except Exception as e:
-                        st.error(f'Error: {e}')
-                        import traceback
-                        st.code(traceback.format_exc())
-
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                if st.button('Dry run (solo ver)', key='btn_facturar'):
-                    _ejecutar_facturacion(dry_run_mode=True)
-            with col_btn2:
-                n_pendientes = len([o for o in (ordenes_preview or []) if not o['ya_procesada']])
-                confirmar_fact = st.checkbox(f'Confirmo facturar {n_pendientes} orden(es)', key='conf_facturar')
-                if st.button('Facturar', key='btn_facturar_real',
-                             type='primary', disabled=not confirmar_fact):
-                    _ejecutar_facturacion(dry_run_mode=False)
 
             # Historial de errores TN
             with st.expander('Historial de errores TN'):
@@ -1190,6 +1448,9 @@ elif pagina == '💰 Simulador de precios':
                     descripcion=regla.descripcion,
                     comision=regla.comision,
                     comision_pago=regla.comision_pago,
+                    iva_comision=getattr(regla, 'iva_comision', 0.21),
+                    envio_pct=getattr(regla, 'envio_pct', 0.0),
+                    retenciones_pct=getattr(regla, 'retenciones_pct', 0.0),
                     margen_objetivo=margenes_custom.get(nombre, margen_global),
                     recargo=regla.recargo,
                     redondeo=regla.redondeo,
@@ -1201,29 +1462,38 @@ elif pagina == '💰 Simulador de precios':
             if resultados:
                 for r in resultados:
                     with st.container(border=True):
-                        c1, c2, c3, c4 = st.columns(4)
+                        c1, c2, c3, c4, c5 = st.columns(5)
                         c1.metric(r['canal_desc'], f"${r['precio_venta']:,.0f}")
-                        c2.metric('Margen real', f"{r['margen_real']}%")
-                        c3.metric('Ganancia $', f"${r['ganancia_neta']:,.0f}")
-                        c4.metric('Comisiones $', f"${r['comision_plataforma'] + r['comision_pago']:,.0f}")
+                        c2.metric('Margen neto', f"{r['margen_real']}%")
+                        c3.metric('En mano', f"{r['margen_en_mano']}%")
+                        c4.metric('Ganancia', f"${r['ganancia_neta']:,.0f}")
+                        c5.metric('Costos total', f"${r['total_costos']:,.0f}")
 
                 st.divider()
-                st.subheader('Comparativa')
+                st.subheader('Comparativa detallada')
                 df_comp = pd.DataFrame([{
                     'Canal': r['canal_desc'],
-                    'Costo': precio_costo,
-                    'Precio venta': r['precio_venta'],
-                    'Comisiones %': r['comision_total_pct'],
-                    'Comisiones $': r['comision_plataforma'] + r['comision_pago'],
-                    'Ingreso neto': r['ingreso_neto'],
-                    'Ganancia': r['ganancia_neta'],
-                    'Margen %': r['margen_real'],
+                    'Costo': f"${precio_costo:,.0f}",
+                    'PVP c/IVA': f"${r['precio_venta']:,.0f}",
+                    'P.Neto': f"${r['precio_neto']:,.0f}",
+                    'Comisiones': f"${r['comision_plataforma'] + r['comision_pago']:,.0f}",
+                    'IVA s/com.': f"${r['iva_sobre_comisiones']:,.0f}",
+                    'Envío': f"${r['costo_envio']:,.0f}",
+                    'Retenc.': f"${r['retenciones']:,.0f}",
+                    'Ganancia': f"${r['ganancia_neta']:,.0f}",
+                    'Margen': f"{r['margen_real']}%",
+                    'En mano': f"{r['margen_en_mano']}%",
                 } for r in resultados])
                 st.dataframe(df_comp, use_container_width=True, hide_index=True)
 
                 # Gráfico de barras
-                chart_data = df_comp[['Canal', 'Precio venta', 'Ganancia']].set_index('Canal')
-                st.bar_chart(chart_data)
+                df_chart = pd.DataFrame([{
+                    'Canal': r['canal_desc'],
+                    'Ganancia': r['ganancia_neta'],
+                    'Costos': r['total_costos'],
+                    'Retenciones': r['retenciones'],
+                } for r in resultados]).set_index('Canal')
+                st.bar_chart(df_chart)
         else:
             st.info('Ingresá un precio de costo mayor a 0.')
 
@@ -1239,7 +1509,7 @@ elif pagina == '⚙️ Configurar canales':
 
     for nombre, regla in reglas.items():
         with st.expander(f"{'🟢' if regla.activo else '🔴'} {regla.descripcion}", expanded=regla.activo):
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 regla.activo = st.checkbox('Activo', value=regla.activo, key=f'act_{nombre}')
                 regla.comision = st.number_input('Comisión plataforma (%)', value=regla.comision * 100,
@@ -1254,6 +1524,16 @@ elif pagina == '⚙️ Configurar canales':
                 regla.redondeo = st.number_input('Redondeo ($)', value=regla.redondeo,
                                                   step=10, key=f'red_{nombre}')
             with col3:
+                iva_com = getattr(regla, 'iva_comision', 0.21)
+                envio = getattr(regla, 'envio_pct', 0.0)
+                retenc = getattr(regla, 'retenciones_pct', 0.0)
+                regla.iva_comision = st.number_input('IVA s/comisiones (%)', value=iva_com * 100,
+                                                      step=1.0, key=f'ivac_{nombre}') / 100
+                regla.envio_pct = st.number_input('Costo envío (%)', value=envio * 100,
+                                                    step=0.5, key=f'env_{nombre}') / 100
+                regla.retenciones_pct = st.number_input('Retenciones (%)', value=retenc * 100,
+                                                          step=0.5, key=f'ret_{nombre}') / 100
+            with col4:
                 regla.precio_minimo = st.number_input('Precio mínimo ($)', value=regla.precio_minimo,
                                                        step=1000.0, key=f'min_{nombre}')
                 regla.notas = st.text_area('Notas', value=regla.notas, key=f'not_{nombre}', height=80)
@@ -1274,65 +1554,224 @@ elif pagina == '⚙️ Configurar canales':
 # PÁGINA: Catálogo ERP
 # ══════════════════════════════════════════════════
 elif pagina == '📦 Catálogo ERP':
-    st.title('📦 Catálogo del ERP')
-    st.markdown('Artículos activos con precio y stock. Seleccioná uno para ver pricing multicanal.')
+    st.title('📦 Catálogo del ERP — Buscador de artículos')
+    st.markdown('Buscá artículos por cualquier campo y revisá el pricing multicanal con costo actualizado.')
 
     conn = get_db()
     if conn:
-        productos = cargar_productos(conn)
+        # ── Cargar listas para filtros (cacheado) ──
+        @st.cache_data(ttl=300)
+        def _cargar_listas_filtro(_conn):
+            marcas = pd.read_sql("SELECT DISTINCT descripcion FROM msgestion01art.dbo.marcas WHERE descripcion IS NOT NULL AND descripcion <> '' ORDER BY descripcion", _conn)
+            grupos = pd.read_sql("SELECT DISTINCT descripcion FROM msgestion01art.dbo.grupos WHERE descripcion IS NOT NULL AND descripcion <> '' ORDER BY descripcion", _conn)
+            rubros = pd.read_sql("SELECT DISTINCT descripcion FROM msgestion01art.dbo.rubros WHERE descripcion IS NOT NULL AND descripcion <> '' ORDER BY descripcion", _conn)
+            proveedores = pd.read_sql("SELECT DISTINCT denominacion FROM msgestion01art.dbo.proveedores WHERE denominacion IS NOT NULL AND denominacion <> '' ORDER BY denominacion", _conn)
+            subrubros = pd.read_sql("SELECT DISTINCT subrubro FROM msgestion01art.dbo.articulo WHERE estado IN ('V','U') AND subrubro IS NOT NULL AND subrubro > 0 ORDER BY subrubro", _conn)
+            lineas = pd.read_sql("SELECT codigo, descripcion FROM msgestion03.dbo.lineas ORDER BY codigo", _conn)
+            return marcas, grupos, rubros, proveedores, subrubros, lineas
 
-        if not productos.empty:
-            # Filtros
-            col1, col2 = st.columns(2)
-            with col1:
-                filtro_marca = st.multiselect('Filtrar por marca', sorted(productos['marca'].dropna().unique()))
-            with col2:
-                filtro_texto = st.text_input('Buscar por descripción')
+        try:
+            lst_marcas, lst_grupos, lst_rubros, lst_proveedores, lst_subrubros, lst_lineas = _cargar_listas_filtro(conn)
+        except Exception:
+            lst_marcas = lst_grupos = lst_rubros = lst_proveedores = lst_subrubros = lst_lineas = pd.DataFrame()
 
-            df = productos.copy()
-            if filtro_marca:
-                df = df[df['marca'].isin(filtro_marca)]
-            if filtro_texto:
-                mask = df.apply(lambda row: filtro_texto.lower() in
-                    f"{row.get('descripcion_1','')} {row.get('descripcion_2','')} {row.get('descripcion_3','')}".lower(), axis=1)
-                df = df[mask]
+        # ── Buscador ──
+        st.subheader('Buscar artículos')
+        col_b1, col_b2, col_b3 = st.columns(3)
+        with col_b1:
+            busq_texto = st.text_input('Descripción (busca en desc 1, 2 y 3)', placeholder='ej: running, bota, sandalia')
+        with col_b2:
+            busq_marca = st.multiselect('Marca', lst_marcas['descripcion'].tolist() if not lst_marcas.empty else [])
+        with col_b3:
+            busq_codigo = st.text_input('Código / Sinónimo / Barra', placeholder='ej: 310611, 668296810035')
 
-            st.dataframe(
-                df[['codigo', 'sinonimo', 'codigo_barra', 'descripcion_1', 'descripcion_2', 'marca', 'precio_costo', 'stock_d1', 'stock_h4']],
-                use_container_width=True,
-                hide_index=True,
-            )
+        col_b4, col_b5, col_b6 = st.columns(3)
+        with col_b4:
+            busq_grupo = st.multiselect('Grupo', lst_grupos['descripcion'].tolist() if not lst_grupos.empty else [])
+        with col_b5:
+            busq_rubro = st.multiselect('Rubro', lst_rubros['descripcion'].tolist() if not lst_rubros.empty else [])
+        with col_b6:
+            busq_proveedor = st.multiselect('Proveedor', lst_proveedores['denominacion'].tolist() if not lst_proveedores.empty else [])
+
+        col_b7, col_b8, col_b9, col_b10 = st.columns(4)
+        with col_b7:
+            busq_subrubro = st.multiselect('Subrubro', [int(x) for x in lst_subrubros['subrubro'].tolist()] if not lst_subrubros.empty else [])
+        with col_b8:
+            linea_opciones = {f"{int(row['codigo'])} - {row['descripcion']}": int(row['codigo']) for _, row in lst_lineas.iterrows()} if not lst_lineas.empty else {}
+            busq_linea_labels = st.multiselect('Línea', list(linea_opciones.keys()))
+            busq_linea = [linea_opciones[l] for l in busq_linea_labels]
+        with col_b9:
+            busq_limite = st.number_input('Máx resultados', value=100, min_value=10, max_value=500, step=50)
+        with col_b10:
+            cotiz_usd_cat = st.number_input('Cotización USD (para costo CER)', value=1170.0, step=10.0, key='cotiz_cat')
+
+        if st.button('Buscar', type='primary', key='btn_buscar_catalogo'):
+            # Armar WHERE dinámico
+            condiciones = ["a.estado IN ('V', 'U')", "a.precio_costo > 0"]
+            params = []
+
+            if busq_texto:
+                palabras = busq_texto.strip().split()
+                for p in palabras:
+                    condiciones.append("(a.descripcion_1 + ' ' + ISNULL(a.descripcion_2,'') + ' ' + ISNULL(a.descripcion_3,'')) LIKE ?")
+                    params.append(f'%{p}%')
+
+            if busq_marca:
+                placeholders = ",".join(["?"] * len(busq_marca))
+                condiciones.append(f"m.descripcion IN ({placeholders})")
+                params.extend(busq_marca)
+
+            if busq_codigo:
+                cod = busq_codigo.strip()
+                condiciones.append("(CAST(a.codigo AS VARCHAR) = ? OR a.codigo_sinonimo LIKE ? OR a.codigo_barra LIKE ?)")
+                params.extend([cod, f'%{cod}%', f'%{cod}%'])
+
+            if busq_grupo:
+                placeholders = ",".join(["?"] * len(busq_grupo))
+                condiciones.append(f"g.descripcion IN ({placeholders})")
+                params.extend(busq_grupo)
+
+            if busq_rubro:
+                placeholders = ",".join(["?"] * len(busq_rubro))
+                condiciones.append(f"r.descripcion IN ({placeholders})")
+                params.extend(busq_rubro)
+
+            if busq_proveedor:
+                placeholders = ",".join(["?"] * len(busq_proveedor))
+                condiciones.append(f"p.denominacion IN ({placeholders})")
+                params.extend(busq_proveedor)
+
+            if busq_subrubro:
+                placeholders = ",".join(["?"] * len(busq_subrubro))
+                condiciones.append(f"a.subrubro IN ({placeholders})")
+                params.extend(busq_subrubro)
+
+            if busq_linea:
+                placeholders = ",".join(["?"] * len(busq_linea))
+                condiciones.append(f"a.linea IN ({placeholders})")
+                params.extend(busq_linea)
+
+            where_clause = " AND ".join(condiciones)
+
+            sql_buscar = f"""
+                SELECT TOP {int(busq_limite)}
+                    a.codigo,
+                    a.codigo_sinonimo as sinonimo,
+                    a.codigo_barra as barra,
+                    a.descripcion_1,
+                    ISNULL(a.descripcion_2,'') as descripcion_2,
+                    m.descripcion as marca,
+                    p.denominacion as proveedor,
+                    g.descripcion as grupo,
+                    r.descripcion as rubro,
+                    a.subrubro,
+                    ISNULL(li.descripcion, CAST(a.linea AS VARCHAR)) as linea,
+                    a.precio_costo as costo_historico,
+                    a.moneda,
+                    CASE WHEN a.moneda = 1
+                         THEN ROUND(a.precio_costo * {cotiz_usd_cat}, 0)
+                         ELSE a.precio_costo END as costo_cer,
+                    ISNULL((SELECT SUM(stock_actual) FROM msgestionC.dbo.stock
+                            WHERE articulo=a.codigo AND deposito IN (0,1)), 0) as stock_total,
+                    ISNULL((SELECT stock_actual FROM msgestion01.dbo.stock
+                            WHERE articulo=a.codigo AND deposito=1), 0) as stock_d1,
+                    ISNULL((SELECT stock_actual FROM msgestion03.dbo.stock
+                            WHERE articulo=a.codigo AND deposito=1), 0) as stock_h4
+                FROM msgestion01art.dbo.articulo a
+                LEFT JOIN msgestion01art.dbo.marcas m ON m.codigo=a.marca
+                LEFT JOIN msgestion01art.dbo.grupos g ON g.codigo=a.grupo
+                LEFT JOIN msgestion01art.dbo.rubros r ON r.codigo=a.rubro
+                LEFT JOIN msgestion01art.dbo.proveedores p ON p.numero=a.proveedor
+                LEFT JOIN msgestion03.dbo.lineas li ON li.codigo=a.linea
+                WHERE {where_clause}
+                ORDER BY a.codigo DESC
+            """
+
+            try:
+                df_cat = pd.read_sql(sql_buscar, conn, params=params)
+                st.session_state['catalogo_resultado'] = df_cat
+            except Exception as e:
+                st.error(f"Error en búsqueda: {e}")
+
+        # ── Mostrar resultados ──
+        if 'catalogo_resultado' in st.session_state and not st.session_state['catalogo_resultado'].empty:
+            df_cat = st.session_state['catalogo_resultado']
+            st.success(f"{len(df_cat)} artículos encontrados")
+
+            # Tabla principal
+            cols_mostrar = ['codigo', 'sinonimo', 'descripcion_1', 'descripcion_2', 'marca',
+                           'proveedor', 'grupo', 'rubro', 'costo_historico', 'moneda', 'costo_cer',
+                           'stock_total', 'stock_d1', 'stock_h4']
+            cols_disponibles = [c for c in cols_mostrar if c in df_cat.columns]
+            st.dataframe(df_cat[cols_disponibles], use_container_width=True, hide_index=True)
 
             st.divider()
 
-            # Seleccionar artículo para pricing
-            st.subheader('Calcular precios multicanal para un artículo')
-            codigo_sel = st.selectbox(
-                'Seleccionar artículo',
-                df['codigo'].tolist(),
-                format_func=lambda x: f"{x} — {df[df['codigo']==x].iloc[0]['descripcion_1']} {df[df['codigo']==x].iloc[0].get('descripcion_2','')}"
-            )
+            # ── Pricing multicanal para artículo seleccionado ──
+            st.subheader('Pricing multicanal para un artículo')
+            opciones = df_cat.apply(
+                lambda r: f"{int(r['codigo'])} — {r['descripcion_1']} {r.get('descripcion_2','')} [{r.get('marca','')}]", axis=1
+            ).tolist()
+            idx_sel = st.selectbox('Seleccionar artículo', range(len(opciones)), format_func=lambda i: opciones[i])
 
-            if codigo_sel:
-                art = df[df['codigo'] == codigo_sel].iloc[0]
-                costo = float(art['precio_costo'])
+            if idx_sel is not None:
+                art = df_cat.iloc[idx_sel]
+                costo_hist = float(art['costo_historico'])
+                costo_cer = float(art['costo_cer'])
+                moneda_txt = 'USD' if art['moneda'] == 1 else 'ARS'
+
+                col_c1, col_c2 = st.columns(2)
+                with col_c1:
+                    st.metric('Costo histórico ERP', f"${costo_hist:,.0f} {moneda_txt}")
+                with col_c2:
+                    st.metric('Costo CER (actualizado)', f"${costo_cer:,.0f} ARS")
+
+                # Permitir ajustar costo manualmente
+                costo_usar = st.number_input('Costo a usar para pricing ($)', value=costo_cer, step=500.0, key='costo_pricing')
 
                 st.info(f"**{art['descripcion_1']} {art.get('descripcion_2','')}** | "
-                        f"Marca: {art.get('marca','-')} | "
-                        f"Costo: ${costo:,.0f} | "
-                        f"Stock D1: {art['stock_d1']} | Stock H4: {art['stock_h4']}")
+                        f"Marca: {art.get('marca','-')} | Proveedor: {art.get('proveedor','-')} | "
+                        f"Stock total: {art['stock_total']} (D1: {art['stock_d1']}, H4: {art['stock_h4']})")
 
-                resultados = calcular_todos_los_canales(costo, st.session_state.reglas)
+                # ── Fotos del producto ──
+                sinonimo_art = str(art.get('sinonimo', '')).strip()
+                if sinonimo_art and len(sinonimo_art) >= 8:
+                    try:
+                        from multicanal.imagenes import buscar_imagenes_producto, url_publica
+                        fotos = buscar_imagenes_producto(sinonimo_art)
+                        if fotos:
+                            st.caption(f"{len(fotos)} foto(s) encontrada(s)")
+                            cols_foto = st.columns(min(len(fotos), 5))
+                            for i, foto in enumerate(fotos[:5]):
+                                with cols_foto[i]:
+                                    st.image(url_publica(foto), use_container_width=True)
+                        else:
+                            st.caption("Sin fotos en el catálogo de imágenes")
+                    except Exception as e:
+                        st.caption(f"Fotos no disponibles: {e}")
+
+                resultados = calcular_todos_los_canales(costo_usar, st.session_state.reglas)
                 df_precios = pd.DataFrame([{
                     'Canal': r['canal_descripcion'],
-                    'Precio venta': f"${r['precio_venta']:,.0f}",
+                    'PVP c/IVA': f"${r['precio_venta']:,.0f}",
+                    'P.Neto': f"${r['precio_neto']:,.0f}",
                     'Margen': f"{r['margen_real']}%",
+                    'En mano': f"{r['margen_en_mano']}%",
                     'Ganancia': f"${r['ganancia_neta']:,.0f}",
-                    'Comisión total': f"{r['comision_total_pct']}%",
-                    'Neto': f"${r['ingreso_neto']:,.0f}",
+                    'Costos': f"${r['total_costos']:,.0f}",
+                    'Envío': f"${r['costo_envio']:,.0f}",
+                    'Retenc.': f"${r['retenciones']:,.0f}",
                 } for r in resultados.values() if 'error' not in r])
                 st.dataframe(df_precios, use_container_width=True, hide_index=True)
-        else:
-            st.warning('No se encontraron artículos.')
+
+                # Desglose detallado del canal con más costos (ML Premium)
+                ml_prem = resultados.get('mercadolibre_premium')
+                if ml_prem and 'error' not in ml_prem:
+                    with st.expander('Desglose ML Premium'):
+                        for k, v in ml_prem.get('desglose', {}).items():
+                            st.text(f"  {k}: {v}")
+
+        elif 'catalogo_resultado' in st.session_state:
+            st.warning('No se encontraron artículos con esos filtros.')
     else:
         st.error('No hay conexión a SQL Server. Verificá VPN y credenciales.')
