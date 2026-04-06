@@ -160,11 +160,11 @@ IF NOT EXISTS (SELECT 1 FROM dbo.viajante_config WHERE viajante_codigo = 707)
     INSERT INTO dbo.viajante_config (viajante_codigo, nombre, tipo, deposito_principal, observaciones)
     VALUES (707, 'Garay Rocio Celeste', 'encargado', 0, 'Encargada de central dep 0. Gestiona pedidos de la app (estanteria virtual / app 109). Rol operativo, no vendedora de piso.');
 
--- Torancio Romina: vende en dep 10 (Murphy) Y coordina red de asesoras freelance.
--- Doble rol: incluir en benchmark freelance dep 10, pero sus numeros mezclan venta propia + efecto red.
+-- Torancio Romina: vendedora dep 0 (central, fisicamente). Tambien registra venta en dep 10.
+-- No coordina la red — eso lo hace Caren Corrales (637) desde Teodelina.
 IF NOT EXISTS (SELECT 1 FROM dbo.viajante_config WHERE viajante_codigo = 586)
     INSERT INTO dbo.viajante_config (viajante_codigo, nombre, tipo, deposito_principal, observaciones)
-    VALUES (586, 'Torancio Romina', 'individual', 10, 'Dep 10 (Murphy). Vende + coordina red de asesoras freelance. Doble rol: sus numeros mezclan venta propia y efecto de coordinacion. Incluir en benchmark freelance dep 10, no en benchmark piso.');
+    VALUES (586, 'Torancio Romina', 'individual', 0, 'Vendedora dep 0 (central, fisicamente). Tambien registra venta en dep 10. No es coordinadora de freelance — ese rol es de Caren Corrales (637) desde Teodelina.');
 
 GO
 
