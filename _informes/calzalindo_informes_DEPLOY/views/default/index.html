@@ -133,6 +133,30 @@
         </div>
         {{pass}}
 
+        {{if puede_ver('inteligencia_comercial.bcg_matrix'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('inteligencia_comercial','bcg_matrix')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card morado">
+                    <div class="icono"><i class="glyphicon glyphicon-eye-open"></i></div>
+                    <h4>Inteligencia Comercial</h4>
+                    <p>BCG + Proveedores + Stock muerto</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
+        {{if puede_ver('salud_negocio.dashboard'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('salud_negocio','dashboard')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card verde">
+                    <div class="icono"><i class="glyphicon glyphicon-heart"></i></div>
+                    <h4>Salud del Negocio</h4>
+                    <p>KPIs, clientes, sucursales</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
         {{if es_admin:}}
         <div class="col-md-3 col-sm-6">
             <a href="{{=URL('admin_roles','index')}}" style="text-decoration:none; color:inherit;">

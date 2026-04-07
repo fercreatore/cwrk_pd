@@ -1,0 +1,235 @@
+{{extend 'layout.html'}}
+{{block title}}Aprobación Presupuestaria — Pedidos{{end}}
+
+{{block head}}
+<style>
+.badge-PENDIENTE  { background:#f39c12; color:#fff; }
+.badge-APROBADO   { background:#27ae60; color:#fff; }
+.badge-RECHAZADO  { background:#e74c3c; color:#fff; }
+.badge-estado { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
+.kpi-box { background:#fff; border:1px solid #ddd; border-radius:8px; padding:16px 20px; text-align:center; }
+.kpi-val { font-size:28px; font-weight:700; }
+.kpi-label { font-size:12px; color:#666; margin-top:2px; }
+.kpi-val.pend { color:#f39c12; }
+.kpi-val.aprov { color:#27ae60; }
+.kpi-val.rech  { color:#e74c3c; }
+.btn-aprobar  { background:#27ae60; color:#fff; border:none; border-radius:5px; padding:5px 12px; cursor:pointer; font-size:13px; }
+.btn-rechazar { background:#e74c3c; color:#fff; border:none; border-radius:5px; padding:5px 12px; cursor:pointer; font-size:13px; }
+.btn-aprobar:hover  { background:#219d55; }
+.btn-rechazar:hover { background:#c0392b; }
+.notas-cell { font-size:12px; color:#555; max-width:220px; }
+#modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.45); z-index:999; align-items:center; justify-content:center; }
+#modal-overlay.visible { display:flex; }
+#modal-box { background:#fff; border-radius:10px; padding:30px; width:420px; box-shadow:0 8px 30px rgba(0,0,0,0.2); }
+#modal-box h4 { margin:0 0 16px; }
+#modal-box label { display:block; font-size:13px; margin-bottom:4px; color:#444; }
+#modal-box input, #modal-box textarea, #modal-box select {
+  width:100%; padding:8px; border:1px solid #ccc; border-radius:5px; margin-bottom:14px; font-size:14px; box-sizing:border-box; }
+#modal-box .btn-row { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+.btn-cancel { background:#999; color:#fff; border:none; border-radius:5px; padding:7px 16px; cursor:pointer; }
+</style>
+{{end}}
+
+{{block content}}
+<div style="max-width:1100px;margin:0 auto;padding:20px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <h2 style="margin:0;">🏦 Aprobación Presupuestaria</h2>
+    <a href="{{=URL('reportes','pedidos')}}" style="font-size:13px;color:#666;">← Volver a Pedidos</a>
+  </div>
+
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;">
+    <div class="kpi-box">
+      <div class="kpi-val">{{=resumen['total']}}</div>
+      <div class="kpi-label">Total pedidos</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-val pend">{{=resumen['pendiente']}}</div>
+      <div class="kpi-label">Pendientes</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-val aprov">{{=resumen['aprobado']}}</div>
+      <div class="kpi-label">Aprobados</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-val rech">{{=resumen['rechazado']}}</div>
+      <div class="kpi-label">Rechazados</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-val" style="font-size:20px;color:#2980b9;">{{=formato_moneda(resumen['monto_pendiente'])}}</div>
+      <div class="kpi-label">Monto pendiente</div>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div style="background:#fff;border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <thead style="background:#f8f9fa;">
+        <tr>
+          <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #dee2e6;">#Pedido</th>
+          <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #dee2e6;">Proveedor</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:2px solid #dee2e6;">Fecha</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:2px solid #dee2e6;">Pares</th>
+          <th style="padding:10px 12px;text-align:right;border-bottom:2px solid #dee2e6;">Monto</th>
+          <th style="padding:10px 12px;text-align:center;border-bottom:2px solid #dee2e6;">Estado</th>
+          <th style="padding:10px 12px;text-align:left;border-bottom:2px solid #dee2e6;">Notas / Aprobó</th>
+          {{if es_finanzas:}}<th style="padding:10px 12px;text-align:center;border-bottom:2px solid #dee2e6;">Acción</th>{{pass}}
+        </tr>
+      </thead>
+      <tbody>
+        {{for p in pedidos:}}
+        <tr style="border-bottom:1px solid #f0f0f0;" data-numero="{{=p['numero']}}">
+          <td style="padding:9px 12px;font-weight:600;">{{=p['numero']}}</td>
+          <td style="padding:9px 12px;">{{=p['proveedor']}}</td>
+          <td style="padding:9px 12px;text-align:center;color:#555;">
+            {{if p['fecha']:}}{{=str(p['fecha'])[:10]}}{{pass}}
+          </td>
+          <td style="padding:9px 12px;text-align:center;">{{=p['pares']}}</td>
+          <td style="padding:9px 12px;text-align:right;font-weight:600;">{{=formato_moneda(p['monto_total'])}}</td>
+          <td style="padding:9px 12px;text-align:center;">
+            <span class="badge-estado badge-{{=p['estado_aprob']}}">{{=p['estado_aprob']}}</span>
+            {{if p['monto_aprobado']:}}
+            <br><small style="color:#555;">{{=formato_moneda(p['monto_aprobado'])}}</small>
+            {{pass}}
+          </td>
+          <td style="padding:9px 12px;" class="notas-cell">
+            {{if p['usuario_aprobacion']:}}<strong>{{=p['usuario_aprobacion'].split('@')[0]}}</strong><br>{{pass}}
+            {{if p['notas']:}}<span>{{=p['notas']}}</span>{{pass}}
+          </td>
+          {{if es_finanzas:}}
+          <td style="padding:9px 12px;text-align:center;white-space:nowrap;"
+              data-numero="{{=p['numero']}}"
+              data-proveedor="{{=p['proveedor']}}"
+              data-monto="{{=p['monto_total']}}">
+            {{if p['estado_aprob'] != 'APROBADO':}}
+            <button class="btn-aprobar" onclick="abrirModalTd(this,'APROBADO')">✓ Aprobar</button>
+            {{pass}}
+            {{if p['estado_aprob'] != 'RECHAZADO':}}
+            <button class="btn-rechazar" onclick="abrirModalTd(this,'RECHAZADO')">✗ Rechazar</button>
+            {{pass}}
+            {{if p['estado_aprob'] != 'PENDIENTE':}}
+            <button class="btn-cancel" style="font-size:12px;padding:4px 8px;" onclick="abrirModalTd(this,'PENDIENTE')">↺</button>
+            {{pass}}
+          </td>
+          {{pass}}
+        </tr>
+        {{pass}}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal aprobación -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <h4 id="modal-titulo">Acción</h4>
+    <input type="hidden" id="modal-numero">
+    <input type="hidden" id="modal-accion">
+
+    <div id="row-monto" style="display:none;">
+      <label>Monto aprobado (dejar vacío para aprobar el total)</label>
+      <input type="number" id="modal-monto" placeholder="ej: 5000000">
+      <small style="color:#888;" id="modal-monto-total"></small>
+    </div>
+
+    <label>Notas (opcional)</label>
+    <textarea id="modal-notas" rows="3" placeholder="Condiciones, motivo de rechazo, etc."></textarea>
+
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button id="btn-confirmar" onclick="confirmarAccion()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var _url_aprobar = "{{=URL('reportes','pedido_aprobar')}}";
+
+function abrirModalTd(btn, accion) {
+  var td = btn.closest('td');
+  var numero = parseInt(td.dataset.numero);
+  var proveedor = td.dataset.proveedor;
+  var monto = parseFloat(td.dataset.monto);
+  abrirModal(numero, proveedor, monto, accion);
+}
+
+function abrirModal(numero, proveedor, monto, accion) {
+  document.getElementById('modal-numero').value = numero;
+  document.getElementById('modal-accion').value = accion;
+  document.getElementById('modal-notas').value = '';
+  document.getElementById('modal-monto').value = '';
+
+  var titulo = document.getElementById('modal-titulo');
+  var btnConf = document.getElementById('btn-confirmar');
+  var rowMonto = document.getElementById('row-monto');
+  var montoTotal = document.getElementById('modal-monto-total');
+
+  montoTotal.textContent = 'Total pedido: $' + monto.toLocaleString('es-AR', {maximumFractionDigits:0});
+
+  if (accion === 'APROBADO') {
+    titulo.textContent = '✓ Aprobar pedido #' + numero + ' — ' + proveedor;
+    btnConf.className = 'btn-aprobar';
+    btnConf.style.padding = '7px 18px';
+    btnConf.textContent = 'Aprobar';
+    rowMonto.style.display = 'block';
+  } else if (accion === 'RECHAZADO') {
+    titulo.textContent = '✗ Rechazar pedido #' + numero + ' — ' + proveedor;
+    btnConf.className = 'btn-rechazar';
+    btnConf.style.padding = '7px 18px';
+    btnConf.textContent = 'Rechazar';
+    rowMonto.style.display = 'none';
+  } else {
+    titulo.textContent = '↺ Volver a PENDIENTE pedido #' + numero;
+    btnConf.className = 'btn-cancel';
+    btnConf.style.padding = '7px 18px';
+    btnConf.textContent = 'Confirmar';
+    rowMonto.style.display = 'none';
+  }
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function cerrarModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+}
+
+function confirmarAccion() {
+  var numero = parseInt(document.getElementById('modal-numero').value);
+  var accion = document.getElementById('modal-accion').value;
+  var notas  = document.getElementById('modal-notas').value.trim();
+  var monto  = document.getElementById('modal-monto').value;
+
+  var payload = { numero: numero, accion: accion, notas: notas };
+  if (monto) payload.monto_aprobado = parseFloat(monto);
+
+  document.getElementById('btn-confirmar').disabled = true;
+  document.getElementById('btn-confirmar').textContent = 'Guardando...';
+
+  fetch(_url_aprobar, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      cerrarModal();
+      location.reload();
+    } else {
+      alert('Error: ' + data.msg);
+      document.getElementById('btn-confirmar').disabled = false;
+      document.getElementById('btn-confirmar').textContent = 'Confirmar';
+    }
+  })
+  .catch(e => {
+    alert('Error de red: ' + e);
+    document.getElementById('btn-confirmar').disabled = false;
+  });
+}
+
+// Cerrar modal al click fuera
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+</script>
+{{end}}

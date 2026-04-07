@@ -13,19 +13,39 @@ Endpoints:
   POST /api/v1/vendedor/{cod}/compartir   → Marcar contenido como compartido
 """
 import calendar
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, date
 from db import query, execute
 from .topes_mono import TOPES_MONO
+from .auth import require_user
 
 router = APIRouter()
 
 
+def _verify_vendor_access(cod: str, user: dict) -> None:
+    """
+    Verifica que el usuario tenga acceso al vendedor solicitado.
+    - Admins pueden ver cualquier vendedor
+    - Vendedores solo pueden ver sus propios datos
+    """
+    es_admin = user.get("es_admin", False)
+    codigo_vendedor = user.get("codigo_vendedor")
+
+    if not es_admin and codigo_vendedor != cod:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permiso para acceder a los datos de este vendedor"
+        )
+
+
 def _get_vendedor(cod: str) -> dict:
-    """Obtiene datos del vendedor freelance por codigo de atribucion (V569)."""
+    """Obtiene datos del vendedor freelance por codigo de atribucion (V569).
+
+    Uses 3-part name for cross-DB JOIN: msgestionC.dbo.viajantes
+    """
     rows = query(
-        "SELECT vf.*, v.descripcion AS nombre "
-        "FROM vendedor_freelance vf "
+        "SELECT vf.*, ISNULL(v.descripcion, '') AS nombre "
+        "FROM omicronvt.dbo.vendedor_freelance vf "
         "JOIN msgestionC.dbo.viajantes v ON v.codigo = vf.viajante_cod "
         "WHERE vf.codigo_atrib = ? AND vf.activo = 1",
         'omicronvt',
@@ -37,11 +57,13 @@ def _get_vendedor(cod: str) -> dict:
 
 
 @router.get("/{cod}/dashboard")
-async def dashboard(cod: str, meses: int = 1):
+async def dashboard(cod: str, meses: int = 1, user: dict = Depends(require_user)):
     """
     Dashboard personal del vendedor.
     Retorna KPIs: ventas hoy, semana, mes, ranking, fee acumulado.
     """
+    _verify_vendor_access(cod, user)
+
     vend = _get_vendedor(cod)
     hoy = date.today()
     primer_dia_mes = date(hoy.year, hoy.month, 1)
@@ -137,8 +159,10 @@ async def dashboard(cod: str, meses: int = 1):
 
 
 @router.get("/{cod}/ventas")
-async def ventas(cod: str, dias: int = 30):
+async def ventas(cod: str, dias: int = 30, user: dict = Depends(require_user)):
     """Detalle de ventas del vendedor en los ultimos N dias."""
+    _verify_vendor_access(cod, user)
+
     vend = _get_vendedor(cod)
 
     sql = """
@@ -177,15 +201,17 @@ async def ventas(cod: str, dias: int = 30):
 
 
 @router.get("/{cod}/ranking")
-async def ranking(cod: str):
+async def ranking(cod: str, user: dict = Depends(require_user)):
     """Ranking completo de vendedores del mes actual (gamificacion)."""
+    _verify_vendor_access(cod, user)
+
     hoy = date.today()
     primer_dia = date(hoy.year, hoy.month, 1)
 
     sql = """
         SELECT
             v1.viajante,
-            vj.descripcion AS nombre,
+            ISNULL(vj.descripcion, '') AS nombre,
             SUM(v1.total_item) AS venta,
             SUM(v1.cantidad) AS pares,
             COUNT(DISTINCT CASE WHEN v1.codigo=1 THEN
@@ -223,26 +249,28 @@ async def ranking(cod: str):
 
 
 @router.get("/{cod}/catalogo")
-async def catalogo(cod: str, solo_nuevos: bool = False):
+async def catalogo(cod: str, solo_nuevos: bool = False, user: dict = Depends(require_user)):
     """
     Catalogo de productos disponibles para compartir.
     Incluye contenido pre-generado para redes sociales.
     """
+    _verify_vendor_access(cod, user)
+
     vend = _get_vendedor(cod)
 
     sql = """
         SELECT cc.id, cc.sku_base, cc.titulo_corto, cc.descripcion_redes,
                cc.hashtags, cc.categoria_fee, cc.foto_principal,
-               m.descripcion AS marca,
-               (SELECT COUNT(*) FROM msgestion01art.dbo.articulo a2
+               ISNULL(m.descripcion, '') AS marca,
+               ISNULL((SELECT COUNT(*) FROM msgestion01art.dbo.articulo a2
                 WHERE LEFT(a2.descripcion_1, LEN(cc.sku_base)) = cc.sku_base
-                  AND a2.stock > 0) AS talles_con_stock,
-               (SELECT MIN(a3.precio_1) FROM msgestion01art.dbo.articulo a3
+                  AND a2.stock > 0), 0) AS talles_con_stock,
+               ISNULL((SELECT MIN(a3.precio_1) FROM msgestion01art.dbo.articulo a3
                 WHERE LEFT(a3.descripcion_1, LEN(cc.sku_base)) = cc.sku_base
-                  AND a3.precio_1 > 0) AS precio_min,
-               (SELECT MAX(a3.precio_1) FROM msgestion01art.dbo.articulo a3
+                  AND a3.precio_1 > 0), 0) AS precio_min,
+               ISNULL((SELECT MAX(a3.precio_1) FROM msgestion01art.dbo.articulo a3
                 WHERE LEFT(a3.descripcion_1, LEN(cc.sku_base)) = cc.sku_base
-                  AND a3.precio_1 > 0) AS precio_max
+                  AND a3.precio_1 > 0), 0) AS precio_max
         FROM omicronvt.dbo.catalogo_comercial cc
         LEFT JOIN msgestionC.dbo.marcas m ON m.codigo = cc.marca_cod
         WHERE cc.activo = 1
@@ -307,8 +335,10 @@ async def catalogo(cod: str, solo_nuevos: bool = False):
 
 
 @router.get("/{cod}/clientes")
-async def clientes(cod: str):
+async def clientes(cod: str, user: dict = Depends(require_user)):
     """CRM minimo: clientes del vendedor."""
+    _verify_vendor_access(cod, user)
+
     vend = _get_vendedor(cod)
 
     rows = query(
@@ -338,11 +368,13 @@ async def clientes(cod: str):
 
 
 @router.get("/{cod}/proyeccion")
-async def proyeccion_monotributo(cod: str):
+async def proyeccion_monotributo(cod: str, user: dict = Depends(require_user)):
     """
     Proyeccion de facturacion del vendedor vs tope de su categoria de monotributo.
     Alerta si esta por pasarse.
     """
+    _verify_vendor_access(cod, user)
+
     vend = _get_vendedor(cod)
     hoy = date.today()
 
@@ -392,11 +424,13 @@ async def proyeccion_monotributo(cod: str):
 
 
 @router.post("/{cod}/compartir")
-async def marcar_compartido(cod: str, contenido_id: int):
+async def marcar_compartido(cod: str, contenido_id: int, user: dict = Depends(require_user)):
     """
     Marca un contenido generado como compartido por el vendedor.
     Registra la fecha de compartido para tracking de actividad.
     """
+    _verify_vendor_access(cod, user)
+
     vend = _get_vendedor(cod)
 
     rows = query(

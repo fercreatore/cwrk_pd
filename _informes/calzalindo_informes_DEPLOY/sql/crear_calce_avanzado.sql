@@ -28,7 +28,8 @@ CREATE TABLE dbo.t_flujo_caja_semanal (
     semana_fin          DATE           NOT NULL,
     -- Egresos (pagos a proveedores)
     pagos_ops           DECIMAL(18,2)  DEFAULT 0,  -- OPs con vencimiento en esta semana
-    pagos_cheques       DECIMAL(18,2)  DEFAULT 0,  -- cheques diferidos por vencer
+    pagos_cheques       DECIMAL(18,2)  DEFAULT 0,  -- cheques emitidos en OPs (ordpag1 ambas bases)
+    pagos_proyectados   DECIMAL(18,2)  DEFAULT 0,  -- facturas pendientes por vencer (moviprov1 saldo por fecha_vencimiento)
     pagos_total         DECIMAL(18,2)  DEFAULT 0,
     cant_ops            INT            DEFAULT 0,
     cant_proveedores    INT            DEFAULT 0,
@@ -219,10 +220,17 @@ IF OBJECT_ID('dbo.sp_calcular_calce_avanzado', 'P') IS NOT NULL
     DROP PROCEDURE dbo.sp_calcular_calce_avanzado;
 GO
 
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+
 CREATE PROCEDURE dbo.sp_calcular_calce_avanzado
+WITH EXECUTE AS CALLER
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET QUOTED_IDENTIFIER ON;
+    SET ANSI_NULLS ON;
 
     -- =================================================================
     -- MEJORA 1: FLUJO DE CAJA SEMANAL
@@ -246,24 +254,50 @@ BEGIN
         SET @i = @i + 1;
     END;
 
-    -- Pagos: cheques diferidos y pagos con vencimiento futuro (de moviprov2)
-    -- fecha_cancelacion = fecha efectiva del cheque diferido (puede ser futura)
-    -- Para semanas futuras: buscamos cheques cuya fecha_cancelacion cae en esa semana
+    -- PAGOS FUENTE 1: Cheques emitidos en OPs (ordpag1) - AMBAS BASES
+    -- 104 cheques / $234M vs solo 5/$9.8M en moviprov2.fecha_cancelacion
     UPDATE f SET
         pagos_cheques = ISNULL(x.total_importe, 0),
-        pagos_total = ISNULL(x.total_importe, 0),
         cant_ops = ISNULL(x.cant, 0),
         cant_proveedores = ISNULL(x.provs, 0)
     FROM t_flujo_caja_semanal f
     OUTER APPLY (
         SELECT
-            SUM(m.importe_can_pesos) AS total_importe,
+            SUM(o.importe_pesos) AS total_importe,
             COUNT(*) AS cant,
-            COUNT(DISTINCT m.numero_cuenta) AS provs
-        FROM msgestionC.dbo.moviprov2 m
-        WHERE m.fecha_cancelacion BETWEEN f.semana_inicio AND f.semana_fin
-          AND m.fecha_cancelacion >= CAST(GETDATE() AS DATE)
+            COUNT(DISTINCT o.cuenta) AS provs
+        FROM (
+            SELECT fecha_vencimiento, importe_pesos, cuenta
+            FROM msgestion03.dbo.ordpag1
+            WHERE importe_pesos > 0 AND estado = 'V'
+            UNION ALL
+            SELECT fecha_vencimiento, importe_pesos, cuenta
+            FROM msgestion01.dbo.ordpag1
+            WHERE importe_pesos > 0 AND estado = 'V'
+        ) o
+        WHERE o.fecha_vencimiento BETWEEN f.semana_inicio AND f.semana_fin
+          AND o.fecha_vencimiento >= CAST(GETDATE() AS DATE)
     ) x;
+
+    -- PAGOS FUENTE 2: Facturas pendientes por vencer (moviprov1 saldo pendiente)
+    -- Saldo = importe_pesos - importe_can_pesos (lo que falta pagar de cada factura)
+    -- fecha_vencimiento = cuando vence la factura (proyeccion de pagos futuros)
+    -- Esto NO doble-cuenta con cheques: importe_can_pesos ya descuenta pagos parciales
+    UPDATE f SET
+        pagos_proyectados = ISNULL(y.total_saldo, 0)
+    FROM t_flujo_caja_semanal f
+    OUTER APPLY (
+        SELECT
+            SUM(m1.importe_pesos - m1.importe_can_pesos) AS total_saldo
+        FROM msgestionC.dbo.moviprov1 m1
+        WHERE m1.operacion = '+'
+          AND m1.fecha_vencimiento BETWEEN f.semana_inicio AND f.semana_fin
+          AND (m1.importe_pesos - m1.importe_can_pesos) > 100
+    ) y;
+
+    -- PAGOS TOTAL: cheques comprometidos + saldo facturas por vencer
+    UPDATE t_flujo_caja_semanal SET
+        pagos_total = ISNULL(pagos_cheques, 0) + ISNULL(pagos_proyectados, 0);
 
     -- Cobranza estimada: run rate semanal de ventas (ultimos 60 dias)
     -- a precio (lo que cobra la empresa) y a costo (para comparar con pagos)
@@ -288,9 +322,11 @@ BEGIN
         ON v1.empresa = v2.empresa AND v1.codigo = v2.codigo
        AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
        AND v1.numero = v2.numero AND v1.orden = v2.orden
+    JOIN msgestion01art.dbo.articulo a ON v1.articulo = a.codigo
     WHERE v2.codigo IN (1, 6, 21, 61)  -- facturas de venta
       AND v2.fecha_comprobante >= DATEADD(DAY, -60, GETDATE())
-      AND v2.fecha_comprobante < CAST(GETDATE() AS DATE);
+      AND v2.fecha_comprobante < CAST(GETDATE() AS DATE)
+      AND a.marca NOT IN (1316, 1317, 1158, 436);  -- excluir marcas de gastos
 
     -- Ajustar cobranza por estacionalidad mensual (si hay datos)
     -- Usa idx_estacionalidad promedio de todas las industrias

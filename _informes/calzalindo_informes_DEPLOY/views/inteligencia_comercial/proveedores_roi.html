@@ -1,0 +1,161 @@
+{{extend 'layout.html'}}
+{{response.title = 'Proveedores ROI'}}
+<!--
+  Vista: views/inteligencia_comercial/proveedores_roi.html
+  Controller: inteligencia_comercial.py -> proveedores_roi()
+-->
+<link href="https://unpkg.com/tabulator-tables@5.5.4/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.4/dist/js/tabulator.min.js"></script>
+<style>
+/* === KPI CARDS === */
+.kpi-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.kpi-card {
+    flex: 1; min-width: 180px; background: #fff; border-radius: 8px;
+    padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); text-align: center;
+    border-top: 3px solid #007bff;
+}
+.kpi-card h5 { margin: 0 0 5px; font-size: 12px; color: #888; text-transform: uppercase; }
+.kpi-card .valor { font-size: 24px; font-weight: bold; color: #333; }
+.kpi-card .sub { font-size: 11px; color: #999; margin-top: 3px; }
+.kpi-card.verde { border-top-color: #28a745; }
+.kpi-card.rojo { border-top-color: #dc3545; }
+.kpi-card.naranja { border-top-color: #fd7e14; }
+.kpi-card.azul { border-top-color: #007bff; }
+/* === SUB-NAV === */
+.sub-nav { display: flex; gap: 5px; margin-bottom: 20px; }
+.sub-nav a {
+    padding: 8px 16px; border-radius: 6px; text-decoration: none;
+    background: #e9ecef; color: #495057; font-size: 13px;
+}
+.sub-nav a.active { background: #343a40; color: #fff; font-weight: bold; }
+.sub-nav a:hover:not(.active) { background: #dee2e6; }
+/* === EXPORT === */
+.btn-export {
+    background: #28a745; color: #fff; border: none; padding: 8px 16px;
+    border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 15px;
+}
+.btn-export:hover { background: #218838; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <!-- TITULO -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin:0;">
+            <i class="glyphicon glyphicon-briefcase"></i>
+            Proveedores ROI
+        </h3>
+    </div>
+
+    <!-- SUB-NAV -->
+    <div class="sub-nav">
+        <a href="{{=URL('inteligencia_comercial', 'bcg_matrix')}}">BCG Matrix</a>
+        <a href="{{=URL('inteligencia_comercial', 'proveedores_roi')}}" class="active">Proveedores ROI</a>
+        <a href="{{=URL('inteligencia_comercial', 'stock_muerto')}}">Stock Muerto</a>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+        <div class="kpi-card azul">
+            <h5>Total Compras 12m</h5>
+            <div class="valor" id="kpi-compras">-</div>
+            <div class="sub">Monto comprado ultimos 12 meses</div>
+        </div>
+        <div class="kpi-card naranja">
+            <h5>ROI Promedio</h5>
+            <div class="valor">{{=roi_promedio}}%</div>
+            <div class="sub">(Venta - Compra) / Compra</div>
+        </div>
+        <div class="kpi-card verde">
+            <h5>Auto-financiados</h5>
+            <div class="valor">{{=auto_financiados}}</div>
+            <div class="sub">ROI >= 100%</div>
+        </div>
+    </div>
+
+    <!-- EXPORT -->
+    <button class="btn-export" id="btn-csv">
+        <i class="glyphicon glyphicon-download"></i> Exportar CSV
+    </button>
+
+    <!-- TABLE -->
+    <div id="tabla-proveedores"></div>
+</div>
+
+<script>
+(function() {
+    var rawData = JSON.parse('{{=XML(data_json)}}');
+    var totalCompras = {{=total_compras}};
+
+    // Format KPI
+    document.getElementById('kpi-compras').textContent = '$' + Math.round(totalCompras).toLocaleString('es-AR');
+
+    // Formatters
+    function pesosFormatter(cell) {
+        var v = cell.getValue();
+        if (v === null || v === undefined) return '-';
+        return '$' + Math.round(v).toLocaleString('es-AR');
+    }
+
+    function pctFormatter(cell) {
+        var v = cell.getValue();
+        if (v === null || v === undefined) return '-';
+        return v.toFixed(1) + '%';
+    }
+
+    function roiFormatter(cell) {
+        var v = cell.getValue();
+        if (v === null || v === undefined) return '-';
+        var el = cell.getElement();
+        if (v >= 100) {
+            el.style.color = '#155724';
+            el.style.fontWeight = 'bold';
+        } else if (v >= 30) {
+            el.style.color = '#856404';
+        } else {
+            el.style.color = '#721c24';
+        }
+        return v.toFixed(1) + '%';
+    }
+
+    function clasificacionFormatter(cell) {
+        var v = cell.getValue();
+        var colors = {
+            'AUTO-FINANCIADO': {bg: '#d4edda', color: '#155724'},
+            'MODERADO': {bg: '#fff3cd', color: '#856404'},
+            'INTENSIVO': {bg: '#f8d7da', color: '#721c24'}
+        };
+        var c = colors[v] || {bg: '#e9ecef', color: '#495057'};
+        cell.getElement().style.background = c.bg;
+        cell.getElement().style.color = c.color;
+        cell.getElement().style.fontWeight = 'bold';
+        cell.getElement().style.textAlign = 'center';
+        return v;
+    }
+
+    var table = new Tabulator("#tabla-proveedores", {
+        data: rawData,
+        layout: "fitColumns",
+        height: "600px",
+        pagination: "local",
+        paginationSize: 50,
+        initialSort: [{column: "roi", dir: "desc"}],
+        columns: [
+            {title: "Proveedor", field: "proveedor", headerFilter: "input", width: 200},
+            {title: "Monto Compra", field: "monto_compra", hozAlign: "right", formatter: pesosFormatter, sorter: "number", width: 140},
+            {title: "Venta Total", field: "venta_total", hozAlign: "right", formatter: pesosFormatter, sorter: "number", width: 140},
+            {title: "Margen %", field: "margen_pct", hozAlign: "right", formatter: pctFormatter, sorter: "number", width: 100},
+            {title: "Rotacion", field: "rotacion", hozAlign: "right", sorter: "number", width: 90,
+                formatter: function(cell) { return cell.getValue() !== null ? cell.getValue().toFixed(2) : '-'; }},
+            {title: "ROI %", field: "roi", hozAlign: "right", formatter: roiFormatter, sorter: "number", width: 100},
+            {title: "Clasificacion", field: "clasificacion", formatter: clasificacionFormatter, headerFilter: "list",
+                headerFilterParams: {values: {"": "Todas", "AUTO-FINANCIADO": "AUTO-FINANCIADO", "MODERADO": "MODERADO", "INTENSIVO": "INTENSIVO"}},
+                width: 160}
+        ]
+    });
+
+    // CSV export
+    document.getElementById('btn-csv').addEventListener('click', function() {
+        table.download("csv", "proveedores_roi.csv");
+    });
+})();
+</script>

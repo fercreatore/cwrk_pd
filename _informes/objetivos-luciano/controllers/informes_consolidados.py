@@ -621,7 +621,7 @@ def rank_productos_xmarca():
 		data = db1.executesql(t_sql, as_dict=True)
 
 		df6 = pandas.DataFrame.from_dict(data)
-		df6['stock_actual'] = df6['stock_actual'].astype(int)
+		df6['stock_actual'] = df6['stock_actual'].fillna(0).astype(int)
 		#df6['nro'] = df6['nro'].astype(int)
 		#df6['nro'] = df6['nro'].astype("Int64")
 		df6['nro'] = df6['nro'].fillna(0).astype(str)

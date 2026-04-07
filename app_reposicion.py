@@ -18,12 +18,30 @@ EJECUTAR:
 Autor: Cowork + Claude — Marzo 2026
 """
 
+# ── FIX SSL: DEBE ir ANTES de importar pyodbc ──
+# OpenSSL 3.x rechaza TLS 1.0 que usa SQL Server 2012
+import os as _os
+import platform as _platform
+if _platform.system() != "Windows":
+    _ssl_conf = "/tmp/openssl_legacy.cnf"
+    if not _os.path.exists(_ssl_conf):
+        with open(_ssl_conf, "w") as _f:
+            _f.write(
+                "openssl_conf = openssl_init\n"
+                "[openssl_init]\nssl_conf = ssl_sect\n"
+                "[ssl_sect]\nsystem_default = system_default_sect\n"
+                "[system_default_sect]\n"
+                "MinProtocol = TLSv1\nCipherString = DEFAULT@SECLEVEL=0\n"
+            )
+    _os.environ["OPENSSL_CONF"] = _ssl_conf  # forzar, no setdefault
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import pyodbc
 import json
 import os
+import io
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -49,7 +67,257 @@ MESES_HISTORIA = 12  # para quiebre
 MESES_ESTACIONALIDAD = 36  # 3 años
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'pedidos_log.json')
 
+# Estacionalidad real (pares/mes promedio 2023-2026, % vs promedio mensual ~11,958)
+ESTACIONALIDAD_MENSUAL = {
+    1: 0.88, 2: 1.04, 3: 0.74, 4: 0.73, 5: 0.93, 6: 1.05,
+    7: 0.98, 8: 0.92, 9: 0.93, 10: 1.22, 11: 1.04, 12: 1.51,
+}
+PARES_PROMEDIO_MENSUAL = 11958
+PARES_TOTAL_ANUAL = 143500
+# Ratio C/V modelo nuevo: 75% → se está drenando stock
+RATIO_CV_NUEVO = 0.75
+
 CONN_REPLICA = get_conn_string("msgestionC")
+
+# Nichos de producto predefinidos para análisis estacional
+NICHOS_PREDEFINIDOS = {
+    'COMUNION': {
+        'nombre': 'Comunión / Confirmación',
+        'subrubros': (17, 18),  # GUILLERMINA, CHATA
+        'color': '%BLANC%',
+        'rubros': (1, 5),  # DAMAS, NIÑAS
+        'temporada_esperada': (9, 10, 11, 12),  # Sep-Dic
+        'marcas_clave': ['GOFFO', 'BEBS', 'RED GREEN', 'ENONA DE DELI'],
+        'talle_rango': (27, 40),
+        'edad_target': '6-15 años (niñas) + damas jóvenes',
+        'estacionalidad': {9: 1.62, 10: 2.31, 11: 2.08, 12: 1.15,
+                          1: 0.38, 2: 0.46, 3: 0.62, 4: 0.54,
+                          5: 0.54, 6: 0.46, 7: 0.38, 8: 0.46},
+    },
+    'OFICINA_HOMBRE': {
+        'nombre': 'Hombre Oficina / Trabajo',
+        'subrubros': (20, 52, 40),  # ZAPATO VESTIR, CASUAL, NAUTICO
+        'color': None,  # todos los colores
+        'rubros': (3,),  # HOMBRES
+        'temporada_esperada': (10, 11, 12),  # Oct-Dic (regalos+fiestas)
+        'talle_rango': (39, 46),
+        'talle_pico': (41, 42),  # 17% cada uno
+        'edad_target': '25-55 años',
+        'demanda_anual_pares': 5494,
+        'estacionalidad': {1: 0.66, 2: 0.86, 3: 0.88, 4: 0.78,
+                          5: 0.82, 6: 1.02, 7: 0.85, 8: 0.88,
+                          9: 0.99, 10: 1.24, 11: 1.36, 12: 1.66},
+        'curva_talles_pct': {39: 7.5, 40: 11.5, 41: 16.5, 42: 17.0,
+                            43: 15.3, 44: 10.3, 45: 4.6, 46: 0.9},
+    },
+    'ADOLESCENTE_ESCUELA': {
+        'nombre': 'Adolescente Escuela (13-18 años)',
+        'subrubros': (49, 48, 40, 52),  # TRAINING, TENNIS, NAUTICO, CASUAL
+        'color': None,
+        'rubros': (4, 5),  # NIÑOS, NIÑAS
+        'temporada_esperada': (2, 3, 7, 8),  # Feb-Mar (inicio clases) + Jul-Ago (2do cuatri)
+        'talle_rango': (33, 42),
+        'talle_pico': (33, 34),  # 33.7% + 31.3% = 65% en solo 2 talles
+        'edad_target': '10-16 años',
+        'demanda_anual_pares': 2410,
+        'estacionalidad': {1: 0.56, 2: 2.36, 3: 0.96, 4: 0.73,
+                          5: 0.90, 6: 0.76, 7: 0.91, 8: 1.07,
+                          9: 0.85, 10: 0.77, 11: 0.57, 12: 0.65},
+        'curva_talles_pct': {33: 33.7, 34: 31.3, 35: 12.0, 36: 9.1,
+                            37: 7.0, 38: 3.5, 39: 1.7, 40: 1.5},
+    },
+    'COLEGIO_PRIMARIA': {
+        'nombre': 'Colegio Primaria (6-12 años)',
+        'subrubros': (49, 48, 40),  # TRAINING, TENNIS, NAUTICO
+        'color': None,
+        'rubros': (4, 5),  # NIÑOS, NIÑAS
+        'temporada_esperada': (2, 3),  # Feb-Mar inicio clases
+        'talle_rango': (27, 34),
+        'edad_target': '6-12 años',
+    },
+    'VERANO': {
+        'nombre': 'Verano (Ojotas/Sandalias/Zuecos)',
+        'subrubros': (11, 12, 13),  # OJOTAS, SANDALIAS, ZUECOS
+        'color': None,
+        'rubros': (1, 3, 4, 5),  # todos
+        'temporada_esperada': (11, 12, 1, 2, 3),  # Nov-Mar
+    },
+    'INVIERNO': {
+        'nombre': 'Invierno (Botas/Borcegos)',
+        'subrubros': (14, 15),  # BORCEGOS, BOTAS
+        'color': None,
+        'rubros': (1, 3, 4, 5),
+        'temporada_esperada': (4, 5, 6, 7, 8),  # Abr-Ago
+    },
+    'DEPORTES_RUNNING': {
+        'nombre': 'Running / Training Adulto',
+        'subrubros': (47, 49),  # RUNNING, TRAINING
+        'color': None,
+        'rubros': (1, 3),  # DAMAS, HOMBRES
+        'temporada_esperada': (),  # plano todo el año
+        'talle_pico': (41, 42),  # hombres; damas: 37, 38
+    },
+    'PANTUFLAS': {
+        'nombre': 'Pantuflas / Chinelas',
+        'subrubros': (60, 37),  # PANTUFLA, FRANCISCANA/CHINELA
+        'color': None,
+        'rubros': (1, 3, 4, 5),
+        'temporada_esperada': (4, 5, 6, 7),  # Abr-Jul
+        'picos_regalo': {6: 'Día del Padre', 10: 'Día de la Madre', 12: 'Navidad'},
+    },
+    'GRADUACION_FIESTAS': {
+        'nombre': 'Graduación y Fiestas',
+        'subrubros': (20, 12, 17),  # VESTIR, SANDALIAS, GUILLERMINA
+        'color': None,
+        'rubros': (1, 3, 5),  # DAMAS, HOMBRES, NIÑAS
+        'temporada_esperada': (11, 12),  # Nov-Dic
+    },
+}
+
+# ============================================================================
+# LEAD TIMES POR PROVEEDOR (días desde pedido hasta recepción)
+# ============================================================================
+LEAD_TIMES = {
+    220: 15,   # MASKOTA SRL — JIT real (entrega muy rápida)
+    104: 21,   # GTN — folclore / campus
+    11:  30,   # TIMMIS
+    457: 30,   # ZOTZ
+    594: 45,   # VICBOR/ATOMIK
+    641: 21,   # FLOYD medias
+    860: 30,   # DISTRIGROUP/JOHN FOOS
+    118: 30,   # EL FARAÓN
+    656: 45,   # DISTRINANDO/REEBOK
+    561: 30,   # SOUTER/RINGO
+    614: 45,   # CALZADOS BLANCO/DIADORA
+    668: 45,   # ALPARGATAS/TOPPER
+    722: 45,   # GLOBAL BRANDS/OLYMPIKUS
+}
+LEAD_TIME_DEFAULT = 45  # Para proveedores no configurados
+
+# ============================================================================
+# TEMPORADA DE COMPRA POR SUBRUBRO
+# Comprar = 2-3 meses ANTES de la temporada de venta
+# ============================================================================
+SUBRUBRO_TEMPORADA = {
+    # VERANO (vender Oct-Mar, comprar Jul-Sep)
+    11: {'nombre': 'OJOTAS', 'venta': (10, 11, 12, 1, 2, 3), 'compra': (7, 8, 9)},
+    12: {'nombre': 'SANDALIAS', 'venta': (10, 11, 12, 1, 2, 3), 'compra': (7, 8, 9)},
+    13: {'nombre': 'ZUECOS', 'venta': (10, 11, 12, 1, 2, 3), 'compra': (7, 8, 9)},
+    37: {'nombre': 'FRANCISCANA', 'venta': (10, 11, 12, 1, 2, 3), 'compra': (8, 9, 10)},
+
+    # INVIERNO (vender Abr-Ago, comprar Ene-Mar)
+    15: {'nombre': 'BOTAS', 'venta': (4, 5, 6, 7, 8), 'compra': (1, 2, 3)},
+    14: {'nombre': 'BORCEGOS', 'venta': (4, 5, 6, 7, 8), 'compra': (1, 2, 3)},
+    60: {'nombre': 'PANTUFLA', 'venta': (4, 5, 6, 7, 8), 'compra': (2, 3, 4)},
+    6:  {'nombre': 'CHINELA', 'venta': (5, 6, 7, 8), 'compra': (3, 4, 5)},
+
+    # ESCOLAR (vender Feb-Mar, comprar Nov-Ene)
+    40: {'nombre': 'NAUTICO', 'venta': (2, 3, 4), 'compra': (11, 12, 1)},
+
+    # COMUNION (vender Sep-Dic, comprar Jun-Ago)
+    17: {'nombre': 'GUILLERMINA', 'venta': (9, 10, 11, 12), 'compra': (6, 7, 8)},
+    18: {'nombre': 'CHATA', 'venta': (9, 10, 11, 12), 'compra': (6, 7, 8)},
+
+    # TODO EL AÑO (siempre comprar)
+    49: {'nombre': 'ZAPATILLA TRAINING', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+    47: {'nombre': 'ZAPATILLA RUNNING', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+    48: {'nombre': 'ZAPATILLA TENNIS', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+    51: {'nombre': 'ZAPATILLA OUTDOOR', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+    52: {'nombre': 'ZAPATILLA CASUAL', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+    55: {'nombre': 'ZAPATILLA SNEAKERS', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+    20: {'nombre': 'ZAPATO DE VESTIR', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+    29: {'nombre': 'MEDIAS', 'venta': tuple(range(1, 13)), 'compra': tuple(range(1, 13))},
+}
+
+
+def es_temporada_compra(subrubro, mes_actual=None):
+    """
+    Determines if now is the right time to BUY (not sell) products in this subrubro.
+    Buying happens 2-3 months BEFORE the selling season.
+
+    Returns: dict {comprar_ahora: bool, temporada_venta: str, meses_pico: list, razon: str}
+    """
+    from datetime import datetime
+    if mes_actual is None:
+        mes_actual = datetime.now().month
+
+    nombres_mes = {
+        1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun',
+        7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
+    }
+
+    if subrubro not in SUBRUBRO_TEMPORADA:
+        return {
+            'comprar_ahora': True,
+            'temporada_venta': 'Todo el año',
+            'meses_pico': list(range(1, 13)),
+            'razon': 'Subrubro sin estacionalidad definida - compra permanente'
+        }
+
+    info = SUBRUBRO_TEMPORADA[subrubro]
+    meses_compra = info['compra']
+    meses_venta = info['venta']
+    comprar_ahora = mes_actual in meses_compra
+
+    temporada_venta_str = '-'.join(
+        nombres_mes[m] for m in (meses_venta[0], meses_venta[-1])
+    )
+
+    if comprar_ahora:
+        razon = (
+            f"{info['nombre']}: ventana de compra activa "
+            f"({', '.join(nombres_mes[m] for m in meses_compra)}). "
+            f"Venta pico {temporada_venta_str}."
+        )
+    else:
+        razon = (
+            f"{info['nombre']}: fuera de ventana de compra. "
+            f"Comprar en {', '.join(nombres_mes[m] for m in meses_compra)}, "
+            f"venta pico {temporada_venta_str}."
+        )
+
+    return {
+        'comprar_ahora': comprar_ahora,
+        'temporada_venta': temporada_venta_str,
+        'meses_pico': list(meses_venta),
+        'razon': razon
+    }
+
+
+# ============================================================================
+# CALIBRACIÓN BACKTESTING (36 familias testeadas, 23-24 mar 2026)
+# factor_correccion: si el modelo subestimó 41%, correccion = 1.41
+# confianza: alta = error < 15%, media = 15-50%, baja = > 50%
+# ============================================================================
+BACKTESTING_CALIBRACION = {
+    # VERANO — modelo subestima sistemáticamente
+    '65611016': {'nombre': 'CROCBAND C11016', 'tipo': 'verano', 'correccion': 1.41, 'confianza': 'media', 'error_pct': -41},
+    '65610998': {'nombre': 'CROCBAND KIDS', 'tipo': 'verano', 'correccion': 1.80, 'confianza': 'baja', 'error_pct': -80},
+    '08727000': {'nombre': 'ZUECO 270 HOMBRE', 'tipo': 'verano', 'correccion': 1.43, 'confianza': 'media', 'error_pct': -43},
+    '23649500': {'nombre': 'ALPARGATA REFORZADA', 'tipo': 'verano', 'correccion': 1.16, 'confianza': 'media', 'error_pct': -16},
+    # INVIERNO — modelo acierta bien
+    '11855000': {'nombre': 'HORNITO 0055', 'tipo': 'invierno', 'correccion': 1.0, 'confianza': 'alta', 'error_pct': 2.7},
+    '63471130': {'nombre': 'IMPERMEABILIZANTE', 'tipo': 'invierno', 'correccion': 0.52, 'confianza': 'media', 'error_pct': 90},
+    '457260PU': {'nombre': '260PU FOLCLORE', 'tipo': 'invierno', 'correccion': 1.90, 'confianza': 'baja', 'error_pct': -90},
+    '01100350': {'nombre': '349 FOLCLORE', 'tipo': 'invierno', 'correccion': 1.0, 'confianza': 'alta', 'error_pct': 0},
+    # PERENNE — buenos resultados
+    '66821872': {'nombre': 'TOPPER X FORCER', 'tipo': 'perenne', 'correccion': 1.0, 'confianza': 'alta', 'error_pct': 9.7},
+    '66829701': {'nombre': 'TIE BREAK III', 'tipo': 'perenne', 'correccion': 0.54, 'confianza': 'baja', 'error_pct': 117},
+    # ESCOLAR — sobrecompra
+    '64171000': {'nombre': 'MEDIAS COLEGIALES', 'tipo': 'escolar', 'correccion': 0.67, 'confianza': 'media', 'error_pct': 200},
+    '09615110': {'nombre': 'MEDIAS COL BORDO', 'tipo': 'escolar', 'correccion': 0.77, 'confianza': 'media', 'error_pct': 29},
+    # MEDIAS — modelo subestima (100% quiebre en muchos talles)
+    '51511101': {'nombre': 'SOQUETE DAMA LISO', 'tipo': 'perenne', 'correccion': 2.0, 'confianza': 'baja', 'error_pct': -100},
+    '51500102': {'nombre': 'SOQUETE HOMBRE LISO', 'tipo': 'perenne', 'correccion': 2.0, 'confianza': 'baja', 'error_pct': -100},
+}
+
+# Factores de corrección promedio por tipo (para familias sin backtesting)
+CORRECCION_TIPO_DEFAULT = {
+    'verano': 1.45,    # promedio de Crocs+Zueco+Alpargata
+    'invierno': 1.0,   # Hornito acierta bien
+    'perenne': 1.0,    # Topper acierta bien
+    'escolar': 0.72,   # tiende a sobrecomprar
+}
 
 # Conexión directa al 112 para pedidos ERP (con fix SSL legacy)
 OPENSSL_LEGACY_CNF = os.path.join(os.path.dirname(__file__), '_scripts_oneshot', 'openssl_legacy.cnf')
@@ -92,11 +360,18 @@ st.markdown("""
 # ============================================================================
 
 def _crear_conexion():
-    """Crea una conexión nueva a SQL Server."""
+    """Crea una conexión nueva a SQL Server. Configura OpenSSL legacy si es necesario."""
+    # Asegurar OpenSSL legacy para Mac + SQL Server 2012
+    if os.path.exists(OPENSSL_LEGACY_CNF) and 'OPENSSL_CONF' not in os.environ:
+        os.environ['OPENSSL_CONF'] = OPENSSL_LEGACY_CNF
     try:
-        return pyodbc.connect(CONN_COMPRAS, timeout=15)
+        return pyodbc.connect(CONN_COMPRAS, timeout=20)
     except Exception:
-        return pyodbc.connect(CONN_REPLICA, timeout=15)
+        try:
+            return pyodbc.connect(CONN_REPLICA, timeout=20)
+        except Exception as e:
+            st.error(f"⚠️ No se pudo conectar a SQL Server. Verificá VPN/red. Error: {e}")
+            raise
 
 
 def get_conn(force_new=False):
@@ -153,61 +428,61 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
     # Construir filtro IN
     filtro = ",".join(f"'{c}'" for c in codigos_sinonimo)
 
-    # 1. Stock actual por codigo_sinonimo
+    # 1. Stock actual por codigo_sinonimo (LEFT 10 para matchear CSR truncado)
     sql_stock = f"""
-        SELECT a.codigo_sinonimo,
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
                ISNULL(SUM(s.stock_actual), 0) AS stock
         FROM msgestionC.dbo.stock s
         JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
-        WHERE a.codigo_sinonimo IN ({filtro})
+        WHERE LEFT(a.codigo_sinonimo, 10) IN ({filtro})
           AND s.deposito IN {DEPOS_SQL}
-        GROUP BY a.codigo_sinonimo
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
     """
     df_stock = query_df(sql_stock)
     stock_dict = {}
     for _, r in df_stock.iterrows():
-        stock_dict[r['codigo_sinonimo'].strip()] = float(r['stock'])
+        stock_dict[r['csr'].strip()] = float(r['stock'])
 
-    # 2. Ventas mensuales por codigo_sinonimo
+    # 2. Ventas mensuales por codigo_sinonimo (LEFT 10)
     sql_ventas = f"""
-        SELECT a.codigo_sinonimo,
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
                SUM(CASE WHEN v.operacion='+' THEN v.cantidad
                         WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
                YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes
         FROM msgestionC.dbo.ventas1 v
         JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
         WHERE v.codigo NOT IN {EXCL_VENTAS}
-          AND a.codigo_sinonimo IN ({filtro})
+          AND LEFT(a.codigo_sinonimo, 10) IN ({filtro})
           AND v.fecha >= '{desde}'
-        GROUP BY a.codigo_sinonimo, YEAR(v.fecha), MONTH(v.fecha)
+        GROUP BY LEFT(a.codigo_sinonimo, 10), YEAR(v.fecha), MONTH(v.fecha)
     """
     df_ventas = query_df(sql_ventas)
 
     # 3. Compras mensuales por codigo_sinonimo
     sql_compras = f"""
-        SELECT a.codigo_sinonimo,
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
                SUM(rc.cantidad) AS cant,
                YEAR(rc.fecha) AS anio, MONTH(rc.fecha) AS mes
         FROM msgestionC.dbo.compras1 rc
         JOIN msgestion01art.dbo.articulo a ON rc.articulo = a.codigo
         WHERE rc.operacion = '+'
-          AND a.codigo_sinonimo IN ({filtro})
+          AND LEFT(a.codigo_sinonimo, 10) IN ({filtro})
           AND rc.fecha >= '{desde}'
-        GROUP BY a.codigo_sinonimo, YEAR(rc.fecha), MONTH(rc.fecha)
+        GROUP BY LEFT(a.codigo_sinonimo, 10), YEAR(rc.fecha), MONTH(rc.fecha)
     """
     df_compras = query_df(sql_compras)
 
     # Organizar ventas y compras en dicts
     ventas_by_cs = {}
     for _, r in df_ventas.iterrows():
-        cs = r['codigo_sinonimo'].strip()
+        cs = r['csr'].strip()
         if cs not in ventas_by_cs:
             ventas_by_cs[cs] = {}
         ventas_by_cs[cs][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
 
     compras_by_cs = {}
     for _, r in df_compras.iterrows():
-        cs = r['codigo_sinonimo'].strip()
+        cs = r['csr'].strip()
         if cs not in compras_by_cs:
             compras_by_cs[cs] = {}
         compras_by_cs[cs][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
@@ -236,6 +511,7 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
         ventas_total = 0
         ventas_ok = 0
         ventas_desest = 0  # ventas desestacionalizadas (meses OK)
+        ventas_meses_ok = []  # para calcular std_mensual
 
         for anio, mes in meses_lista:
             v = v_dict.get((anio, mes), 0)
@@ -248,6 +524,7 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
             else:
                 meses_ok += 1
                 ventas_ok += v
+                ventas_meses_ok.append(v)
                 # Desestacionalizar: dividir ventas por factor del mes
                 s_t = max(f_est.get(mes, 1.0), 0.1)
                 ventas_desest += v / s_t
@@ -276,6 +553,26 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
 
         vel_real = vel_base * factor_disp
 
+        # Desvío estándar mensual (solo meses no quebrados)
+        std_mes = float(np.std(ventas_meses_ok)) if ventas_meses_ok else 0.0
+
+        # ── Estimación de ventas perdidas (segundo pase) ──
+        # Para cada mes quebrado, estimar cuánto se habría vendido
+        # usando vel_base ajustada por estacionalidad del mes
+        ventas_perdidas = 0
+        if meses_ok > 0 and vel_base > 0:
+            stock_fin2 = stock_actual
+            for anio, mes in meses_lista:
+                v = v_dict.get((anio, mes), 0)
+                c = c_dict.get((anio, mes), 0)
+                stock_inicio_check = stock_fin2 + v - c
+                if stock_inicio_check <= 0:
+                    # Mes quebrado → estimar ventas esperadas
+                    factor_mes = max(f_est.get(mes, 1.0), 0.1)
+                    ventas_esperadas = vel_base * factor_mes
+                    ventas_perdidas += max(0, ventas_esperadas - v)
+                stock_fin2 = stock_inicio_check
+
         resultados[cs] = {
             'stock_actual': stock_actual,
             'meses_quebrado': meses_q,
@@ -287,16 +584,326 @@ def analizar_quiebre_batch(codigos_sinonimo, meses=MESES_HISTORIA):
             'factor_disp': factor_disp,
             'ventas_total': ventas_total,
             'ventas_ok': ventas_ok,
+            'std_mensual': round(std_mes, 2),
+            'ventas_perdidas': round(ventas_perdidas),
+            'vel_real_con_perdidas': round((ventas_total + ventas_perdidas) / max(meses, 1), 2),
         }
 
     return resultados
 
 
 # ============================================================================
+# SAFETY STOCK (stock de seguridad + punto de reorden)
+# ============================================================================
+
+def calcular_safety_stock(vel_mensual, std_mensual, lead_time_dias=30, service_level=0.95):
+    """
+    Calcula stock de seguridad usando distribución normal.
+
+    Args:
+        vel_mensual: velocidad promedio mensual (pares/mes)
+        std_mensual: desvío estándar mensual
+        lead_time_dias: días de lead time del proveedor
+        service_level: nivel de servicio deseado (0.95 = 95%)
+
+    Returns: dict {safety_stock, reorder_point, z_score}
+    """
+    try:
+        from scipy.stats import norm
+        z = norm.ppf(service_level)
+    except ImportError:
+        # Fallback: z-scores comunes sin scipy
+        _z_table = {0.90: 1.28, 0.95: 1.65, 0.975: 1.96, 0.99: 2.33}
+        z = _z_table.get(service_level, 1.65)
+
+    lt_meses = lead_time_dias / 30.0
+    safety = z * std_mensual * (lt_meses ** 0.5)
+    rop = vel_mensual * lt_meses + safety
+    return {
+        'safety_stock': round(max(safety, 0)),
+        'reorder_point': round(max(rop, 0)),
+        'z_score': round(z, 2),
+    }
+
+
+# ============================================================================
+# MOTOR DE DECISIÓN JIT (Just In Time)
+# ============================================================================
+
+def calcular_decision_reposicion(df_articulos: pd.DataFrame, proveedor: int,
+                                  horizonte_dias: int = 90,
+                                  nivel_servicio: float = 0.95,
+                                  factores_est: dict = None) -> pd.DataFrame:
+    """
+    Motor de decisión JIT por artículo con ajuste estacional forward-looking.
+
+    Dado un DataFrame con stock_actual y vel_real (pares/mes), calcula:
+      - si hay que pedir hoy
+      - cuánto pedir
+      - nivel de urgencia (ROJO / AMARILLO / VERDE / SIN_DEMANDA)
+
+    Fórmulas:
+      vel_diaria       = vel_real / 30
+      factor_est       = avg(factores del período de venta) / factor_mes_actual
+                         → corrige vel_real (desestacionalizada) al ritmo proyectado
+      vel_diaria_proj  = vel_diaria * factor_est  (usada para punto_reorden y cantidad)
+      dias_stock       = stock_actual / vel_diaria  (ritmo ACTUAL, no proyectado)
+      safety_stock     = z * sqrt(lead_time * vel_diaria_proj)   (Poisson)
+      punto_reorden    = vel_diaria_proj * lead_time + safety_stock
+      necesita_pedido  = stock_actual <= punto_reorden  AND  vel_diaria > 0
+      cantidad_sugerida = max(0, vel_diaria_proj * horizonte_dias + safety_stock - stock_actual)
+      urgencia:
+        ROJO     → dias_stock < lead_time          (quiebre antes de recibir)
+        AMARILLO → dias_stock < lead_time * 2      (hay que pedir YA)
+        VERDE    → dias_stock >= lead_time * 2
+        SIN_DEMANDA → vel_diaria = 0
+
+    Args:
+        df_articulos: DataFrame con columnas stock_actual, vel_real, codigo_sinonimo
+        proveedor: código de proveedor (para lookup en LEAD_TIMES)
+        horizonte_dias: días de cobertura objetivo al comprar
+        nivel_servicio: 0.85-0.99
+        factores_est: dict {codigo_sinonimo: {mes: factor}} de factor_estacional_batch.
+                      Si None, usa ESTACIONALIDAD_MENSUAL como fallback global.
+
+    Returns:
+        DataFrame con columnas adicionales de decisión JIT (incluye factor_est)
+    """
+    try:
+        from scipy import stats as scipy_stats
+        z = float(scipy_stats.norm.ppf(nivel_servicio))
+    except Exception:
+        _z_fallback = {0.85: 1.04, 0.90: 1.28, 0.95: 1.65, 0.99: 2.33}
+        z = _z_fallback.get(nivel_servicio, 1.65)
+
+    lead_time = LEAD_TIMES.get(proveedor, LEAD_TIME_DEFAULT)
+
+    df = df_articulos.copy()
+
+    # Velocidad diaria — preferir vel_real_con_perdidas si existe
+    vel_col = 'vel_real_con_perdidas' if 'vel_real_con_perdidas' in df.columns else 'vel_real'
+    df['vel_diaria'] = df[vel_col].fillna(0) / 30.0
+
+    # ── Ajuste estacional forward-looking ──────────────────────────────────────
+    # vel_real es una tasa desestacionalizada (ritmo "plano" promedio anual).
+    # Para comprar hoy para vender en el período futuro, necesitamos proyectar
+    # la velocidad real de ese período, no la del mes actual.
+    #
+    # factor_est = avg_factor_periodo_venta / factor_mes_actual
+    # Si compro en marzo (factor 0.74) para vender en junio (factor 1.05):
+    #   factor_est = 1.05 / 0.74 = 1.42  → comprar 42% más de lo que el ritmo actual sugiere
+    hoy = date.today()
+    inicio_venta = hoy + relativedelta(days=lead_time)
+    fin_venta    = hoy + relativedelta(days=lead_time + horizonte_dias)
+
+    # Lista de meses cubiertos por el período de venta
+    meses_venta = []
+    cur = inicio_venta.replace(day=1)
+    while cur <= fin_venta.replace(day=1):
+        meses_venta.append(cur.month)
+        cur += relativedelta(months=1)
+    if not meses_venta:
+        meses_venta = [hoy.month]
+
+    def _factor_ajuste_para(csr: str) -> float:
+        """Factor de ajuste estacional para el CSR dado."""
+        if factores_est and csr in factores_est:
+            factors = factores_est[csr]
+        else:
+            factors = ESTACIONALIDAD_MENSUAL
+        f_actual  = factors.get(hoy.month, 1.0) or 1.0
+        f_forward = sum(factors.get(m, 1.0) for m in meses_venta) / len(meses_venta)
+        return f_forward / f_actual if f_actual > 0 else 1.0
+
+    csr_col = 'codigo_sinonimo' if 'codigo_sinonimo' in df.columns else None
+    if csr_col:
+        df['factor_est'] = df[csr_col].apply(_factor_ajuste_para)
+    else:
+        # sin CSR: usar factor global por mes actual → mes forward
+        f_actual  = ESTACIONALIDAD_MENSUAL.get(hoy.month, 1.0) or 1.0
+        f_forward = sum(ESTACIONALIDAD_MENSUAL.get(m, 1.0) for m in meses_venta) / len(meses_venta)
+        df['factor_est'] = f_forward / f_actual if f_actual > 0 else 1.0
+
+    # Velocidad proyectada (forward-looking) — usada en punto_reorden y cantidad
+    df['vel_diaria_proj'] = df['vel_diaria'] * df['factor_est']
+    # ──────────────────────────────────────────────────────────────────────────
+
+    # Días de stock actuales (al ritmo ACTUAL, no proyectado)
+    df['dias_stock'] = np.where(
+        df['vel_diaria'] > 0,
+        df['stock_actual'] / df['vel_diaria'],
+        np.inf
+    )
+
+    df['lead_time'] = lead_time
+
+    # Safety stock (Poisson) — usa vel proyectada
+    df['safety_stock'] = np.ceil(
+        z * np.sqrt(lead_time * df['vel_diaria_proj'].clip(lower=0.01))
+    ).astype(int)
+
+    # Punto de reorden — usa vel proyectada
+    df['punto_reorden'] = np.ceil(
+        df['vel_diaria_proj'] * lead_time + df['safety_stock']
+    ).astype(int)
+
+    # Necesita pedido hoy
+    df['necesita_pedido'] = (
+        (df['stock_actual'] <= df['punto_reorden']) &
+        (df['vel_diaria'] > 0)
+    )
+
+    # Cantidad sugerida para cubrir el horizonte — usa vel proyectada
+    objetivo = df['vel_diaria_proj'] * horizonte_dias + df['safety_stock']
+    df['cantidad_sugerida'] = np.maximum(
+        0, np.ceil(objetivo - df['stock_actual'])
+    ).astype(int)
+
+    # Urgencia semáforo (basada en días stock al ritmo actual)
+    def _urgencia(row):
+        if row['vel_diaria'] <= 0:
+            return 'SIN_DEMANDA'
+        if row['dias_stock'] < row['lead_time']:
+            return 'ROJO'       # Quiebre antes de recibir — pedir URGENTE
+        if row['dias_stock'] < row['lead_time'] * 2:
+            return 'AMARILLO'   # Ventana estrecha — pedir YA
+        return 'VERDE'
+
+    df['urgencia'] = df.apply(_urgencia, axis=1)
+
+    # Días hasta stockout (cap en 999 para visualización)
+    df['dias_hasta_stockout'] = (
+        df['dias_stock'].clip(upper=999).round(0).astype(int)
+    )
+
+    return df
+
+
+@st.cache_data(ttl=1800)  # 30 min — stock cambia más seguido que vel_real
+def cargar_stock_proveedor(proveedor_id: int) -> pd.DataFrame:
+    """
+    Carga stock actual + velocidad real para todos los artículos de un proveedor.
+
+    Joins:
+      - msgestionC.dbo.articulo (estado='V', proveedor=X)
+      - msgestionC.dbo.stock    (suma depósitos principales)
+      - omicronvt.dbo.vel_real_articulo (por código sinónimo 10 dígitos)
+
+    Returns: DataFrame con columnas:
+        codigo, codigo_sinonimo, descripcion, precio_venta,
+        stock_actual, vel_real, vel_real_con_perdidas, pct_quiebre, meses_quebrado
+    """
+    sql = f"""
+    SELECT
+        a.codigo,
+        RTRIM(ISNULL(a.codigo_sinonimo, ''))   AS codigo_sinonimo,
+        RTRIM(ISNULL(a.descripcion_1, ''))     AS descripcion,
+        ISNULL(a.precio_fabrica, 0)            AS precio_venta,
+        a.subrubro,
+        ISNULL(SUM(s.stock_actual), 0)         AS stock_actual,
+        ISNULL(vr.vel_real, 0)                 AS vel_real,
+        ISNULL(vr.vel_real, 0)                 AS vel_real_con_perdidas,
+        ISNULL(1.0 - (CAST(vr.meses_con_stock AS FLOAT)
+            / NULLIF(vr.meses_con_stock + vr.meses_quebrado, 0)), 0) AS pct_quiebre,
+        ISNULL(vr.meses_quebrado, 0)           AS meses_quebrado
+    FROM msgestionC.dbo.articulo a
+    LEFT JOIN msgestionC.dbo.stock s
+        ON s.articulo = a.codigo
+        AND s.deposito IN {DEPOS_SQL}
+    LEFT JOIN omicronvt.dbo.vel_real_articulo vr
+        ON vr.codigo = RTRIM(a.codigo_sinonimo)
+    WHERE a.proveedor = {proveedor_id}
+      AND a.estado = 'V'
+      AND ISNULL(a.codigo_sinonimo, '') != ''
+    GROUP BY
+        a.codigo, a.codigo_sinonimo, a.descripcion_1, a.precio_fabrica, a.subrubro,
+        vr.vel_real, vr.meses_con_stock, vr.meses_quebrado
+    HAVING ISNULL(SUM(s.stock_actual), 0) > 0 OR ISNULL(vr.vel_real, 0) > 0
+    """
+    return query_df(sql)
+
+
+# ============================================================================
+# CLASIFICACIÓN ABC-XYZ
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def clasificar_abc_xyz():
+    """
+    Clasifica todos los productos activos en ABC (contribución revenue) x XYZ (predictibilidad).
+    Returns: DataFrame with columns [csr, descripcion, abc, xyz, abc_xyz, revenue_12m, meses_con_venta]
+    """
+    sql = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               MIN(RTRIM(a.descripcion_1)) AS descripcion,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad * v.precio
+                        WHEN v.operacion='-' THEN -v.cantidad * v.precio ELSE 0 END) AS revenue_12m,
+               COUNT(DISTINCT MONTH(v.fecha)) AS meses_con_venta
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND v.fecha >= DATEADD(year, -1, GETDATE())
+          AND a.estado = 'V'
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+          AND LEN(a.codigo_sinonimo) >= 10
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
+        HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad * v.precio
+                       WHEN v.operacion='-' THEN -v.cantidad * v.precio ELSE 0 END) > 0
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    # ABC: cumulative revenue share
+    df = df.sort_values('revenue_12m', ascending=False)
+    df['revenue_cum_pct'] = df['revenue_12m'].cumsum() / df['revenue_12m'].sum()
+    df['abc'] = pd.cut(df['revenue_cum_pct'], bins=[0, 0.8, 0.95, 1.0], labels=['A', 'B', 'C'])
+
+    # XYZ: meses_con_venta como proxy de regularidad
+    # CV proxy: sells every month = X, 6-11 months = Y, <6 = Z
+    df['xyz'] = df['meses_con_venta'].apply(
+        lambda m: 'X' if m >= 10 else ('Y' if m >= 6 else 'Z')
+    )
+
+    df['abc_xyz'] = df['abc'].astype(str) + df['xyz'].astype(str)
+
+    return df[['csr', 'descripcion', 'abc', 'xyz', 'abc_xyz', 'revenue_12m', 'meses_con_venta']]
+
+
+def unificar_proveedores(proveedores_list):
+    """
+    Given a list of proveedor numbers that supply the same product family,
+    returns a merged view of their articles grouped by LEFT(codigo_sinonimo, 10).
+    Used for products like Go Dance where Timmis (11) and Zotz (457) supply the same shoes.
+
+    Returns: dict mapping CSR -> list of proveedor numbers
+    """
+    filtro_prov = ",".join(str(p) for p in proveedores_list)
+    sql = f"""
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               a.proveedor,
+               COUNT(DISTINCT a.codigo) as skus
+        FROM msgestion01art.dbo.articulo a
+        WHERE a.proveedor IN ({filtro_prov})
+          AND a.estado = 'V'
+          AND LEN(a.codigo_sinonimo) >= 10
+        GROUP BY LEFT(a.codigo_sinonimo, 10), a.proveedor
+    """
+    df = query_df(sql)
+    result = {}
+    for _, r in df.iterrows():
+        csr = r['csr'].strip()
+        if csr not in result:
+            result[csr] = []
+        result[csr].append(int(r['proveedor']))
+    return result
+
+
+# ============================================================================
 # VEL_REAL DESDE TABLA MATERIALIZADA (omicronvt)
 # ============================================================================
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def obtener_vel_real_tabla(codigos_csr):
     """
     Obtiene vel_real pre-calculada de omicronvt.dbo.vel_real_articulo.
@@ -361,6 +968,13 @@ def factor_estacional_batch(codigos_sinonimo, anios=3):
     """Calcula factores estacionales en batch. Retorna dict {cs: {mes: factor}}."""
     if not codigos_sinonimo:
         return {}
+    # Delegate to cached version with hashable tuple key
+    return _factor_estacional_batch_cached(tuple(sorted(set(codigos_sinonimo))), anios)
+
+
+@st.cache_data(ttl=3600)
+def _factor_estacional_batch_cached(codigos_sinonimo, anios=3):
+    """Cached implementation of factor_estacional_batch."""
 
     desde = (date.today() - relativedelta(years=anios)).replace(month=1, day=1)
     filtro = ",".join(f"'{c}'" for c in codigos_sinonimo)
@@ -399,14 +1013,59 @@ def factor_estacional_batch(codigos_sinonimo, anios=3):
             resultados[cs] = {m: round(ventas_mes.get(m, media) / media, 3)
                               for m in range(1, 13)}
 
+        # Fallback: si los factores son planos, usar estacionalidad del subrubro
+        factors = resultados[cs]
+        is_flat = all(0.8 <= v <= 1.2 for v in factors.values())
+        if is_flat:
+            sql_sub = f"SELECT TOP 1 subrubro FROM msgestion01art.dbo.articulo WHERE RTRIM(LEFT(codigo_sinonimo, 10)) = '{cs}' AND estado = 'V'"
+            df_sub = query_df(sql_sub)
+            if not df_sub.empty:
+                sub_cod = int(df_sub.iloc[0]['subrubro'])
+                sub_factors = factor_estacional_subrubro(sub_cod)
+                # Solo usar factores subrubro si muestran estacionalidad real
+                if not all(0.8 <= v <= 1.2 for v in sub_factors.values()):
+                    resultados[cs] = sub_factors
+
     return resultados
+
+
+@st.cache_data(ttl=3600)
+def factor_estacional_subrubro(subrubro_cod, anios=3):
+    """Calcula factores estacionales a nivel subrubro (todas las marcas/proveedores).
+    Usado como fallback cuando un producto individual no tiene suficiente historia."""
+    desde = (date.today() - relativedelta(years=anios)).replace(month=1, day=1)
+    sql = f"""
+        SELECT MONTH(v.fecha) AS mes,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad ELSE 0 END) AS cant
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.subrubro = {subrubro_cod}
+          AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+          AND v.fecha >= '{desde}'
+        GROUP BY MONTH(v.fecha)
+    """
+    df = query_df(sql)
+    if df.empty:
+        return {m: 1.0 for m in range(1, 13)}
+
+    ventas_mes = {}
+    for _, r in df.iterrows():
+        ventas_mes[int(r['mes'])] = float(r['cant'] or 0)
+
+    media = sum(ventas_mes.values()) / max(len(ventas_mes), 1)
+    if media <= 0:
+        return {m: 1.0 for m in range(1, 13)}
+
+    return {m: round(ventas_mes.get(m, media) / media, 3) for m in range(1, 13)}
 
 
 # ============================================================================
 # ANOMALÍAS DE STOCK (remitos eliminados, errores auditoría)
 # ============================================================================
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def detectar_anomalias_stock(codigos_sinonimo):
     """
     Detecta anomalías de stock por artículo: remitos eliminados, stock negativo.
@@ -640,7 +1299,7 @@ def cruzar_pedidos_top(df_top, df_pedidos):
 
     # Fecha de quiebre proyectada = hoy + dias_stock
     hoy = pd.Timestamp(date.today())
-    df_top['fecha_quiebre'] = hoy + pd.to_timedelta(df_top['dias_stock'].clip(upper=999), unit='D')
+    df_top['fecha_quiebre'] = hoy + pd.to_timedelta(df_top['dias_stock'].clip(None, 999), unit='D')
 
     # Convertir fecha_entrega a datetime
     df_top['Fecha Entrega'] = pd.to_datetime(df_top['fecha_entrega'], errors='coerce')
@@ -674,6 +1333,7 @@ def cruzar_pedidos_top(df_top, df_pedidos):
 # PRECIOS DE VENTA (para cálculo ROI)
 # ============================================================================
 
+@st.cache_data(ttl=7200)
 def obtener_precios_venta_batch(codigos_sinonimo):
     """Obtiene precio promedio de venta ponderado por cantidad, últimos 6 meses."""
     if not codigos_sinonimo:
@@ -702,10 +1362,96 @@ def obtener_precios_venta_batch(codigos_sinonimo):
 
 
 # ============================================================================
+# DISTRIBUCIÓN DE COLOR (Agente 3 — Reposición v3)
+# ============================================================================
+
+COLOR_KEYWORDS = {
+    'NEGRO': ['NEGRO', 'BLACK', 'PRETO', 'CHUMBO'],
+    'GRIS': ['GRIS', 'GREY', 'PLOMO', 'STEEL', 'CINZA'],
+    'AZUL': ['AZUL', 'BLUE', 'MARINO', 'MARINHO', 'PETROLEO'],
+    'BLANCO': ['BLANCO', 'WHITE', 'BRANCO'],
+    'ROSA': ['ROSA', 'PINK', 'FUCSIA'],
+    'BEIGE': ['BEIGE', 'ARENA', 'ARENITO', 'ALGODAO', 'MARFIL'],
+    'ROJO': ['ROJO', 'RED', 'BORDO', 'VERMELHO'],
+    'VERDE': ['VERDE', 'GREEN'],
+}
+
+
+def _clasificar_color(descripcion: str) -> str:
+    """Clasifica un color desde descripcion_1 usando keyword matching."""
+    desc_upper = (descripcion or '').upper()
+    for color, keywords in COLOR_KEYWORDS.items():
+        for kw in keywords:
+            if kw in desc_upper:
+                return color
+    return 'OTRO'
+
+
+@st.cache_data(ttl=3600)
+def distribucion_color(proveedor_num: int, rubro: int, mes_inicio: int, mes_fin: int) -> list[dict]:
+    """
+    Peso porcentual de ventas por color para un proveedor x género.
+
+    Clasifica colores desde descripcion_1 del artículo usando keyword matching
+    en Python (no SQL CASE).
+
+    Args:
+        proveedor_num: número de proveedor en msgestion01art.dbo.articulo
+        rubro: código de rubro (1=DAMAS, 3=HOMBRES, etc.)
+        mes_inicio: mes inicio período (ej: 3 = marzo)
+        mes_fin: mes fin período (ej: 6 = junio)
+
+    Returns:
+        Lista de dicts ordenada por pares desc:
+        [{'color': 'NEGRO', 'pares': 144, 'pct': 0.56}, ...]
+    """
+    # Período de referencia = mismo rango del año anterior
+    hoy = date.today()
+    anio_ref = hoy.year - 1
+    fecha_inicio = f'{anio_ref}-{mes_inicio:02d}-01'
+    if mes_fin == 12:
+        fecha_fin = f'{anio_ref + 1}-01-01'
+    else:
+        fecha_fin = f'{anio_ref}-{mes_fin + 1:02d}-01'
+
+    sql = f"""
+        SELECT a.descripcion_1,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad
+                        ELSE 0 END) AS pares
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.proveedor = {int(proveedor_num)}
+          AND a.rubro = {int(rubro)}
+          AND v.fecha >= '{fecha_inicio}' AND v.fecha < '{fecha_fin}'
+        GROUP BY a.descripcion_1
+    """
+    df = query_df(sql)
+    if df.empty:
+        return []
+
+    # Clasificar color en Python
+    df['color'] = df['descripcion_1'].apply(_clasificar_color)
+    df['pares'] = pd.to_numeric(df['pares'], errors='coerce').fillna(0).astype(int)
+
+    # Agrupar por color
+    agrupado = df.groupby('color')['pares'].sum().reset_index()
+    total = agrupado['pares'].sum()
+    if total <= 0:
+        return []
+
+    agrupado['pct'] = (agrupado['pares'] / total).round(4)
+    agrupado = agrupado.sort_values('pares', ascending=False)
+
+    return agrupado.to_dict('records')
+
+
+# ============================================================================
 # ANÁLISIS GLOBAL: carga todos los productos activos con stock o ventas
 # ============================================================================
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def cargar_resumen_marcas():
     """
     Resumen rápido por marca: stock total, ventas 12m, cant productos.
@@ -742,7 +1488,7 @@ def cargar_resumen_marcas():
     return query_df(sql)
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def cargar_productos_por_marca(marca_codigo):
     """
     Carga productos (CSR nivel 10) de UNA marca con stock o ventas 12m.
@@ -792,7 +1538,7 @@ def cargar_productos_por_marca(marca_codigo):
     return df
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def cargar_productos_por_proveedor(proveedor_num):
     """Carga productos de UN proveedor."""
     desde = (date.today() - relativedelta(months=12)).replace(day=1)
@@ -839,7 +1585,7 @@ def cargar_productos_por_proveedor(proveedor_num):
     return df
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def cargar_marcas_dict():
     """Dict de marcas: {codigo: descripcion}.
     Usa msgestionC.dbo.marcas (836 registros) — NO msgestion01art que está vacía."""
@@ -855,12 +1601,785 @@ def cargar_marcas_dict():
     return result
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def cargar_proveedores_dict():
     """Dict de proveedores: {numero: denominacion}."""
     sql = "SELECT numero, RTRIM(ISNULL(denominacion,'')) AS nombre FROM msgestionC.dbo.proveedores WHERE motivo_baja='A'"
     df = query_df(sql)
     return {int(r['numero']): (r['nombre'] or '').strip() for _, r in df.iterrows()} if not df.empty else {}
+
+
+# ============================================================================
+# PRESUPUESTO EN PARES (Agente 1)
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def presupuesto_pares(proveedor_num: int, mes_inicio: int, mes_fin: int) -> dict:
+    """
+    Presupuesto = pares vendidos del mismo proveedor en el mismo período del año anterior.
+
+    Args:
+        proveedor_num: número de proveedor en msgestion01.dbo.proveedores
+        mes_inicio: mes inicio período destino (ej: 3 = marzo)
+        mes_fin: mes fin período destino (ej: 6 = junio)
+
+    Returns:
+        {
+            'total_pares': int,
+            'por_mes': {3: 165, 4: 92, 5: 114, 6: 104},
+            'articulos_distintos': int,
+            'periodo_ref': '2025-03 a 2025-06'
+        }
+    """
+    hoy = date.today()
+    anio_ref = hoy.year - 1
+
+    # Calcular fechas del período de referencia (mismo período, año anterior)
+    if mes_inicio <= mes_fin:
+        # Período normal (ej: marzo a junio)
+        fecha_inicio = date(anio_ref, mes_inicio, 1)
+        fecha_fin_dt = date(anio_ref, mes_fin, 1) + relativedelta(months=1)
+    else:
+        # Período cruzando año (ej: octubre a febrero)
+        fecha_inicio = date(anio_ref - 1, mes_inicio, 1)
+        fecha_fin_dt = date(anio_ref, mes_fin, 1) + relativedelta(months=1)
+
+    periodo_ref = f"{fecha_inicio.strftime('%Y-%m')} a {(fecha_fin_dt - timedelta(days=1)).strftime('%Y-%m')}"
+
+    sql = f"""
+        SELECT MONTH(v.fecha) AS mes,
+               SUM(v.cantidad) AS pares,
+               COUNT(DISTINCT v.articulo) AS arts
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.proveedor = {proveedor_num}
+          AND v.fecha >= '{fecha_inicio.strftime('%Y%m%d')}'
+          AND v.fecha < '{fecha_fin_dt.strftime('%Y%m%d')}'
+        GROUP BY MONTH(v.fecha)
+    """
+    df = query_df(sql)
+
+    if df.empty:
+        return {
+            'total_pares': 0,
+            'total_pares_ajustado': 0,
+            'factor_ajuste': 1.0,
+            'por_mes': {},
+            'por_mes_ajustado': {},
+            'articulos_distintos': 0,
+            'periodo_ref': periodo_ref,
+        }
+
+    por_mes = {int(r['mes']): int(r['pares']) for _, r in df.iterrows()}
+    total_pares = int(df['pares'].sum())
+    articulos_distintos = int(df['arts'].sum())
+
+    # arts por mes puede tener duplicados entre meses, obtener el global
+    sql_arts = f"""
+        SELECT COUNT(DISTINCT v.articulo) AS arts_total
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.proveedor = {proveedor_num}
+          AND v.fecha >= '{fecha_inicio.strftime('%Y%m%d')}'
+          AND v.fecha < '{fecha_fin_dt.strftime('%Y%m%d')}'
+    """
+    df_arts = query_df(sql_arts)
+    if not df_arts.empty and 'arts_total' in df_arts.columns:
+        articulos_distintos = int(df_arts.iloc[0]['arts_total'])
+
+    # Ajuste estacional: escalar pares por ratio factor_destino / factor_compra
+    # Si compramos en marzo (factor 0.74) para vender en junio (factor 1.05),
+    # el ajuste es 1.05/0.74 = 1.42x → necesitamos comprar más de lo que
+    # el ritmo actual de ventas sugiere.
+    factor_compra = ESTACIONALIDAD_MENSUAL.get(hoy.month, 1.0)
+    por_mes_ajustado = {}
+    for mes, pares in por_mes.items():
+        factor_destino = ESTACIONALIDAD_MENSUAL.get(mes, 1.0)
+        ratio = factor_destino / factor_compra if factor_compra > 0 else 1.0
+        por_mes_ajustado[mes] = int(round(pares * ratio))
+
+    total_pares_ajustado = sum(por_mes_ajustado.values())
+    factor_ajuste = total_pares_ajustado / total_pares if total_pares > 0 else 1.0
+
+    return {
+        'total_pares': total_pares,
+        'total_pares_ajustado': total_pares_ajustado,
+        'factor_ajuste': factor_ajuste,
+        'por_mes': por_mes,
+        'por_mes_ajustado': por_mes_ajustado,
+        'articulos_distintos': articulos_distintos,
+        'periodo_ref': periodo_ref,
+    }
+
+
+# ============================================================================
+# DISTRIBUCIÓN POR GÉNERO (Agente 2)
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def distribucion_genero(proveedor_num: int, mes_inicio: int, mes_fin: int) -> dict:
+    """
+    Peso porcentual de ventas por género (rubro) para un proveedor,
+    basado en el mismo período del año anterior.
+
+    Args:
+        proveedor_num: número de proveedor en tabla proveedores
+        mes_inicio: mes inicio período destino (ej: 3 = marzo)
+        mes_fin: mes fin período destino (ej: 6 = junio)
+
+    Returns:
+        {
+            1: {'nombre': 'DAMAS', 'pares': 209, 'pct': 0.44},
+            3: {'nombre': 'HOMBRES', 'pares': 256, 'pct': 0.54},
+            4: {'nombre': 'NIÑOS', 'pares': 10, 'pct': 0.02}
+        }
+    """
+    hoy = date.today()
+    anio_ref = hoy.year - 1
+
+    # Calcular fechas del período de referencia (mismo período, año anterior)
+    if mes_inicio <= mes_fin:
+        fecha_inicio = date(anio_ref, mes_inicio, 1)
+        fecha_fin_dt = date(anio_ref, mes_fin, 1) + relativedelta(months=1)
+    else:
+        # Período cruzando año (ej: octubre a febrero)
+        fecha_inicio = date(anio_ref - 1, mes_inicio, 1)
+        fecha_fin_dt = date(anio_ref, mes_fin, 1) + relativedelta(months=1)
+
+    sql = f"""
+        SELECT a.rubro, SUM(v.cantidad) AS pares
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.proveedor = {proveedor_num}
+          AND v.fecha >= '{fecha_inicio.strftime('%Y%m%d')}'
+          AND v.fecha < '{fecha_fin_dt.strftime('%Y%m%d')}'
+        GROUP BY a.rubro
+    """
+    df = query_df(sql)
+    if df.empty:
+        return {}
+
+    total = int(df['pares'].sum())
+    if total == 0:
+        return {}
+
+    result = {}
+    for _, row in df.iterrows():
+        rubro = int(row['rubro'])
+        pares = int(row['pares'])
+        result[rubro] = {
+            'nombre': RUBRO_GENERO.get(rubro, f'RUBRO_{rubro}'),
+            'pares': pares,
+            'pct': round(pares / total, 4),
+        }
+    return result
+
+
+# ============================================================================
+# PRECIO TECHO (Agente 4 — percentiles precio_fabrica artículos vendidos)
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def precio_techo(proveedor_num: int, rubro: int, percentil: int = 90) -> dict:
+    """
+    Calcula el percentil del precio_fabrica de artículos VENDIDOS (no de catálogo).
+
+    Solo incluye artículos con al menos 1 venta en los últimos 12 meses.
+    No incluye artículos muertos del catálogo.
+
+    Args:
+        proveedor_num: número de proveedor en msgestion01art.dbo.articulo
+        rubro: rubro (1=DAMAS, 3=HOMBRES, 4=NIÑOS, etc.)
+        percentil: percentil principal a calcular (default 90)
+
+    Returns:
+        {
+            'p50': 40540.0,
+            'p75': 43243.0,
+            'p90': 48648.0,
+            'max': 108000.0,
+            'articulos_analizados': 156
+        }
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1)
+
+    # Traer precio_fabrica de artículos que tuvieron al menos 1 venta
+    # en los últimos 12 meses para este proveedor x rubro
+    sql = f"""
+        SELECT DISTINCT a.codigo, a.precio_fabrica
+        FROM msgestion01art.dbo.articulo a
+        JOIN msgestionC.dbo.ventas1 v ON v.articulo = a.codigo
+        WHERE a.proveedor = {int(proveedor_num)}
+          AND a.rubro = {int(rubro)}
+          AND v.codigo NOT IN {EXCL_VENTAS}
+          AND v.fecha >= '{desde}'
+          AND a.precio_fabrica > 0
+    """
+    df = query_df(sql)
+
+    if df.empty:
+        return {
+            'p50': 0.0,
+            'p75': 0.0,
+            'p90': 0.0,
+            'max': 0.0,
+            'articulos_analizados': 0,
+        }
+
+    precios = df['precio_fabrica'].astype(float).values
+
+    return {
+        'p50': round(float(np.percentile(precios, 50)), 2),
+        'p75': round(float(np.percentile(precios, 75)), 2),
+        'p90': round(float(np.percentile(precios, percentil)), 2),
+        'max': round(float(np.max(precios)), 2),
+        'articulos_analizados': len(precios),
+    }
+
+
+# ============================================================================
+# CURVA DE TALLES REAL (Agente 5)
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def curva_talles_real(proveedor_num: int, rubro: int, meses: int = 12) -> dict:
+    """
+    Curva de demanda real por talle individual para un proveedor x genero,
+    corregida por quiebre de stock a nivel articulo (cada articulo = 1 talle).
+
+    El talle se obtiene de descripcion_5 en la tabla articulo.
+
+    Args:
+        proveedor_num: numero de proveedor
+        rubro: codigo de rubro (1=DAMAS, 3=HOMBRES, etc.)
+        meses: meses de historia a analizar (default 12)
+
+    Returns:
+        {
+            'curva': {'37': {'pares': 57, 'pct': 0.12}, ...},
+            'total_pares': 475,
+            'talle_pico': '38'
+        }
+
+    NOTA sobre correccion por quiebre:
+        Se reconstruye stock mes a mes hacia atras POR ARTICULO (cada articulo
+        representa un talle individual). Si un articulo tuvo stock_inicio <= 0
+        en un mes, ese mes se marca como quebrado y sus ventas NO se cuentan
+        para la velocidad. Luego se agrupa por talle (descripcion_5) sumando
+        las velocidades reales de todos los articulos de ese talle.
+        Esto corrige la subestimacion que ocurre cuando un talle estuvo sin
+        stock durante varios meses (ej: talle 46 quebrado 11 de 12 meses).
+    """
+    hoy = date.today()
+    desde = (hoy - relativedelta(months=meses)).replace(day=1)
+
+    # 1. Obtener articulos del proveedor+rubro con su talle (descripcion_5)
+    sql_arts = f"""
+        SELECT a.codigo,
+               RTRIM(ISNULL(a.descripcion_5, '')) AS talle
+        FROM msgestion01art.dbo.articulo a
+        WHERE a.proveedor = {int(proveedor_num)}
+          AND a.rubro = {int(rubro)}
+          AND a.estado = 'V'
+          AND RTRIM(ISNULL(a.descripcion_5, '')) <> ''
+    """
+    df_arts = query_df(sql_arts)
+    if df_arts.empty:
+        return {'curva': {}, 'total_pares': 0, 'talle_pico': ''}
+
+    df_arts['talle'] = df_arts['talle'].str.strip()
+    df_arts = df_arts[df_arts['talle'] != '']
+    if df_arts.empty:
+        return {'curva': {}, 'total_pares': 0, 'talle_pico': ''}
+
+    codigos = df_arts['codigo'].tolist()
+    talle_por_codigo = dict(zip(df_arts['codigo'], df_arts['talle']))
+
+    # Construir filtro IN
+    filtro = ",".join(f"'{c}'" for c in codigos)
+
+    # 2. Stock actual por articulo
+    sql_stock = f"""
+        SELECT s.articulo,
+               SUM(s.stock_actual) AS stock
+        FROM msgestionC.dbo.stock s
+        WHERE s.articulo IN ({filtro})
+          AND s.deposito IN {DEPOS_SQL}
+        GROUP BY s.articulo
+    """
+    df_stock = query_df(sql_stock)
+    stock_por_art = {}
+    for _, r in df_stock.iterrows():
+        art = r['articulo'].strip() if isinstance(r['articulo'], str) else r['articulo']
+        stock_por_art[art] = float(r['stock'])
+
+    # 3. Ventas mensuales por articulo
+    sql_ventas = f"""
+        SELECT v.articulo,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
+               YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes
+        FROM msgestionC.dbo.ventas1 v
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND v.articulo IN ({filtro})
+          AND v.fecha >= '{desde}'
+        GROUP BY v.articulo, YEAR(v.fecha), MONTH(v.fecha)
+    """
+    df_ventas = query_df(sql_ventas)
+
+    ventas_by_art = {}
+    for _, r in df_ventas.iterrows():
+        art = r['articulo'].strip() if isinstance(r['articulo'], str) else r['articulo']
+        if art not in ventas_by_art:
+            ventas_by_art[art] = {}
+        ventas_by_art[art][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    # 4. Compras mensuales por articulo
+    sql_compras = f"""
+        SELECT rc.articulo,
+               SUM(rc.cantidad) AS cant,
+               YEAR(rc.fecha) AS anio, MONTH(rc.fecha) AS mes
+        FROM msgestionC.dbo.compras1 rc
+        WHERE rc.operacion = '+'
+          AND rc.articulo IN ({filtro})
+          AND rc.fecha >= '{desde}'
+        GROUP BY rc.articulo, YEAR(rc.fecha), MONTH(rc.fecha)
+    """
+    df_compras = query_df(sql_compras)
+
+    compras_by_art = {}
+    for _, r in df_compras.iterrows():
+        art = r['articulo'].strip() if isinstance(r['articulo'], str) else r['articulo']
+        if art not in compras_by_art:
+            compras_by_art[art] = {}
+        compras_by_art[art][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
+
+    # 5. Lista de meses hacia atras
+    meses_lista = []
+    cursor_dt = hoy.replace(day=1)
+    for _ in range(meses):
+        meses_lista.append((cursor_dt.year, cursor_dt.month))
+        cursor_dt -= relativedelta(months=1)
+
+    # 6. Reconstruir quiebre por articulo y acumular vel_real por talle
+    vel_real_por_talle = {}  # talle -> sum of vel_real across articles
+
+    for cod in codigos:
+        talle = talle_por_codigo.get(cod, '')
+        if not talle:
+            continue
+
+        stock_actual = stock_por_art.get(cod, 0)
+        v_dict = ventas_by_art.get(cod, {})
+        c_dict = compras_by_art.get(cod, {})
+
+        stock_fin = stock_actual
+        meses_ok = 0
+        ventas_ok = 0
+
+        for anio, mes in meses_lista:
+            v = v_dict.get((anio, mes), 0)
+            c = c_dict.get((anio, mes), 0)
+            stock_inicio = stock_fin + v - c
+
+            if stock_inicio > 0:
+                meses_ok += 1
+                ventas_ok += v
+
+            stock_fin = stock_inicio
+
+        # Velocidad real mensual para este articulo
+        if meses_ok > 0:
+            vel_real_art = ventas_ok / meses_ok
+        else:
+            # 100% quebrado: fallback a velocidad aparente x 1.15
+            ventas_total = sum(v_dict.values())
+            vel_real_art = (ventas_total / max(meses, 1)) * 1.15 if ventas_total > 0 else 0
+
+        if talle not in vel_real_por_talle:
+            vel_real_por_talle[talle] = 0.0
+        vel_real_por_talle[talle] += vel_real_art * meses  # pares estimados en el periodo
+
+    # 7. Construir curva
+    total_pares = sum(vel_real_por_talle.values())
+    if total_pares <= 0:
+        return {'curva': {}, 'total_pares': 0, 'talle_pico': ''}
+
+    curva = {}
+    talle_pico = ''
+    max_pares = 0
+    for talle in sorted(vel_real_por_talle.keys(), key=lambda t: (
+        float(t) if t.replace('.', '', 1).replace(',', '', 1).isdigit() else float('inf'), t
+    )):
+        pares = vel_real_por_talle[talle]
+        pct = pares / total_pares if total_pares > 0 else 0
+        curva[talle] = {
+            'pares': round(pares),
+            'pct': round(pct, 4),
+        }
+        if pares > max_pares:
+            max_pares = pares
+            talle_pico = talle
+
+    return {
+        'curva': curva,
+        'total_pares': round(total_pares),
+        'talle_pico': talle_pico,
+    }
+
+
+# ============================================================================
+# CURVA IDEAL DE STOCK POR TALLE (reusable)
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def calcular_curva_ideal(csr_list, dias_cobertura=90, proveedores=None):
+    """
+    Calcula la curva ideal de stock por talle para un grupo de modelos (CSRs).
+
+    Args:
+        csr_list: list of LEFT(codigo_sinonimo, 10) values
+        dias_cobertura: target days of stock coverage (default 90)
+        proveedores: optional list of proveedor numbers to filter
+
+    Returns: DataFrame with columns:
+        talle, vtas_12m, vel_mes, stock, ideal, pedir, cob_dias, estado
+
+    The function uses CTEs to avoid the stock multiplication bug.
+    """
+    if not csr_list:
+        return pd.DataFrame()
+
+    # Build CSR filter
+    csr_filter = ",".join(f"'{str(c).strip()}'" for c in csr_list)
+
+    # Optional proveedor filter
+    prov_filter = ""
+    if proveedores:
+        prov_in = ",".join(str(int(p)) for p in proveedores)
+        prov_filter = f"AND a.proveedor IN ({prov_in})"
+
+    sql = f"""
+        WITH vtas AS (
+            SELECT CAST(RTRIM(a.descripcion_5) AS INT) AS talle,
+                   SUM(CASE WHEN v.operacion = '+' THEN v.cantidad
+                            WHEN v.operacion = '-' THEN -v.cantidad
+                            ELSE 0 END) AS pares_12m
+            FROM msgestionC.dbo.ventas1 v
+            JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+            WHERE LEFT(a.codigo_sinonimo, 10) IN ({csr_filter})
+              AND v.codigo NOT IN {EXCL_VENTAS}
+              AND v.fecha >= DATEADD(year, -1, GETDATE())
+              AND ISNUMERIC(RTRIM(a.descripcion_5)) = 1
+              AND RTRIM(ISNULL(a.descripcion_5, '')) <> ''
+              {prov_filter}
+            GROUP BY CAST(RTRIM(a.descripcion_5) AS INT)
+        ),
+        stk AS (
+            SELECT CAST(RTRIM(a.descripcion_5) AS INT) AS talle,
+                   SUM(s.stock_actual) AS stock
+            FROM msgestion01art.dbo.articulo a
+            JOIN msgestionC.dbo.stock s ON s.articulo = a.codigo
+            WHERE LEFT(a.codigo_sinonimo, 10) IN ({csr_filter})
+              AND s.deposito IN {DEPOS_SQL}
+              AND ISNUMERIC(RTRIM(a.descripcion_5)) = 1
+              AND RTRIM(ISNULL(a.descripcion_5, '')) <> ''
+              {prov_filter}
+            GROUP BY CAST(RTRIM(a.descripcion_5) AS INT)
+        )
+        SELECT v.talle,
+               v.pares_12m,
+               ISNULL(s.stock, 0) AS stock
+        FROM vtas v
+        LEFT JOIN stk s ON s.talle = v.talle
+        ORDER BY v.talle
+    """
+    df = query_df(sql)
+    if df.empty:
+        return pd.DataFrame()
+
+    # Calculate derived columns
+    df['vel_mes'] = df['pares_12m'] / 12.0
+    df['ideal'] = (df['vel_mes'] * (dias_cobertura / 30.0)).round(0).astype(int)
+    df['pedir'] = (df['ideal'] - df['stock']).clip(lower=0).astype(int)
+    df['cob_dias'] = df.apply(
+        lambda r: round(r['stock'] / (r['vel_mes'] / 30.0), 0) if r['vel_mes'] > 0 else 9999,
+        axis=1
+    ).astype(int)
+
+    def _estado(cob):
+        if cob == 0:
+            return 'SIN STOCK'
+        if cob < 30:
+            return 'CRITICO'
+        if cob < 60:
+            return 'BAJO'
+        if cob < 120:
+            return 'MEDIO'
+        return 'OK'
+
+    df['estado'] = df['cob_dias'].apply(_estado)
+
+    # Rename for clarity
+    df = df.rename(columns={'pares_12m': 'vtas_12m'})
+    return df[['talle', 'vtas_12m', 'vel_mes', 'stock', 'ideal', 'pedir', 'cob_dias', 'estado']]
+
+
+def calcular_pedido_modelo(csr_list, dias_cobertura=90, proveedores=None):
+    """
+    Returns a pivot table: rows=modelo (CSR), columns=talle, values=pedir.
+    Plus a summary row with totals.
+
+    Args:
+        csr_list: list of LEFT(codigo_sinonimo, 10) values
+        dias_cobertura: target days of stock coverage (default 90)
+        proveedores: optional list of proveedor numbers to filter
+
+    Returns: DataFrame pivot with modelo rows, talle columns, pedir values.
+             Last row is 'TOTAL'.
+    """
+    if not csr_list:
+        return pd.DataFrame()
+
+    # Build CSR filter
+    csr_filter = ",".join(f"'{str(c).strip()}'" for c in csr_list)
+
+    # Optional proveedor filter
+    prov_filter = ""
+    if proveedores:
+        prov_in = ",".join(str(int(p)) for p in proveedores)
+        prov_filter = f"AND a.proveedor IN ({prov_in})"
+
+    sql = f"""
+        WITH vtas AS (
+            SELECT LEFT(a.codigo_sinonimo, 10) AS modelo,
+                   CAST(RTRIM(a.descripcion_5) AS INT) AS talle,
+                   SUM(CASE WHEN v.operacion = '+' THEN v.cantidad
+                            WHEN v.operacion = '-' THEN -v.cantidad
+                            ELSE 0 END) AS pares_12m
+            FROM msgestionC.dbo.ventas1 v
+            JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+            WHERE LEFT(a.codigo_sinonimo, 10) IN ({csr_filter})
+              AND v.codigo NOT IN {EXCL_VENTAS}
+              AND v.fecha >= DATEADD(year, -1, GETDATE())
+              AND ISNUMERIC(RTRIM(a.descripcion_5)) = 1
+              AND RTRIM(ISNULL(a.descripcion_5, '')) <> ''
+              {prov_filter}
+            GROUP BY LEFT(a.codigo_sinonimo, 10), CAST(RTRIM(a.descripcion_5) AS INT)
+        ),
+        stk AS (
+            SELECT LEFT(a.codigo_sinonimo, 10) AS modelo,
+                   CAST(RTRIM(a.descripcion_5) AS INT) AS talle,
+                   SUM(s.stock_actual) AS stock
+            FROM msgestion01art.dbo.articulo a
+            JOIN msgestionC.dbo.stock s ON s.articulo = a.codigo
+            WHERE LEFT(a.codigo_sinonimo, 10) IN ({csr_filter})
+              AND s.deposito IN {DEPOS_SQL}
+              AND ISNUMERIC(RTRIM(a.descripcion_5)) = 1
+              AND RTRIM(ISNULL(a.descripcion_5, '')) <> ''
+              {prov_filter}
+            GROUP BY LEFT(a.codigo_sinonimo, 10), CAST(RTRIM(a.descripcion_5) AS INT)
+        )
+        SELECT v.modelo, v.talle, v.pares_12m, ISNULL(s.stock, 0) AS stock
+        FROM vtas v
+        LEFT JOIN stk s ON s.modelo = v.modelo AND s.talle = v.talle
+        ORDER BY v.modelo, v.talle
+    """
+    df = query_df(sql)
+    if df.empty:
+        return pd.DataFrame()
+
+    # Calculate pedir per modelo+talle
+    df['vel_mes'] = df['pares_12m'] / 12.0
+    df['ideal'] = (df['vel_mes'] * (dias_cobertura / 30.0)).round(0).astype(int)
+    df['pedir'] = (df['ideal'] - df['stock']).clip(lower=0).astype(int)
+
+    # Pivot: rows=modelo, columns=talle, values=pedir
+    pivot = df.pivot_table(
+        index='modelo', columns='talle', values='pedir',
+        aggfunc='sum', fill_value=0
+    )
+
+    # Sort columns numerically
+    pivot = pivot[sorted(pivot.columns)]
+
+    # Add total row and column
+    pivot.loc['TOTAL'] = pivot.sum()
+    pivot['TOTAL'] = pivot.sum(axis=1)
+
+    return pivot.astype(int)
+
+
+# ============================================================================
+# ESCASEZ CRONICA POR TALLE (Agente 6)
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def talles_escasez_cronica(rubro: int, subrubro: int = None, umbral_quiebre: float = 0.7) -> list:
+    """
+    Detecta talles que historicamente siempre estan en falta.
+    Un talle tiene escasez cronica si estuvo quebrado > umbral_quiebre % de los meses analizados.
+
+    Reconstruye stock mes a mes hacia atras (misma logica que analizar_quiebre_batch)
+    pero agrupando por talle (descripcion_5) en vez de por codigo_sinonimo.
+
+    Args:
+        rubro: codigo de rubro (1=DAMAS, 3=HOMBRES, 4=NINOS, etc.)
+        subrubro: codigo de subrubro (opcional, si None analiza todo el rubro)
+        umbral_quiebre: fraccion minima de meses quebrados para considerar escasez cronica (default 0.7)
+
+    Returns: [
+        {'talle': '46', 'meses_quebrado': 11, 'meses_total': 12, 'pct_quiebre': 0.92},
+        {'talle': '47', 'meses_quebrado': 10, 'meses_total': 12, 'pct_quiebre': 0.83},
+        {'talle': '48', 'meses_quebrado': 12, 'meses_total': 12, 'pct_quiebre': 1.00},
+    ]
+    """
+    meses = MESES_HISTORIA
+    hoy = date.today()
+    desde = (hoy - relativedelta(months=meses)).replace(day=1)
+    desde_str = desde.strftime('%Y%m%d')
+
+    # Filtro subrubro opcional
+    filtro_sub = f"AND a.subrubro = {subrubro}" if subrubro is not None else ""
+
+    # 1. Obtener articulos del rubro (y opcionalmente subrubro) con su talle
+    sql_arts = f"""
+        SELECT a.codigo, RTRIM(ISNULL(a.descripcion_5, '')) AS talle
+        FROM msgestion01art.dbo.articulo a
+        WHERE a.rubro = {rubro}
+          {filtro_sub}
+          AND a.estado = 'A'
+          AND RTRIM(ISNULL(a.descripcion_5, '')) <> ''
+    """
+    df_arts = query_df(sql_arts)
+    if df_arts.empty:
+        return []
+
+    # Mapeo articulo -> talle
+    art_talle = {}
+    for _, r in df_arts.iterrows():
+        cod = r['codigo']
+        art_key = cod.strip() if isinstance(cod, str) else str(cod).strip()
+        art_talle[art_key] = r['talle'].strip()
+
+    talles_unicos = sorted(set(art_talle.values()))
+    if not talles_unicos:
+        return []
+
+    # Procesar en chunks para no superar limite de SQL Server IN clause
+    codigos_list = list(art_talle.keys())
+    CHUNK_SIZE = 500
+    stock_by_talle = {}
+    ventas_by_talle = {}   # {talle: {(anio, mes): cant}}
+    compras_by_talle = {}  # {talle: {(anio, mes): cant}}
+
+    for i in range(0, len(codigos_list), CHUNK_SIZE):
+        chunk = codigos_list[i:i + CHUNK_SIZE]
+        filtro_arts = ",".join(f"'{c}'" for c in chunk)
+
+        # 2. Stock actual por articulo -> sumar por talle
+        sql_stock = f"""
+            SELECT s.articulo, ISNULL(SUM(s.stock_actual), 0) AS stock
+            FROM msgestionC.dbo.stock s
+            WHERE s.articulo IN ({filtro_arts})
+              AND s.deposito IN {DEPOS_SQL}
+            GROUP BY s.articulo
+        """
+        df_stock = query_df(sql_stock)
+        for _, r in df_stock.iterrows():
+            art_key = r['articulo'].strip() if isinstance(r['articulo'], str) else str(r['articulo']).strip()
+            talle = art_talle.get(art_key)
+            if talle:
+                stock_by_talle[talle] = stock_by_talle.get(talle, 0) + float(r['stock'])
+
+        # 3. Ventas mensuales por articulo -> sumar por talle
+        sql_ventas = f"""
+            SELECT v.articulo,
+                   SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                            WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
+                   YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes
+            FROM msgestionC.dbo.ventas1 v
+            WHERE v.codigo NOT IN {EXCL_VENTAS}
+              AND v.articulo IN ({filtro_arts})
+              AND v.fecha >= '{desde_str}'
+            GROUP BY v.articulo, YEAR(v.fecha), MONTH(v.fecha)
+        """
+        df_ventas = query_df(sql_ventas)
+        for _, r in df_ventas.iterrows():
+            art_key = r['articulo'].strip() if isinstance(r['articulo'], str) else str(r['articulo']).strip()
+            talle = art_talle.get(art_key)
+            if talle:
+                if talle not in ventas_by_talle:
+                    ventas_by_talle[talle] = {}
+                key = (int(r['anio']), int(r['mes']))
+                ventas_by_talle[talle][key] = ventas_by_talle[talle].get(key, 0) + float(r['cant'] or 0)
+
+        # 4. Compras mensuales por articulo -> sumar por talle
+        sql_compras = f"""
+            SELECT rc.articulo,
+                   SUM(rc.cantidad) AS cant,
+                   YEAR(rc.fecha) AS anio, MONTH(rc.fecha) AS mes
+            FROM msgestionC.dbo.compras1 rc
+            WHERE rc.operacion = '+'
+              AND rc.articulo IN ({filtro_arts})
+              AND rc.fecha >= '{desde_str}'
+            GROUP BY rc.articulo, YEAR(rc.fecha), MONTH(rc.fecha)
+        """
+        df_compras = query_df(sql_compras)
+        for _, r in df_compras.iterrows():
+            art_key = r['articulo'].strip() if isinstance(r['articulo'], str) else str(r['articulo']).strip()
+            talle = art_talle.get(art_key)
+            if talle:
+                if talle not in compras_by_talle:
+                    compras_by_talle[talle] = {}
+                key = (int(r['anio']), int(r['mes']))
+                compras_by_talle[talle][key] = compras_by_talle[talle].get(key, 0) + float(r['cant'] or 0)
+
+    # 5. Lista de meses hacia atras (del mas reciente al mas antiguo)
+    meses_lista = []
+    cursor_dt = hoy.replace(day=1)
+    for _ in range(meses):
+        meses_lista.append((cursor_dt.year, cursor_dt.month))
+        cursor_dt -= relativedelta(months=1)
+
+    # 6. Reconstruir stock mes a mes hacia atras para cada talle
+    resultados = []
+    for talle in talles_unicos:
+        stock_actual = stock_by_talle.get(talle, 0)
+        v_dict = ventas_by_talle.get(talle, {})
+        c_dict = compras_by_talle.get(talle, {})
+
+        stock_fin = stock_actual
+        meses_q = 0
+
+        for anio, mes in meses_lista:
+            v = v_dict.get((anio, mes), 0)
+            c = c_dict.get((anio, mes), 0)
+            # Reconstruir: stock_inicio = stock_fin + ventas - compras
+            stock_inicio = stock_fin + v - c
+
+            if stock_inicio <= 0:
+                meses_q += 1
+
+            stock_fin = stock_inicio
+
+        pct_q = meses_q / max(meses, 1)
+
+        # Solo incluir talles que superan el umbral de escasez cronica
+        if pct_q >= umbral_quiebre:
+            resultados.append({
+                'talle': talle,
+                'meses_quebrado': meses_q,
+                'meses_total': meses,
+                'pct_quiebre': round(pct_q, 2),
+            })
+
+    # Ordenar por pct_quiebre descendente, luego por talle
+    resultados.sort(key=lambda x: (-x['pct_quiebre'], x['talle']))
+    return resultados
 
 
 # ============================================================================
@@ -932,7 +2451,7 @@ def calcular_dias_cobertura(vel_diaria, stock_disponible, factores_est, max_dias
 
 
 def calcular_roi(precio_costo, precio_venta, vel_diaria, factores_est,
-                 cantidad_pedir, stock_disponible):
+                 cantidad_pedir, stock_disponible, dias_pago=30):
     """
     Calcula ROI y días de recupero de inversión.
 
@@ -985,8 +2504,13 @@ def calcular_roi(precio_costo, precio_venta, vel_diaria, factores_est,
     ingreso_60d = min(venta_60d, cantidad_pedir) * precio_venta
     roi_60d = ((ingreso_60d - inversion) / inversion * 100) if inversion > 0 else 0
 
+    # Recupero efectivo: descontar días de financiación del proveedor
+    dias_recupero_efectivo = max(dias_recupero - dias_pago, 0) if dias_recupero < 999 else 999
+
     return {
         'dias_recupero': dias_recupero,
+        'dias_recupero_efectivo': dias_recupero_efectivo,
+        'dias_pago': dias_pago,
         'roi_60d': round(roi_60d, 1),
         'inversion': round(inversion, 0),
         'margen_pct': round(margen_pct, 1),
@@ -1120,7 +2644,7 @@ def insertar_pedido_produccion(proveedor_id, empresa, renglones_df,
 
 SUBRUBRO_DESC = {}  # se carga lazy
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def cargar_subrubro_desc():
     """Carga descripciones de subrubro desde msgestion01."""
     sql = "SELECT codigo, RTRIM(descripcion) AS desc1 FROM msgestion01.dbo.subrubro"
@@ -1131,7 +2655,7 @@ def cargar_subrubro_desc():
 RUBRO_GENERO = {1: 'DAMAS', 3: 'HOMBRES', 4: 'NIÑOS', 5: 'NIÑAS', 6: 'UNISEX'}
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def cargar_mapa_surtido():
     """
     Mapa de surtido: demanda, stock y cobertura por género × categoría (subrubro).
@@ -1192,11 +2716,12 @@ def cargar_mapa_surtido():
     return df.sort_values('ventas_12m', ascending=False)
 
 
-@st.cache_data(ttl=300)
-def calcular_alertas_talles():
+@st.cache_data(ttl=7200)
+def calcular_alertas_talles(categorias_filtro=None, marca_id=None, proveedor_id=None):
     """
-    Calcula talles críticos para TODAS las categorías con quiebre por talle.
-    Solo categorías tipo CALZADO (excluye accesorios, indumentaria).
+    Calcula talles críticos por categoría con quiebre por talle.
+    OPTIMIZADO: si recibe categorias_filtro (lista de (rubro, subrubro)), solo consulta esas.
+    Si recibe marca_id o proveedor_id, filtra artículos por marca/proveedor.
     Retorna dict: (genero_cod, sub_cod) → list of {'talle', 'stock', 'vtas_12m', 'cob_dias'}
     Y un DataFrame resumen: genero_cod, sub_cod, talles_criticos (int), detalle (str)
     """
@@ -1210,6 +2735,17 @@ def calcular_alertas_talles():
           AND CASE WHEN RTRIM(a.descripcion_5) LIKE '[0-9][0-9]'
                    THEN CAST(a.descripcion_5 AS INT) END BETWEEN 17 AND 50
     """
+    # Filtro por categorías específicas (rubro, subrubro)
+    if categorias_filtro:
+        pares = [f"(a.rubro={r} AND a.subrubro={s})" for r, s in categorias_filtro]
+        calzado_filter += " AND (" + " OR ".join(pares) + ")"
+    # Filtro por marca
+    if marca_id:
+        calzado_filter += f" AND a.marca = {int(marca_id)}"
+    # Filtro por proveedor
+    if proveedor_id:
+        calzado_filter += f" AND a.proveedor = {int(proveedor_id)}"
+
     talle_key = "CAST(a.rubro AS VARCHAR) + '_' + CAST(a.subrubro AS VARCHAR) + '_' + RTRIM(a.descripcion_5)"
 
     # 1. Stock actual + ventas totales
@@ -1352,7 +2888,7 @@ def calcular_alertas_talles():
     return df_resumen, detalle_dict
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def cargar_piramide_precios(genero_cod, subrubro_cod):
     """
     Pirámide de precios: divide modelos de una categoría en 3 franjas
@@ -1427,7 +2963,7 @@ def cargar_piramide_precios(genero_cod, subrubro_cod):
 # V2: ANÁLISIS POR TALLE (drill-down dentro de categoría)
 # ============================================================================
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=7200)
 def cargar_talles_categoria(genero_cod, subrubro_cod):
     """
     Análisis por talle individual dentro de una categoría (género × subrubro).
@@ -1564,19 +3100,29 @@ def cargar_talles_categoria(genero_cod, subrubro_cod):
     df['talle_num'] = pd.to_numeric(df['talle'], errors='coerce')
     df = df.sort_values('talle_num', na_position='last').drop(columns='talle_num')
 
-    # Cobertura con velocidad real
+    # Cobertura con velocidad real (fix NaN/inf)
     df['vel_diaria'] = df['vel_real'] / 30
-    cob_raw = np.where(
-        df['vel_diaria'] > 0,
-        df['stock'] / df['vel_diaria'],
-        np.where(df['stock'] > 0, 9999, 0)
-    )
-    df['cob_dias'] = np.nan_to_num(cob_raw, nan=0, posinf=9999, neginf=0).astype(int)
-    df['urgencia'] = df['cob_dias'].apply(
-        lambda d: 'CRITICO' if d <= 30 else ('BAJO' if d <= 60 else ('MEDIO' if d <= 120 else 'OK'))
-    )
+    cob_raw = df['stock'] / df['vel_diaria'].replace(0, np.nan)
+    df['cob_dias'] = cob_raw.fillna(9999).clip(None, 9999).astype(int)
+    # Escasez crónica: quebrado > 75% de los meses
+    df['escasez_cronica'] = df['pct_quiebre'] >= 75
+
+    def estado_talle(row):
+        if row.get('escasez_cronica', False):
+            return 'ESCASEZ'
+        if row['cob_dias'] >= 9999:
+            return 'SIN VENTA'
+        if row['cob_dias'] < 30:
+            return 'CRITICO'
+        if row['cob_dias'] < 60:
+            return 'BAJO'
+        if row['cob_dias'] < 120:
+            return 'MEDIO'
+        return 'OK'
+
+    df['urgencia'] = df.apply(estado_talle, axis=1)
     # Caso especial: tiene demanda pero 0 stock = CRITICO
-    df.loc[(df['vtas_12m'] > 0) & (df['stock'] == 0), 'urgencia'] = 'CRITICO'
+    df.loc[(df['vtas_12m'] > 0) & (df['stock'] == 0) & (~df['escasez_cronica']), 'urgencia'] = 'CRITICO'
     df.loc[(df['vtas_12m'] > 0) & (df['stock'] == 0), 'cob_dias'] = 0
 
     return df.drop(columns='vel_diaria').reset_index(drop=True)
@@ -1712,7 +3258,7 @@ def buscar_sustitutos_activos_con_stock(codigo_mg, subrubro_cod):
 # DETECTOR DE TENDENCIA EMERGENTE
 # ============================================================================
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def detectar_tendencias_emergentes():
     """
     Detecta productos que están naciendo fuertes.
@@ -1814,7 +3360,7 @@ def detectar_tendencias_emergentes():
     # Pesa: aceleración (40%), concentración reciente (30%), novedad (20%), velocidad (10%)
     df['aceleracion_norm'] = df['aceleracion'].clip(-100, 500) / 500
     df['pct_reciente_norm'] = df['pct_reciente'] / 100
-    df['vel_norm'] = df['vel_mensual'] / df['vel_mensual'].quantile(0.95).clip(lower=1)
+    df['vel_norm'] = df['vel_mensual'] / max(df['vel_mensual'].quantile(0.95), 1)
     df['vel_norm'] = df['vel_norm'].clip(0, 1)
 
     df['momentum'] = (
@@ -1839,7 +3385,7 @@ def detectar_tendencias_emergentes():
     return df_emergentes
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def velocidad_promedio_por_categoria():
     """Velocidad promedio mensual por rubro × subrubro (benchmark)."""
     desde = (date.today() - relativedelta(months=3)).replace(day=1)
@@ -1869,16 +3415,18 @@ def velocidad_promedio_por_categoria():
         return {}
 
     merged = df.merge(df_n, on=['rubro', 'subrubro'], how='left')
-    merged['vel_por_prod'] = merged['vel_prom_cat'] / merged['n_prods'].clip(lower=1)
+    merged['n_prods'] = merged['n_prods'].fillna(1).clip(1)
+    merged['vel_por_prod'] = merged['vel_prom_cat'] / merged['n_prods']
     return {(int(r['rubro']), int(r['subrubro'])): round(float(r['vel_por_prod']), 2)
-            for _, r in merged.iterrows()}
+            for _, r in merged.iterrows()
+            if pd.notna(r['vel_por_prod']) and pd.notna(r['rubro']) and pd.notna(r['subrubro'])}
 
 
 # ============================================================================
 # CURVA DE TALLE IDEAL (reverse-engineered from 3 years of sales)
 # ============================================================================
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def calcular_curva_talle_ideal(anios=3):
     """
     Reconstruye la distribución de talles REAL del mercado
@@ -1924,7 +3472,7 @@ def calcular_curva_talle_ideal(anios=3):
     return df.sort_values(['genero_cod', 'sub_cod', 'talle_num'])
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def calcular_stock_por_talle():
     """
     Distribución ACTUAL de stock por género × subrubro × talle.
@@ -1966,7 +3514,7 @@ def calcular_stock_por_talle():
 # CURVA IDEAL DESDE LÓGICA OMICRON (producto, marca+subrubro, ventas x mes)
 # ============================================================================
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def calcular_curva_ideal_producto(csr, desde=None, hasta=None):
     """
     Curva ideal de talles para UN producto (CSR = 10 dígitos del sinónimo).
@@ -2006,7 +3554,7 @@ def calcular_curva_ideal_producto(csr, desde=None, hasta=None):
     return df.sort_values('nro')
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def calcular_curva_ideal_subrubro(marca, subrubro, desde=None, hasta=None):
     """
     Curva ideal de talles para TODOS los artículos de una marca+subrubro.
@@ -2046,7 +3594,7 @@ def calcular_curva_ideal_subrubro(marca, subrubro, desde=None, hasta=None):
     return df.sort_values('nro')
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def calcular_ventas_por_mes(marca=None, subrubro=None, csr=None, desde=None, hasta=None):
     """
     Ventas mensuales con promedio ponderado por años con data (lógica PID-223).
@@ -2099,7 +3647,7 @@ def calcular_ventas_por_mes(marca=None, subrubro=None, csr=None, desde=None, has
 # DETECTOR DE CANIBALIZACIÓN POR EMBEDDING
 # ============================================================================
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def obtener_ventas_semestrales():
     """
     Ventas por CSR (modelo) en dos semestres: S1 (hace 12-6 meses) y S2 (últimos 6 meses).
@@ -2222,7 +3770,7 @@ def detectar_canibalizacion_embedding(csr_victima, subrubro_cod, df_ventas_sem):
     return resultados
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=7200)
 def escaneo_canibalizacion_masivo(top_n=50):
     """
     Escaneo automático: busca TODOS los productos que bajaron >30%
@@ -2505,6 +4053,308 @@ def simular_recupero_pedido(lineas_pedido):
 
 
 # ============================================================================
+# ANÁLISIS DE NICHO DE PRODUCTO
+# ============================================================================
+
+@st.cache_data(ttl=3600)
+def analizar_nicho_producto(subrubros, color_keyword, rubros=(1, 5), anios_historia=4):
+    """
+    Analiza un nicho de producto (ej: comunión=guillermina/chata blanca niñas/damas)
+    y retorna estacionalidad, curva de talles, proveedores, y mejor momento histórico.
+
+    Args:
+        subrubros: tuple de códigos subrubro (ej: (17, 18) para guillermina+chata)
+        color_keyword: string para filtrar en descripcion_1 (ej: '%BLANC%')
+        rubros: tuple de códigos rubro (ej: (1, 5) para damas+niñas)
+        anios_historia: años hacia atrás para analizar
+
+    Returns: dict with keys:
+        - estacionalidad: {mes: {pares_promedio, factor}}
+        - curva_talles: {talle: {pares_total, pct, stock_hoy, estado}}
+        - proveedores: [{proveedor, nombre, pares_total, pares_temporada, pct_temporada}]
+        - mejor_momento: {anio, mes_compra, pares_comprados, vtas_temporada_siguiente, ratio}
+        - temporada: {meses_pico: list, pct_concentracion: float}
+        - resumen: {demanda_anual, demanda_temporada, stock_total, cobertura_temporada_dias}
+    """
+    subrubros_sql = '(' + ','.join(str(int(s)) for s in subrubros) + ')'
+    rubros_sql = '(' + ','.join(str(int(r)) for r in rubros) + ')'
+
+    # ── 1. ESTACIONALIDAD ──
+    sql_estac = f"""
+        SELECT MONTH(v.fecha) AS mes,
+               YEAR(v.fecha) AS anio,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad
+                        ELSE 0 END) AS pares
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.subrubro IN {subrubros_sql}
+          AND a.rubro IN {rubros_sql}
+          AND a.descripcion_1 LIKE '{color_keyword}'
+          AND v.fecha >= DATEADD(year, -{int(anios_historia)}, GETDATE())
+        GROUP BY YEAR(v.fecha), MONTH(v.fecha)
+    """
+    df_estac = query_df(sql_estac)
+
+    estacionalidad = {}
+    if not df_estac.empty:
+        df_estac['pares'] = pd.to_numeric(df_estac['pares'], errors='coerce').fillna(0)
+        n_anios = df_estac['anio'].nunique()
+        n_anios = max(n_anios, 1)
+        por_mes = df_estac.groupby('mes')['pares'].sum().reindex(range(1, 13), fill_value=0)
+        promedio_mensual = por_mes.values.mean()
+        promedio_mensual = max(promedio_mensual, 0.001)  # avoid div/0
+        for mes in range(1, 13):
+            pares_total = por_mes.get(mes, 0)
+            pares_prom = round(pares_total / n_anios, 1)
+            factor = round(pares_total / promedio_mensual, 2)
+            estacionalidad[mes] = {'pares_promedio': pares_prom, 'factor': factor}
+
+    # ── 2. TEMPORADA (auto-detect picos) ──
+    factor_umbral = 1.3
+    meses_pico = [m for m, v in estacionalidad.items() if v['factor'] > factor_umbral]
+    total_anual = sum(v['pares_promedio'] for v in estacionalidad.values())
+    total_temporada = sum(estacionalidad[m]['pares_promedio'] for m in meses_pico) if meses_pico else 0
+    pct_concentracion = round(total_temporada / max(total_anual, 0.001), 4)
+    temporada = {'meses_pico': meses_pico, 'pct_concentracion': pct_concentracion}
+
+    # ── 3. CURVA DE TALLES ──
+    sql_talles = f"""
+        SELECT CAST(a.descripcion_5 AS INT) AS talle,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad
+                        ELSE 0 END) AS pares
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.subrubro IN {subrubros_sql}
+          AND a.rubro IN {rubros_sql}
+          AND a.descripcion_1 LIKE '{color_keyword}'
+          AND ISNUMERIC(a.descripcion_5) = 1
+          AND v.fecha >= DATEADD(year, -{int(anios_historia)}, GETDATE())
+        GROUP BY CAST(a.descripcion_5 AS INT)
+    """
+    df_talles = query_df(sql_talles)
+
+    # Stock actual por talle
+    sql_stock_talle = f"""
+        SELECT CAST(a.descripcion_5 AS INT) AS talle,
+               ISNULL(SUM(s.stock_actual), 0) AS stock_hoy
+        FROM msgestionC.dbo.stock s
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
+        WHERE a.subrubro IN {subrubros_sql}
+          AND a.rubro IN {rubros_sql}
+          AND a.descripcion_1 LIKE '{color_keyword}'
+          AND ISNUMERIC(a.descripcion_5) = 1
+          AND s.deposito IN {DEPOS_SQL}
+        GROUP BY CAST(a.descripcion_5 AS INT)
+    """
+    df_stock_talle = query_df(sql_stock_talle)
+
+    curva_talles = {}
+    if not df_talles.empty:
+        df_talles['pares'] = pd.to_numeric(df_talles['pares'], errors='coerce').fillna(0)
+        df_talles['talle'] = pd.to_numeric(df_talles['talle'], errors='coerce')
+        df_talles = df_talles.dropna(subset=['talle'])
+        df_talles['talle'] = df_talles['talle'].astype(int)
+        total_pares = df_talles['pares'].sum()
+        total_pares = max(total_pares, 1)
+
+        stock_map = {}
+        if not df_stock_talle.empty:
+            df_stock_talle['talle'] = pd.to_numeric(df_stock_talle['talle'], errors='coerce')
+            df_stock_talle = df_stock_talle.dropna(subset=['talle'])
+            df_stock_talle['talle'] = df_stock_talle['talle'].astype(int)
+            stock_map = dict(zip(df_stock_talle['talle'], df_stock_talle['stock_hoy'].fillna(0)))
+
+        # Velocidad diaria en temporada para clasificar estado
+        vel_temporada_diaria = 0
+        if meses_pico and total_anual > 0:
+            dias_temporada = len(meses_pico) * 30
+            vel_temporada_diaria = total_temporada / max(dias_temporada, 1)
+
+        for _, row in df_talles.iterrows():
+            t = int(row['talle'])
+            pares = float(row['pares'])
+            pct = round(pares / total_pares, 4)
+            stk = float(stock_map.get(t, 0))
+            # Estado basado en cobertura en temporada
+            vel_talle_diaria = vel_temporada_diaria * pct
+            if vel_talle_diaria > 0:
+                cobertura_dias = stk / vel_talle_diaria
+            else:
+                cobertura_dias = 999
+            if cobertura_dias < 30:
+                estado = 'CRITICO'
+            elif cobertura_dias < 60:
+                estado = 'BAJO'
+            else:
+                estado = 'OK'
+            curva_talles[t] = {
+                'pares_total': round(pares),
+                'pct': pct,
+                'stock_hoy': round(stk),
+                'estado': estado,
+            }
+
+    # ── 4. PROVEEDORES RANKING ──
+    meses_pico_sql = '(' + ','.join(str(m) for m in meses_pico) + ')' if meses_pico else '(0)'
+    sql_prov = f"""
+        SELECT a.proveedor,
+               p.denominacion AS nombre,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad
+                        ELSE 0 END) AS pares_total,
+               SUM(CASE WHEN MONTH(v.fecha) IN {meses_pico_sql}
+                        THEN (CASE WHEN v.operacion='+' THEN v.cantidad
+                                   WHEN v.operacion='-' THEN -v.cantidad
+                                   ELSE 0 END)
+                        ELSE 0 END) AS pares_temporada
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        JOIN msgestion01.dbo.proveedores p ON p.codigo = a.proveedor
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.subrubro IN {subrubros_sql}
+          AND a.rubro IN {rubros_sql}
+          AND a.descripcion_1 LIKE '{color_keyword}'
+          AND v.fecha >= DATEADD(year, -{int(anios_historia)}, GETDATE())
+        GROUP BY a.proveedor, p.denominacion
+        HAVING SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad
+                        ELSE 0 END) > 0
+    """
+    df_prov = query_df(sql_prov)
+
+    proveedores = []
+    if not df_prov.empty:
+        df_prov['pares_total'] = pd.to_numeric(df_prov['pares_total'], errors='coerce').fillna(0)
+        df_prov['pares_temporada'] = pd.to_numeric(df_prov['pares_temporada'], errors='coerce').fillna(0)
+        total_temp = df_prov['pares_temporada'].sum()
+        total_temp = max(total_temp, 1)
+        df_prov = df_prov.sort_values('pares_total', ascending=False)
+        for _, row in df_prov.iterrows():
+            proveedores.append({
+                'proveedor': int(row['proveedor']),
+                'nombre': str(row['nombre']).strip(),
+                'pares_total': round(float(row['pares_total'])),
+                'pares_temporada': round(float(row['pares_temporada'])),
+                'pct_temporada': round(float(row['pares_temporada']) / total_temp, 4),
+            })
+
+    # ── 5. MEJOR MOMENTO (compras vs ventas por año) ──
+    sql_compras_hist = f"""
+        SELECT YEAR(c2.fecha_comprobante) AS anio,
+               MONTH(c2.fecha_comprobante) AS mes,
+               SUM(c1.cantidad) AS pares_comprados
+        FROM msgestionC.dbo.compras1 c1
+        JOIN msgestionC.dbo.compras2 c2
+          ON c1.codigo = c2.codigo AND c1.numero = c2.numero
+         AND c1.letra = c2.letra AND c1.sucursal = c2.sucursal
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = c1.articulo
+        WHERE c1.operacion = '+'
+          AND a.subrubro IN {subrubros_sql}
+          AND a.rubro IN {rubros_sql}
+          AND a.descripcion_1 LIKE '{color_keyword}'
+          AND c2.fecha_comprobante >= DATEADD(year, -{int(anios_historia)}, GETDATE())
+        GROUP BY YEAR(c2.fecha_comprobante), MONTH(c2.fecha_comprobante)
+    """
+    df_compras_hist = query_df(sql_compras_hist)
+
+    sql_ventas_hist = f"""
+        SELECT YEAR(v.fecha) AS anio,
+               MONTH(v.fecha) AS mes,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad
+                        ELSE 0 END) AS pares
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = v.articulo
+        WHERE v.codigo NOT IN {EXCL_VENTAS}
+          AND a.subrubro IN {subrubros_sql}
+          AND a.rubro IN {rubros_sql}
+          AND a.descripcion_1 LIKE '{color_keyword}'
+          AND v.fecha >= DATEADD(year, -{int(anios_historia)}, GETDATE())
+        GROUP BY YEAR(v.fecha), MONTH(v.fecha)
+    """
+    df_ventas_hist = query_df(sql_ventas_hist)
+
+    mejor_momento = {'anio': None, 'mes_compra': None, 'pares_comprados': 0,
+                     'vtas_temporada_siguiente': 0, 'ratio': 0}
+    if not df_compras_hist.empty and not df_ventas_hist.empty and meses_pico:
+        df_compras_hist['pares_comprados'] = pd.to_numeric(
+            df_compras_hist['pares_comprados'], errors='coerce').fillna(0)
+        df_ventas_hist['pares'] = pd.to_numeric(
+            df_ventas_hist['pares'], errors='coerce').fillna(0)
+
+        # Build ventas lookup: {(anio, mes): pares}
+        vtas_lookup = {}
+        for _, row in df_ventas_hist.iterrows():
+            vtas_lookup[(int(row['anio']), int(row['mes']))] = float(row['pares'])
+
+        # For each year, find month with max compras, then sum temporada ventas
+        compras_by_year = df_compras_hist.groupby('anio').apply(
+            lambda g: g.loc[g['pares_comprados'].idxmax()]).reset_index(drop=True)
+
+        best_ratio = 0
+        for _, row in compras_by_year.iterrows():
+            anio = int(row['anio'])
+            mes_c = int(row['mes'])
+            pares_c = float(row['pares_comprados'])
+            if pares_c <= 0:
+                continue
+            # Temporada ventas: same year if compra before temporada, else next year
+            vtas_temp = sum(vtas_lookup.get((anio, m), 0) for m in meses_pico)
+            ratio = vtas_temp / pares_c if pares_c > 0 else 0
+            if ratio > best_ratio:
+                best_ratio = ratio
+                mejor_momento = {
+                    'anio': anio,
+                    'mes_compra': mes_c,
+                    'pares_comprados': round(pares_c),
+                    'vtas_temporada_siguiente': round(vtas_temp),
+                    'ratio': round(ratio, 2),
+                }
+
+    # ── 6. RESUMEN ──
+    # Stock total actual del nicho
+    sql_stock_total = f"""
+        SELECT ISNULL(SUM(s.stock_actual), 0) AS stock_total
+        FROM msgestionC.dbo.stock s
+        JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
+        WHERE a.subrubro IN {subrubros_sql}
+          AND a.rubro IN {rubros_sql}
+          AND a.descripcion_1 LIKE '{color_keyword}'
+          AND s.deposito IN {DEPOS_SQL}
+    """
+    df_stk = query_df(sql_stock_total)
+    stock_total = 0
+    if not df_stk.empty:
+        stock_total = float(pd.to_numeric(df_stk['stock_total'].iloc[0], errors='coerce') or 0)
+
+    demanda_anual = round(total_anual)
+    demanda_temporada = round(total_temporada)
+    dias_temporada = len(meses_pico) * 30 if meses_pico else 1
+    vel_diaria_temp = demanda_temporada / max(dias_temporada, 1)
+    cobertura_dias = round(stock_total / max(vel_diaria_temp, 0.001), 1)
+
+    resumen = {
+        'demanda_anual': demanda_anual,
+        'demanda_temporada': demanda_temporada,
+        'stock_total': round(stock_total),
+        'cobertura_temporada_dias': cobertura_dias,
+    }
+
+    return {
+        'estacionalidad': estacionalidad,
+        'curva_talles': curva_talles,
+        'proveedores': proveedores,
+        'mejor_momento': mejor_momento,
+        'temporada': temporada,
+        'resumen': resumen,
+    }
+
+
+# ============================================================================
 # UI: DASHBOARD GLOBAL
 # ============================================================================
 
@@ -2516,21 +4366,356 @@ def render_semaforo(status):
     return '<span class="semaforo-verde">OK</span>'
 
 
+@st.cache_data(ttl=3600)
+def proyectar_entregas_mensuales(pedir_total, vel_mensual, stock_actual, f_est,
+                                  mes_inicio, n_entregas=6):
+    """
+    Distribuye un pedido total en N entregas mensuales.
+    Cada entrega cubre la demanda del mes siguiente, ponderada por estacionalidad.
+
+    Returns: list of dicts [{mes, entrega_pares, stock_proyectado, demanda_mes}]
+    """
+    plan = []
+    stock = stock_actual
+
+    # Calculate demand per delivery month
+    demandas = []
+    for i in range(n_entregas):
+        mes = ((mes_inicio - 1 + i) % 12) + 1
+        demanda = vel_mensual * f_est.get(mes, 1.0)
+        demandas.append({'mes': mes, 'demanda': demanda})
+
+    total_demanda = sum(d['demanda'] for d in demandas)
+    if total_demanda <= 0:
+        return []
+
+    # Distribute pedir_total proportionally to demand
+    for d in demandas:
+        entrega = round(pedir_total * d['demanda'] / total_demanda)
+        stock = stock + entrega - d['demanda']
+        plan.append({
+            'mes': d['mes'],
+            'entrega_pares': entrega,
+            'demanda_mes': round(d['demanda']),
+            'stock_proyectado': round(stock),
+        })
+
+    return plan
+
+
+# ============================================================================
+# DETECCIÓN DE NICHOS DESCUBIERTOS
+# ============================================================================
+
+@st.cache_data(ttl=7200)
+def detectar_nichos_descubiertos(min_vtas=10, max_cob_dias=30, solo_post_2020=True):
+    """
+    Detecta nichos de producto con demanda real pero sin stock ni pedidos pendientes.
+
+    Filters:
+    - solo_post_2020: solo artículos con al menos 1 compra después de 2020 (excluye merma/muertos)
+    - min_vtas: mínimo pares vendidos en 12m para considerar que hay demanda
+    - max_cob_dias: máximo días de cobertura (stock+pedidos) para considerar descubierto
+
+    Returns: DataFrame with columns:
+        genero, categoria, marca, marca_cod, proveedor, modelos, pares_12m,
+        vel_mes, stock, pedido, disponible, cob_dias, ppp_costo,
+        es_temporada (bool: si el producto es de temporada actual basado en NICHOS_PREDEFINIDOS),
+        urgencia (CRITICO/BAJO/MEDIO/OK)
+    """
+    desde = (date.today() - relativedelta(months=12)).replace(day=1).strftime('%Y%m%d')
+
+    filtro_post2020 = ""
+    if solo_post_2020:
+        filtro_post2020 = """
+            JOIN (
+                SELECT DISTINCT c1.articulo
+                FROM msgestionC.dbo.compras1 c1
+                JOIN msgestionC.dbo.compras2 c2 ON c2.codigo = c1.codigo
+                    AND c2.letra = c1.letra AND c2.sucursal = c1.sucursal
+                    AND c2.numero = c1.numero
+                WHERE c2.fecha_comprobante >= '20200101' AND c1.operacion = '+'
+            ) act ON act.articulo = a.codigo
+        """
+
+    sql = f"""
+        WITH ventas_agg AS (
+            SELECT
+                a.rubro,
+                a.subrubro,
+                a.marca,
+                a.proveedor,
+                COUNT(DISTINCT LEFT(a.codigo_sinonimo, 10)) AS modelos,
+                SUM(CASE WHEN v.operacion = '+' THEN v.cantidad
+                         WHEN v.operacion = '-' THEN -v.cantidad ELSE 0 END) AS pares_12m,
+                AVG(CASE WHEN a.precio_fabrica > 0 THEN a.precio_fabrica END) AS ppp_costo
+            FROM msgestion01art.dbo.articulo a
+            JOIN msgestionC.dbo.ventas1 v ON v.articulo = a.codigo
+            {filtro_post2020}
+            WHERE v.codigo NOT IN {EXCL_VENTAS}
+              AND v.fecha >= '{desde}'
+              AND a.estado = 'V'
+              AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+              AND a.rubro IN (1, 3, 4, 5, 6)
+              AND a.subrubro IS NOT NULL AND a.subrubro > 0
+              AND LEN(a.codigo_sinonimo) >= 10
+            GROUP BY a.rubro, a.subrubro, a.marca, a.proveedor
+            HAVING SUM(CASE WHEN v.operacion = '+' THEN v.cantidad
+                            WHEN v.operacion = '-' THEN -v.cantidad ELSE 0 END) >= {min_vtas}
+        ),
+        stock_agg AS (
+            SELECT
+                a.rubro, a.subrubro, a.marca, a.proveedor,
+                SUM(s.stock_actual) AS stock
+            FROM msgestionC.dbo.stock s
+            JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
+            WHERE s.deposito IN {DEPOS_SQL}
+              AND a.estado = 'V'
+              AND a.rubro IN (1, 3, 4, 5, 6)
+              AND a.subrubro IS NOT NULL AND a.subrubro > 0
+            GROUP BY a.rubro, a.subrubro, a.marca, a.proveedor
+        ),
+        pedidos_agg AS (
+            SELECT
+                a.rubro, a.subrubro, a.marca, a.proveedor,
+                SUM(p1.cantidad) AS pedido
+            FROM msgestionC.dbo.pedico1 p1
+            JOIN msgestionC.dbo.pedico2 p2 ON p2.codigo = p1.codigo
+                AND p2.letra = p1.letra AND p2.sucursal = p1.sucursal
+                AND p2.numero = p1.numero
+            JOIN msgestion01art.dbo.articulo a ON a.codigo = p1.articulo
+            WHERE p2.estado = 'V' AND p2.codigo = 8
+              AND a.rubro IN (1, 3, 4, 5, 6)
+              AND a.subrubro IS NOT NULL AND a.subrubro > 0
+            GROUP BY a.rubro, a.subrubro, a.marca, a.proveedor
+        )
+        SELECT
+            va.rubro,
+            va.subrubro,
+            va.marca AS marca_cod,
+            va.proveedor AS proveedor_cod,
+            va.modelos,
+            va.pares_12m,
+            CAST(va.pares_12m AS FLOAT) / 12.0 AS vel_mes,
+            ISNULL(sa.stock, 0) AS stock,
+            ISNULL(pa.pedido, 0) AS pedido,
+            ISNULL(sa.stock, 0) + ISNULL(pa.pedido, 0) AS disponible,
+            CASE WHEN va.pares_12m > 0
+                 THEN CAST((ISNULL(sa.stock, 0) + ISNULL(pa.pedido, 0)) AS FLOAT)
+                      / (CAST(va.pares_12m AS FLOAT) / 365.0)
+                 ELSE 999 END AS cob_dias,
+            ISNULL(va.ppp_costo, 0) AS ppp_costo
+        FROM ventas_agg va
+        LEFT JOIN stock_agg sa ON sa.rubro = va.rubro AND sa.subrubro = va.subrubro
+            AND sa.marca = va.marca AND sa.proveedor = va.proveedor
+        LEFT JOIN pedidos_agg pa ON pa.rubro = va.rubro AND pa.subrubro = va.subrubro
+            AND pa.marca = va.marca AND pa.proveedor = va.proveedor
+        WHERE CASE WHEN va.pares_12m > 0
+                   THEN CAST((ISNULL(sa.stock, 0) + ISNULL(pa.pedido, 0)) AS FLOAT)
+                        / (CAST(va.pares_12m AS FLOAT) / 365.0)
+                   ELSE 999 END < {max_cob_dias}
+        ORDER BY va.pares_12m DESC
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    # Map descriptions
+    sub_desc = cargar_subrubro_desc()
+    marcas_dict = cargar_marcas_dict()
+    prov_dict = cargar_proveedores_dict()
+
+    df['genero'] = df['rubro'].map(RUBRO_GENERO).fillna('OTRO')
+    df['categoria'] = df['subrubro'].map(sub_desc).fillna('?')
+    df['marca'] = df['marca_cod'].apply(
+        lambda c: marcas_dict.get(int(c), f'M{c}') if pd.notna(c) else '?')
+    df['proveedor'] = df['proveedor_cod'].apply(
+        lambda c: prov_dict.get(int(c), f'P{c}') if pd.notna(c) else '?')
+
+    # Temporada: check if current month falls within any NICHO's temporada_esperada
+    # that matches this row's rubro/subrubro
+    mes_actual = date.today().month
+
+    def _es_temporada(row):
+        for nicho in NICHOS_PREDEFINIDOS.values():
+            rubros_nicho = nicho.get('rubros', ())
+            subs_nicho = nicho.get('subrubros', ())
+            temp = nicho.get('temporada_esperada', ())
+            if not temp:
+                continue
+            r = int(row['rubro']) if pd.notna(row['rubro']) else 0
+            s = int(row['subrubro']) if pd.notna(row['subrubro']) else 0
+            if r in rubros_nicho and s in subs_nicho and mes_actual in temp:
+                return True
+        return False
+
+    df['es_temporada'] = df.apply(_es_temporada, axis=1)
+
+    # Urgencia
+    df['cob_dias'] = df['cob_dias'].round(0).astype(int)
+    df['urgencia'] = df['cob_dias'].apply(
+        lambda d: 'CRITICO' if d == 0 else ('BAJO' if d < 15 else ('MEDIO' if d < 30 else 'OK'))
+    )
+
+    cols = ['genero', 'categoria', 'marca', 'marca_cod', 'proveedor', 'proveedor_cod',
+            'modelos', 'pares_12m', 'vel_mes', 'stock', 'pedido', 'disponible',
+            'cob_dias', 'ppp_costo', 'es_temporada', 'urgencia']
+    return df[cols].sort_values(['urgencia', 'pares_12m'], ascending=[True, False])
+
+
+@st.cache_data(ttl=7200)
+def detectar_nichos_por_subrubro(min_vtas=20, max_cob_dias=30):
+    """Same as detectar_nichos_descubiertos but grouped by rubro x subrubro only,
+    showing total demand vs total coverage."""
+    desde = (date.today() - relativedelta(months=12)).replace(day=1).strftime('%Y%m%d')
+
+    sql = f"""
+        WITH ventas_sub AS (
+            SELECT
+                a.rubro,
+                a.subrubro,
+                COUNT(DISTINCT LEFT(a.codigo_sinonimo, 10)) AS modelos,
+                COUNT(DISTINCT a.marca) AS marcas,
+                COUNT(DISTINCT a.proveedor) AS proveedores,
+                SUM(CASE WHEN v.operacion = '+' THEN v.cantidad
+                         WHEN v.operacion = '-' THEN -v.cantidad ELSE 0 END) AS pares_12m,
+                AVG(CASE WHEN a.precio_fabrica > 0 THEN a.precio_fabrica END) AS ppp_costo
+            FROM msgestion01art.dbo.articulo a
+            JOIN msgestionC.dbo.ventas1 v ON v.articulo = a.codigo
+            WHERE v.codigo NOT IN {EXCL_VENTAS}
+              AND v.fecha >= '{desde}'
+              AND a.estado = 'V'
+              AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+              AND a.rubro IN (1, 3, 4, 5, 6)
+              AND a.subrubro IS NOT NULL AND a.subrubro > 0
+              AND LEN(a.codigo_sinonimo) >= 10
+            GROUP BY a.rubro, a.subrubro
+            HAVING SUM(CASE WHEN v.operacion = '+' THEN v.cantidad
+                            WHEN v.operacion = '-' THEN -v.cantidad ELSE 0 END) >= {min_vtas}
+        ),
+        stock_sub AS (
+            SELECT
+                a.rubro, a.subrubro,
+                SUM(s.stock_actual) AS stock
+            FROM msgestionC.dbo.stock s
+            JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
+            WHERE s.deposito IN {DEPOS_SQL}
+              AND a.estado = 'V'
+              AND a.rubro IN (1, 3, 4, 5, 6)
+              AND a.subrubro IS NOT NULL AND a.subrubro > 0
+            GROUP BY a.rubro, a.subrubro
+        ),
+        pedidos_sub AS (
+            SELECT
+                a.rubro, a.subrubro,
+                SUM(p1.cantidad) AS pedido
+            FROM msgestionC.dbo.pedico1 p1
+            JOIN msgestionC.dbo.pedico2 p2 ON p2.codigo = p1.codigo
+                AND p2.letra = p1.letra AND p2.sucursal = p1.sucursal
+                AND p2.numero = p1.numero
+            JOIN msgestion01art.dbo.articulo a ON a.codigo = p1.articulo
+            WHERE p2.estado = 'V' AND p2.codigo = 8
+              AND a.rubro IN (1, 3, 4, 5, 6)
+              AND a.subrubro IS NOT NULL AND a.subrubro > 0
+            GROUP BY a.rubro, a.subrubro
+        )
+        SELECT
+            vs.rubro,
+            vs.subrubro,
+            vs.modelos,
+            vs.marcas,
+            vs.proveedores,
+            vs.pares_12m,
+            CAST(vs.pares_12m AS FLOAT) / 12.0 AS vel_mes,
+            ISNULL(ss.stock, 0) AS stock,
+            ISNULL(ps.pedido, 0) AS pedido,
+            ISNULL(ss.stock, 0) + ISNULL(ps.pedido, 0) AS disponible,
+            CASE WHEN vs.pares_12m > 0
+                 THEN CAST((ISNULL(ss.stock, 0) + ISNULL(ps.pedido, 0)) AS FLOAT)
+                      / (CAST(vs.pares_12m AS FLOAT) / 365.0)
+                 ELSE 999 END AS cob_dias,
+            ISNULL(vs.ppp_costo, 0) AS ppp_costo
+        FROM ventas_sub vs
+        LEFT JOIN stock_sub ss ON ss.rubro = vs.rubro AND ss.subrubro = vs.subrubro
+        LEFT JOIN pedidos_sub ps ON ps.rubro = vs.rubro AND ps.subrubro = vs.subrubro
+        WHERE CASE WHEN vs.pares_12m > 0
+                   THEN CAST((ISNULL(ss.stock, 0) + ISNULL(ps.pedido, 0)) AS FLOAT)
+                        / (CAST(vs.pares_12m AS FLOAT) / 365.0)
+                   ELSE 999 END < {max_cob_dias}
+        ORDER BY vs.pares_12m DESC
+    """
+    df = query_df(sql)
+    if df.empty:
+        return df
+
+    sub_desc = cargar_subrubro_desc()
+    df['genero'] = df['rubro'].map(RUBRO_GENERO).fillna('OTRO')
+    df['categoria'] = df['subrubro'].map(sub_desc).fillna('?')
+
+    # Temporada flag
+    mes_actual = date.today().month
+
+    def _es_temporada_sub(row):
+        for nicho in NICHOS_PREDEFINIDOS.values():
+            rubros_nicho = nicho.get('rubros', ())
+            subs_nicho = nicho.get('subrubros', ())
+            temp = nicho.get('temporada_esperada', ())
+            if not temp:
+                continue
+            r = int(row['rubro']) if pd.notna(row['rubro']) else 0
+            s = int(row['subrubro']) if pd.notna(row['subrubro']) else 0
+            if r in rubros_nicho and s in subs_nicho and mes_actual in temp:
+                return True
+        return False
+
+    df['es_temporada'] = df.apply(_es_temporada_sub, axis=1)
+
+    df['cob_dias'] = df['cob_dias'].round(0).astype(int)
+    df['urgencia'] = df['cob_dias'].apply(
+        lambda d: 'CRITICO' if d == 0 else ('BAJO' if d < 15 else ('MEDIO' if d < 30 else 'OK'))
+    )
+
+    cols = ['genero', 'categoria', 'modelos', 'marcas', 'proveedores',
+            'pares_12m', 'vel_mes', 'stock', 'pedido', 'disponible',
+            'cob_dias', 'ppp_costo', 'es_temporada', 'urgencia']
+    return df[cols].sort_values(['urgencia', 'pares_12m'], ascending=[True, False])
+
+
 def render_dashboard():
     """Pantalla principal: dashboard global con todos los productos."""
 
     st.title("🔄 Reposición Inteligente")
     st.caption("Waterfall ROI · Presupuesto como driver · Velocidad real con quiebre")
 
+    # ── PRECARGA: datos base una sola vez por sesion ──
+    if '_base_loaded' not in st.session_state:
+        progress = st.progress(0, text="Cargando datos base...")
+        st.session_state['marcas_dict'] = cargar_marcas_dict()
+        progress.progress(25, text="Cargando proveedores...")
+        st.session_state['proveedores_dict'] = cargar_proveedores_dict()
+        progress.progress(50, text="Cargando resumen de marcas...")
+        st.session_state['df_resumen'] = cargar_resumen_marcas()
+        progress.progress(75, text="Cargando subrubros...")
+        st.session_state['subrubro_desc'] = cargar_subrubro_desc()
+        progress.progress(100, text="Listo.")
+        st.session_state['_base_loaded'] = True
+        progress.empty()
+
+    marcas_dict = st.session_state['marcas_dict']
+    provs_dict = st.session_state['proveedores_dict']
+
     # ── SIDEBAR ──
     st.sidebar.header("Filtros")
 
-    marcas_dict = cargar_marcas_dict()
-    provs_dict = cargar_proveedores_dict()
+    # Boton para forzar recarga de datos base
+    if st.sidebar.button("🔄 Recargar datos", help="Fuerza recarga de marcas, proveedores y resumen"):
+        for k in ['_base_loaded', 'marcas_dict', 'proveedores_dict', 'df_resumen',
+                   'subrubro_desc', '_dash_computed', '_dash_filter_key']:
+            st.session_state.pop(k, None)
+        st.cache_data.clear()
+        st.rerun()
 
-    # Resumen por marca (query rápida)
-    with st.spinner("Cargando resumen..."):
-        df_resumen = cargar_resumen_marcas()
+    df_resumen = st.session_state['df_resumen']
 
     if df_resumen.empty:
         st.warning("No se encontraron productos con stock o ventas recientes.")
@@ -2568,11 +4753,18 @@ def render_dashboard():
         ).values.tolist()
         codigos_marca = [None] + top_marcas['marca'].tolist()
 
+        # Reconstituir índice desde código guardado (persiste aunque expire el cache)
+        _marca_saved = st.session_state.get('marca_sel_codigo_saved', None)
+        _default_idx = 0
+        if _marca_saved and _marca_saved in codigos_marca:
+            _default_idx = codigos_marca.index(_marca_saved)
+
         sel_idx = st.sidebar.selectbox("Marca", range(len(opciones_marca)),
                                         format_func=lambda i: opciones_marca[i],
-                                        key="marca_filtro")
+                                        key="marca_filtro",
+                                        index=_default_idx)
 
-        # Bounds check: clamp index if list changed (e.g., cache expired)
+        # Bounds check
         if sel_idx >= len(codigos_marca):
             sel_idx = 0
 
@@ -2580,6 +4772,7 @@ def render_dashboard():
             st.info("Seleccioná una marca en el sidebar para ver los productos.")
             return
         marca_sel_codigo = int(codigos_marca[sel_idx])
+        st.session_state['marca_sel_codigo_saved'] = marca_sel_codigo
 
         with st.spinner(f"Cargando productos de {opciones_marca[sel_idx].split(' (')[0]}..."):
             df_f = cargar_productos_por_marca(marca_sel_codigo)
@@ -2613,9 +4806,87 @@ def render_dashboard():
 
     min_ventas = st.sidebar.number_input("Ventas mínimas 12m", value=5, min_value=0)
 
+    # --- Presupuesto automático basado en data ---
+    mes_actual = date.today().month
+    horizonte_dias = st.sidebar.number_input(
+        "Horizonte de cobertura (días)",
+        min_value=30, max_value=365, value=90, step=30,
+        help="Período a cubrir. Ej: 210 días = hasta octubre"
+    )
+    mes_fin_horizonte = ((mes_actual - 1 + horizonte_dias // 30) % 12) + 1
+
+    # Determinar proveedor para presupuesto (funciona en ambos modos: Marca y Proveedor)
+    _prov_para_presup = locals().get('prov_sel_codigo')
+    if _prov_para_presup is None and not df_f.empty and 'proveedor' in df_f.columns:
+        # En modo Marca: usar el proveedor dominante de los productos filtrados
+        _mode = df_f['proveedor'].mode()
+        _prov_para_presup = int(_mode.iloc[0]) if not _mode.empty else None
+
+    # Calcular presupuesto sugerido desde ventas mismo período año anterior
+    pares_base = 0
+    pares_ajustado = 0
+    if _prov_para_presup is not None:
+        try:
+            pp = presupuesto_pares(_prov_para_presup, mes_actual, mes_fin_horizonte)
+            pares_base = pp.get('total_pares', 0)
+            pares_ajustado = pp.get('total_pares_ajustado', pares_base)
+        except Exception:
+            pass
+
+    # PPP: precio promedio ponderado del proveedor
+    ppp = 0
+    if not df_f.empty and 'precio_fabrica' in df_f.columns:
+        precios_validos = df_f[df_f['precio_fabrica'] > 0]['precio_fabrica']
+        if not precios_validos.empty:
+            # Ponderar por ventas si disponible
+            if 'ventas_12m' in df_f.columns:
+                df_ppp = df_f[(df_f['precio_fabrica'] > 0) & (df_f['ventas_12m'] > 0)]
+                if not df_ppp.empty:
+                    ppp = (df_ppp['precio_fabrica'] * df_ppp['ventas_12m']).sum() / df_ppp['ventas_12m'].sum()
+                else:
+                    ppp = precios_validos.median()
+            else:
+                ppp = precios_validos.median()
+
+    # Estimar ventas perdidas por quiebre usando vel_real_con_perdidas
+    pares_perdidos = 0
+    if not df_f.empty:
+        csrs_presup = df_f['csr'].dropna().unique().tolist()
+        if csrs_presup:
+            try:
+                _quiebre_presup = analizar_quiebre_batch(csrs_presup)
+                # Sumar diferencia vel_real_con_perdidas - vel_real = ventas perdidas/mes
+                for _csr_q, _qdata in _quiebre_presup.items():
+                    _vel_perdidas = _qdata.get('vel_real_con_perdidas', 0) - _qdata.get('vel_real', 0)
+                    if _vel_perdidas > 0:
+                        pares_perdidos += _vel_perdidas
+                # Escalar al horizonte
+                pares_perdidos = int(pares_perdidos * (horizonte_dias / 30))
+            except Exception:
+                pass
+
+    presup_base_pesos = int(pares_base * ppp) if ppp > 0 else 0
+    presup_ajustado_pesos = int((pares_ajustado + pares_perdidos) * ppp) if ppp > 0 else 0
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("**📊 Presupuesto sugerido**")
+    st.sidebar.metric("Presup. base", f"{pares_base:,} pares")
+    st.sidebar.caption(f"${presup_base_pesos:,.0f} (vendidos mismo período)")
+    st.sidebar.metric("Presup. ajustado", f"{pares_ajustado + pares_perdidos:,} pares",
+                      delta=f"+{pares_perdidos} perdidas" if pares_perdidos > 0 else None)
+    st.sidebar.caption(f"${presup_ajustado_pesos:,.0f} (con ventas perdidas por quiebre)")
+    st.sidebar.caption(f"PPP (precio de costo): ${ppp:,.0f} | Período: {mes_actual}→{mes_fin_horizonte}")
+    st.sidebar.markdown("---")
+
     presupuesto = st.sidebar.number_input(
-        "Presupuesto disponible ($)", value=5_000_000, step=500_000,
-        format="%d", help="El optimizador sugiere qué comprar primero dentro de este presupuesto"
+        "Presupuesto ($)",
+        value=max(presup_ajustado_pesos, 500_000), step=500_000,
+        format="%d", help="Ajustá manualmente o usá el sugerido"
+    )
+
+    dias_pago = st.sidebar.number_input(
+        "Plazo de pago proveedor (días)", value=90, min_value=0, max_value=365, step=30,
+        help="Días de financiación (60/90/120/150). Reduce el recupero efectivo de inversión."
     )
 
     if df_f.empty:
@@ -2639,24 +4910,50 @@ def render_dashboard():
 
     st.sidebar.markdown(f"**{len(df_f)} productos**")
 
+    # ── GLOBAL SCARCITY SCAN ──
+    with st.expander("🚨 Escasez crónica de talles (auto-scan)", expanded=False):
+        for rubro_cod, rubro_nombre in RUBRO_GENERO.items():
+            if rubro_cod not in (1, 3):  # solo damas y hombres
+                continue
+            escasez = talles_escasez_cronica(rubro_cod)
+            if escasez:
+                talles_criticos = [e['talle'] for e in escasez[:10]]
+                st.error(f"**{rubro_nombre}**: {len(escasez)} talles con escasez crónica: {', '.join(talles_criticos)}")
+            else:
+                st.success(f"**{rubro_nombre}**: sin escasez crónica detectada")
+
     # ── TABS ──
     (tab_surtido, tab_dashboard, tab_waterfall, tab_optimizar,
-     tab_curva, tab_canibal, tab_emergentes, tab_pedido, tab_historial) = st.tabs([
+     tab_curva, tab_canibal, tab_emergentes, tab_pedido, tab_historial,
+     tab_nichos) = st.tabs([
         "🗺️ Mapa Surtido", "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
         "👟 Curva Talle", "🔬 Canibalización", "🚀 Emergentes",
-        "🛒 Armar Pedido", "📋 Historial"
+        "🛒 Armar Pedido", "📋 Historial", "🔍 Nichos"
     ])
 
     # ══════════════════════════════════════════════════════════════
     # TAB 0: MAPA DE SURTIDO POR CATEGORÍA (V2)
     # ══════════════════════════════════════════════════════════════
     with tab_surtido:
+        # CSS fix: métricas visibles en dark mode
+        st.markdown("""
+<style>
+[data-testid="stMetricValue"] { color: #ffffff !important; }
+[data-testid="stMetricLabel"] { color: #cccccc !important; }
+[data-testid="stMetricDelta"] { color: #00cc00 !important; }
+div[data-testid="stMetric"] {
+    background-color: rgba(28, 131, 225, 0.1);
+    border-radius: 8px;
+    padding: 10px 15px;
+}
+</style>
+""", unsafe_allow_html=True)
         st.subheader("Mapa de Surtido por Categoria")
         st.caption("Cobertura por genero x subrubro **de la marca/proveedor seleccionado**. "
                    "Rojo = menos de 30 dias. Drill-down a piramide de precios y sustitutos.")
 
         # Construir mapa directamente desde df_f (ya filtrado por marca/proveedor)
-        sub_desc = cargar_subrubro_desc()
+        sub_desc = st.session_state.get('subrubro_desc') or cargar_subrubro_desc()
         df_mapa = df_f.groupby(
             [df_f['rubro'].fillna(0).astype(int), df_f['subrubro'].fillna(0).astype(int)]
         ).agg(
@@ -2683,30 +4980,41 @@ def render_dashboard():
         )
 
         # Factor estacional s_t por categoría
-        with st.spinner("Calculando factor estacional por categoria..."):
-            csrs_mapa = df_f['csr'].tolist()
-            factores_est_mapa = factor_estacional_batch(csrs_mapa)
-            mes_act = date.today().month
-            mes_prox = (mes_act % 12) + 1
-            df_f['_s_t'] = df_f['csr'].map(
-                lambda c: factores_est_mapa.get(c, {}).get(mes_prox, 1.0)
-                / max(factores_est_mapa.get(c, {}).get(mes_act, 1.0), 0.1)
-            )
-            s_t_cat = df_f.groupby(
-                [df_f['rubro'].fillna(0).astype(int), df_f['subrubro'].fillna(0).astype(int)]
-            )['_s_t'].mean().reset_index()
-            s_t_cat.rename(columns={'rubro': 'genero_cod', 'subrubro': 'sub_cod'}, inplace=True)
-            df_mapa = df_mapa.merge(s_t_cat, on=['genero_cod', 'sub_cod'], how='left')
-            df_mapa['_s_t'] = df_mapa['_s_t'].fillna(1.0).round(2)
-            df_mapa['vel_diaria_est'] = df_mapa['vel_diaria'] * df_mapa['_s_t']
-            df_mapa['cobertura_est'] = np.where(
-                df_mapa['vel_diaria_est'] > 0,
-                df_mapa['stock_total'] / df_mapa['vel_diaria_est'],
-                999
-            ).astype(int)
+        progress_surtido = st.progress(0, text="Calculando factor estacional...")
+        csrs_mapa = df_f['csr'].tolist()
+        factores_est_mapa = factor_estacional_batch(csrs_mapa)
+        mes_act = date.today().month
+        mes_prox = (mes_act % 12) + 1
+        df_f['_s_t'] = df_f['csr'].map(
+            lambda c: factores_est_mapa.get(c, {}).get(mes_prox, 1.0)
+            / max(factores_est_mapa.get(c, {}).get(mes_act, 1.0), 0.1)
+        )
+        s_t_cat = df_f.groupby(
+            [df_f['rubro'].fillna(0).astype(int), df_f['subrubro'].fillna(0).astype(int)]
+        )['_s_t'].mean().reset_index()
+        s_t_cat.rename(columns={'rubro': 'genero_cod', 'subrubro': 'sub_cod'}, inplace=True)
+        df_mapa = df_mapa.merge(s_t_cat, on=['genero_cod', 'sub_cod'], how='left')
+        df_mapa['_s_t'] = df_mapa['_s_t'].fillna(1.0).round(2)
+        df_mapa['vel_diaria_est'] = df_mapa['vel_diaria'] * df_mapa['_s_t']
+        df_mapa['cobertura_est'] = np.where(
+            df_mapa['vel_diaria_est'] > 0,
+            df_mapa['stock_total'] / df_mapa['vel_diaria_est'],
+            999
+        ).astype(int)
 
-        with st.spinner("Cargando alertas de talles..."):
-            df_alertas_talles, detalle_talles_dict = calcular_alertas_talles()
+        progress_surtido.progress(60, text="Cargando alertas de talles...")
+        # Solo consultar categorías que ya aparecen en el mapa filtrado (MUCHO más rápido)
+        cats_filtro = list(zip(df_mapa['genero_cod'].tolist(), df_mapa['sub_cod'].tolist()))
+        # Detectar marca/proveedor seleccionado
+        _marca_filtro = locals().get('marca_sel_codigo') if modo_filtro == 'Marca' else None
+        _prov_filtro = locals().get('prov_sel_codigo') if modo_filtro == 'Proveedor' else None
+        df_alertas_talles, detalle_talles_dict = calcular_alertas_talles(
+            categorias_filtro=cats_filtro,
+            marca_id=_marca_filtro,
+            proveedor_id=_prov_filtro,
+        )
+        progress_surtido.progress(100, text="Listo.")
+        progress_surtido.empty()
 
         if df_mapa.empty:
             st.warning("No hay categorias con datos para esta marca/proveedor.")
@@ -2755,12 +5063,12 @@ def render_dashboard():
             # Filtros
             fc1, fc2, fc3 = st.columns(3)
             with fc1:
-                generos_disp = sorted(df_mapa['genero'].unique())
+                generos_disp = sorted(df_mapa['genero'].dropna().unique())
                 genero_filtro = st.multiselect("Filtrar genero", generos_disp,
                                                 default=generos_disp, key="surtido_genero")
             df_vis = df_mapa[df_mapa['genero'].isin(genero_filtro)].copy()
             with fc2:
-                cats_disp = sorted(df_vis['categoria'].unique())
+                cats_disp = sorted(df_vis['categoria'].dropna().unique())
                 cat_filtro = st.multiselect("Filtrar categoria", cats_disp,
                                              default=cats_disp, key="surtido_cat")
             df_vis = df_vis[df_vis['categoria'].isin(cat_filtro)].copy()
@@ -2829,42 +5137,73 @@ def render_dashboard():
                     df_talles = cargar_talles_categoria(genero_sel, sub_sel)
 
                 if not df_talles.empty:
-                    # Semáforo visual rápido en columnas
+                    # Semáforo visual rápido en columnas (6 estados)
+                    escasez_t = df_talles[df_talles['urgencia'] == 'ESCASEZ']
                     criticos_t = df_talles[df_talles['urgencia'] == 'CRITICO']
                     bajos_t = df_talles[df_talles['urgencia'] == 'BAJO']
-                    tc1, tc2, tc3 = st.columns(3)
-                    tc1.metric("Talles criticos", len(criticos_t))
-                    tc2.metric("Talles bajos", len(bajos_t))
-                    tc3.metric("Total talles", len(df_talles))
+                    medios_t = df_talles[df_talles['urgencia'] == 'MEDIO']
+                    ok_t = df_talles[df_talles['urgencia'] == 'OK']
+                    sinventa_t = df_talles[df_talles['urgencia'] == 'SIN VENTA']
 
-                    if not criticos_t.empty:
-                        talles_crit_str = ", ".join(criticos_t['talle'].tolist())
-                        st.error(f"TALLES SIN COBERTURA: {talles_crit_str}")
+                    n_alerta = len(escasez_t) + len(criticos_t)
+                    tc1, tc2, tc3, tc4 = st.columns(4)
+                    tc1.metric("Escasez cronica", len(escasez_t))
+                    tc2.metric("Criticos (<30d)", len(criticos_t))
+                    tc3.metric("Bajo (30-60d)", len(bajos_t))
+                    tc4.metric("Total talles", len(df_talles))
 
-                    # Tabla de talles
-                    def color_urgencia(val):
-                        colors = {'CRITICO': 'background-color: #ff4b4b; color: white',
-                                  'BAJO': 'background-color: #ffa726; color: white',
-                                  'MEDIO': 'background-color: #ffee58; color: black',
-                                  'OK': 'background-color: #66bb6a; color: white'}
+                    if n_alerta > 0:
+                        partes = []
+                        if not escasez_t.empty:
+                            partes.append(f"ESCASEZ CRONICA: {', '.join(escasez_t['talle'].tolist())}")
+                        if not criticos_t.empty:
+                            partes.append(f"CRITICOS: {', '.join(criticos_t['talle'].tolist())}")
+                        st.error(" | ".join(partes))
+
+                    # Tabla de talles con 6 estados y colores
+                    def color_urgencia_talle(val):
+                        colors = {
+                            'ESCASEZ': 'background-color: #1a1a2e; color: #e0e0e0',
+                            'CRITICO': 'background-color: #ff4b4b; color: white',
+                            'BAJO': 'background-color: #ffa726; color: white',
+                            'MEDIO': 'background-color: #ffee58; color: black',
+                            'OK': 'background-color: #66bb6a; color: white',
+                            'SIN VENTA': 'background-color: #9e9e9e; color: white',
+                        }
                         return colors.get(val, '')
 
+                    # Preparar columna de display para vel_real (dash para escasez/sin venta)
+                    df_talles_display = df_talles[['talle', 'modelos', 'stock', 'vtas_12m', 'vel_real',
+                                                    'pct_quiebre', 'cob_dias', 'urgencia']].copy()
+                    # Cobertura display: 9999 -> mostrar como texto descriptivo
+                    df_talles_display['cob_display'] = df_talles_display['cob_dias'].apply(
+                        lambda x: '>999' if x >= 9999 else str(x)
+                    )
+
                     st.dataframe(
-                        df_talles[['talle', 'modelos', 'stock', 'vtas_12m', 'vel_real',
-                                   'pct_quiebre', 'cob_dias', 'urgencia']].style.applymap(
-                            color_urgencia, subset=['urgencia']
+                        df_talles_display[['talle', 'modelos', 'stock', 'vtas_12m', 'vel_real',
+                                           'pct_quiebre', 'cob_dias', 'urgencia']].style.applymap(
+                            color_urgencia_talle, subset=['urgencia']
                         ),
                         column_config={
                             'talle': st.column_config.TextColumn('Talle', width=60),
                             'modelos': st.column_config.NumberColumn('Modelos', format="%d"),
                             'stock': st.column_config.NumberColumn('Stock', format="%d"),
                             'vtas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
-                            'vel_real': st.column_config.NumberColumn('Vel real/mes', format="%.1f"),
+                            'vel_real': st.column_config.NumberColumn('Vel.Real/mes', format="%.1f"),
                             'pct_quiebre': st.column_config.NumberColumn('Quiebre%', format="%.0f%%"),
-                            'cob_dias': st.column_config.NumberColumn('Cob. dias', format="%d"),
-                            'urgencia': 'Urgencia',
+                            'cob_dias': st.column_config.NumberColumn('Cob.Dias', format="%d"),
+                            'urgencia': 'Estado',
                         },
                         use_container_width=True, hide_index=True,
+                    )
+
+                    # Leyenda de estados
+                    st.caption(
+                        "Estados: **ESCASEZ** = quiebre cronico (>75% meses sin stock) | "
+                        "**CRITICO** = <30 dias | **BAJO** = 30-60 dias | "
+                        "**MEDIO** = 60-120 dias | **OK** = >120 dias | "
+                        "**SIN VENTA** = sin demanda registrada"
                     )
                 else:
                     st.info("Sin datos de talle para esta categoria.")
@@ -3099,25 +5438,192 @@ def render_dashboard():
                             else:
                                 st.error("No se encontro el codigo del producto.")
 
+                    # ── LEVEL 3: DRILL-DOWN INDIVIDUAL POR TALLE (post-pirámide) ──
+                    st.divider()
+                    st.subheader("Drill-down por talle individual")
+                    st.caption(
+                        "Detalle de cada talle con cobertura, velocidad real corregida por quiebre "
+                        "y deteccion de escasez cronica. Selecciona un talle para ver articulos individuales."
+                    )
+
+                    # Reutilizar df_talles que ya se cargo arriba
+                    if not df_talles.empty:
+                        # Resumen compacto de alertas
+                        n_escasez = len(df_talles[df_talles['urgencia'] == 'ESCASEZ'])
+                        n_critico = len(df_talles[df_talles['urgencia'] == 'CRITICO'])
+                        n_bajo = len(df_talles[df_talles['urgencia'] == 'BAJO'])
+                        n_ok = len(df_talles[df_talles['urgencia'].isin(['OK', 'MEDIO'])])
+
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("Escasez cronica", n_escasez,
+                                  delta=f"{n_escasez} talles siempre en falta" if n_escasez > 0 else None,
+                                  delta_color="inverse")
+                        m2.metric("Criticos", n_critico,
+                                  delta=f"<30 dias cobertura" if n_critico > 0 else None,
+                                  delta_color="inverse")
+                        m3.metric("Bajo stock", n_bajo,
+                                  delta="30-60 dias" if n_bajo > 0 else None,
+                                  delta_color="inverse")
+                        m4.metric("Saludables", n_ok)
+
+                        # Tabla completa con st.dataframe y column_config
+                        df_talle_drill = df_talles[['talle', 'stock', 'vtas_12m', 'vel_real',
+                                                     'cob_dias', 'urgencia']].copy()
+                        df_talle_drill.columns = ['Talle', 'Stock', 'Vtas 12m', 'Vel.Real',
+                                                   'Cob.Dias', 'Estado']
+
+                        def color_estado_drill(val):
+                            colors = {
+                                'ESCASEZ': 'background-color: #1a1a2e; color: #e0e0e0',
+                                'CRITICO': 'background-color: #ff4b4b; color: white',
+                                'BAJO': 'background-color: #ffa726; color: white',
+                                'MEDIO': 'background-color: #ffee58; color: black',
+                                'OK': 'background-color: #66bb6a; color: white',
+                                'SIN VENTA': 'background-color: #9e9e9e; color: white',
+                            }
+                            return colors.get(val, '')
+
+                        st.dataframe(
+                            df_talle_drill.style.applymap(
+                                color_estado_drill, subset=['Estado']
+                            ),
+                            column_config={
+                                'Talle': st.column_config.TextColumn('Talle', width=70),
+                                'Stock': st.column_config.NumberColumn('Stock', format="%d"),
+                                'Vtas 12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                                'Vel.Real': st.column_config.NumberColumn('Vel.Real/mes', format="%.1f",
+                                    help="Velocidad real mensual corregida por quiebre"),
+                                'Cob.Dias': st.column_config.NumberColumn('Cob.Dias', format="%d",
+                                    help="Dias de cobertura = stock / vel.diaria"),
+                                'Estado': st.column_config.TextColumn('Estado', width=100),
+                            },
+                            use_container_width=True, hide_index=True,
+                        )
+
+                        # Selectbox para drill-down a articulos individuales de un talle
+                        talles_disponibles = df_talles['talle'].tolist()
+                        talle_sel = st.selectbox(
+                            "Ver articulos de un talle especifico",
+                            talles_disponibles,
+                            key="drill_talle_sel"
+                        )
+
+                        if talle_sel and st.button("Ver articulos del talle", key="btn_drill_talle"):
+                            talle_expr_sql = """COALESCE(
+                                NULLIF(RTRIM(a.descripcion_5), ''),
+                                CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo), 2)) = 1
+                                     THEN RIGHT(RTRIM(a.codigo_sinonimo), 2) END
+                            )"""
+                            sql_arts_talle = f"""
+                                SELECT a.codigo, RTRIM(a.descripcion_1) AS descripcion,
+                                    RTRIM(a.descripcion_5) AS talle_desc,
+                                    a.precio_fabrica,
+                                    ISNULL(s.stk, 0) AS stock,
+                                    ISNULL(v.vtas, 0) AS ventas_12m
+                                FROM msgestion01art.dbo.articulo a
+                                LEFT JOIN (
+                                    SELECT articulo, SUM(stock_actual) AS stk
+                                    FROM msgestionC.dbo.stock WHERE deposito IN {DEPOS_SQL}
+                                    GROUP BY articulo
+                                ) s ON s.articulo = a.codigo
+                                LEFT JOIN (
+                                    SELECT articulo,
+                                           SUM(CASE WHEN operacion='+' THEN cantidad
+                                                    WHEN operacion='-' THEN -cantidad END) AS vtas
+                                    FROM msgestionC.dbo.ventas1
+                                    WHERE codigo NOT IN {EXCL_VENTAS}
+                                      AND fecha >= DATEADD(month, -{MESES_HISTORIA}, GETDATE())
+                                    GROUP BY articulo
+                                ) v ON v.articulo = a.codigo
+                                WHERE a.estado = 'V'
+                                  AND a.rubro = {genero_sel} AND a.subrubro = {sub_sel}
+                                  AND {talle_expr_sql} = '{talle_sel}'
+                                ORDER BY ISNULL(v.vtas, 0) DESC
+                            """
+                            with st.spinner(f"Cargando articulos talle {talle_sel}..."):
+                                df_arts = query_df(sql_arts_talle)
+
+                            if not df_arts.empty:
+                                st.markdown(f"**{len(df_arts)} articulos en talle {talle_sel}**")
+                                st.dataframe(
+                                    df_arts,
+                                    column_config={
+                                        'codigo': st.column_config.NumberColumn('Codigo', format="%d"),
+                                        'descripcion': st.column_config.TextColumn('Producto', width=280),
+                                        'talle_desc': st.column_config.TextColumn('Talle', width=60),
+                                        'precio_fabrica': st.column_config.NumberColumn('Precio', format="$%.0f"),
+                                        'stock': st.column_config.NumberColumn('Stock', format="%d"),
+                                        'ventas_12m': st.column_config.NumberColumn('Vtas 12m', format="%d"),
+                                    },
+                                    use_container_width=True, hide_index=True,
+                                )
+                            else:
+                                st.info(f"No se encontraron articulos activos para talle {talle_sel}.")
+                    else:
+                        st.info("Sin datos de talle para esta categoria.")
+
     # ══════════════════════════════════════════════════════════════
     # TAB 1: DASHBOARD GLOBAL
     # ══════════════════════════════════════════════════════════════
     with tab_dashboard:
-        # Velocidad REAL: primero desde tabla materializada, fallback Python
-        csrs_dash = df_f['csr'].tolist()
-        with st.spinner("Cargando velocidad real (tabla materializada)..."):
+        # Alerta ratio C/V y factor estacional
+        st.warning(
+            f"⚠️ **Alerta: ratio Compras/Ventas = {RATIO_CV_NUEVO:.0%}** — "
+            f"Se está comprando {(1-RATIO_CV_NUEVO):.0%} menos de lo que se vende. "
+            f"Stock se drena sin reposición. Cobertura global engañosa."
+        )
+        mes_actual_dash = date.today().month
+        factor_dash = ESTACIONALIDAD_MENSUAL[mes_actual_dash]
+        st.metric(
+            "Factor estacional este mes",
+            f"{factor_dash:.0%}",
+            delta=f"{'valle' if factor_dash < 0.9 else 'pico' if factor_dash > 1.1 else 'normal'}",
+        )
+
+        # Clave unica para detectar cambio de filtro (marca/proveedor)
+        _dash_filter_key = f"{modo_filtro}_{locals().get('marca_sel_codigo', '')}_{locals().get('prov_sel_codigo', '')}_{min_ventas}"
+
+        # Calcular datos pesados solo si cambio el filtro
+        if st.session_state.get('_dash_filter_key') != _dash_filter_key:
+            csrs_dash = df_f['csr'].tolist()
+
+            progress_dash = st.progress(0, text="Cargando velocidad real...")
             vel_tabla = obtener_vel_real_tabla(csrs_dash)
 
-        # Fallback: CSRs no encontrados en la tabla → calcular en Python
-        csrs_sin_tabla = [c for c in csrs_dash if c not in vel_tabla]
-        if csrs_sin_tabla:
-            with st.spinner(f"Calculando quiebre para {len(csrs_sin_tabla)} productos sin tabla..."):
+            # Fallback: CSRs no encontrados en la tabla
+            csrs_sin_tabla = [c for c in csrs_dash if c not in vel_tabla]
+            if csrs_sin_tabla:
+                progress_dash.progress(15, text=f"Calculando quiebre para {len(csrs_sin_tabla)} productos...")
                 quiebres_fallback = analizar_quiebre_batch(csrs_sin_tabla)
-        else:
-            quiebres_fallback = {}
+            else:
+                quiebres_fallback = {}
 
-        # Merge: tabla tiene prioridad, fallback completa
-        quiebres_dash = {**quiebres_fallback, **vel_tabla}
+            quiebres_dash = {**quiebres_fallback, **vel_tabla}
+
+            progress_dash.progress(40, text="Calculando factor estacional...")
+            factores_est = factor_estacional_batch(csrs_dash)
+
+            progress_dash.progress(60, text="Detectando anomalias de stock...")
+            anomalias_dash = detectar_anomalias_stock(csrs_dash)
+
+            progress_dash.progress(80, text="Calculando GMROI y precios...")
+            precios_venta_dash = obtener_precios_venta_batch(csrs_dash)
+
+            progress_dash.progress(100, text="Listo.")
+            progress_dash.empty()
+
+            # Guardar en session_state para reutilizar entre tab switches
+            st.session_state['_dash_filter_key'] = _dash_filter_key
+            st.session_state['_dash_quiebres'] = quiebres_dash
+            st.session_state['_dash_factores_est'] = factores_est
+            st.session_state['_dash_anomalias'] = anomalias_dash
+            st.session_state['_dash_precios_venta'] = precios_venta_dash
+
+        # Recuperar datos cacheados
+        quiebres_dash = st.session_state['_dash_quiebres']
+        factores_est = st.session_state['_dash_factores_est']
+        anomalias_dash = st.session_state['_dash_anomalias']
+        precios_venta_dash = st.session_state['_dash_precios_venta']
 
         df_f['vel_mes'] = df_f['csr'].map(
             lambda c: quiebres_dash.get(c, {}).get('vel_real', 0)
@@ -3125,9 +5631,6 @@ def render_dashboard():
         df_f['pct_quiebre'] = df_f['csr'].map(
             lambda c: quiebres_dash.get(c, {}).get('pct_quiebre', 0)
         )
-        # Factor estacional: ajustar vel_real por temporada
-        with st.spinner("Calculando factor estacional..."):
-            factores_est = factor_estacional_batch(csrs_dash)
         mes_actual = date.today().month
         mes_proxima = (mes_actual % 12) + 1  # mes siguiente (lead time ~30d)
         df_f['s_actual'] = df_f['csr'].map(
@@ -3155,9 +5658,6 @@ def render_dashboard():
             labels=['CRITICO', 'BAJO', 'MEDIO', 'OK']
         )
 
-        # Anomalías de stock (remitos eliminados, errores auditoría)
-        with st.spinner("Detectando anomalias de stock..."):
-            anomalias_dash = detectar_anomalias_stock(csrs_dash)
         df_f['stock_ok'] = df_f['csr'].map(
             lambda c: anomalias_dash.get(c, {}).get('nivel', 'OK')
         )
@@ -3166,7 +5666,6 @@ def render_dashboard():
         )
 
         # GMROI y Rotación
-        precios_venta_dash = obtener_precios_venta_batch(csrs_dash)
         df_f['precio_costo'] = df_f['precio_fabrica'].fillna(0).astype(float)
         df_f['precio_venta'] = df_f['csr'].map(
             lambda c: precios_venta_dash.get(c, 0)
@@ -3318,6 +5817,39 @@ def render_dashboard():
             },
             use_container_width=True, hide_index=True,
         )
+
+        # ── Contacto proveedor (WhatsApp) ──
+        _prov_contacto_id = locals().get('prov_sel_codigo') or locals().get('_prov_para_presup')
+        if _prov_contacto_id is not None:
+            try:
+                _sql_prov_tel = f"""
+                    SELECT numero, RTRIM(ISNULL(denominacion,'')) AS nombre,
+                           RTRIM(ISNULL(telefono,'')) AS tel,
+                           RTRIM(ISNULL(telefono_2,'')) AS tel2,
+                           RTRIM(ISNULL(celular,'')) AS cel
+                    FROM msgestion01.dbo.proveedores
+                    WHERE numero = {int(_prov_contacto_id)}
+                """
+                _df_prov_tel = query_df(_sql_prov_tel)
+                if not _df_prov_tel.empty:
+                    _row_prov = _df_prov_tel.iloc[0]
+                    _prov_nombre_wa = (_row_prov.get('nombre') or '').strip()
+                    # Buscar primer teléfono disponible entre cel, tel, tel2
+                    _tel_raw = ''
+                    for _campo_tel in ['cel', 'tel', 'tel2']:
+                        _val = (_row_prov.get(_campo_tel) or '').strip()
+                        if _val and len(_val) >= 6:
+                            _tel_raw = _val
+                            break
+                    if _tel_raw:
+                        _tel_clean = _tel_raw.replace(' ', '').replace('-', '').replace('+', '').replace('(', '').replace(')', '')
+                        if not _tel_clean.startswith('54'):
+                            _tel_clean = '54' + _tel_clean
+                        _wa_url = f"https://wa.me/{_tel_clean}?text=Hola, necesito hacer un pedido"
+                        st.markdown(f"---")
+                        st.markdown(f"📱 Contactar proveedor: [{_prov_nombre_wa}]({_wa_url})")
+            except Exception:
+                pass  # Sin datos de contacto, no mostrar nada
 
     # ══════════════════════════════════════════════════════════════
     # TAB 2: WATERFALL DETALLADO
@@ -3479,16 +6011,232 @@ def render_dashboard():
     # TAB 3: OPTIMIZADOR DE PRESUPUESTO
     # ══════════════════════════════════════════════════════════════
     with tab_optimizar:
-        st.subheader("💰 Optimizador de Compras por ROI")
-        st.caption(f"Presupuesto: **${presupuesto:,.0f}** — Ranking por días de recupero de inversión")
+        # ==============================================================
+        # SECCION 1: Analisis de presupuesto en PARES por proveedor
+        # ==============================================================
+        st.subheader("Presupuesto en Pares por Proveedor")
+        st.caption("Analisis historico: cuantos pares se vendieron en el mismo periodo del anio anterior, "
+                   "distribucion por genero, color, precio techo y curva de talles.")
+
+        _provs_opt = cargar_proveedores_dict()
+        if _provs_opt:
+            _opciones_prov_opt = sorted(
+                [(num, nombre) for num, nombre in _provs_opt.items() if nombre],
+                key=lambda x: x[1]
+            )
+            _labels_prov_opt = ["(seleccionar proveedor)"] + [
+                f"{nombre} (#{num})" for num, nombre in _opciones_prov_opt
+            ]
+            _idx_prov_opt = st.selectbox(
+                "Proveedor", range(len(_labels_prov_opt)),
+                format_func=lambda i: _labels_prov_opt[i],
+                key="opt_pares_prov"
+            )
+
+            # Periodo destino
+            hoy_opt = date.today()
+            _mes_cols = st.columns(2)
+            with _mes_cols[0]:
+                _mes_inicio_opt = st.number_input(
+                    "Mes inicio", min_value=1, max_value=12,
+                    value=hoy_opt.month, key="opt_pares_mes_ini"
+                )
+            with _mes_cols[1]:
+                _mes_fin_default = min(hoy_opt.month + 3, 12)
+                _mes_fin_opt = st.number_input(
+                    "Mes fin", min_value=1, max_value=12,
+                    value=_mes_fin_default, key="opt_pares_mes_fin"
+                )
+
+            if _idx_prov_opt > 0:
+                _prov_num_opt = _opciones_prov_opt[_idx_prov_opt - 1][0]
+                _prov_nombre_opt = _opciones_prov_opt[_idx_prov_opt - 1][1]
+
+                with st.spinner(f"Calculando presupuesto en pares para {_prov_nombre_opt}..."):
+                    # --- KPIs principales ---
+                    _pp = presupuesto_pares(_prov_num_opt, int(_mes_inicio_opt), int(_mes_fin_opt))
+                    _dg = distribucion_genero(_prov_num_opt, int(_mes_inicio_opt), int(_mes_fin_opt))
+
+                kpi_c1, kpi_c2, kpi_c3 = st.columns(3)
+                kpi_c1.metric("Presupuesto", f"{_pp['total_pares']} pares")
+                kpi_c2.metric("Articulos distintos", f"{_pp['articulos_distintos']}")
+                kpi_c3.metric("Periodo referencia", _pp['periodo_ref'])
+
+                # --- Desglose por mes ---
+                if _pp['por_mes']:
+                    _meses_nombres = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',
+                                      7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'}
+                    _df_por_mes = pd.DataFrame([
+                        {'Mes': _meses_nombres.get(m, str(m)), 'Pares': p}
+                        for m, p in sorted(_pp['por_mes'].items())
+                    ])
+                    st.bar_chart(_df_por_mes, x='Mes', y='Pares', height=250)
+
+                # --- Distribucion por genero ---
+                if _dg:
+                    st.markdown("#### Distribucion por Genero")
+                    _rows_genero = []
+                    for rubro_cod, info in sorted(_dg.items()):
+                        _rows_genero.append({
+                            'Genero': info['nombre'],
+                            'Pares': info['pares'],
+                            '%': f"{info['pct']*100:.1f}%",
+                            'Pares asignados': round(_pp['total_pares'] * info['pct']),
+                        })
+                    _df_genero = pd.DataFrame(_rows_genero)
+                    st.dataframe(_df_genero, use_container_width=True, hide_index=True)
+
+                    # --- Distribucion por color para cada genero ---
+                    st.markdown("#### Distribucion por Color")
+                    for rubro_cod, info in sorted(_dg.items()):
+                        if info['pares'] <= 0:
+                            continue
+                        _colores = distribucion_color(
+                            _prov_num_opt, rubro_cod,
+                            int(_mes_inicio_opt), int(_mes_fin_opt)
+                        )
+                        if _colores:
+                            with st.expander(f"{info['nombre']} — {info['pares']} pares"):
+                                _df_color = pd.DataFrame(_colores)
+                                _df_color['pct'] = _df_color['pct'].apply(lambda x: f"{x*100:.1f}%")
+                                _df_color.columns = ['Color', 'Pares', '%']
+                                st.dataframe(_df_color, use_container_width=True, hide_index=True)
+
+                    # --- Precio techo por genero ---
+                    st.markdown("#### Precio Techo por Genero")
+                    _pt_cols = st.columns(len(_dg) if _dg else 1)
+                    for i, (rubro_cod, info) in enumerate(sorted(_dg.items())):
+                        _pt = precio_techo(_prov_num_opt, rubro_cod)
+                        with _pt_cols[i % len(_pt_cols)]:
+                            st.markdown(f"**{info['nombre']}**")
+                            if _pt['articulos_analizados'] > 0:
+                                st.metric(
+                                    f"Precio techo P90",
+                                    f"${_pt['p90']:,.0f}",
+                                    help=f"P50: ${_pt['p50']:,.0f} | P75: ${_pt['p75']:,.0f} | Max: ${_pt['max']:,.0f} | {_pt['articulos_analizados']} arts"
+                                )
+                            else:
+                                st.info("Sin datos de precio")
+
+                    # --- Curva de talles real + escasez cronica ---
+                    st.markdown("#### Curva de Talles Real")
+                    for rubro_cod, info in sorted(_dg.items()):
+                        if info['pares'] <= 0:
+                            continue
+                        _ct = curva_talles_real(_prov_num_opt, rubro_cod)
+                        if not _ct['curva']:
+                            continue
+
+                        with st.expander(f"{info['nombre']} — Talle pico: {_ct['talle_pico']} ({_ct['total_pares']} pares)", expanded=True):
+                            # Obtener talles con escasez cronica
+                            _esc = talles_escasez_cronica(rubro_cod)
+                            _talles_escasez = {e['talle'] for e in _esc} if _esc else set()
+
+                            _rows_talle = []
+                            for talle, tdata in _ct['curva'].items():
+                                _rows_talle.append({
+                                    'Talle': talle,
+                                    'Pares': tdata['pares'],
+                                    '%': round(tdata['pct'] * 100, 1),
+                                    'Escasez cronica': 'SI' if talle in _talles_escasez else '',
+                                })
+                            _df_talles = pd.DataFrame(_rows_talle)
+
+                            # Bar chart de la curva
+                            _df_chart = _df_talles[['Talle', 'Pares']].copy()
+                            st.bar_chart(_df_chart, x='Talle', y='Pares', height=300,
+                                         color='#1f77b4')
+
+                            # Tabla con escasez marcada
+                            def _highlight_escasez(row):
+                                if row['Escasez cronica'] == 'SI':
+                                    return ['background-color: #ff4b4b; color: white'] * len(row)
+                                return [''] * len(row)
+
+                            st.dataframe(
+                                _df_talles.style.apply(_highlight_escasez, axis=1),
+                                use_container_width=True, hide_index=True,
+                            )
+
+                            if _talles_escasez:
+                                _esc_sorted = sorted(_talles_escasez)
+                                st.warning(
+                                    f"Talles con escasez cronica (quebrados >70% del tiempo): "
+                                    f"{', '.join(_esc_sorted)}"
+                                )
+
+                            # --- Curva ideal sugerida: comparador ---
+                            _presup_genero_pares = round(_pp['total_pares'] * _dg[rubro_cod]['pct'])
+                            if _presup_genero_pares > 0:
+                                st.markdown("##### Curva ideal sugerida")
+                                st.caption(
+                                    f"Distribucion de **{_presup_genero_pares} pares** "
+                                    f"(presupuesto {info['nombre']}) segun demanda real. "
+                                    f"Talles con escasez cronica tienen minimo 12 pares."
+                                )
+                                _MINIMO_ESCASEZ = 12
+                                _rows_sugerida = []
+                                _total_sugerido_sin_override = 0
+                                _overrides = 0
+                                for talle, tdata in _ct['curva'].items():
+                                    pct_dem = tdata['pct']
+                                    pares_proporcional = round(_presup_genero_pares * pct_dem)
+                                    es_escasez = talle in _talles_escasez
+                                    if es_escasez and pares_proporcional < _MINIMO_ESCASEZ:
+                                        pares_sugeridos = _MINIMO_ESCASEZ
+                                        _overrides += _MINIMO_ESCASEZ - pares_proporcional
+                                    else:
+                                        pares_sugeridos = pares_proporcional
+                                    _total_sugerido_sin_override += pares_proporcional
+                                    _rows_sugerida.append({
+                                        'Talle': talle,
+                                        '% Demanda': f"{pct_dem * 100:.1f}%",
+                                        'Pares sugeridos': pares_sugeridos,
+                                        'Escasez?': '⚫ SI' if es_escasez else '',
+                                    })
+
+                                _df_sugerida = pd.DataFrame(_rows_sugerida)
+
+                                def _highlight_sugerida(row):
+                                    if row['Escasez?'] == '⚫ SI':
+                                        return ['background-color: #333333; color: white'] * len(row)
+                                    return [''] * len(row)
+
+                                st.dataframe(
+                                    _df_sugerida.style.apply(_highlight_sugerida, axis=1),
+                                    use_container_width=True, hide_index=True,
+                                )
+
+                                _total_sugerido = sum(r['Pares sugeridos'] for r in _rows_sugerida)
+                                if _overrides > 0:
+                                    st.info(
+                                        f"Total sugerido: **{_total_sugerido} pares** "
+                                        f"(+{_overrides} pares extra por minimo escasez cronica). "
+                                        f"Presupuesto genero: {_presup_genero_pares} pares."
+                                    )
+                                else:
+                                    st.info(f"Total sugerido: **{_total_sugerido} pares** (presupuesto: {_presup_genero_pares})")
+        else:
+            st.warning("No se pudieron cargar proveedores.")
+
+        st.divider()
+
+        # ==============================================================
+        # SECCION 2: Optimizador ROI existente
+        # ==============================================================
+        st.subheader("Optimizador de Compras por ROI")
+        st.caption(f"Presupuesto: **${presupuesto:,.0f}** — Ranking por dias de recupero de inversion")
 
         if st.button("🚀 Calcular ranking ROI", type="primary", key="btn_roi"):
             with st.spinner("Calculando quiebre, estacionalidad y ROI para todos los productos..."):
-                # Limitar a productos con ventas significativas
-                df_roi = df_f[df_f['ventas_12m'] >= max(min_ventas, 5)].copy()
+                # Incluir productos con ventas significativas O stock bajo/critico
+                mask_ventas = df_f['ventas_12m'] >= max(min_ventas, 5)
+                mask_lowstock = df_f['dias_stock'] < 60
+                df_roi = df_f[mask_ventas | mask_lowstock].copy()
 
-                if len(df_roi) > 200:
-                    df_roi = df_roi.nsmallest(200, 'dias_stock')
+                df_roi['dias_stock'] = df_roi['dias_stock'].fillna(9999)
+                if len(df_roi) > 500:
+                    df_roi = df_roi.nsmallest(500, 'dias_stock')
 
                 csrs_list = df_roi['csr'].tolist()
 
@@ -3500,13 +6248,23 @@ def render_dashboard():
                 pend_dict = pendientes_por_sinonimo(df_pend)
 
                 rows = []
+                _debug_vel_pos = 0
+                _debug_pedir_pos = 0
                 for _, prod in df_roi.iterrows():
                     csr = prod['csr']
                     q = quiebres.get(csr, {})
                     f_est = factores_all.get(csr, {m: 1.0 for m in range(1, 13)})
 
                     vel_real = q.get('vel_real', 0)
-                    vel_diaria = vel_real / 30
+                    vel_aparente = q.get('vel_aparente', vel_real)
+                    factor_max = max(f_est.values()) if f_est else 1.0
+
+                    # Use the BETTER of vel_real and vel_aparente as base
+                    vel_base = max(vel_real, vel_aparente)
+                    if vel_base <= 0:
+                        continue  # truly no sales history
+                    _debug_vel_pos += 1
+                    vel_diaria = vel_base / 30
                     stock_actual = q.get('stock_actual', prod['stock_total'])
                     cant_pend = pend_dict.get(csr, {}).get('cant_pendiente', 0)
                     stock_disp = stock_actual + cant_pend
@@ -3514,17 +6272,40 @@ def render_dashboard():
                     # Cobertura actual
                     dias_cob = calcular_dias_cobertura(vel_diaria, stock_disp, f_est)
 
-                    # Necesidad: cubrir 60 días
-                    necesidad_60d = 0
+                    # Necesidad: cubrir horizonte_dias
+                    necesidad_total = 0
                     hoy = date.today()
-                    for d in range(60):
+                    for d in range(horizonte_dias):
                         fecha = hoy + timedelta(days=d)
-                        necesidad_60d += vel_diaria * f_est.get(fecha.month, 1.0)
+                        necesidad_total += vel_diaria * f_est.get(fecha.month, 1.0)
 
-                    pedir = max(0, round(necesidad_60d - stock_disp))
+                    pedir = max(0, round(necesidad_total - stock_disp))
+
+                    # Mínimo estacional: si el producto pertenece a un nicho y
+                    # estamos dentro de 3 meses de su temporada_esperada, forzar
+                    # un pedido mínimo para no quedarse sin stock en temporada
+                    if pedir <= 0:
+                        prod_rubro = int(prod.get('rubro', 0) or 0)
+                        prod_sub = int(prod.get('subrubro', 0) or 0)
+                        mes_actual = date.today().month
+                        meses_3 = [(mes_actual + i) % 12 or 12 for i in range(3)]
+                        forzar = False
+                        for _nk, nv in NICHOS_PREDEFINIDOS.items():
+                            tmp_esp = nv.get('temporada_esperada', ())
+                            if not tmp_esp:
+                                continue
+                            rubros_n = nv.get('rubros', ())
+                            subs_n = nv.get('subrubros', ())
+                            if prod_rubro in rubros_n and prod_sub in subs_n:
+                                if any(m in tmp_esp for m in meses_3):
+                                    forzar = True
+                                    break
+                        if forzar and vel_aparente > 0:
+                            pedir = max(pedir, 6)
 
                     if pedir <= 0:
                         continue
+                    _debug_pedir_pos += 1
 
                     precio_costo = float(prod['precio_fabrica'] or 0)
                     if precio_costo <= 0:
@@ -3533,7 +6314,7 @@ def render_dashboard():
                     precio_venta = precios_v.get(csr, precio_costo * 2)
 
                     roi = calcular_roi(precio_costo, precio_venta, vel_diaria, f_est,
-                                       pedir, stock_disp)
+                                       pedir, stock_disp, dias_pago=dias_pago)
 
                     rows.append({
                         'csr': csr,
@@ -3543,6 +6324,8 @@ def render_dashboard():
                         'stock': int(stock_actual),
                         'pendiente': int(cant_pend),
                         'vel_real': round(vel_real, 1),
+                        'vel_base': vel_base,
+                        'f_est': f_est,
                         'quiebre': q.get('pct_quiebre', 0),
                         'dias_cob': dias_cob,
                         'pedir': pedir,
@@ -3554,7 +6337,12 @@ def render_dashboard():
                     })
 
                 if not rows:
-                    st.info("No se encontraron productos que necesiten reposición.")
+                    st.warning(
+                        f"No se encontraron productos que necesiten reposicion. "
+                        f"Debug: {len(df_roi)} productos analizados, "
+                        f"{_debug_vel_pos} con velocidad > 0, "
+                        f"{_debug_pedir_pos} con pedir > 0."
+                    )
                 else:
                     df_ranking = pd.DataFrame(rows)
                     df_ranking = df_ranking.sort_values('dias_recupero')
@@ -3584,7 +6372,7 @@ def render_dashboard():
 
             st.markdown("#### Dentro del presupuesto")
             st.dataframe(
-                dentro.drop(columns=['acum_inversion', 'dentro_presupuesto', 'csr']),
+                dentro.drop(columns=['acum_inversion', 'dentro_presupuesto', 'csr', 'vel_base', 'f_est']),
                 column_config={
                     'descripcion': st.column_config.TextColumn('Producto', width=200),
                     'marca': 'Marca',
@@ -3607,9 +6395,244 @@ def render_dashboard():
             if len(fuera) > 0:
                 with st.expander(f"Fuera del presupuesto ({len(fuera)} productos)"):
                     st.dataframe(
-                        fuera.drop(columns=['acum_inversion', 'dentro_presupuesto', 'csr']),
+                        fuera.drop(columns=['acum_inversion', 'dentro_presupuesto', 'csr', 'vel_base', 'f_est']),
                         use_container_width=True, hide_index=True,
                     )
+
+            # ── Plan de entregas mensuales ──
+            _MESES_NOMBRE = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',
+                             7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'}
+            productos_pedir = dentro[dentro['pedir'] > 0]
+            if len(productos_pedir) > 0:
+                with st.expander(f"Plan de entregas mensuales ({len(productos_pedir)} productos)", expanded=False):
+                    mes_inicio = date.today().month
+                    n_entregas = max(1, min(12, horizonte_dias // 30))
+                    for _, row in productos_pedir.iterrows():
+                        plan = proyectar_entregas_mensuales(
+                            pedir_total=row['pedir'],
+                            vel_mensual=row['vel_base'],
+                            stock_actual=row['stock'],
+                            f_est=row['f_est'],
+                            mes_inicio=mes_inicio,
+                            n_entregas=n_entregas,
+                        )
+                        if plan:
+                            st.markdown(f"**{row['descripcion']}** — Pedir: {row['pedir']} pares")
+                            df_plan = pd.DataFrame(plan)
+                            df_plan['mes'] = df_plan['mes'].map(_MESES_NOMBRE)
+                            st.dataframe(
+                                df_plan,
+                                column_config={
+                                    'mes': 'Mes',
+                                    'entrega_pares': st.column_config.NumberColumn('Entrega', format="%d"),
+                                    'demanda_mes': st.column_config.NumberColumn('Demanda', format="%d"),
+                                    'stock_proyectado': st.column_config.NumberColumn('Stock proy.', format="%d"),
+                                },
+                                use_container_width=True, hide_index=True,
+                            )
+
+        st.divider()
+
+        # ==============================================================
+        # SECCION 3: Resumen de Pedido Sugerido
+        # ==============================================================
+        st.subheader("📋 Resumen de Pedido Sugerido")
+        st.caption("Combina presupuesto, distribucion por genero, colores, curva de talles y escasez "
+                   "en un pedido concreto editable y descargable.")
+
+        # Solo mostrar si hay un proveedor seleccionado Y presupuesto calculado en SECCION 1
+        _show_pedido = (locals().get('_pp') and locals().get('_dg')
+                        and locals().get('_idx_prov_opt', 0) > 0)
+        if _show_pedido and _pp['total_pares'] > 0:
+            _prov_num_ped = _opciones_prov_opt[_idx_prov_opt - 1][0]
+            _prov_nombre_ped = _opciones_prov_opt[_idx_prov_opt - 1][1]
+
+            # --- Lookup artículos por rubro+talle (una sola query) ---
+            try:
+                _sql_arts = f"""
+                    SELECT a.rubro,
+                           COALESCE(NULLIF(RTRIM(a.descripcion_5),''),
+                               CASE WHEN ISNUMERIC(RIGHT(RTRIM(a.codigo_sinonimo),2))=1
+                                    THEN RIGHT(RTRIM(a.codigo_sinonimo),2) END) AS talle,
+                           RTRIM(a.descripcion_1) AS descripcion,
+                           a.codigo_sinonimo
+                    FROM msgestion01art.dbo.articulo a
+                    WHERE a.proveedor = {_prov_num_ped}
+                      AND a.estado = 'V'
+                      AND ISNULL(a.codigo_sinonimo,'') != ''
+                """
+                _df_arts_lookup = query_df(_sql_arts)
+                # Agrupar: rubro+talle → lista única de descripciones (sin el talle al final)
+                _arts_map = {}
+                for _, _r in _df_arts_lookup.iterrows():
+                    _key = (int(_r['rubro']) if _r['rubro'] else 0, str(_r['talle'] or ''))
+                    # Descripción limpia: quitar último token si es el talle
+                    _desc = str(_r['descripcion'] or '').strip()
+                    _words = _desc.split()
+                    if _words and _words[-1] == str(_r['talle']):
+                        _desc = ' '.join(_words[:-1])
+                    if _key not in _arts_map:
+                        _arts_map[_key] = set()
+                    _arts_map[_key].add(_desc)
+            except Exception:
+                _arts_map = {}
+
+            # --- Tabla resumen por genero ---
+            st.markdown("#### Resumen por Genero")
+            _resumen_rows = []
+            _pedido_detalle_all = []  # para el data_editor y Excel
+
+            for rubro_cod, info in sorted(_dg.items()):
+                if info['pares'] <= 0:
+                    continue
+
+                pares_genero = round(_pp['total_pares'] * info['pct'])
+
+                # Top 3 colores
+                _colores_g = distribucion_color(
+                    _prov_num_ped, rubro_cod,
+                    int(_mes_inicio_opt), int(_mes_fin_opt)
+                )
+                top3_colores = ""
+                if _colores_g:
+                    top3 = _colores_g[:3]
+                    top3_colores = ", ".join(
+                        f"{c['color']} ({c['pct']*100:.0f}%)" for c in top3
+                    )
+
+                # Curva de talles
+                _ct_g = curva_talles_real(_prov_num_ped, rubro_cod)
+                talle_pico = _ct_g.get('talle_pico', '-')
+
+                # Escasez
+                _esc_g = talles_escasez_cronica(rubro_cod)
+                talles_esc = ", ".join(sorted(e['talle'] for e in _esc_g)) if _esc_g else "-"
+                _talles_esc_set = {e['talle'] for e in _esc_g} if _esc_g else set()
+
+                _resumen_rows.append({
+                    'Genero': info['nombre'],
+                    'Pares asignados': pares_genero,
+                    'Top 3 colores': top3_colores,
+                    'Talle pico': talle_pico,
+                    'Talles escasez': talles_esc,
+                })
+
+                # Construir detalle genero x talle para editor
+                _MINIMO_ESCASEZ = 12
+                if _ct_g['curva']:
+                    for talle, tdata in _ct_g['curva'].items():
+                        pares_prop = round(pares_genero * tdata['pct'])
+                        es_esc = talle in _talles_esc_set
+                        if es_esc and pares_prop < _MINIMO_ESCASEZ:
+                            pares_prop = _MINIMO_ESCASEZ
+                        _arts_talle = _arts_map.get((rubro_cod, str(talle)), set())
+                        _arts_str = ' / '.join(sorted(_arts_talle)[:3]) if _arts_talle else ''
+                        _pedido_detalle_all.append({
+                            'Articulos': _arts_str,
+                            'Genero': info['nombre'],
+                            'Rubro': rubro_cod,
+                            'Talle': talle,
+                            '% Demanda': round(tdata['pct'] * 100, 1),
+                            'Pares': pares_prop,
+                            'Escasez': 'SI' if es_esc else '',
+                        })
+
+            # Mostrar resumen
+            _df_resumen = pd.DataFrame(_resumen_rows)
+            _total_asignado = _df_resumen['Pares asignados'].sum() if not _df_resumen.empty else 0
+            st.dataframe(_df_resumen, use_container_width=True, hide_index=True)
+            st.info(f"**Total pares asignados: {_total_asignado}** — Presupuesto pares: {_pp['total_pares']}")
+
+            # --- Data editor para ajuste manual ---
+            if _pedido_detalle_all:
+                st.markdown("#### Detalle Editable por Talle")
+                st.caption("Ajusta los pares por talle. El total se recalcula automaticamente.")
+
+                _df_detalle = pd.DataFrame(_pedido_detalle_all)
+                _df_editado = st.data_editor(
+                    _df_detalle,
+                    column_config={
+                        'Articulos': st.column_config.TextColumn('Artículos', disabled=True, width=250),
+                        'Genero': st.column_config.TextColumn('Genero', disabled=True, width=90),
+                        'Rubro': st.column_config.NumberColumn('Rubro', disabled=True, width=60),
+                        'Talle': st.column_config.TextColumn('Talle', disabled=True, width=60),
+                        '% Demanda': st.column_config.NumberColumn('% Dem.', disabled=True, format="%.1f%%", width=70),
+                        'Pares': st.column_config.NumberColumn('Pares', min_value=0, step=1, width=70),
+                        'Escasez': st.column_config.TextColumn('Escasez', disabled=True, width=70),
+                    },
+                    use_container_width=True, hide_index=True,
+                    key="pedido_editor",
+                    num_rows="fixed",
+                )
+
+                # Running total
+                _total_editado = int(_df_editado['Pares'].sum())
+                _diff = _total_editado - _pp['total_pares']
+                _diff_txt = f"(+{_diff})" if _diff > 0 else f"({_diff})" if _diff < 0 else "(=)"
+                _color = "🔴" if abs(_diff) > _pp['total_pares'] * 0.1 else "🟢"
+                st.metric(
+                    "Total pares editado",
+                    f"{_total_editado} pares {_diff_txt}",
+                    delta=f"{_diff} vs presupuesto",
+                    delta_color="inverse" if _diff > 0 else "normal",
+                )
+
+                # --- Boton descargar Excel ---
+                st.markdown("#### Descargar Pedido")
+                _fecha_pedido = date.today().strftime("%Y-%m-%d")
+
+                # Precio techo por rubro para el resumen
+                _precios_resumen = {}
+                for rubro_cod, info in sorted(_dg.items()):
+                    if info['pares'] > 0:
+                        _pt_r = precio_techo(_prov_num_ped, rubro_cod)
+                        _precios_resumen[info['nombre']] = _pt_r.get('p90', 0)
+
+                if st.button("📥 Descargar pedido en Excel", type="primary", key="btn_descargar_pedido"):
+                    try:
+                        output = io.BytesIO()
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            # Sheet 1: Resumen
+                            resumen_data = {
+                                'Campo': [
+                                    'Proveedor', 'Codigo proveedor', 'Fecha',
+                                    'Presupuesto pares', 'Total pares pedido',
+                                    'Condicion de pago', 'Periodo destino',
+                                ],
+                                'Valor': [
+                                    _prov_nombre_ped, _prov_num_ped, _fecha_pedido,
+                                    _pp['total_pares'], _total_editado,
+                                    f"{dias_pago} dias", f"Mes {int(_mes_inicio_opt)} a {int(_mes_fin_opt)}",
+                                ],
+                            }
+                            # Agregar precios techo
+                            for gen_name, p90 in _precios_resumen.items():
+                                resumen_data['Campo'].append(f'Precio techo {gen_name}')
+                                resumen_data['Valor'].append(f"${p90:,.0f}" if p90 else "Sin datos")
+
+                            pd.DataFrame(resumen_data).to_excel(
+                                writer, sheet_name='Resumen', index=False
+                            )
+
+                            # Sheet 2: Detalle
+                            _df_export = _df_editado[_df_editado['Pares'] > 0].copy()
+                            _df_export.to_excel(
+                                writer, sheet_name='Detalle', index=False
+                            )
+
+                        output.seek(0)
+                        st.download_button(
+                            label="💾 Guardar archivo",
+                            data=output.getvalue(),
+                            file_name=f"pedido_{_prov_nombre_ped.replace(' ','_')}_{_fecha_pedido}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="download_pedido_xlsx",
+                        )
+                        st.success("Pedido generado correctamente.")
+                    except Exception as e:
+                        st.error(f"Error generando Excel: {e}")
+        else:
+            st.info("Selecciona un proveedor y calcula el presupuesto en pares (arriba) para generar el pedido sugerido.")
 
     # ══════════════════════════════════════════════════════════════
     # TAB: CURVA DE TALLE IDEAL
@@ -3889,8 +6912,15 @@ def render_dashboard():
     # ══════════════════════════════════════════════════════════════
     with tab_emergentes:
         st.subheader("Tendencias Emergentes")
-        st.caption("Productos que estan naciendo fuertes o acelerando. "
-                   "La senal temprana de hacia donde va tu mercado.")
+        _hoy = date.today()
+        _h6 = (_hoy - relativedelta(months=6)).strftime('%b %Y')
+        _h3 = (_hoy - relativedelta(months=3)).strftime('%b %Y')
+        _h0 = _hoy.strftime('%b %Y')
+        st.caption(
+            f"Compara los ultimos 3 meses ({_h3}→{_h0}) vs los 3 anteriores ({_h6}→{_h3}). "
+            f"Productos que aceleran = senal temprana de demanda. "
+            f"No es ranking de mas vendidos, es lo que esta CRECIENDO."
+        )
 
         if st.button("Detectar tendencias", type="primary", key="btn_emergentes"):
             with st.spinner("Analizando velocidad, aceleracion y novedad..."):
@@ -3975,11 +7005,11 @@ def render_dashboard():
                 # Filtros
                 ef1, ef2 = st.columns(2)
                 with ef1:
-                    clasif_disp = sorted(df_e['clasificacion'].unique())
+                    clasif_disp = sorted(df_e['clasificacion'].dropna().unique())
                     clasif_sel = st.multiselect("Clasificacion", clasif_disp,
                                                  default=clasif_disp, key="emerg_clasif")
                 with ef2:
-                    generos_e = sorted(df_e['genero'].unique())
+                    generos_e = sorted(df_e['genero'].dropna().unique())
                     genero_e_sel = st.multiselect("Genero", generos_e,
                                                     default=generos_e, key="emerg_genero")
 
@@ -4049,12 +7079,17 @@ def render_dashboard():
                 top3 = df_e.head(3)
                 for _, t in top3.iterrows():
                     emoji = {'ESTRELLA': '⭐', 'COHETE': '🚀', 'PROMESA': '📈'}.get(t['clasificacion'], '')
-                    stock_warn = " ⚠️ STOCK BAJO" if t['dias_stock'] < 30 else ""
+                    dias = int(t['dias_stock']) if pd.notna(t['dias_stock']) else 0
+                    stock = int(t['stock_actual']) if pd.notna(t['stock_actual']) else 0
+                    stock_warn = " ⚠️ STOCK BAJO" if dias < 30 else ""
+                    vel = t['vel_mensual'] if pd.notna(t['vel_mensual']) else 0
+                    acel = t['aceleracion'] if pd.notna(t['aceleracion']) else 0
+                    vs_c = t['vs_categoria'] if pd.notna(t['vs_categoria']) else 0
                     st.markdown(
                         f"{emoji} **{t['descripcion'][:50]}** ({t['marca_desc']}) — "
-                        f"Vel: {t['vel_mensual']:.0f}/mes, Acelerac: {t['aceleracion']:+.0f}%, "
-                        f"vs cat: {t['vs_categoria']:.1f}x, Stock: {int(t['stock_actual'])} "
-                        f"({int(t['dias_stock'])}d){stock_warn}"
+                        f"Vel: {vel:.0f}/mes, Acelerac: {acel:+.0f}%, "
+                        f"vs cat: {vs_c:.1f}x, Stock: {stock} "
+                        f"({dias}d){stock_warn}"
                     )
 
     # ══════════════════════════════════════════════════════════════
@@ -4094,7 +7129,11 @@ def render_dashboard():
                         )
             st.divider()
 
-        subtab_simular, subtab_roi = st.tabs(["📊 Simulador de Recupero", "⚡ Pedido desde ROI"])
+        subtab_simular, subtab_roi, subtab_jit = st.tabs([
+            "📊 Simulador de Recupero",
+            "⚡ Pedido desde ROI",
+            "🔄 Reposición JIT",
+        ])
 
         # ── SUBTAB: SIMULADOR DE RECUPERO ──
         with subtab_simular:
@@ -4240,6 +7279,156 @@ def render_dashboard():
                     # Líneas de referencia en texto
                     st.caption("🟢 < 60 días | 🟡 60-120 días | 🔴 > 120 días")
 
+            # ── CONFIRMAR E INSERTAR (dentro de subtab_simular) ──
+            st.divider()
+            st.subheader("🛒 Confirmar e Insertar Pedido en ERP")
+
+            # Verificar que hay líneas válidas con codigo_sinonimo
+            _sim_actual = st.session_state.get('sim_pedido_df', pd.DataFrame())
+            _lineas_insertar = _sim_actual[
+                (_sim_actual['cantidad'] > 0)
+                & (_sim_actual['precio_costo'] > 0)
+                & (_sim_actual.get('codigo_sinonimo', pd.Series(dtype=str)).str.len() >= 10)
+            ] if not _sim_actual.empty else pd.DataFrame()
+
+            if _lineas_insertar.empty:
+                st.info("💡 Primero cargá el pedido en la tabla de arriba (con codigo_sinonimo de 10+ dígitos) y simulá el recupero.")
+            else:
+                _total_pares_ins = int(_lineas_insertar['cantidad'].sum())
+                _total_monto_ins = float((_lineas_insertar['cantidad'] * _lineas_insertar['precio_costo']).sum())
+
+                _col_ins1, _col_ins2, _col_ins3 = st.columns(3)
+                with _col_ins1:
+                    # Cargar proveedores para el selectbox
+                    try:
+                        _provs_dict_ins = cargar_proveedores_dict()
+                        _provs_list_ins = sorted(_provs_dict_ins.keys())
+                        _provs_labels_ins = [f"{_provs_dict_ins[p]} (#{p})" for p in _provs_list_ins]
+                        _prov_ins_idx = st.selectbox(
+                            "Proveedor", range(len(_provs_list_ins)),
+                            format_func=lambda i: _provs_labels_ins[i],
+                            key="sim_prov_ins_sel"
+                        )
+                        _prov_ins_id = _provs_list_ins[_prov_ins_idx]
+                        _prov_ins_nombre = _provs_dict_ins.get(_prov_ins_id, f"#{_prov_ins_id}")
+                    except Exception:
+                        _prov_ins_id = 0
+                        _prov_ins_nombre = "Sin proveedor"
+                        st.warning("No se pudieron cargar proveedores.")
+                with _col_ins2:
+                    _empresa_ins = st.selectbox("Empresa", ["CALZALINDO", "H4"], key="sim_empresa_ins")
+                with _col_ins3:
+                    _fecha_ent_ins = st.date_input(
+                        "Fecha entrega", date.today() + timedelta(days=30), key="sim_fecha_ent_ins"
+                    )
+
+                _col_m1, _col_m2 = st.columns(2)
+                _col_m1.metric("Total pares", f"{_total_pares_ins:,}")
+                _col_m2.metric("Monto s/IVA", f"${_total_monto_ins:,.0f}")
+
+                _obs_ins = st.text_area(
+                    "Observaciones",
+                    f"Pedido desde simulador de recupero. {_total_pares_ins} pares.",
+                    key="sim_obs_ins"
+                )
+
+                st.warning(
+                    f"Se insertará pedido de **{_total_pares_ins} pares** "
+                    f"(${_total_monto_ins:,.0f}) para **{_prov_ins_nombre}** en **{_empresa_ins}**"
+                )
+
+                _chk_confirmar_sim = st.checkbox(
+                    "Confirmo que los datos son correctos — insertar en producción",
+                    key="chk_confirmar_sim"
+                )
+
+                if st.button(
+                    "⚡ INSERTAR EN ERP",
+                    type="primary",
+                    use_container_width=True,
+                    key="btn_insert_sim",
+                    disabled=(not _chk_confirmar_sim or _prov_ins_id == 0)
+                ):
+                    with st.spinner(f"Resolviendo artículos e insertando {_total_pares_ins} pares..."):
+                        try:
+                            # Resolver codigo interno desde codigo_sinonimo
+                            _csr_list = list(_lineas_insertar['codigo_sinonimo'].unique())
+                            _csr_in = ",".join(f"'{c.strip()}'" for c in _csr_list if c)
+                            _df_codigos = query_df(f"""
+                                SELECT DISTINCT
+                                    RTRIM(codigo_sinonimo) AS csr,
+                                    codigo,
+                                    RTRIM(ISNULL(descripcion_1,'')) AS descripcion_1
+                                FROM msgestion01art.dbo.articulo
+                                WHERE RTRIM(codigo_sinonimo) IN ({_csr_in})
+                                  AND estado = 'V'
+                            """)
+                            _csr_to_cod = {}
+                            _csr_to_desc = {}
+                            if not _df_codigos.empty:
+                                for _, _rc in _df_codigos.iterrows():
+                                    _csr_to_cod[_rc['csr'].strip()] = int(_rc['codigo'])
+                                    _csr_to_desc[_rc['csr'].strip()] = str(_rc['descripcion_1']).strip()
+
+                            # Construir DataFrame de renglones en el formato de insertar_pedido_produccion
+                            _renglones_rows = []
+                            _skipped = []
+                            for _, _lr in _lineas_insertar.iterrows():
+                                _csr_clean = str(_lr['codigo_sinonimo']).strip()
+                                _cod = _csr_to_cod.get(_csr_clean)
+                                if not _cod:
+                                    _skipped.append(_csr_clean)
+                                    continue
+                                _desc = _csr_to_desc.get(_csr_clean, '')
+                                _talle = str(_lr.get('talle', '')).strip()
+                                _renglones_rows.append({
+                                    'codigo': _cod,
+                                    'codigo_sinonimo': _csr_clean,
+                                    'descripcion_1': _desc,
+                                    'talle': _talle,
+                                    'precio_fabrica': float(_lr['precio_costo']),
+                                    'pedir': int(_lr['cantidad']),
+                                })
+
+                            if _skipped:
+                                st.warning(
+                                    f"No se encontraron códigos para {len(_skipped)} CSR: "
+                                    + ", ".join(_skipped[:5])
+                                )
+
+                            if not _renglones_rows:
+                                st.error("No se pudo resolver ningún código de artículo. Verificá los sinónimos.")
+                            else:
+                                _df_renglones_ins = pd.DataFrame(_renglones_rows)
+                                _numero_ins, _msg_ins = insertar_pedido_produccion(
+                                    _prov_ins_id,
+                                    _empresa_ins,
+                                    _df_renglones_ins,
+                                    _obs_ins,
+                                    _fecha_ent_ins
+                                )
+                                if _numero_ins:
+                                    st.success(f"✅ {_msg_ins}")
+                                    guardar_log({
+                                        'fecha': str(datetime.now()),
+                                        'numero': _numero_ins,
+                                        'proveedor': _prov_ins_nombre,
+                                        'prov_id': _prov_ins_id,
+                                        'empresa': _empresa_ins,
+                                        'pares': _total_pares_ins,
+                                        'monto': _total_monto_ins,
+                                        'presupuesto': _total_monto_ins,
+                                        'estado': 'insertado',
+                                        'email_enviado': False,
+                                        'confirmado': False,
+                                    })
+                                    st.session_state['ultimo_pedido'] = _numero_ins
+                                    st.balloons()
+                                else:
+                                    st.error(f"❌ {_msg_ins}")
+                        except Exception as _e_ins:
+                            st.error(f"❌ Error al insertar: {_e_ins}")
+
         # ── SUBTAB: PEDIDO DESDE ROI ──
         with subtab_roi:
             if 'df_ranking' not in st.session_state:
@@ -4251,12 +7440,44 @@ def render_dashboard():
                 if dentro.empty:
                     st.warning("No hay productos dentro del presupuesto.")
                 else:
-                    # Agrupar por proveedor
-                    provs = dentro['proveedor'].unique()
-                    prov_pedido = st.selectbox("Proveedor para el pedido", sorted(provs),
-                                               key="prov_pedido_sel")
+                    # Proveedores: los del ranking + todos los que entregan esta marca
+                    provs_ranking = set(dentro['proveedor'].dropna().unique())
+                    # Buscar todos los proveedores que tienen artículos de esta marca
+                    try:
+                        _marca_actual = dentro['marca'].dropna().iloc[0] if 'marca' in dentro.columns else None
+                        if _marca_actual:
+                            _provs_marca = query_df(f"""
+                                SELECT DISTINCT a.proveedor, p.denominacion
+                                FROM msgestion01art.dbo.articulo a
+                                JOIN MSGESTION01.dbo.proveedores p ON p.numero = a.proveedor
+                                WHERE a.marca = {int(_marca_actual)} AND a.estado = 'V'
+                                  AND (SELECT SUM(stock_actual) FROM msgestionC.dbo.stock
+                                       WHERE articulo = a.codigo AND deposito IN (0,1)) > 0
+                            """)
+                            if not _provs_marca.empty:
+                                _prov_map = dict(zip(_provs_marca['proveedor'], _provs_marca['denominacion'].str.strip()))
+                            else:
+                                _prov_map = {}
+                        else:
+                            _prov_map = {}
+                    except Exception:
+                        _prov_map = {}
 
-                    df_prov = dentro[dentro['proveedor'] == prov_pedido].copy()
+                    # Combinar: proveedores del ranking + proveedores de la marca
+                    provs_all = sorted(provs_ranking | set(_prov_map.keys()))
+                    _prov_desc = cargar_proveedores_dict()  # {codigo: nombre}
+                    _prov_desc.update(_prov_map)
+                    provs_labels = [f"{_prov_desc.get(p, '?')} (#{p})" for p in provs_all]
+
+                    sel_prov_idx = st.selectbox("Proveedor para el pedido",
+                                                range(len(provs_all)),
+                                                format_func=lambda i: provs_labels[i],
+                                                key="prov_pedido_sel")
+                    prov_pedido = provs_all[sel_prov_idx]
+
+                    # Mostrar TODOS los productos (no filtrar por proveedor del artículo)
+                    # El usuario elige a quién comprarle, independiente de cómo esté cargado
+                    df_prov = dentro.copy()
 
                     st.markdown(f"**{len(df_prov)} productos** — "
                                 f"**{int(df_prov['pedir'].sum())} pares** — "
@@ -4323,6 +7544,22 @@ def render_dashboard():
 
                         st.markdown(f"### Total: {total_pares} pares — ${total_monto:,.0f}")
 
+                        # Export Excel
+                        if total_pares > 0:
+                            excel_buf = io.BytesIO()
+                            with pd.ExcelWriter(excel_buf, engine='openpyxl') as writer:
+                                df_tp.to_excel(writer, sheet_name='Pedido', index=False)
+                                ws = writer.sheets['Pedido']
+                                for col in ws.columns:
+                                    max_len = max(len(str(cell.value or '')) for cell in col)
+                                    ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 50)
+                            st.download_button(
+                                "📥 Descargar pedido Excel",
+                                data=excel_buf.getvalue(),
+                                file_name=f"pedido_{prov_pedido.replace(' ', '_')}_{date.today().strftime('%Y%m%d')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+
                         # Observaciones
                         empresa = st.selectbox("Empresa", ["H4", "CALZALINDO"], key="empresa_sel")
                         fecha_ent = st.date_input("Fecha entrega", date.today() + timedelta(days=30),
@@ -4335,12 +7572,9 @@ def render_dashboard():
 
                         st.divider()
 
-                        # Buscar proveedor ID
-                        prov_id = None
-                        for num, p in provs_dict.items():
-                            if p.strip() == prov_pedido.strip():
-                                prov_id = num
-                                break
+                        # prov_pedido ya es el código numérico del proveedor seleccionado
+                        prov_id = int(prov_pedido)
+                        prov_pedido_nombre = _prov_desc.get(prov_id, f"Proveedor #{prov_id}")
 
                         col_ins, col_email = st.columns(2)
 
@@ -4350,7 +7584,7 @@ def render_dashboard():
                                 renglones_activos = df_tp[df_tp['pedir'] > 0]
                                 st.info(
                                     f"**Resumen pedido**\n\n"
-                                    f"- Proveedor: **{prov_pedido}** (#{prov_id})\n"
+                                    f"- Proveedor: **{prov_pedido_nombre}** (#{prov_id})\n"
                                     f"- Empresa: **{empresa}**\n"
                                     f"- Renglones: **{len(renglones_activos)}**\n"
                                     f"- Total pares: **{total_pares}**\n"
@@ -4367,7 +7601,7 @@ def render_dashboard():
                                              disabled=not confirmar):
                                     with st.spinner(
                                         f"Insertando {total_pares} pares en "
-                                        f"{empresa} para {prov_pedido}..."
+                                        f"{empresa} para {prov_pedido_nombre}..."
                                     ):
                                         try:
                                             numero, msg = insertar_pedido_produccion(
@@ -4378,7 +7612,7 @@ def render_dashboard():
                                                 guardar_log({
                                                     'fecha': str(datetime.now()),
                                                     'numero': numero,
-                                                    'proveedor': prov_pedido,
+                                                    'proveedor': prov_pedido_nombre,
                                                     'prov_id': prov_id,
                                                     'empresa': empresa,
                                                     'pares': total_pares,
@@ -4411,6 +7645,375 @@ def render_dashboard():
                                     st.success(f"✅ {msg}")
                                 else:
                                     st.error(f"❌ {msg}")
+
+        # ── SUBTAB: REPOSICIÓN JIT ──
+        with subtab_jit:
+            st.subheader("🔄 Monitor de Reposición JIT")
+            st.caption(
+                "Dado el stock actual y el lead time del proveedor, "
+                "el motor calcula si hay que pedir hoy y cuánto."
+            )
+
+            # ── Controles ──
+            jit_col1, jit_col2, jit_col3 = st.columns(3)
+
+            with jit_col1:
+                # Selectbox con todos los proveedores que tienen lead time configurado
+                _prov_dict_jit = cargar_proveedores_dict()
+                _jit_opciones = sorted(LEAD_TIMES.keys())
+                _jit_labels = [
+                    f"{_prov_dict_jit.get(p, '?')} (#{p}) — {LEAD_TIMES[p]}d"
+                    for p in _jit_opciones
+                ]
+                _jit_sel_idx = st.selectbox(
+                    "Proveedor",
+                    range(len(_jit_opciones)),
+                    format_func=lambda i: _jit_labels[i],
+                    key="jit_prov_sel",
+                )
+                jit_proveedor = _jit_opciones[_jit_sel_idx]
+
+            with jit_col2:
+                jit_horizonte = st.slider(
+                    "Horizonte días", min_value=30, max_value=180,
+                    value=90, step=15, key="jit_horizonte"
+                )
+
+            with jit_col3:
+                jit_nivel_srv = st.select_slider(
+                    "Nivel de servicio",
+                    options=[0.85, 0.90, 0.95, 0.99],
+                    value=0.95,
+                    format_func=lambda v: f"{int(v*100)}%",
+                    key="jit_nivel_srv",
+                )
+
+            # ── Filtro opcional por subrubro ──
+            _subr_opts = {
+                0: "Todos",
+                60: "Pantuflas (60)",
+                11: "Zapatillas Running (11)",
+                12: "Zapatillas Training (12)",
+                13: "Zapatillas Casual (13)",
+                20: "Calzado Dama (20)",
+                30: "Calzado Niños (30)",
+                50: "Ojotas/Chinelas (50)",
+                29: "Medias/Soquetes (29)",
+            }
+            jit_subrubro = st.selectbox(
+                "Filtrar subrubro",
+                options=list(_subr_opts.keys()),
+                format_func=lambda x: _subr_opts[x],
+                key="jit_subrubro",
+            )
+
+            st.divider()
+
+            # ── Cargar datos ──
+            with st.spinner("Cargando stock y velocidades..."):
+                df_jit_stock = cargar_stock_proveedor(jit_proveedor)
+                if jit_subrubro != 0 and not df_jit_stock.empty and 'subrubro' in df_jit_stock.columns:
+                    df_jit_stock = df_jit_stock[df_jit_stock['subrubro'] == jit_subrubro]
+
+            if df_jit_stock.empty:
+                st.warning(
+                    "No se encontraron artículos activos para este proveedor. "
+                    "Verificá que los artículos tengan código sinónimo y estado='V'."
+                )
+            else:
+                # Factores estacionales por artículo — para ajuste forward-looking
+                with st.spinner("Calculando estacionalidad por artículo..."):
+                    _csrs_jit = df_jit_stock['codigo_sinonimo'].dropna().tolist()
+                    _factores_jit = factor_estacional_batch(_csrs_jit) if _csrs_jit else {}
+
+                df_jit = calcular_decision_reposicion(
+                    df_jit_stock, jit_proveedor,
+                    horizonte_dias=jit_horizonte,
+                    nivel_servicio=jit_nivel_srv,
+                    factores_est=_factores_jit,
+                )
+
+                # ── Métricas resumen ──
+                _jit_rojos    = (df_jit['urgencia'] == 'ROJO').sum()
+                _jit_amarillos = (df_jit['urgencia'] == 'AMARILLO').sum()
+                _jit_verdes   = (df_jit['urgencia'] == 'VERDE').sum()
+                _jit_pares    = int(
+                    df_jit[df_jit['necesita_pedido']]['cantidad_sugerida'].sum()
+                )
+                _jit_lead     = LEAD_TIMES.get(jit_proveedor, LEAD_TIME_DEFAULT)
+
+                mc1, mc2, mc3, mc4 = st.columns(4)
+                mc1.metric("🔴 Urgente (pedir ya)",  _jit_rojos)
+                mc2.metric("🟡 Próximamente",        _jit_amarillos)
+                mc3.metric("📦 Pares sugeridos",     f"{_jit_pares:,}")
+                mc4.metric("⏱ Lead time",            f"{_jit_lead} días")
+
+                st.divider()
+
+                # ── Tabla con artículos que tienen demanda ──
+                _df_show_jit = df_jit[df_jit['vel_diaria'] > 0].copy()
+
+                if _df_show_jit.empty:
+                    st.info("Todos los artículos de este proveedor tienen velocidad = 0.")
+                else:
+                    _cols_jit = [
+                        'descripcion', 'stock_actual', 'dias_hasta_stockout',
+                        'vel_diaria', 'factor_est', 'punto_reorden', 'urgencia', 'cantidad_sugerida',
+                    ]
+                    # Renombrar para mejor legibilidad
+                    _rename_jit = {
+                        'descripcion':        'Descripción',
+                        'stock_actual':       'Stock',
+                        'dias_hasta_stockout': 'Días stock',
+                        'vel_diaria':         'Vel/día',
+                        'factor_est':         'Factor est.',
+                        'punto_reorden':      'Pto. reorden',
+                        'urgencia':           'Urgencia',
+                        'cantidad_sugerida':  'A pedir',
+                    }
+                    _df_table_jit = (
+                        _df_show_jit[_cols_jit]
+                        .rename(columns=_rename_jit)
+                        .sort_values('Días stock')
+                        .reset_index(drop=True)
+                    )
+
+                    # Color-coding por urgencia
+                    def _color_urgencia(val):
+                        _palette = {
+                            'ROJO':     'background-color: #ffcccc; color: #a00',
+                            'AMARILLO': 'background-color: #fff3cd; color: #856404',
+                            'VERDE':    'background-color: #d4edda; color: #155724',
+                        }
+                        return _palette.get(val, '')
+
+                    st.dataframe(
+                        _df_table_jit.style.applymap(
+                            _color_urgencia, subset=['Urgencia']
+                        ).format({
+                            'Vel/día':      '{:.2f}',
+                            'Factor est.':  '{:.2f}x',
+                            'Días stock':   '{:,}',
+                            'Stock':        '{:,}',
+                            'A pedir':      '{:,}',
+                            'Pto. reorden': '{:,}',
+                        }),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+                    st.caption(
+                        f"Total artículos con demanda: {len(_df_table_jit)} | "
+                        f"Lead time configurado: {_jit_lead} días | "
+                        f"Horizonte objetivo: {jit_horizonte} días"
+                    )
+
+                    st.divider()
+
+                    # ── Botón para pasar urgentes a session_state ──
+                    _urgentes_jit = df_jit[
+                        df_jit['necesita_pedido'] & (df_jit['cantidad_sugerida'] > 0)
+                    ]
+                    if not _urgentes_jit.empty:
+                        if st.button(
+                            f"📋 Armar pedido con {len(_urgentes_jit)} SKUs "
+                            f"urgentes/amarillos ({int(_urgentes_jit['cantidad_sugerida'].sum())} pares)",
+                            type="primary",
+                            key="btn_jit_armar_pedido",
+                        ):
+                            st.session_state['jit_pedido_df'] = _urgentes_jit.copy()
+                            st.session_state['jit_pedido_proveedor'] = jit_proveedor
+                            st.session_state['jit_pedido_confirmado'] = False
+                            st.success(
+                                f"Pedido preparado: {len(_urgentes_jit)} SKUs, "
+                                f"{int(_urgentes_jit['cantidad_sugerida'].sum())} pares. "
+                                "Revisá y confirmá abajo."
+                            )
+                    else:
+                        st.info(
+                            "No hay artículos que requieran pedido hoy "
+                            f"(stock cubre más de {_jit_lead} días en todos los casos)."
+                        )
+
+                    # ── Flujo de confirmación e INSERT en ERP ────────────────
+                    if st.session_state.get('jit_pedido_df') is not None:
+                        _jit_df_edit = st.session_state['jit_pedido_df']
+                        _jit_prov_id = st.session_state.get('jit_pedido_proveedor', jit_proveedor)
+                        _jit_prov_cfg = PROVEEDORES.get(_jit_prov_id, {})
+                        _jit_prov_nombre = _jit_prov_cfg.get('nombre') or _prov_dict_jit.get(_jit_prov_id, f'Proveedor #{_jit_prov_id}')
+                        _jit_empresa_cfg = _jit_prov_cfg.get('empresa', EMPRESA_DEFAULT)
+
+                        st.subheader("✏️ Revisar y ajustar cantidades")
+
+                        # Editor de cantidades
+                        _edit_cols = ['descripcion', 'urgencia', 'stock_actual', 'cantidad_sugerida']
+                        _edit_cols_exist = [c for c in _edit_cols if c in _jit_df_edit.columns]
+                        _df_editable = _jit_df_edit[_edit_cols_exist].copy()
+                        _df_editable = _df_editable.rename(columns={
+                            'descripcion':       'Descripción',
+                            'urgencia':          'Urgencia',
+                            'stock_actual':      'Stock actual',
+                            'cantidad_sugerida': 'Cantidad a pedir',
+                        })
+
+                        _df_edited = st.data_editor(
+                            _df_editable,
+                            column_config={
+                                'Descripción':     st.column_config.TextColumn(disabled=True),
+                                'Urgencia':        st.column_config.TextColumn(disabled=True),
+                                'Stock actual':    st.column_config.NumberColumn(disabled=True),
+                                'Cantidad a pedir': st.column_config.NumberColumn(
+                                    min_value=0, step=1, format="%d"
+                                ),
+                            },
+                            hide_index=True,
+                            use_container_width=True,
+                            key="jit_editor_cantidades",
+                        )
+
+                        # Si el proveedor no está en config, pedir empresa manualmente
+                        if _jit_empresa_cfg not in ('H4', 'CALZALINDO'):
+                            _jit_empresa_sel = st.selectbox(
+                                "Empresa destino",
+                                options=['H4', 'CALZALINDO'],
+                                key="jit_empresa_manual",
+                            )
+                        else:
+                            _jit_empresa_sel = _jit_empresa_cfg
+
+                        _fecha_jit = st.date_input(
+                            "Fecha del pedido",
+                            value=date.today(),
+                            key="jit_fecha_pedido",
+                        )
+                        _obs_jit = st.text_input(
+                            "Observaciones",
+                            value=f"Reposicion JIT - {_jit_prov_nombre}",
+                            key="jit_obs_pedido",
+                        )
+
+                        _pares_editados = int(_df_edited['Cantidad a pedir'].sum())
+                        _skus_editados  = int((_df_edited['Cantidad a pedir'] > 0).sum())
+
+                        st.info(
+                            f"Proveedor: **{_jit_prov_nombre}** | "
+                            f"Empresa: **{_jit_empresa_sel}** | "
+                            f"SKUs: **{_skus_editados}** | "
+                            f"Pares: **{_pares_editados:,}**"
+                        )
+
+                        _col_btn1, _col_btn2 = st.columns([2, 1])
+                        with _col_btn1:
+                            _btn_confirmar = st.button(
+                                f"✅ Confirmar e insertar en ERP ({_pares_editados:,} pares)",
+                                type="primary",
+                                key="btn_jit_confirmar_erp",
+                                disabled=(_pares_editados == 0),
+                            )
+                        with _col_btn2:
+                            if st.button("❌ Cancelar pedido", key="btn_jit_cancelar"):
+                                del st.session_state['jit_pedido_df']
+                                if 'jit_pedido_proveedor' in st.session_state:
+                                    del st.session_state['jit_pedido_proveedor']
+                                if 'jit_pedido_confirmado' in st.session_state:
+                                    del st.session_state['jit_pedido_confirmado']
+                                st.rerun()
+
+                        if _btn_confirmar and _pares_editados > 0:
+                            # Construir renglones solo con cantidad > 0
+                            _renglones_jit = []
+                            _orig_idx = list(_jit_df_edit.index)
+                            for _i_row, (_idx, _row_ed) in enumerate(
+                                zip(_orig_idx, _df_edited.itertuples())
+                            ):
+                                _cant = int(getattr(_row_ed, 'Cantidad_a_pedir', 0))
+                                if _cant <= 0:
+                                    continue
+                                _orig_row = _jit_df_edit.loc[_idx]
+                                _precio = float(_orig_row.get('precio_venta', 0) if hasattr(_orig_row, 'get') else _orig_row['precio_venta']) if 'precio_venta' in _orig_row.index else 0.0
+                                _desc = str(_orig_row.get('descripcion', '') if hasattr(_orig_row, 'get') else _orig_row['descripcion'])[:60]
+                                _csr  = str(_orig_row.get('codigo_sinonimo', '') if hasattr(_orig_row, 'get') else _orig_row['codigo_sinonimo'])
+                                _cod  = int(_orig_row.get('codigo', 0) if hasattr(_orig_row, 'get') else _orig_row['codigo'])
+                                _renglones_jit.append({
+                                    'articulo':        _cod,
+                                    'descripcion':     _desc,
+                                    'codigo_sinonimo': _csr,
+                                    'cantidad':        _cant,
+                                    'precio':          _precio,
+                                    'descuento_reng1': _jit_prov_cfg.get('descuento', 0),
+                                    'descuento_reng2': _jit_prov_cfg.get('descuento_1', 0),
+                                })
+
+                            _cabecera_jit = {
+                                'empresa':            _jit_empresa_sel,
+                                'cuenta':             _jit_prov_id,
+                                'denominacion':       _jit_prov_nombre,
+                                'fecha_comprobante':  _fecha_jit,
+                                'observaciones':      _obs_jit,
+                            }
+
+                            if not _renglones_jit:
+                                st.error("No hay renglones con cantidad > 0 para insertar.")
+                            else:
+                                try:
+                                    import pyodbc as _pyodbc_jit
+                                    from config import get_conn_string as _get_cs_jit
+                                    from paso4_insertar_pedido import (
+                                        insertar_pedido as _insertar_pedido_jit,
+                                    )
+                                    with st.spinner("Insertando pedido en el ERP..."):
+                                        _num_pedido = _insertar_pedido_jit(
+                                            _cabecera_jit,
+                                            _renglones_jit,
+                                            dry_run=False,
+                                        )
+                                    if _num_pedido:
+                                        st.success(
+                                            f"Pedido #{_num_pedido} insertado correctamente en "
+                                            f"{'MSGESTION01' if _jit_empresa_sel == 'CALZALINDO' else 'MSGESTION03'} "
+                                            f"({_skus_editados} SKUs, {_pares_editados:,} pares). "
+                                            f"Proveedor: {_jit_prov_nombre}."
+                                        )
+                                        st.balloons()
+                                        # Limpiar session state
+                                        del st.session_state['jit_pedido_df']
+                                        if 'jit_pedido_proveedor' in st.session_state:
+                                            del st.session_state['jit_pedido_proveedor']
+                                        st.session_state['jit_pedido_confirmado'] = True
+                                    else:
+                                        st.error(
+                                            "El INSERT no retornó número de pedido. "
+                                            "Revisar logs del servidor."
+                                        )
+                                except Exception as _e_jit:
+                                    st.error(f"Error al insertar pedido en ERP: {_e_jit}")
+
+                # ── Detalle completo con filtro de urgencia ──
+                with st.expander("Ver detalle completo (todos los artículos)"):
+                    _urgencia_filtro = st.multiselect(
+                        "Filtrar por urgencia",
+                        options=['ROJO', 'AMARILLO', 'VERDE', 'SIN_DEMANDA'],
+                        default=['ROJO', 'AMARILLO'],
+                        key="jit_filtro_urgencia",
+                    )
+                    _df_full_jit = df_jit.copy()
+                    if _urgencia_filtro:
+                        _df_full_jit = _df_full_jit[
+                            _df_full_jit['urgencia'].isin(_urgencia_filtro)
+                        ]
+                    _cols_full = [
+                        'descripcion', 'stock_actual', 'vel_diaria',
+                        'dias_hasta_stockout', 'safety_stock', 'punto_reorden',
+                        'necesita_pedido', 'urgencia', 'cantidad_sugerida',
+                        'pct_quiebre', 'meses_quebrado',
+                    ]
+                    # Solo mostrar columnas que existen
+                    _cols_full = [c for c in _cols_full if c in _df_full_jit.columns]
+                    st.dataframe(
+                        _df_full_jit[_cols_full].sort_values('dias_hasta_stockout'),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
 
     # ══════════════════════════════════════════════════════════════
     # TAB 5: HISTORIAL
@@ -4448,6 +8051,155 @@ def render_dashboard():
                             json.dump(log, f, indent=2, default=str)
                         st.success(f"Pedido #{confirmar} confirmado.")
                         st.rerun()
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 9: NICHOS DESCUBIERTOS
+    # ══════════════════════════════════════════════════════════════
+    with tab_nichos:
+        st.subheader("Nichos Descubiertos — Demanda sin cobertura")
+        st.caption("Categorías con ventas reales pero sin stock ni pedidos. "
+                   "Filtro: solo artículos comprados después de 2020.")
+
+        # ── Controles internos (no sidebar global) ──
+        col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+        with col_ctrl1:
+            min_vtas = st.number_input(
+                "Ventas mínimas 12m", min_value=1, value=10, step=1,
+                key="nichos_min_vtas"
+            )
+        with col_ctrl2:
+            max_cob = st.number_input(
+                "Cobertura máxima (días)", min_value=1, value=30, step=5,
+                key="nichos_max_cob"
+            )
+        with col_ctrl3:
+            solo_temporada = st.checkbox(
+                "Solo temporada actual", value=False,
+                key="nichos_solo_temporada"
+            )
+
+        # ── Cargar datos ──
+        df_nichos = detectar_nichos_descubiertos(
+            min_vtas=min_vtas, max_cob_dias=max_cob,
+            solo_post_2020=True
+        )
+        if solo_temporada and not df_nichos.empty and 'es_temporada' in df_nichos.columns:
+            df_nichos = df_nichos[df_nichos['es_temporada']]
+
+        if df_nichos.empty:
+            st.info("No se encontraron nichos descubiertos con los filtros actuales.")
+        else:
+            # ── KPI row ──
+            total_nichos = len(df_nichos)
+            pares_sin_cubrir = int(df_nichos['pares_12m'].sum())
+            ppp_promedio = df_nichos['ppp_costo'].mean() if 'ppp_costo' in df_nichos.columns else 0
+            inversion_estimada = pares_sin_cubrir * ppp_promedio
+
+            kpi1, kpi2, kpi3 = st.columns(3)
+            kpi1.metric("Total nichos descubiertos", f"{total_nichos:,}")
+            kpi2.metric("Pares demanda anual sin cubrir", f"{pares_sin_cubrir:,}")
+            kpi3.metric("Inversión estimada", f"${inversion_estimada:,.0f}")
+
+            # ── Tabla principal ──
+            df_show = df_nichos.sort_values('pares_12m', ascending=False)
+            display_cols = [
+                'genero', 'categoria', 'marca', 'pares_12m', 'stock',
+                'pedido', 'disponible', 'cob_dias', 'ppp_costo', 'urgencia'
+            ]
+            display_cols = [c for c in display_cols if c in df_show.columns]
+
+            def _color_urgencia(val):
+                if val == 'CRITICO':
+                    return 'background-color: #ffcccc; color: #990000'
+                elif val == 'BAJO':
+                    return 'background-color: #fff3cd; color: #856404'
+                return ''
+
+            styled = df_show[display_cols].style
+            if 'urgencia' in display_cols:
+                styled = styled.map(_color_urgencia, subset=['urgencia'])
+
+            st.dataframe(
+                styled,
+                column_config={
+                    'pares_12m': st.column_config.NumberColumn("Pares 12m", format="%d"),
+                    'stock': st.column_config.NumberColumn("Stock", format="%d"),
+                    'pedido': st.column_config.NumberColumn("Pedido", format="%d"),
+                    'disponible': st.column_config.NumberColumn("Disponible", format="%d"),
+                    'cob_dias': st.column_config.NumberColumn("Cob.Días", format="%.0f"),
+                    'ppp_costo': st.column_config.NumberColumn("PPP Costo", format="$%.0f"),
+                },
+                use_container_width=True, hide_index=True,
+            )
+
+        # ── Vista por subrubro ──
+        with st.expander("Vista por subrubro"):
+            df_sub = detectar_nichos_por_subrubro(
+                min_vtas=min_vtas, max_cob_dias=max_cob
+            )
+            if solo_temporada and not df_sub.empty and 'es_temporada' in df_sub.columns:
+                df_sub = df_sub[df_sub['es_temporada']]
+            if df_sub.empty:
+                st.info("Sin datos de nichos por subrubro.")
+            else:
+                st.dataframe(
+                    df_sub.sort_values('pares_12m', ascending=False),
+                    use_container_width=True, hide_index=True,
+                )
+                # Bar chart top 20
+                top20 = df_sub.nlargest(20, 'pares_12m')
+                if not top20.empty:
+                    st.bar_chart(
+                        top20.set_index('categoria')['pares_12m'],
+                        use_container_width=True,
+                    )
+
+        # ── Proveedores a contactar ──
+        with st.expander("Proveedores a contactar"):
+            if df_nichos.empty or 'proveedor_num' not in df_nichos.columns:
+                st.info("Sin datos de proveedores para nichos descubiertos.")
+            else:
+                prov_group = (
+                    df_nichos.groupby(['proveedor_num', 'proveedor_nombre'])
+                    .agg(
+                        total_pares=('pares_12m', 'sum'),
+                        categorias=('categoria', lambda x: ', '.join(sorted(x.unique()))),
+                        cant_nichos=('categoria', 'count'),
+                    )
+                    .reset_index()
+                    .sort_values('total_pares', ascending=False)
+                )
+                for _, row in prov_group.iterrows():
+                    prov_nombre = row['proveedor_nombre']
+                    prov_num = row['proveedor_num']
+                    total = int(row['total_pares'])
+                    cats = row['categorias']
+                    cnt = int(row['cant_nichos'])
+
+                    st.markdown(
+                        f"**{prov_nombre}** (#{prov_num}) - "
+                        f"{total:,} pares en {cnt} nichos"
+                    )
+                    st.caption(f"Categorías: {cats}")
+
+                    # Intentar obtener teléfono del proveedor
+                    try:
+                        tel_sql = (
+                            f"SELECT telefono FROM msgestion01.dbo.proveedores "
+                            f"WHERE numero = {int(prov_num)}"
+                        )
+                        df_tel = query_df(tel_sql)
+                        if not df_tel.empty and df_tel.iloc[0]['telefono']:
+                            tel = str(df_tel.iloc[0]['telefono']).strip()
+                            if tel:
+                                tel_clean = ''.join(c for c in tel if c.isdigit())
+                                if tel_clean:
+                                    wa_url = f"https://wa.me/54{tel_clean}"
+                                    st.markdown(f"[WhatsApp {tel}]({wa_url})")
+                    except Exception:
+                        pass  # No phone available
+
+                    st.divider()
 
 
 # ============================================================================

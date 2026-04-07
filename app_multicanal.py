@@ -923,8 +923,25 @@ elif pagina == '🔄 Sincronización':
             st.subheader('Facturar órdenes TiendaNube → ERP')
             st.markdown('Procesa órdenes pagadas de TN y las envía al POS 109 para registrar la venta y descontar stock en el ERP.')
 
+            # ── Detectar tiendas TN configuradas ──
+            import glob as _glob
+            _configs_tn = _glob.glob(os.path.join(os.path.dirname(__file__), 'multicanal', 'tiendanube_config*.json'))
+            _tiendas_disponibles = []
+            for _cf in sorted(_configs_tn):
+                _nombre = os.path.basename(_cf).replace('tiendanube_config_', '').replace('tiendanube_config', 'default').replace('.json', '')
+                if _nombre == 'default':
+                    _nombre = 'Calzalindo'
+                _tiendas_disponibles.append(_nombre)
+            if not _tiendas_disponibles:
+                _tiendas_disponibles = ['Calzalindo']
+
             # ── Filtros Tier 1 ──
-            col_f1, col_f2, col_f3 = st.columns(3)
+            col_f0, col_f1, col_f2, col_f3 = st.columns(4)
+            with col_f0:
+                tienda_sel = st.selectbox('Tienda TN', _tiendas_disponibles, key='tienda_tn',
+                                           help='Seleccioná la tienda TiendaNube a facturar')
+                # Mapear nombre a config
+                _nombre_tienda = None if tienda_sel == 'Calzalindo' else tienda_sel.lower()
             with col_f1:
                 dias_facturar = st.slider('Últimos N días', 1, 60, 7, key='dias_fact')
             with col_f2:
@@ -950,19 +967,21 @@ elif pagina == '🔄 Sincronización':
 
             # ── Cargar órdenes ──
             @st.cache_data(ttl=60, show_spinner='Consultando TiendaNube...')
-            def _cargar_ordenes_pendientes(_dias):
-                from multicanal.tiendanube import TiendaNubeClient, cargar_config as tn_cargar_cfg
+            def _cargar_ordenes_pendientes(dias, nombre_tienda=None):
                 from multicanal.facturador_tn import (
                     orden_ya_procesada, buscar_articulos_por_sku, conectar_erp_art,
+                    cargar_config_tienda,
                 )
+                from multicanal.tiendanube import TiendaNubeClient
                 from datetime import datetime, timedelta
 
-                cfg = tn_cargar_cfg()
+                tienda_key = nombre_tienda or 'default'
+                cfg = cargar_config_tienda(nombre_tienda)
                 if not cfg.get('store_id') or not cfg.get('access_token'):
                     return None, 'Sin config TiendaNube'
 
                 client = TiendaNubeClient(store_id=cfg['store_id'], access_token=cfg['access_token'])
-                fecha_min = (datetime.now() - timedelta(days=_dias)).strftime('%Y-%m-%d')
+                fecha_min = (datetime.now() - timedelta(days=dias)).strftime('%Y-%m-%d')
                 ordenes = client.listar_todas_ordenes(payment_status='paid', created_at_min=fecha_min)
 
                 todos_skus = set()
@@ -984,7 +1003,7 @@ elif pagina == '🔄 Sincronización':
                 resultado = []
                 for o in ordenes:
                     oid = str(o['id'])
-                    ya = orden_ya_procesada(oid, 'default')
+                    ya = orden_ya_procesada(oid, tienda_key)
                     customer = o.get('customer', {})
                     nombre = (customer.get('name') or '').strip()
                     productos = o.get('products', [])
@@ -1040,7 +1059,7 @@ elif pagina == '🔄 Sincronización':
 
                 return resultado, None
 
-            ordenes_preview, err_preview = _cargar_ordenes_pendientes(dias_facturar)
+            ordenes_preview, err_preview = _cargar_ordenes_pendientes(dias_facturar, _nombre_tienda)
 
             if err_preview:
                 st.warning(err_preview)
@@ -1206,7 +1225,7 @@ elif pagina == '🔄 Sincronización':
                                 order_number = o['numero']
 
                                 # Doble-check dedup
-                                if orden_ya_procesada(order_id, 'default'):
+                                if orden_ya_procesada(order_id, (_nombre_tienda or 'default')):
                                     st.write(f"⏭️ #{order_number} — ya procesada, salteo")
                                     continue
 
@@ -1233,7 +1252,7 @@ elif pagina == '🔄 Sincronización':
 
                                         registrar_orden_procesada(
                                             order_id=order_id, order_number=order_number,
-                                            tienda='default', fecha_orden=o['fecha'],
+                                            tienda=(_nombre_tienda or 'default'), fecha_orden=o['fecha'],
                                             cliente=o['cliente'], total=total_orden,
                                             renglones=renglones, payload=payload,
                                             respuesta_109=resp,
@@ -1243,7 +1262,7 @@ elif pagina == '🔄 Sincronización':
                                                            'message': f'Facturada ${total_orden:,.0f}'})
                                     except Exception as e:
                                         st.write(f"❌ #{order_number} — {e}")
-                                        registrar_error(order_id, order_number, 'default', str(e), payload)
+                                        registrar_error(order_id, order_number, (_nombre_tienda or 'default'), str(e), payload)
                                         resultados.append({'order': order_number, 'status': 'error',
                                                            'message': str(e)})
 
@@ -1318,6 +1337,19 @@ elif pagina == '🔄 Sincronización':
             st.subheader('Facturar órdenes MercadoLibre → ERP')
             st.markdown('Procesa órdenes pagadas de ML e inserta facturas B en el ERP (depósito 1).')
 
+            # ── Detectar cuentas ML configuradas ──
+            try:
+                from multicanal.facturador_ml import listar_cuentas_ml, CUENTAS_ML
+                _cuentas_ml = listar_cuentas_ml()
+                _opciones_ml = []
+                for _key, _name, _uid in _cuentas_ml:
+                    desc = CUENTAS_ML.get(_name, {}).get('descripcion', _name)
+                    _opciones_ml.append(f"{desc} ({_uid})")
+                has_ml = len(_cuentas_ml) > 0
+            except Exception:
+                _cuentas_ml = []
+                _opciones_ml = []
+
             if not has_ml:
                 st.warning('Configurá las credenciales de MercadoLibre.')
                 st.markdown("""
@@ -1339,11 +1371,20 @@ elif pagina == '🔄 Sincronización':
                             st.success('Credenciales ML guardadas.')
                             st.rerun()
             else:
-                col_ml1, col_ml2 = st.columns(2)
+                col_ml0, col_ml1, col_ml2 = st.columns(3)
+                with col_ml0:
+                    cuenta_ml_sel = st.selectbox('Cuenta ML', _opciones_ml, key='cuenta_ml_sel')
+                    # Mapear selección a account key
+                    _idx_ml = _opciones_ml.index(cuenta_ml_sel) if cuenta_ml_sel in _opciones_ml else 0
+                    _account_key = _cuentas_ml[_idx_ml][0] if _cuentas_ml else None
+                    _account_ml = None if _account_key == 'default' else _account_key
                 with col_ml1:
                     dias_facturar_ml = st.slider('Últimos N días', 1, 30, 7, key='dias_fact_ml')
                 with col_ml2:
-                    empresa_ml = st.selectbox('Empresa destino', ['H4', 'ABI'], index=0, key='empresa_ml',
+                    # Auto-seleccionar empresa según cuenta
+                    _empresa_default = CUENTAS_ML.get(_cuentas_ml[_idx_ml][1] if _cuentas_ml else '', {}).get('empresa', 'H4')
+                    _emp_idx = 0 if _empresa_default == 'H4' else 1
+                    empresa_ml = st.selectbox('Empresa destino', ['H4', 'ABI'], index=_emp_idx, key='empresa_ml',
                                               help='H4 → msgestion03 | ABI → msgestion01')
 
                 def _ejecutar_facturacion_ml(dry_run_mode):
@@ -1351,7 +1392,7 @@ elif pagina == '🔄 Sincronización':
                         try:
                             from multicanal.facturador_ml import sincronizar_ordenes_ml
                             reporte = sincronizar_ordenes_ml(dry_run=dry_run_mode, dias_atras=dias_facturar_ml,
-                                                              empresa=empresa_ml)
+                                                              empresa=empresa_ml, account=_account_ml)
                             if reporte.get('error'):
                                 st.error(reporte['error'])
                             else:

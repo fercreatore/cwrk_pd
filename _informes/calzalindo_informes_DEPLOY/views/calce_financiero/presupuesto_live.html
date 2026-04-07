@@ -1,0 +1,130 @@
+{{extend 'layout.html'}}
+{{response.title = 'Presupuesto Live'}}
+
+<link href="https://unpkg.com/tabulator-tables@5.5.4/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.4/dist/js/tabulator.min.js"></script>
+
+<style>
+.sub-nav { margin-bottom: 20px; }
+.sub-nav a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: 500; }
+.sub-nav a.active { color: #333; font-weight: bold; border-bottom: 2px solid #333; pointer-events: none; }
+.kpi-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.kpi-card { flex: 1; min-width: 180px; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); text-align: center; border-top: 3px solid #007bff; }
+.kpi-card h5 { margin: 0 0 5px; font-size: 12px; color: #888; text-transform: uppercase; }
+.kpi-card .valor { font-size: 24px; font-weight: bold; color: #333; }
+.kpi-card.verde { border-top-color: #28a745; }
+.kpi-card.rojo { border-top-color: #dc3545; }
+.kpi-card.naranja { border-top-color: #fd7e14; }
+.kpi-card.azul { border-top-color: #007bff; }
+.export-row { margin-bottom: 15px; }
+.export-row button { padding: 6px 16px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+.export-row button:hover { background: #0056b3; }
+</style>
+
+<div class="sub-nav">
+    <a href="{{=URL('calce_financiero', 'dashboard')}}">Dashboard</a>
+    <a class="active" href="#">Presupuesto Live</a>
+    <a href="{{=URL('calce_financiero', 'detalle_industria')}}">Detalle Industria</a>
+</div>
+
+<div class="kpi-row">
+    <div class="kpi-card azul">
+        <h5>Total Presupuesto</h5>
+        <div class="valor" id="kpi-presupuesto"></div>
+    </div>
+    <div class="kpi-card naranja">
+        <h5>Total Comprometido</h5>
+        <div class="valor" id="kpi-comprometido"></div>
+    </div>
+    <div id="kpi-disponible-card" class="kpi-card">
+        <h5>Total Disponible</h5>
+        <div class="valor" id="kpi-disponible"></div>
+    </div>
+</div>
+
+<div class="export-row">
+    <button id="btn-export-csv">Exportar CSV</button>
+</div>
+
+<div id="presupuesto-table"></div>
+
+<script>
+(function(){
+    var rawData = JSON.parse('{{=XML(data_json)}}');
+
+    function fmtPesos(n) {
+        if (n === null || n === undefined || isNaN(n)) return '$ 0';
+        n = Number(n);
+        var neg = n < 0;
+        var abs = Math.abs(Math.round(n));
+        var s = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return (neg ? '-$ ' : '$ ') + s;
+    }
+
+    document.getElementById('kpi-presupuesto').textContent = fmtPesos({{=total_presupuesto}});
+    document.getElementById('kpi-comprometido').textContent = fmtPesos({{=total_comprometido}});
+    document.getElementById('kpi-disponible').textContent = fmtPesos({{=total_disponible}});
+
+    var disponibleCard = document.getElementById('kpi-disponible-card');
+    if ({{=total_disponible}} >= 0) {
+        disponibleCard.className = 'kpi-card verde';
+    } else {
+        disponibleCard.className = 'kpi-card rojo';
+    }
+
+    function pesoFormatter(cell) {
+        return fmtPesos(cell.getValue());
+    }
+
+    function disponibleFormatter(cell) {
+        var val = cell.getValue();
+        var el = document.createElement('span');
+        el.textContent = fmtPesos(val);
+        if (val > 0) {
+            el.style.color = '#28a745';
+        } else if (val < 0) {
+            el.style.color = '#dc3545';
+        }
+        return el;
+    }
+
+    function pctFormatter(cell) {
+        var val = cell.getValue();
+        if (val === null || val === undefined) val = 0;
+        val = Number(val);
+        var pct = Math.min(Math.max(val, 0), 100);
+        var color = pct < 50 ? '#28a745' : pct < 80 ? '#fd7e14' : '#dc3545';
+        var container = document.createElement('div');
+        container.style.cssText = 'width:100%;background:#e9ecef;border-radius:4px;position:relative;height:20px;';
+        var bar = document.createElement('div');
+        bar.style.cssText = 'height:100%;border-radius:4px;background:' + color + ';width:' + pct + '%;';
+        var label = document.createElement('span');
+        label.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:bold;color:#333;';
+        label.textContent = val.toFixed(1) + '%';
+        container.appendChild(bar);
+        container.appendChild(label);
+        return container;
+    }
+
+    var table = new Tabulator("#presupuesto-table", {
+        data: rawData,
+        layout: "fitColumns",
+        responsiveLayout: "hide",
+        columns: [
+            {title: "Industria", field: "industria", minWidth: 140, headerFilter: "input"},
+            {title: "Temporada", field: "temporada", minWidth: 100, headerFilter: "input"},
+            {title: "Presupuesto Costo", field: "presupuesto_costo", hozAlign: "right", formatter: pesoFormatter, sorter: "number", minWidth: 150},
+            {title: "Presupuesto Ajustado", field: "presupuesto_ajustado", hozAlign: "right", formatter: pesoFormatter, sorter: "number", minWidth: 150},
+            {title: "Comprometido Costo", field: "comprometido_costo", hozAlign: "right", formatter: pesoFormatter, sorter: "number", minWidth: 150},
+            {title: "Disponible Costo", field: "disponible_costo", hozAlign: "right", formatter: disponibleFormatter, sorter: "number", minWidth: 150},
+            {title: "% Ejecutado", field: "pct_ejecutado", hozAlign: "center", formatter: pctFormatter, sorter: "number", minWidth: 130},
+            {title: "Factor Tendencia", field: "factor_tendencia", hozAlign: "center", minWidth: 120},
+            {title: "Diagnostico", field: "diagnostico", minWidth: 140, headerFilter: "input"}
+        ]
+    });
+
+    document.getElementById('btn-export-csv').addEventListener('click', function(){
+        table.download("csv", "presupuesto_live.csv");
+    });
+})();
+</script>

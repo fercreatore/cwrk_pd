@@ -1,0 +1,170 @@
+{{extend 'layout.html'}}
+{{response.title = 'Stock Muerto'}}
+<link href="https://unpkg.com/tabulator-tables@5.5.4/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.4/dist/js/tabulator.min.js"></script>
+<style>
+.kpi-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.kpi-card {
+    flex: 1; min-width: 150px; background: #fff; border-radius: 8px;
+    padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); text-align: center;
+    border-top: 3px solid #007bff;
+}
+.kpi-card h5 { margin: 0 0 5px; font-size: 12px; color: #888; text-transform: uppercase; }
+.kpi-card .valor { font-size: 24px; font-weight: bold; color: #333; }
+.kpi-card .sub { font-size: 11px; color: #999; margin-top: 3px; }
+.kpi-card.verde { border-top-color: #28a745; }
+.kpi-card.rojo { border-top-color: #dc3545; }
+.kpi-card.naranja { border-top-color: #fd7e14; }
+.kpi-card.azul { border-top-color: #007bff; }
+.sub-nav { display: flex; gap: 5px; margin-bottom: 20px; }
+.sub-nav a {
+    padding: 8px 16px; border-radius: 6px; text-decoration: none;
+    background: #e9ecef; color: #495057; font-size: 13px;
+}
+.sub-nav a.active { background: #343a40; color: #fff; font-weight: bold; }
+.sub-nav a:hover:not(.active) { background: #dee2e6; }
+.btn-export {
+    background: #28a745; color: #fff; border: none; padding: 8px 16px;
+    border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 15px;
+}
+.btn-export:hover { background: #218838; }
+/* Curva talles zapatero */
+.curva-talle { display: inline-flex; gap: 0; }
+.curva-talle .t {
+    text-align: center; border: 1px solid #ddd; min-width: 36px; font-size: 11px;
+}
+.curva-talle .t-head { background: #f5f5f5; font-weight: bold; padding: 2px 4px; border-bottom: 2px solid #999; }
+.curva-talle .t-val { padding: 3px 4px; font-weight: bold; }
+.curva-talle .t-val.hay { background: #d4edda; color: #155724; }
+.curva-talle .t-val.no { background: #f8f9fa; color: #ccc; }
+/* Fila expand */
+/* Truncar descripcion */
+.cell-truncate .tabulator-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-detalle { background: #f8f9fa; padding: 10px 15px; border-left: 3px solid #007bff; }
+.color-group { margin-bottom: 8px; }
+.color-label { font-weight: bold; margin-right: 10px; display: inline-block; min-width: 100px; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin:0;"><i class="glyphicon glyphicon-warning-sign"></i> Stock Muerto — Vista Zapatero</h3>
+    </div>
+
+    <div class="sub-nav">
+        <a href="{{=URL('inteligencia_comercial', 'bcg_matrix')}}">BCG Matrix</a>
+        <a href="{{=URL('inteligencia_comercial', 'proveedores_roi')}}">Proveedores ROI</a>
+        <a href="{{=URL('inteligencia_comercial', 'stock_muerto')}}" class="active">Stock Muerto</a>
+    </div>
+
+    <div class="kpi-row">
+        <div class="kpi-card azul">
+            <h5>Modelos Muertos</h5>
+            <div class="valor">{{=total_modelos}}</div>
+            <div class="sub">Sin ventas 12m, agrupado por modelo+color</div>
+        </div>
+        <div class="kpi-card verde">
+            <h5>Pares Totales</h5>
+            <div class="valor">{{='{:,}'.format(total_pares)}}</div>
+            <div class="sub">Unidades inmovilizadas</div>
+        </div>
+        <div class="kpi-card naranja">
+            <h5>Capital Inmovilizado</h5>
+            <div class="valor" id="kpi-capital">-</div>
+            <div class="sub">Precio costo x stock</div>
+        </div>
+        <div class="kpi-card rojo">
+            <h5>Anomalias Precio</h5>
+            <div class="valor">{{=anomalias}}</div>
+            <div class="sub">Costo > $500.000</div>
+        </div>
+    </div>
+
+    <button class="btn-export" id="btn-csv"><i class="glyphicon glyphicon-download"></i> Exportar CSV</button>
+
+    <div id="tabla-stock-muerto"></div>
+</div>
+
+<script>
+(function() {
+    var rawData = {{=XML(data_json)}};
+    var capitalTotal = {{=capital_total}};
+
+    document.getElementById('kpi-capital').textContent = '$' + Math.round(capitalTotal).toLocaleString('es-AR');
+
+    function pesosFormatter(cell) {
+        var v = cell.getValue();
+        if (v === null || v === undefined) return '-';
+        return '$' + Math.round(v).toLocaleString('es-AR');
+    }
+
+    function alertaFormatter(cell) {
+        var v = cell.getValue();
+        if (!v) return '';
+        cell.getElement().style.background = '#f8d7da';
+        cell.getElement().style.color = '#721c24';
+        cell.getElement().style.fontWeight = 'bold';
+        return v;
+    }
+
+    // Curva de talles formato zapatero — retorna DOM element
+    function curvaFormatter(cell) {
+        var curva = cell.getValue();
+        if (!curva || !curva.length) return '-';
+        var wrap = document.createElement('div');
+        wrap.className = 'curva-talle';
+        for (var i = 0; i < curva.length; i++) {
+            var t = curva[i];
+            var tiene = t.stock > 0;
+            var col = document.createElement('div');
+            col.className = 't';
+            var head = document.createElement('div');
+            head.className = 't-head';
+            head.textContent = t.talle;
+            var val = document.createElement('div');
+            val.className = 't-val ' + (tiene ? 'hay' : 'no');
+            val.textContent = tiene ? t.stock : '-';
+            col.appendChild(head);
+            col.appendChild(val);
+            wrap.appendChild(col);
+        }
+        return wrap;
+    }
+
+    var table = new Tabulator("#tabla-stock-muerto", {
+        data: rawData,
+        layout: "fitDataStretch",
+        height: "650px",
+        pagination: "local",
+        paginationSize: 50,
+        initialSort: [{column: "capital", dir: "desc"}],
+        resizableColumns: true,
+        columns: [
+            {title: "Marca", field: "marca", headerFilter: "input", width: 100},
+            {title: "Modelo", field: "modelo", headerFilter: "input", sorter: "string", width: 120},
+            {title: "Descripcion", field: "descripcion", headerFilter: "input", width: 180,
+                cssClass: "cell-truncate",
+                tooltip: function(e, cell) { return cell.getValue(); }},
+            {title: "Color", field: "color", headerFilter: "input", width: 80},
+            {title: "Rubro", field: "rubro", headerFilter: "input", width: 90},
+            {title: "Pares", field: "stock_total", hozAlign: "right", sorter: "number", width: 60},
+            {title: "Costo", field: "precio_costo", hozAlign: "right", formatter: pesosFormatter, sorter: "number", width: 90},
+            {title: "Capital", field: "capital", hozAlign: "right", formatter: pesosFormatter, sorter: "number", width: 110},
+            {title: "Curva de Talles", field: "curva", formatter: curvaFormatter, headerSort: false, minWidth: 250},
+            {title: "Alerta", field: "alerta", formatter: alertaFormatter, width: 90}
+        ]
+    });
+
+    document.getElementById('btn-csv').addEventListener('click', function() {
+        // Para CSV, aplanar la curva
+        var csvData = rawData.map(function(r) {
+            return {
+                marca: r.marca, modelo: r.descripcion, color: r.color, rubro: r.rubro,
+                pares: r.stock_total, precio_costo: r.precio_costo, capital: r.capital,
+                talles: r.talles_str, alerta: r.alerta
+            };
+        });
+        var tbl = new Tabulator(document.createElement('div'), {data: csvData});
+        tbl.download("csv", "stock_muerto_zapatero.csv");
+    });
+})();
+</script>

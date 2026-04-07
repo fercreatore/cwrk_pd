@@ -14,7 +14,7 @@ Depende de: models/db.py (debe cargar antes, web2py carga por orden alfabetico)
 # ============================================================================
 # CREAR GRUPOS SI NO EXISTEN (se ejecuta al iniciar la app)
 # ============================================================================
-_ROLES = ['informes_admin', 'informes_gerencia', 'informes_compras', 'informes_rrhh']
+_ROLES = ['informes_admin', 'informes_gerencia', 'informes_compras', 'informes_rrhh', 'informes_finanzas']
 for _r in _ROLES:
     if not db_autenticacion(db_autenticacion.auth_group.role == _r).select().first():
         db_autenticacion.auth_group.insert(role=_r, description=_r)
@@ -45,12 +45,16 @@ _PERMISOS = {
     'reportes.recupero_detalle':            ['informes_admin', 'informes_gerencia', 'informes_compras'],
     'reportes.recupero_csv':                ['informes_admin', 'informes_gerencia', 'informes_compras'],
 
-    # Pedidos - gerencia, compras y admin
+    # Pedidos - gerencia, compras, finanzas y admin
     'reportes.sync_pedidos':                ['informes_admin', 'informes_gerencia', 'informes_compras'],
-    'reportes.pedidos':                     ['informes_admin', 'informes_gerencia', 'informes_compras'],
-    'reportes.pedidos_detalle':             ['informes_admin', 'informes_gerencia', 'informes_compras'],
+    'reportes.pedidos':                     ['informes_admin', 'informes_gerencia', 'informes_compras', 'informes_finanzas'],
+    'reportes.pedidos_detalle':             ['informes_admin', 'informes_gerencia', 'informes_compras', 'informes_finanzas'],
 
-    # Remitos de compra - compras y admin
+    # Aprobación presupuestaria - finanzas, gerencia y admin
+    'reportes.pedidos_aprobacion':          ['informes_admin', 'informes_gerencia', 'informes_finanzas'],
+    'reportes.pedido_aprobar':              ['informes_admin', 'informes_gerencia', 'informes_finanzas'],
+
+    # Remitos de compra - compras y admin (bloqueado si pedido no aprobado)
     'reportes.remito_datos_proveedor':      ['informes_admin', 'informes_compras'],
     'reportes.remito_ultimo_numero':        ['informes_admin', 'informes_compras'],
     'reportes.remito_crear':                ['informes_admin', 'informes_compras'],
@@ -79,6 +83,24 @@ _PERMISOS = {
     'informes_productividad.incentivos':    ['informes_admin', 'informes_gerencia', 'informes_rrhh'],
     'informes_productividad.estacionalidad':['informes_admin', 'informes_gerencia', 'informes_rrhh'],
     'informes_productividad.ticket_historico':['informes_admin', 'informes_gerencia'],
+    'informes_productividad.sucursales':    ['informes_admin', 'informes_gerencia', 'informes_rrhh'],
+    'informes_productividad.alertas':       ['informes_admin', 'informes_gerencia', 'informes_rrhh'],
+    'informes_productividad.config':        ['informes_admin'],
+    'informes_productividad.freelance_modelo': ['informes_admin', 'informes_gerencia'],
+    'informes_productividad.viajante_admin': ['informes_admin'],
+
+    # Inteligencia Comercial
+    'inteligencia_comercial.bcg_matrix':     ['informes_admin', 'informes_gerencia'],
+    'inteligencia_comercial.proveedores_roi':['informes_admin', 'informes_gerencia'],
+    'inteligencia_comercial.stock_muerto':   ['informes_admin', 'informes_gerencia', 'informes_compras'],
+
+    # Salud del Negocio
+    'salud_negocio.dashboard':               ['informes_admin', 'informes_gerencia'],
+    'salud_negocio.clientes':                ['informes_admin', 'informes_gerencia'],
+    'salud_negocio.sucursales':              ['informes_admin', 'informes_gerencia'],
+
+    # Presupuesto Live
+    'calce_financiero.presupuesto_live':     ['informes_admin', 'informes_gerencia', 'informes_finanzas'],
 
     # Admin - solo admin
     'admin_roles.index':                    ['informes_admin'],

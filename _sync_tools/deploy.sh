@@ -33,18 +33,16 @@ _montar_share() {
     local mount_point="$1"
     local smb_url="$2"
     local label="$3"
-    if mount | grep -qF "$mount_point"; then
+    mkdir -p "$mount_point" 2>/dev/null
+    mount_smbfs "$smb_url" "$mount_point" 2>/dev/null
+    local rc=$?
+    if [ $rc -eq 0 ]; then
+        echo -e "${GREEN}✓ $label montado OK${NC}"
+    elif mount | grep -qF "$mount_point" || [ "$(ls -A "$mount_point" 2>/dev/null)" ]; then
         echo -e "${GREEN}✓ $label ya montado${NC}"
     else
-        echo -e "${YELLOW}Montando $label...${NC}"
-        mkdir -p "$mount_point" 2>/dev/null
-        mount_smbfs "$smb_url" "$mount_point"
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ $label montado OK${NC}"
-        else
-            echo -e "${RED}✗ Error montando $label. ¿Está encendido el servidor?${NC}"
-            return 1
-        fi
+        echo -e "${RED}✗ Error montando $label. ¿Está encendido el servidor?${NC}"
+        return 1
     fi
 }
 
@@ -152,7 +150,6 @@ case "${1:-todo}" in
         deploy_scripts
         ;;
     web2py)
-        montar
         deploy_web2py
         ;;
     todo)

@@ -1,0 +1,2572 @@
+{
+  "431": {
+    "last_message_id": 4217,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 10:50:12"
+  },
+  "432": {
+    "last_message_id": 5587,
+    "responded_at": "2026-04-05 13:58:32",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 20:47:03"
+  },
+  "522": {
+    "last_message_id": 4593,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:01:04"
+  },
+  "523": {
+    "last_message_id": 4594,
+    "responded_at": "2026-04-05 11:02:07",
+    "initial_sent": false
+  },
+  "524": {
+    "last_message_id": 4602,
+    "responded_at": "2026-04-05 11:02:39",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:06:21"
+  },
+  "525": {
+    "last_message_id": 4599,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:03:10"
+  },
+  "526": {
+    "last_message_id": 4601,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:05:17"
+  },
+  "527": {
+    "last_message_id": 5605,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 21:33:13"
+  },
+  "528": {
+    "last_message_id": 4606,
+    "responded_at": "2026-04-05 11:12:46",
+    "initial_sent": false
+  },
+  "530": {
+    "last_message_id": 4609,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:19:17"
+  },
+  "531": {
+    "last_message_id": 4610,
+    "responded_at": "2026-04-05 11:19:50",
+    "initial_sent": false
+  },
+  "532": {
+    "last_message_id": 4613,
+    "responded_at": "2026-04-05 11:20:23",
+    "initial_sent": false
+  },
+  "534": {
+    "last_message_id": 4616,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:21:28"
+  },
+  "533": {
+    "last_message_id": 4615,
+    "responded_at": "2026-04-05 11:21:29",
+    "initial_sent": false
+  },
+  "535": {
+    "last_message_id": 4618,
+    "responded_at": "2026-04-05 11:24:14",
+    "initial_sent": false
+  },
+  "537": {
+    "last_message_id": 4751,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 12:54:04"
+  },
+  "536": {
+    "last_message_id": 4620,
+    "responded_at": "2026-04-05 11:26:27",
+    "initial_sent": false
+  },
+  "538": {
+    "last_message_id": 4624,
+    "responded_at": "2026-04-05 11:28:07",
+    "initial_sent": false
+  },
+  "539": {
+    "last_message_id": 4626,
+    "responded_at": "2026-04-05 11:29:14",
+    "initial_sent": false
+  },
+  "540": {
+    "last_message_id": 4907,
+    "responded_at": "2026-04-05 13:36:16",
+    "initial_sent": false
+  },
+  "541": {
+    "last_message_id": 4632,
+    "responded_at": "2026-04-05 11:33:14",
+    "initial_sent": false
+  },
+  "542": {
+    "last_message_id": 4642,
+    "responded_at": "2026-04-05 11:34:56",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:36:40"
+  },
+  "543": {
+    "last_message_id": 4636,
+    "responded_at": "2026-04-05 11:35:31",
+    "initial_sent": false
+  },
+  "545": {
+    "last_message_id": 4640,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:36:05"
+  },
+  "544": {
+    "last_message_id": 4638,
+    "responded_at": "2026-04-05 11:36:06",
+    "initial_sent": false
+  },
+  "546": {
+    "last_message_id": 4643,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:39:31"
+  },
+  "547": {
+    "last_message_id": 4644,
+    "responded_at": "2026-04-05 11:40:05",
+    "initial_sent": false
+  },
+  "548": {
+    "last_message_id": 4646,
+    "responded_at": "2026-04-05 11:41:47",
+    "initial_sent": false
+  },
+  "549": {
+    "last_message_id": 4648,
+    "responded_at": "2026-04-05 11:44:03",
+    "initial_sent": false
+  },
+  "550": {
+    "last_message_id": 4650,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:45:45"
+  },
+  "551": {
+    "last_message_id": 4651,
+    "responded_at": "2026-04-05 11:47:27",
+    "initial_sent": false
+  },
+  "552": {
+    "last_message_id": 4655,
+    "responded_at": "2026-04-05 11:49:11",
+    "initial_sent": false
+  },
+  "553": {
+    "last_message_id": 4658,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:49:45"
+  },
+  "554": {
+    "last_message_id": 4944,
+    "responded_at": "2026-04-05 14:01:22",
+    "initial_sent": false
+  },
+  "556": {
+    "last_message_id": 5088,
+    "responded_at": "2026-04-05 14:17:57",
+    "initial_sent": false
+  },
+  "555": {
+    "last_message_id": 4673,
+    "responded_at": "2026-04-05 11:52:36",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:56:01"
+  },
+  "557": {
+    "last_message_id": 4666,
+    "responded_at": "2026-04-05 11:55:27",
+    "initial_sent": false
+  },
+  "558": {
+    "last_message_id": 4674,
+    "responded_at": "2026-04-05 11:56:01",
+    "initial_sent": false
+  },
+  "559": {
+    "last_message_id": 4679,
+    "responded_at": "2026-04-05 11:56:35",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:57:09"
+  },
+  "560": {
+    "last_message_id": 4681,
+    "responded_at": "2026-04-05 11:58:17",
+    "initial_sent": false
+  },
+  "561": {
+    "last_message_id": 4683,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 11:58:51"
+  },
+  "562": {
+    "last_message_id": 4684,
+    "responded_at": "2026-04-05 11:59:27",
+    "initial_sent": false
+  },
+  "563": {
+    "last_message_id": 4690,
+    "responded_at": "2026-04-05 12:03:26",
+    "initial_sent": false
+  },
+  "564": {
+    "last_message_id": 5103,
+    "responded_at": "2026-04-05 14:20:50",
+    "initial_sent": false
+  },
+  "565": {
+    "last_message_id": 4693,
+    "responded_at": "2026-04-05 12:05:42",
+    "initial_sent": false
+  },
+  "566": {
+    "last_message_id": 4695,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 12:06:16"
+  },
+  "567": {
+    "last_message_id": 4696,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 12:07:24"
+  },
+  "568": {
+    "last_message_id": 4697,
+    "responded_at": "2026-04-05 12:10:49",
+    "initial_sent": false
+  },
+  "570": {
+    "last_message_id": 4700,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 12:11:23"
+  },
+  "569": {
+    "last_message_id": 4699,
+    "responded_at": "2026-04-05 12:11:24",
+    "initial_sent": false
+  },
+  "571": {
+    "last_message_id": 4702,
+    "responded_at": "2026-04-05 12:13:06",
+    "initial_sent": false
+  },
+  "572": {
+    "last_message_id": 4704,
+    "responded_at": "2026-04-05 12:17:39",
+    "initial_sent": false
+  },
+  "573": {
+    "last_message_id": 4706,
+    "responded_at": "2026-04-05 12:21:38",
+    "initial_sent": false
+  },
+  "574": {
+    "last_message_id": 4708,
+    "responded_at": "2026-04-05 12:26:46",
+    "initial_sent": false
+  },
+  "575": {
+    "last_message_id": 4710,
+    "responded_at": "2026-04-05 12:28:29",
+    "initial_sent": false
+  },
+  "576": {
+    "last_message_id": 4712,
+    "responded_at": "2026-04-05 12:35:17",
+    "initial_sent": false
+  },
+  "577": {
+    "last_message_id": 4717,
+    "responded_at": "2026-04-05 12:40:24",
+    "initial_sent": false
+  },
+  "578": {
+    "last_message_id": 4720,
+    "responded_at": "2026-04-05 12:43:48",
+    "initial_sent": false
+  },
+  "579": {
+    "last_message_id": 4722,
+    "responded_at": "2026-04-05 12:44:56",
+    "initial_sent": false
+  },
+  "580": {
+    "last_message_id": 5501,
+    "responded_at": "2026-04-05 17:12:56",
+    "initial_sent": false
+  },
+  "581": {
+    "last_message_id": 4727,
+    "responded_at": "2026-04-05 12:47:13",
+    "initial_sent": false
+  },
+  "582": {
+    "last_message_id": 4746,
+    "responded_at": "2026-04-05 12:48:56",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 12:52:21"
+  },
+  "583": {
+    "last_message_id": 5148,
+    "responded_at": "2026-04-05 14:35:45",
+    "initial_sent": false
+  },
+  "586": {
+    "last_message_id": 4736,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 12:50:38"
+  },
+  "585": {
+    "last_message_id": 4735,
+    "responded_at": "2026-04-05 12:50:38",
+    "initial_sent": false
+  },
+  "584": {
+    "last_message_id": 4743,
+    "responded_at": "2026-04-05 12:50:39",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 12:51:46"
+  },
+  "587": {
+    "last_message_id": 4739,
+    "responded_at": "2026-04-05 12:51:12",
+    "initial_sent": false
+  },
+  "588": {
+    "last_message_id": 4742,
+    "responded_at": "2026-04-05 12:51:47",
+    "initial_sent": false
+  },
+  "590": {
+    "last_message_id": 4748,
+    "responded_at": "2026-04-05 12:52:55",
+    "initial_sent": false
+  },
+  "589": {
+    "last_message_id": 4747,
+    "responded_at": "2026-04-05 12:52:55",
+    "initial_sent": false
+  },
+  "591": {
+    "last_message_id": 4752,
+    "responded_at": "2026-04-05 12:54:04",
+    "initial_sent": false
+  },
+  "592": {
+    "last_message_id": 4754,
+    "responded_at": "2026-04-05 12:56:20",
+    "initial_sent": false
+  },
+  "593": {
+    "last_message_id": 4759,
+    "responded_at": "2026-04-05 12:59:12",
+    "initial_sent": false
+  },
+  "595": {
+    "last_message_id": 4763,
+    "responded_at": "2026-04-05 13:00:21",
+    "initial_sent": false
+  },
+  "594": {
+    "last_message_id": 4762,
+    "responded_at": "2026-04-05 13:00:21",
+    "initial_sent": false
+  },
+  "596": {
+    "last_message_id": 4766,
+    "responded_at": "2026-04-05 13:02:38",
+    "initial_sent": false
+  },
+  "597": {
+    "last_message_id": 5590,
+    "responded_at": "2026-04-05 21:09:02",
+    "initial_sent": false
+  },
+  "598": {
+    "last_message_id": 4770,
+    "responded_at": "2026-04-05 13:13:27",
+    "initial_sent": false
+  },
+  "599": {
+    "last_message_id": 4776,
+    "responded_at": "2026-04-05 13:15:43",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 13:16:52"
+  },
+  "600": {
+    "last_message_id": 4774,
+    "responded_at": "2026-04-05 13:16:18",
+    "initial_sent": false
+  },
+  "601": {
+    "last_message_id": 4778,
+    "responded_at": "2026-04-05 13:16:52",
+    "initial_sent": false
+  },
+  "602": {
+    "last_message_id": 4780,
+    "responded_at": "2026-04-05 13:18:00",
+    "initial_sent": false
+  },
+  "603": {
+    "last_message_id": 4782,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 13:18:34"
+  },
+  "605": {
+    "last_message_id": 4783,
+    "responded_at": "2026-04-05 13:20:16",
+    "initial_sent": false
+  },
+  "607": {
+    "last_message_id": 4786,
+    "responded_at": "2026-04-05 13:20:51",
+    "initial_sent": false
+  },
+  "606": {
+    "last_message_id": 4785,
+    "responded_at": "2026-04-05 13:20:51",
+    "initial_sent": false
+  },
+  "609": {
+    "last_message_id": 4795,
+    "responded_at": "2026-04-05 13:27:08",
+    "initial_sent": false
+  },
+  "608": {
+    "last_message_id": 4791,
+    "responded_at": "2026-04-05 13:26:33",
+    "initial_sent": false
+  },
+  "610": {
+    "last_message_id": 4796,
+    "responded_at": "2026-04-05 13:27:08",
+    "initial_sent": false
+  },
+  "612": {
+    "last_message_id": 4802,
+    "responded_at": "2026-04-05 13:29:25",
+    "initial_sent": false
+  },
+  "613": {
+    "last_message_id": 4804,
+    "responded_at": "2026-04-05 13:29:59",
+    "initial_sent": false
+  },
+  "616": {
+    "last_message_id": 4863,
+    "responded_at": "2026-04-05 13:33:59",
+    "initial_sent": false
+  },
+  "617": {
+    "last_message_id": 4909,
+    "responded_at": "2026-04-05 13:36:50",
+    "initial_sent": false
+  },
+  "618": {
+    "last_message_id": 4912,
+    "responded_at": "2026-04-05 13:39:40",
+    "initial_sent": false
+  },
+  "620": {
+    "last_message_id": 4916,
+    "responded_at": "2026-04-05 13:40:48",
+    "initial_sent": false
+  },
+  "619": {
+    "last_message_id": 5184,
+    "responded_at": "2026-04-05 14:49:30",
+    "initial_sent": false
+  },
+  "621": {
+    "last_message_id": 4929,
+    "responded_at": "2026-04-05 13:51:01",
+    "initial_sent": false
+  },
+  "622": {
+    "last_message_id": 4921,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 13:44:46"
+  },
+  "623": {
+    "last_message_id": 4923,
+    "responded_at": "2026-04-05 13:45:54",
+    "initial_sent": false
+  },
+  "624": {
+    "last_message_id": 4925,
+    "responded_at": "2026-04-05 13:47:37",
+    "initial_sent": false
+  },
+  "625": {
+    "last_message_id": 4928,
+    "responded_at": "2026-04-05 13:51:02",
+    "initial_sent": false
+  },
+  "626": {
+    "last_message_id": 4932,
+    "responded_at": "2026-04-05 13:52:10",
+    "initial_sent": false
+  },
+  "629": {
+    "last_message_id": 4939,
+    "responded_at": "2026-04-05 13:53:19",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 13:53:54"
+  },
+  "628": {
+    "last_message_id": 4935,
+    "responded_at": "2026-04-05 13:53:19",
+    "initial_sent": false
+  },
+  "627": {
+    "last_message_id": 4934,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 13:53:19"
+  },
+  "630": {
+    "last_message_id": 4940,
+    "responded_at": "2026-04-05 13:53:53",
+    "initial_sent": false
+  },
+  "631": {
+    "last_message_id": 4945,
+    "responded_at": "2026-04-05 14:01:21",
+    "initial_sent": false
+  },
+  "632": {
+    "last_message_id": 4948,
+    "responded_at": "2026-04-05 14:04:49",
+    "initial_sent": false
+  },
+  "633": {
+    "last_message_id": 4950,
+    "responded_at": "2026-04-05 14:05:23",
+    "initial_sent": false
+  },
+  "635": {
+    "last_message_id": 4953,
+    "responded_at": "2026-04-05 14:05:58",
+    "initial_sent": false
+  },
+  "634": {
+    "last_message_id": 4952,
+    "responded_at": "2026-04-05 14:05:58",
+    "initial_sent": false
+  },
+  "636": {
+    "last_message_id": 4956,
+    "responded_at": "2026-04-05 14:06:33",
+    "initial_sent": false
+  },
+  "637": {
+    "last_message_id": 5071,
+    "responded_at": "2026-04-05 14:13:22",
+    "initial_sent": false
+  },
+  "638": {
+    "last_message_id": 5073,
+    "responded_at": "2026-04-05 14:14:30",
+    "initial_sent": false
+  },
+  "639": {
+    "last_message_id": 5075,
+    "responded_at": "2026-04-05 14:15:05",
+    "initial_sent": false
+  },
+  "640": {
+    "last_message_id": 5077,
+    "responded_at": "2026-04-05 14:16:13",
+    "initial_sent": false
+  },
+  "641": {
+    "last_message_id": 5079,
+    "responded_at": "2026-04-05 14:16:47",
+    "initial_sent": false
+  },
+  "643": {
+    "last_message_id": 5083,
+    "responded_at": "2026-04-05 14:17:22",
+    "initial_sent": false
+  },
+  "642": {
+    "last_message_id": 5081,
+    "responded_at": "2026-04-05 14:17:22",
+    "initial_sent": false
+  },
+  "644": {
+    "last_message_id": 5087,
+    "responded_at": "2026-04-05 14:17:57",
+    "initial_sent": false
+  },
+  "647": {
+    "last_message_id": 5093,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 14:18:32"
+  },
+  "646": {
+    "last_message_id": 5092,
+    "responded_at": "2026-04-05 14:18:32",
+    "initial_sent": false
+  },
+  "645": {
+    "last_message_id": 5091,
+    "responded_at": "2026-04-05 14:18:32",
+    "initial_sent": false
+  },
+  "648": {
+    "last_message_id": 5096,
+    "responded_at": "2026-04-05 14:19:07",
+    "initial_sent": false
+  },
+  "650": {
+    "last_message_id": 5099,
+    "responded_at": "2026-04-05 14:20:15",
+    "initial_sent": false
+  },
+  "649": {
+    "last_message_id": 5098,
+    "responded_at": "2026-04-05 14:20:15",
+    "initial_sent": false
+  },
+  "651": {
+    "last_message_id": 5102,
+    "responded_at": "2026-04-05 14:20:50",
+    "initial_sent": false
+  },
+  "652": {
+    "last_message_id": 5106,
+    "responded_at": "2026-04-05 14:21:24",
+    "initial_sent": false
+  },
+  "653": {
+    "last_message_id": 5108,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 14:21:58"
+  },
+  "655": {
+    "last_message_id": 5110,
+    "responded_at": "2026-04-05 14:22:33",
+    "initial_sent": false
+  },
+  "654": {
+    "last_message_id": 5109,
+    "responded_at": "2026-04-05 14:22:33",
+    "initial_sent": false
+  },
+  "656": {
+    "last_message_id": 5142,
+    "responded_at": "2026-04-05 14:33:27",
+    "initial_sent": true,
+    "optout": true
+  },
+  "657": {
+    "last_message_id": 5117,
+    "responded_at": "2026-04-05 14:25:58",
+    "initial_sent": false
+  },
+  "659": {
+    "last_message_id": 5139,
+    "responded_at": "2026-04-05 14:33:28",
+    "initial_sent": false
+  },
+  "658": {
+    "last_message_id": 5119,
+    "responded_at": "2026-04-05 14:27:41",
+    "initial_sent": false
+  },
+  "660": {
+    "last_message_id": 5140,
+    "responded_at": "2026-04-05 14:33:28",
+    "initial_sent": false
+  },
+  "661": {
+    "last_message_id": 5125,
+    "responded_at": "2026-04-05 14:28:50",
+    "initial_sent": false
+  },
+  "662": {
+    "last_message_id": 5127,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 14:29:58"
+  },
+  "666": {
+    "last_message_id": 5131,
+    "responded_at": "2026-04-05 14:31:07",
+    "initial_sent": false
+  },
+  "665": {
+    "last_message_id": 5130,
+    "responded_at": "2026-04-05 14:31:07",
+    "initial_sent": false
+  },
+  "664": {
+    "last_message_id": 5235,
+    "responded_at": "2026-04-05 15:11:57",
+    "initial_sent": false
+  },
+  "663": {
+    "last_message_id": 5128,
+    "responded_at": "2026-04-05 14:31:08",
+    "initial_sent": false
+  },
+  "668": {
+    "last_message_id": 5138,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 14:32:18"
+  },
+  "667": {
+    "last_message_id": 5137,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 14:32:18"
+  },
+  "669": {
+    "last_message_id": 5141,
+    "responded_at": "2026-04-05 14:33:27",
+    "initial_sent": false
+  },
+  "671": {
+    "last_message_id": 5149,
+    "responded_at": "2026-04-05 14:36:20",
+    "initial_sent": false
+  },
+  "672": {
+    "last_message_id": 5389,
+    "responded_at": "2026-04-05 16:08:13",
+    "initial_sent": false
+  },
+  "673": {
+    "last_message_id": 5155,
+    "responded_at": "2026-04-05 14:37:28",
+    "initial_sent": false
+  },
+  "674": {
+    "last_message_id": 5157,
+    "responded_at": "2026-04-05 14:38:37",
+    "initial_sent": false
+  },
+  "675": {
+    "last_message_id": 5159,
+    "responded_at": "2026-04-05 14:39:12",
+    "initial_sent": false
+  },
+  "676": {
+    "last_message_id": 5161,
+    "responded_at": "2026-04-05 14:39:46",
+    "initial_sent": false
+  },
+  "677": {
+    "last_message_id": 5164,
+    "responded_at": "2026-04-05 14:40:21",
+    "initial_sent": false
+  },
+  "678": {
+    "last_message_id": 5166,
+    "responded_at": "2026-04-05 14:40:55",
+    "initial_sent": false
+  },
+  "679": {
+    "last_message_id": 5168,
+    "responded_at": "2026-04-05 14:41:30",
+    "initial_sent": false
+  },
+  "680": {
+    "last_message_id": 5172,
+    "responded_at": "2026-04-05 14:43:12",
+    "initial_sent": false
+  },
+  "681": {
+    "last_message_id": 5174,
+    "responded_at": "2026-04-05 14:43:47",
+    "initial_sent": false
+  },
+  "683": {
+    "last_message_id": 5177,
+    "responded_at": "2026-04-05 14:44:21",
+    "initial_sent": false
+  },
+  "682": {
+    "last_message_id": 5176,
+    "responded_at": "2026-04-05 14:44:22",
+    "initial_sent": false
+  },
+  "684": {
+    "last_message_id": 5181,
+    "responded_at": "2026-04-05 14:47:12",
+    "initial_sent": false
+  },
+  "685": {
+    "last_message_id": 5183,
+    "responded_at": "2026-04-05 14:49:30",
+    "initial_sent": false
+  },
+  "687": {
+    "last_message_id": 5189,
+    "responded_at": "2026-04-05 14:50:39",
+    "initial_sent": false
+  },
+  "686": {
+    "last_message_id": 5193,
+    "responded_at": "2026-04-05 14:51:14",
+    "initial_sent": false
+  },
+  "688": {
+    "last_message_id": 5195,
+    "responded_at": "2026-04-05 14:51:49",
+    "initial_sent": false
+  },
+  "691": {
+    "last_message_id": 5200,
+    "responded_at": "2026-04-05 14:52:23",
+    "initial_sent": false
+  },
+  "690": {
+    "last_message_id": 5198,
+    "responded_at": "2026-04-05 14:52:24",
+    "initial_sent": false
+  },
+  "689": {
+    "last_message_id": 5197,
+    "responded_at": "2026-04-05 14:52:24",
+    "initial_sent": false
+  },
+  "692": {
+    "last_message_id": 5204,
+    "responded_at": "2026-04-05 14:55:48",
+    "initial_sent": false
+  },
+  "693": {
+    "last_message_id": 5206,
+    "responded_at": "2026-04-05 14:59:48",
+    "initial_sent": false
+  },
+  "694": {
+    "last_message_id": 5208,
+    "responded_at": "2026-04-05 15:01:31",
+    "initial_sent": false
+  },
+  "696": {
+    "last_message_id": 5211,
+    "responded_at": "2026-04-05 15:02:06",
+    "initial_sent": false
+  },
+  "695": {
+    "last_message_id": 5210,
+    "responded_at": "2026-04-05 15:02:06",
+    "initial_sent": false
+  },
+  "697": {
+    "last_message_id": 5214,
+    "responded_at": "2026-04-05 15:02:41",
+    "initial_sent": false
+  },
+  "699": {
+    "last_message_id": 5223,
+    "responded_at": "2026-04-05 15:03:51",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 15:05:03"
+  },
+  "698": {
+    "last_message_id": 5216,
+    "responded_at": "2026-04-05 15:03:52",
+    "initial_sent": false
+  },
+  "700": {
+    "last_message_id": 5221,
+    "responded_at": "2026-04-05 15:04:28",
+    "initial_sent": false
+  },
+  "701": {
+    "last_message_id": 5224,
+    "responded_at": "2026-04-05 15:06:45",
+    "initial_sent": false
+  },
+  "702": {
+    "last_message_id": 5227,
+    "responded_at": "2026-04-05 15:07:20",
+    "initial_sent": false
+  },
+  "703": {
+    "last_message_id": 5229,
+    "responded_at": "2026-04-05 15:09:04",
+    "initial_sent": false
+  },
+  "704": {
+    "last_message_id": 5231,
+    "responded_at": "2026-04-05 15:10:14",
+    "initial_sent": false
+  },
+  "705": {
+    "last_message_id": 5233,
+    "responded_at": "2026-04-05 15:11:22",
+    "initial_sent": false
+  },
+  "706": {
+    "last_message_id": 5237,
+    "responded_at": "2026-04-05 15:12:31",
+    "initial_sent": false
+  },
+  "708": {
+    "last_message_id": 5240,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 15:13:06"
+  },
+  "707": {
+    "last_message_id": 5239,
+    "responded_at": "2026-04-05 15:13:06",
+    "initial_sent": false
+  },
+  "711": {
+    "last_message_id": 5269,
+    "responded_at": "2026-04-05 15:18:17",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 15:19:26"
+  },
+  "710": {
+    "last_message_id": 5243,
+    "responded_at": "2026-04-05 15:13:41",
+    "initial_sent": false
+  },
+  "709": {
+    "last_message_id": 5242,
+    "responded_at": "2026-04-05 15:13:42",
+    "initial_sent": false
+  },
+  "713": {
+    "last_message_id": 5251,
+    "responded_at": "2026-04-05 15:14:16",
+    "initial_sent": false
+  },
+  "712": {
+    "last_message_id": 5249,
+    "responded_at": "2026-04-05 15:14:17",
+    "initial_sent": false
+  },
+  "714": {
+    "last_message_id": 5254,
+    "responded_at": "2026-04-05 15:14:52",
+    "initial_sent": false
+  },
+  "715": {
+    "last_message_id": 5260,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 15:16:35"
+  },
+  "716": {
+    "last_message_id": 5499,
+    "responded_at": "2026-04-05 17:10:05",
+    "initial_sent": false
+  },
+  "717": {
+    "last_message_id": 5265,
+    "responded_at": "2026-04-05 15:18:52",
+    "initial_sent": false
+  },
+  "718": {
+    "last_message_id": 5268,
+    "responded_at": "2026-04-05 15:19:27",
+    "initial_sent": false
+  },
+  "719": {
+    "last_message_id": 5271,
+    "responded_at": "2026-04-05 15:20:01",
+    "initial_sent": false
+  },
+  "722": {
+    "last_message_id": 5279,
+    "responded_at": "2026-04-05 15:21:15",
+    "initial_sent": false
+  },
+  "721": {
+    "last_message_id": 5275,
+    "responded_at": "2026-04-05 15:20:37",
+    "initial_sent": false
+  },
+  "723": {
+    "last_message_id": 5281,
+    "responded_at": "2026-04-05 15:21:14",
+    "initial_sent": false
+  },
+  "724": {
+    "last_message_id": 5284,
+    "responded_at": "2026-04-05 15:24:05",
+    "initial_sent": false
+  },
+  "726": {
+    "last_message_id": 5288,
+    "responded_at": "2026-04-05 15:26:56",
+    "initial_sent": false
+  },
+  "725": {
+    "last_message_id": 5286,
+    "responded_at": "2026-04-05 15:26:57",
+    "initial_sent": false
+  },
+  "727": {
+    "last_message_id": 5291,
+    "responded_at": "2026-04-05 15:29:14",
+    "initial_sent": false
+  },
+  "731": {
+    "last_message_id": 5296,
+    "responded_at": "2026-04-05 15:29:48",
+    "initial_sent": false
+  },
+  "729": {
+    "last_message_id": 5300,
+    "responded_at": "2026-04-05 15:31:32",
+    "initial_sent": false
+  },
+  "728": {
+    "last_message_id": 5293,
+    "responded_at": "2026-04-05 15:29:49",
+    "initial_sent": false
+  },
+  "732": {
+    "last_message_id": 5301,
+    "responded_at": "2026-04-05 15:31:32",
+    "initial_sent": false
+  },
+  "733": {
+    "last_message_id": 5304,
+    "responded_at": "2026-04-05 15:32:41",
+    "initial_sent": false
+  },
+  "734": {
+    "last_message_id": 5306,
+    "responded_at": "2026-04-05 15:33:17",
+    "initial_sent": false
+  },
+  "735": {
+    "last_message_id": 5308,
+    "responded_at": "2026-04-05 15:33:52",
+    "initial_sent": false
+  },
+  "737": {
+    "last_message_id": 5311,
+    "responded_at": "2026-04-05 15:35:01",
+    "initial_sent": false
+  },
+  "736": {
+    "last_message_id": 5310,
+    "responded_at": "2026-04-05 15:35:01",
+    "initial_sent": false
+  },
+  "738": {
+    "last_message_id": 5314,
+    "responded_at": "2026-04-05 15:35:36",
+    "initial_sent": false
+  },
+  "740": {
+    "last_message_id": 5318,
+    "responded_at": "2026-04-05 15:36:10",
+    "initial_sent": false
+  },
+  "739": {
+    "last_message_id": 5316,
+    "responded_at": "2026-04-05 15:36:11",
+    "initial_sent": false
+  },
+  "742": {
+    "last_message_id": 5322,
+    "responded_at": "2026-04-05 15:36:45",
+    "initial_sent": false
+  },
+  "741": {
+    "last_message_id": 5321,
+    "responded_at": "2026-04-05 15:36:46",
+    "initial_sent": false
+  },
+  "743": {
+    "last_message_id": 5327,
+    "responded_at": "2026-04-05 15:38:30",
+    "initial_sent": false
+  },
+  "745": {
+    "last_message_id": 5330,
+    "responded_at": "2026-04-05 15:39:05",
+    "initial_sent": false
+  },
+  "744": {
+    "last_message_id": 5328,
+    "responded_at": "2026-04-05 15:39:06",
+    "initial_sent": false
+  },
+  "747": {
+    "last_message_id": 5334,
+    "responded_at": "2026-04-05 15:41:04",
+    "initial_sent": false
+  },
+  "746": {
+    "last_message_id": 5333,
+    "responded_at": "2026-04-05 15:41:05",
+    "initial_sent": false
+  },
+  "748": {
+    "last_message_id": 5337,
+    "responded_at": "2026-04-05 15:42:52",
+    "initial_sent": false
+  },
+  "749": {
+    "last_message_id": 5339,
+    "responded_at": "2026-04-05 15:44:35",
+    "initial_sent": false
+  },
+  "751": {
+    "last_message_id": 5343,
+    "responded_at": "2026-04-05 15:45:44",
+    "initial_sent": false
+  },
+  "750": {
+    "last_message_id": 5341,
+    "responded_at": "2026-04-05 15:45:44",
+    "initial_sent": false
+  },
+  "752": {
+    "last_message_id": 5347,
+    "responded_at": "2026-04-05 15:46:53",
+    "initial_sent": false
+  },
+  "753": {
+    "last_message_id": 5349,
+    "responded_at": "2026-04-05 15:47:27",
+    "initial_sent": false
+  },
+  "754": {
+    "last_message_id": 5416,
+    "responded_at": "2026-04-05 16:20:19",
+    "initial_sent": false
+  },
+  "755": {
+    "last_message_id": 5357,
+    "responded_at": "2026-04-05 15:52:38",
+    "initial_sent": false
+  },
+  "756": {
+    "last_message_id": 5355,
+    "responded_at": "2026-04-05 15:52:03",
+    "initial_sent": false
+  },
+  "757": {
+    "last_message_id": 5358,
+    "responded_at": "2026-04-05 15:52:38",
+    "initial_sent": false
+  },
+  "758": {
+    "last_message_id": 5361,
+    "responded_at": "2026-04-05 15:53:13",
+    "initial_sent": false
+  },
+  "759": {
+    "last_message_id": 5363,
+    "responded_at": "2026-04-05 15:54:21",
+    "initial_sent": false
+  },
+  "761": {
+    "last_message_id": 5366,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 15:56:05"
+  },
+  "760": {
+    "last_message_id": 5365,
+    "responded_at": "2026-04-05 15:56:05",
+    "initial_sent": false
+  },
+  "762": {
+    "last_message_id": 5368,
+    "responded_at": "2026-04-05 15:56:39",
+    "initial_sent": false
+  },
+  "763": {
+    "last_message_id": 5370,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 15:57:16"
+  },
+  "764": {
+    "last_message_id": 5371,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 15:58:24"
+  },
+  "765": {
+    "last_message_id": 5372,
+    "responded_at": "2026-04-05 15:58:59",
+    "initial_sent": false
+  },
+  "766": {
+    "last_message_id": 5579,
+    "responded_at": "2026-04-05 20:25:33",
+    "initial_sent": false
+  },
+  "767": {
+    "last_message_id": 5375,
+    "responded_at": "2026-04-05 16:00:07",
+    "initial_sent": false
+  },
+  "768": {
+    "last_message_id": 5377,
+    "responded_at": "2026-04-05 16:00:43",
+    "initial_sent": false
+  },
+  "769": {
+    "last_message_id": 5379,
+    "responded_at": "2026-04-05 16:03:01",
+    "initial_sent": false
+  },
+  "770": {
+    "last_message_id": 5383,
+    "responded_at": "2026-04-05 16:04:11",
+    "initial_sent": false
+  },
+  "771": {
+    "last_message_id": 5385,
+    "responded_at": "2026-04-05 16:05:20",
+    "initial_sent": false
+  },
+  "772": {
+    "last_message_id": 5387,
+    "responded_at": "2026-04-05 16:07:04",
+    "initial_sent": false
+  },
+  "773": {
+    "last_message_id": 5390,
+    "responded_at": "2026-04-05 16:08:13",
+    "initial_sent": false
+  },
+  "774": {
+    "last_message_id": 5393,
+    "responded_at": "2026-04-05 16:09:22",
+    "initial_sent": false
+  },
+  "776": {
+    "last_message_id": 5396,
+    "responded_at": "2026-04-05 16:11:04",
+    "initial_sent": false
+  },
+  "777": {
+    "last_message_id": 5398,
+    "responded_at": "2026-04-05 16:12:13",
+    "initial_sent": false
+  },
+  "778": {
+    "last_message_id": 5400,
+    "responded_at": "2026-04-05 16:12:47",
+    "initial_sent": false
+  },
+  "779": {
+    "last_message_id": 5402,
+    "responded_at": "2026-04-05 16:13:22",
+    "initial_sent": false
+  },
+  "781": {
+    "last_message_id": 5408,
+    "responded_at": "2026-04-05 16:15:42",
+    "initial_sent": false
+  },
+  "780": {
+    "last_message_id": 5404,
+    "responded_at": "2026-04-05 16:14:33",
+    "initial_sent": false
+  },
+  "782": {
+    "last_message_id": 5409,
+    "responded_at": "2026-04-05 16:15:41",
+    "initial_sent": false
+  },
+  "783": {
+    "last_message_id": 5412,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 16:16:16"
+  },
+  "784": {
+    "last_message_id": 5413,
+    "responded_at": "2026-04-05 16:18:36",
+    "initial_sent": false
+  },
+  "785": {
+    "last_message_id": 5415,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 16:19:44"
+  },
+  "787": {
+    "last_message_id": 5420,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 16:21:27"
+  },
+  "789": {
+    "last_message_id": 5429,
+    "responded_at": "2026-04-05 16:24:58",
+    "initial_sent": false
+  },
+  "788": {
+    "last_message_id": 5421,
+    "responded_at": "2026-04-05 16:23:48",
+    "initial_sent": false
+  },
+  "791": {
+    "last_message_id": 5426,
+    "responded_at": "2026-04-05 16:24:23",
+    "initial_sent": false
+  },
+  "790": {
+    "last_message_id": 5423,
+    "responded_at": "2026-04-05 16:24:23",
+    "initial_sent": false
+  },
+  "793": {
+    "last_message_id": 5546,
+    "responded_at": "2026-04-05 18:25:53",
+    "initial_sent": false
+  },
+  "795": {
+    "last_message_id": 5437,
+    "responded_at": "2026-04-05 16:26:07",
+    "initial_sent": false
+  },
+  "794": {
+    "last_message_id": 5436,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 16:26:07"
+  },
+  "796": {
+    "last_message_id": 5440,
+    "responded_at": "2026-04-05 16:26:41",
+    "initial_sent": false
+  },
+  "797": {
+    "last_message_id": 5442,
+    "responded_at": "2026-04-05 16:27:54",
+    "initial_sent": false
+  },
+  "799": {
+    "last_message_id": 5447,
+    "responded_at": "2026-04-05 16:30:14",
+    "initial_sent": false
+  },
+  "800": {
+    "last_message_id": 5448,
+    "responded_at": "2026-04-05 16:30:13",
+    "initial_sent": false
+  },
+  "801": {
+    "last_message_id": 5468,
+    "responded_at": "2026-04-05 16:31:58",
+    "initial_sent": false
+  },
+  "803": {
+    "last_message_id": 5472,
+    "responded_at": "2026-04-05 16:34:50",
+    "initial_sent": false
+  },
+  "802": {
+    "last_message_id": 5471,
+    "responded_at": "2026-04-05 16:34:51",
+    "initial_sent": false
+  },
+  "804": {
+    "last_message_id": 5475,
+    "responded_at": "2026-04-05 16:46:46",
+    "initial_sent": false
+  },
+  "805": {
+    "last_message_id": 5477,
+    "responded_at": "2026-04-05 16:50:44",
+    "initial_sent": false
+  },
+  "806": {
+    "last_message_id": 5479,
+    "responded_at": "2026-04-05 16:53:01",
+    "initial_sent": false
+  },
+  "807": {
+    "last_message_id": 5481,
+    "responded_at": "2026-04-05 16:54:43",
+    "initial_sent": false
+  },
+  "808": {
+    "last_message_id": 5483,
+    "responded_at": "2026-04-05 16:56:59",
+    "initial_sent": false
+  },
+  "809": {
+    "last_message_id": 5485,
+    "responded_at": "2026-04-05 16:57:33",
+    "initial_sent": false
+  },
+  "810": {
+    "last_message_id": 5487,
+    "responded_at": "2026-04-05 16:59:16",
+    "initial_sent": false
+  },
+  "813": {
+    "last_message_id": 5491,
+    "responded_at": "2026-04-05 17:06:39",
+    "initial_sent": false
+  },
+  "814": {
+    "last_message_id": 5495,
+    "responded_at": "2026-04-05 17:07:49",
+    "initial_sent": false
+  },
+  "815": {
+    "last_message_id": 5496,
+    "responded_at": "2026-04-05 17:07:48",
+    "initial_sent": false
+  },
+  "816": {
+    "last_message_id": 5503,
+    "responded_at": "2026-04-05 17:15:12",
+    "initial_sent": false
+  },
+  "817": {
+    "last_message_id": 5505,
+    "responded_at": "2026-04-05 17:16:54",
+    "initial_sent": false
+  },
+  "818": {
+    "last_message_id": 5507,
+    "responded_at": "2026-04-05 17:19:11",
+    "initial_sent": false
+  },
+  "819": {
+    "last_message_id": 5509,
+    "responded_at": "2026-04-05 17:24:17",
+    "initial_sent": false
+  },
+  "820": {
+    "last_message_id": 5512,
+    "responded_at": "2026-04-05 17:25:27",
+    "initial_sent": false
+  },
+  "822": {
+    "last_message_id": 5516,
+    "responded_at": "2026-04-05 17:29:28",
+    "initial_sent": false
+  },
+  "821": {
+    "last_message_id": 5515,
+    "responded_at": "2026-04-05 17:29:28",
+    "initial_sent": false
+  },
+  "823": {
+    "last_message_id": 5519,
+    "responded_at": "2026-04-05 17:34:36",
+    "initial_sent": false
+  },
+  "824": {
+    "last_message_id": 5521,
+    "responded_at": "2026-04-05 17:36:18",
+    "initial_sent": false
+  },
+  "825": {
+    "last_message_id": 5523,
+    "responded_at": "2026-04-05 17:36:53",
+    "initial_sent": false
+  },
+  "826": {
+    "last_message_id": 5525,
+    "responded_at": "2026-04-05 17:38:02",
+    "initial_sent": false
+  },
+  "827": {
+    "last_message_id": 5527,
+    "responded_at": "2026-04-05 17:39:46",
+    "initial_sent": false
+  },
+  "828": {
+    "last_message_id": 5529,
+    "responded_at": "2026-04-05 17:40:21",
+    "initial_sent": false
+  },
+  "833": {
+    "last_message_id": 5535,
+    "responded_at": "2026-04-05 18:05:00",
+    "initial_sent": false
+  },
+  "832": {
+    "last_message_id": 5534,
+    "responded_at": "2026-04-05 18:05:01",
+    "initial_sent": false
+  },
+  "831": {
+    "last_message_id": 5533,
+    "responded_at": "2026-04-05 18:05:02",
+    "initial_sent": false
+  },
+  "830": {
+    "last_message_id": 5532,
+    "responded_at": "2026-04-05 18:05:03",
+    "initial_sent": false
+  },
+  "829": {
+    "last_message_id": 5531,
+    "responded_at": "2026-04-05 18:05:04",
+    "initial_sent": false
+  },
+  "836": {
+    "last_message_id": 5543,
+    "responded_at": "2026-04-05 18:19:19",
+    "initial_sent": false
+  },
+  "835": {
+    "last_message_id": 5542,
+    "responded_at": "2026-04-05 18:19:21",
+    "initial_sent": false
+  },
+  "837": {
+    "last_message_id": 5548,
+    "responded_at": "2026-04-05 18:28:30",
+    "initial_sent": false
+  },
+  "838": {
+    "last_message_id": 5552,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 18:37:18"
+  },
+  "839": {
+    "last_message_id": 5566,
+    "responded_at": "2026-04-05 18:45:24",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 18:59:33"
+  },
+  "840": {
+    "last_message_id": 5554,
+    "responded_at": "2026-04-05 18:46:02",
+    "initial_sent": false
+  },
+  "841": {
+    "last_message_id": 5557,
+    "responded_at": "2026-04-05 18:51:56",
+    "initial_sent": false
+  },
+  "842": {
+    "last_message_id": 5559,
+    "responded_at": "2026-04-05 18:54:29",
+    "initial_sent": false
+  },
+  "843": {
+    "last_message_id": 5563,
+    "responded_at": "2026-04-05 18:58:53",
+    "initial_sent": false
+  },
+  "844": {
+    "last_message_id": 5568,
+    "responded_at": "2026-04-05 19:09:26",
+    "initial_sent": false
+  },
+  "845": {
+    "last_message_id": 5570,
+    "responded_at": "2026-04-05 19:12:45",
+    "initial_sent": false
+  },
+  "846": {
+    "last_message_id": 5572,
+    "responded_at": "2026-04-05 19:18:10",
+    "initial_sent": false
+  },
+  "850": {
+    "last_message_id": 5582,
+    "responded_at": "2026-04-05 20:25:32",
+    "initial_sent": false
+  },
+  "847": {
+    "last_message_id": 5581,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-05 20:25:33"
+  },
+  "848": {
+    "last_message_id": 5576,
+    "responded_at": "2026-04-05 20:25:36",
+    "initial_sent": false
+  },
+  "851": {
+    "last_message_id": 5588,
+    "responded_at": "2026-04-05 20:56:41",
+    "initial_sent": false
+  },
+  "852": {
+    "last_message_id": 5592,
+    "responded_at": "2026-04-05 21:16:39",
+    "initial_sent": false
+  },
+  "857": {
+    "last_message_id": 5613,
+    "responded_at": "2026-04-05 22:15:08",
+    "initial_sent": false
+  },
+  "856": {
+    "last_message_id": 5612,
+    "responded_at": "2026-04-05 22:15:09",
+    "initial_sent": false
+  },
+  "855": {
+    "last_message_id": 5621,
+    "responded_at": "2026-04-05 22:27:43",
+    "initial_sent": false
+  },
+  "858": {
+    "last_message_id": 5623,
+    "responded_at": "2026-04-06 00:11:16",
+    "initial_sent": false
+  },
+  "862": {
+    "last_message_id": 5635,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 08:53:09"
+  },
+  "863": {
+    "last_message_id": 5636,
+    "responded_at": "2026-04-06 09:00:14",
+    "initial_sent": false
+  },
+  "864": {
+    "last_message_id": 5648,
+    "responded_at": "2026-04-06 09:17:54",
+    "initial_sent": false
+  },
+  "866": {
+    "last_message_id": 5668,
+    "responded_at": "2026-04-06 10:21:25",
+    "initial_sent": false
+  },
+  "870": {
+    "last_message_id": 5684,
+    "responded_at": "2026-04-06 11:17:17",
+    "initial_sent": false
+  },
+  "871": {
+    "last_message_id": 5740,
+    "responded_at": "2026-04-06 12:28:22",
+    "initial_sent": true,
+    "optout": true
+  },
+  "872": {
+    "last_message_id": 5742,
+    "responded_at": "2026-04-06 12:29:36",
+    "initial_sent": false
+  },
+  "873": {
+    "last_message_id": 5745,
+    "responded_at": "2026-04-06 13:09:31",
+    "initial_sent": false
+  },
+  "882": {
+    "last_message_id": 5764,
+    "responded_at": "2026-04-06 15:09:52",
+    "initial_sent": false
+  },
+  "883": {
+    "last_message_id": 5766,
+    "responded_at": "2026-04-06 15:10:34",
+    "initial_sent": false
+  },
+  "884": {
+    "last_message_id": 5771,
+    "responded_at": "2026-04-06 15:14:06",
+    "initial_sent": false
+  },
+  "885": {
+    "last_message_id": 5773,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 15:15:17"
+  },
+  "886": {
+    "last_message_id": 6204,
+    "responded_at": "2026-04-06 15:18:48",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 20:21:54"
+  },
+  "887": {
+    "last_message_id": 5779,
+    "responded_at": "2026-04-06 15:21:48",
+    "initial_sent": false
+  },
+  "889": {
+    "last_message_id": 5786,
+    "responded_at": "2026-04-06 15:24:10",
+    "initial_sent": false
+  },
+  "888": {
+    "last_message_id": 5781,
+    "responded_at": "2026-04-06 15:23:00",
+    "initial_sent": false
+  },
+  "890": {
+    "last_message_id": 5789,
+    "responded_at": "2026-04-06 15:25:21",
+    "initial_sent": false
+  },
+  "891": {
+    "last_message_id": 5791,
+    "responded_at": "2026-04-06 15:26:31",
+    "initial_sent": false
+  },
+  "892": {
+    "last_message_id": 5798,
+    "responded_at": "2026-04-06 15:30:44",
+    "initial_sent": false
+  },
+  "893": {
+    "last_message_id": 5799,
+    "responded_at": "2026-04-06 15:30:44",
+    "initial_sent": false
+  },
+  "895": {
+    "last_message_id": 5804,
+    "responded_at": "2026-04-06 15:33:06",
+    "initial_sent": false
+  },
+  "896": {
+    "last_message_id": 5806,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 15:34:51"
+  },
+  "897": {
+    "last_message_id": 5807,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 15:36:39"
+  },
+  "898": {
+    "last_message_id": 5808,
+    "responded_at": "2026-04-06 15:38:31",
+    "initial_sent": false
+  },
+  "900": {
+    "last_message_id": 5811,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 15:39:10"
+  },
+  "899": {
+    "last_message_id": 5810,
+    "responded_at": "2026-04-06 15:39:10",
+    "initial_sent": false
+  },
+  "902": {
+    "last_message_id": 5814,
+    "responded_at": "2026-04-06 15:45:07",
+    "initial_sent": false
+  },
+  "901": {
+    "last_message_id": 5813,
+    "responded_at": "2026-04-06 15:45:08",
+    "initial_sent": false
+  },
+  "903": {
+    "last_message_id": 5818,
+    "responded_at": "2026-04-06 15:46:18",
+    "initial_sent": false
+  },
+  "904": {
+    "last_message_id": 5820,
+    "responded_at": "2026-04-06 15:49:49",
+    "initial_sent": false
+  },
+  "905": {
+    "last_message_id": 5822,
+    "responded_at": "2026-04-06 15:53:23",
+    "initial_sent": false
+  },
+  "906": {
+    "last_message_id": 5824,
+    "responded_at": "2026-04-06 15:54:35",
+    "initial_sent": false
+  },
+  "908": {
+    "last_message_id": 5828,
+    "responded_at": "2026-04-06 15:59:53",
+    "initial_sent": false
+  },
+  "907": {
+    "last_message_id": 5826,
+    "responded_at": "2026-04-06 15:59:54",
+    "initial_sent": false
+  },
+  "909": {
+    "last_message_id": 5838,
+    "responded_at": "2026-04-06 16:00:30",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 16:01:07"
+  },
+  "912": {
+    "last_message_id": 5836,
+    "responded_at": "2026-04-06 16:01:06",
+    "initial_sent": false
+  },
+  "910": {
+    "last_message_id": 5835,
+    "responded_at": "2026-04-06 16:01:06",
+    "initial_sent": false
+  },
+  "911": {
+    "last_message_id": 5834,
+    "responded_at": "2026-04-06 16:01:07",
+    "initial_sent": false
+  },
+  "913": {
+    "last_message_id": 5850,
+    "responded_at": "2026-04-06 16:01:43",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 16:07:41"
+  },
+  "914": {
+    "last_message_id": 5846,
+    "responded_at": "2026-04-06 16:05:19",
+    "initial_sent": false
+  },
+  "915": {
+    "last_message_id": 5848,
+    "responded_at": "2026-04-06 16:06:30",
+    "initial_sent": false
+  },
+  "916": {
+    "last_message_id": 5851,
+    "responded_at": "2026-04-06 16:07:41",
+    "initial_sent": false
+  },
+  "917": {
+    "last_message_id": 5853,
+    "responded_at": "2026-04-06 16:09:27",
+    "initial_sent": false
+  },
+  "919": {
+    "last_message_id": 5856,
+    "responded_at": "2026-04-06 16:13:36",
+    "initial_sent": false
+  },
+  "918": {
+    "last_message_id": 5855,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 16:13:36"
+  },
+  "920": {
+    "last_message_id": 5859,
+    "responded_at": "2026-04-06 16:17:10",
+    "initial_sent": false
+  },
+  "928": {
+    "last_message_id": 5868,
+    "responded_at": "2026-04-06 16:45:38",
+    "initial_sent": false
+  },
+  "926": {
+    "last_message_id": 5866,
+    "responded_at": "2026-04-06 16:45:38",
+    "initial_sent": false
+  },
+  "925": {
+    "last_message_id": 5865,
+    "responded_at": "2026-04-06 16:45:39",
+    "initial_sent": false
+  },
+  "924": {
+    "last_message_id": 5864,
+    "responded_at": "2026-04-06 16:45:40",
+    "initial_sent": false
+  },
+  "923": {
+    "last_message_id": 5863,
+    "responded_at": "2026-04-06 16:45:40",
+    "initial_sent": false
+  },
+  "922": {
+    "last_message_id": 5898,
+    "responded_at": "2026-04-06 16:45:41",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 16:59:09"
+  },
+  "921": {
+    "last_message_id": 5861,
+    "responded_at": "2026-04-06 16:45:43",
+    "initial_sent": false
+  },
+  "929": {
+    "last_message_id": 5887,
+    "responded_at": "2026-04-06 16:51:32",
+    "initial_sent": false
+  },
+  "930": {
+    "last_message_id": 5890,
+    "responded_at": "2026-04-06 16:54:28",
+    "initial_sent": false
+  },
+  "931": {
+    "last_message_id": 5894,
+    "responded_at": "2026-04-06 16:56:49",
+    "initial_sent": false
+  },
+  "932": {
+    "last_message_id": 5896,
+    "responded_at": "2026-04-06 16:58:34",
+    "initial_sent": false
+  },
+  "933": {
+    "last_message_id": 5901,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 17:00:19"
+  },
+  "935": {
+    "last_message_id": 5904,
+    "responded_at": "2026-04-06 17:02:38",
+    "initial_sent": false
+  },
+  "934": {
+    "last_message_id": 5902,
+    "responded_at": "2026-04-06 17:02:38",
+    "initial_sent": false
+  },
+  "936": {
+    "last_message_id": 5907,
+    "responded_at": "2026-04-06 17:06:17",
+    "initial_sent": false
+  },
+  "937": {
+    "last_message_id": 5913,
+    "responded_at": "2026-04-06 17:09:46",
+    "initial_sent": false
+  },
+  "938": {
+    "last_message_id": 5916,
+    "responded_at": "2026-04-06 17:10:21",
+    "initial_sent": false
+  },
+  "939": {
+    "last_message_id": 5920,
+    "responded_at": "2026-04-06 17:11:32",
+    "initial_sent": false
+  },
+  "940": {
+    "last_message_id": 5934,
+    "responded_at": "2026-04-06 17:18:00",
+    "initial_sent": true,
+    "optout": true
+  },
+  "941": {
+    "last_message_id": 5924,
+    "responded_at": "2026-04-06 17:14:28",
+    "initial_sent": false
+  },
+  "942": {
+    "last_message_id": 5927,
+    "responded_at": "2026-04-06 17:15:40",
+    "initial_sent": false
+  },
+  "943": {
+    "last_message_id": 5933,
+    "responded_at": "2026-04-06 17:18:01",
+    "initial_sent": false
+  },
+  "945": {
+    "last_message_id": 5939,
+    "responded_at": "2026-04-06 17:19:11",
+    "initial_sent": false
+  },
+  "946": {
+    "last_message_id": 5943,
+    "responded_at": "2026-04-06 17:20:56",
+    "initial_sent": false
+  },
+  "947": {
+    "last_message_id": 5945,
+    "responded_at": "2026-04-06 17:22:41",
+    "initial_sent": false
+  },
+  "948": {
+    "last_message_id": 5947,
+    "responded_at": "2026-04-06 17:25:02",
+    "initial_sent": false
+  },
+  "950": {
+    "last_message_id": 5951,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 17:26:47"
+  },
+  "949": {
+    "last_message_id": 5950,
+    "responded_at": "2026-04-06 17:26:48",
+    "initial_sent": false
+  },
+  "951": {
+    "last_message_id": 6001,
+    "responded_at": "2026-04-06 17:49:59",
+    "initial_sent": false
+  },
+  "952": {
+    "last_message_id": 5957,
+    "responded_at": "2026-04-06 17:29:07",
+    "initial_sent": false
+  },
+  "953": {
+    "last_message_id": 5968,
+    "responded_at": "2026-04-06 17:30:52",
+    "initial_sent": false
+  },
+  "954": {
+    "last_message_id": 5970,
+    "responded_at": "2026-04-06 17:31:27",
+    "initial_sent": false
+  },
+  "956": {
+    "last_message_id": 5977,
+    "responded_at": "2026-04-06 17:33:46",
+    "initial_sent": false
+  },
+  "955": {
+    "last_message_id": 5975,
+    "responded_at": "2026-04-06 17:33:46",
+    "initial_sent": false
+  },
+  "957": {
+    "last_message_id": 5980,
+    "responded_at": "2026-04-06 17:44:08",
+    "initial_sent": false
+  },
+  "959": {
+    "last_message_id": 5984,
+    "responded_at": "2026-04-06 17:46:29",
+    "initial_sent": false
+  },
+  "958": {
+    "last_message_id": 5983,
+    "responded_at": "2026-04-06 17:46:29",
+    "initial_sent": false
+  },
+  "960": {
+    "last_message_id": 5996,
+    "responded_at": "2026-04-06 17:48:49",
+    "initial_sent": false
+  },
+  "962": {
+    "last_message_id": 5994,
+    "responded_at": "2026-04-06 17:48:13",
+    "initial_sent": false
+  },
+  "963": {
+    "last_message_id": 6004,
+    "responded_at": "2026-04-06 17:51:08",
+    "initial_sent": false
+  },
+  "964": {
+    "last_message_id": 6006,
+    "responded_at": "2026-04-06 17:52:20",
+    "initial_sent": false
+  },
+  "966": {
+    "last_message_id": 6012,
+    "responded_at": "2026-04-06 17:55:52",
+    "initial_sent": false
+  },
+  "965": {
+    "last_message_id": 6010,
+    "responded_at": "2026-04-06 17:55:53",
+    "initial_sent": false
+  },
+  "967": {
+    "last_message_id": 6016,
+    "responded_at": "2026-04-06 17:57:02",
+    "initial_sent": false
+  },
+  "968": {
+    "last_message_id": 6018,
+    "responded_at": "2026-04-06 17:59:22",
+    "initial_sent": false
+  },
+  "969": {
+    "last_message_id": 6021,
+    "responded_at": "2026-04-06 17:59:57",
+    "initial_sent": false
+  },
+  "970": {
+    "last_message_id": 6023,
+    "responded_at": "2026-04-06 18:01:45",
+    "initial_sent": false
+  },
+  "971": {
+    "last_message_id": 6026,
+    "responded_at": "2026-04-06 18:02:20",
+    "initial_sent": false
+  },
+  "972": {
+    "last_message_id": 6028,
+    "responded_at": "2026-04-06 18:02:55",
+    "initial_sent": false
+  },
+  "974": {
+    "last_message_id": 6032,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 18:03:30"
+  },
+  "976": {
+    "last_message_id": 6183,
+    "responded_at": "2026-04-06 20:22:18",
+    "initial_sent": false
+  },
+  "975": {
+    "last_message_id": 6033,
+    "responded_at": "2026-04-06 18:05:53",
+    "initial_sent": false
+  },
+  "978": {
+    "last_message_id": 6039,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 18:07:39"
+  },
+  "977": {
+    "last_message_id": 6037,
+    "responded_at": "2026-04-06 18:07:40",
+    "initial_sent": false
+  },
+  "979": {
+    "last_message_id": 6041,
+    "responded_at": "2026-04-06 18:08:15",
+    "initial_sent": false
+  },
+  "980": {
+    "last_message_id": 6043,
+    "responded_at": "2026-04-06 18:08:51",
+    "initial_sent": false
+  },
+  "981": {
+    "last_message_id": 6048,
+    "responded_at": "2026-04-06 18:11:48",
+    "initial_sent": false
+  },
+  "982": {
+    "last_message_id": 6052,
+    "responded_at": "2026-04-06 18:14:09",
+    "initial_sent": false
+  },
+  "984": {
+    "last_message_id": 6056,
+    "responded_at": "2026-04-06 18:17:41",
+    "initial_sent": false
+  },
+  "983": {
+    "last_message_id": 6054,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 18:17:42"
+  },
+  "985": {
+    "last_message_id": 6062,
+    "responded_at": "2026-04-06 18:20:38",
+    "initial_sent": false
+  },
+  "986": {
+    "last_message_id": 6064,
+    "responded_at": "2026-04-06 18:23:00",
+    "initial_sent": false
+  },
+  "987": {
+    "last_message_id": 6066,
+    "responded_at": "2026-04-06 18:28:57",
+    "initial_sent": false
+  },
+  "989": {
+    "last_message_id": 6069,
+    "responded_at": "2026-04-06 18:29:33",
+    "initial_sent": false
+  },
+  "992": {
+    "last_message_id": 6078,
+    "responded_at": "2026-04-06 18:32:28",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 18:33:04"
+  },
+  "991": {
+    "last_message_id": 6074,
+    "responded_at": "2026-04-06 18:32:29",
+    "initial_sent": false
+  },
+  "993": {
+    "last_message_id": 6079,
+    "responded_at": "2026-04-06 18:33:04",
+    "initial_sent": false
+  },
+  "994": {
+    "last_message_id": 6120,
+    "responded_at": "2026-04-06 18:47:56",
+    "initial_sent": false
+  },
+  "997": {
+    "last_message_id": 6086,
+    "responded_at": "2026-04-06 18:36:39",
+    "initial_sent": false
+  },
+  "996": {
+    "last_message_id": 6085,
+    "responded_at": "2026-04-06 18:36:40",
+    "initial_sent": false
+  },
+  "995": {
+    "last_message_id": 6106,
+    "responded_at": "2026-04-06 18:36:41",
+    "initial_sent": false,
+    "skipped_at": "2026-04-06 18:42:02"
+  },
+  "998": {
+    "last_message_id": 6090,
+    "responded_at": "2026-04-06 18:37:16",
+    "initial_sent": false
+  },
+  "999": {
+    "last_message_id": 6116,
+    "responded_at": "2026-04-06 18:44:25",
+    "initial_sent": false
+  },
+  "1001": {
+    "last_message_id": 6101,
+    "responded_at": "2026-04-06 18:41:25",
+    "initial_sent": false
+  },
+  "1002": {
+    "last_message_id": 6104,
+    "responded_at": "2026-04-06 18:42:03",
+    "initial_sent": false
+  },
+  "1004": {
+    "last_message_id": 6112,
+    "responded_at": "2026-04-06 18:43:14",
+    "initial_sent": false
+  },
+  "1003": {
+    "last_message_id": 6111,
+    "responded_at": "2026-04-06 18:43:15",
+    "initial_sent": false
+  },
+  "1006": {
+    "last_message_id": 6121,
+    "responded_at": "2026-04-06 18:47:56",
+    "initial_sent": false
+  },
+  "1007": {
+    "last_message_id": 6125,
+    "responded_at": "2026-04-06 18:48:32",
+    "initial_sent": false
+  },
+  "1008": {
+    "last_message_id": 6128,
+    "responded_at": "2026-04-06 18:49:07",
+    "initial_sent": false
+  },
+  "1010": {
+    "last_message_id": 6131,
+    "responded_at": "2026-04-06 18:50:17",
+    "initial_sent": false
+  },
+  "1009": {
+    "last_message_id": 6130,
+    "responded_at": "2026-04-06 18:50:18",
+    "initial_sent": false
+  },
+  "1011": {
+    "last_message_id": 6140,
+    "responded_at": "2026-04-06 18:52:04",
+    "initial_sent": false
+  },
+  "1012": {
+    "last_message_id": 6139,
+    "responded_at": "2026-04-06 18:52:04",
+    "initial_sent": false
+  },
+  "1013": {
+    "last_message_id": 6143,
+    "responded_at": "2026-04-06 18:52:40",
+    "initial_sent": false
+  },
+  "1015": {
+    "last_message_id": 6146,
+    "responded_at": "2026-04-06 18:57:55",
+    "initial_sent": false
+  },
+  "1014": {
+    "last_message_id": 6145,
+    "responded_at": "2026-04-06 18:57:56",
+    "initial_sent": false
+  },
+  "1016": {
+    "last_message_id": 6149,
+    "responded_at": "2026-04-06 18:58:31",
+    "initial_sent": false
+  },
+  "1017": {
+    "last_message_id": 6151,
+    "responded_at": "2026-04-06 18:59:41",
+    "initial_sent": false
+  },
+  "1018": {
+    "last_message_id": 6153,
+    "responded_at": "2026-04-06 19:00:17",
+    "initial_sent": false
+  },
+  "1020": {
+    "last_message_id": 6157,
+    "responded_at": "2026-04-06 19:04:58",
+    "initial_sent": false
+  },
+  "1021": {
+    "last_message_id": 6159,
+    "responded_at": "2026-04-06 19:05:33",
+    "initial_sent": false
+  },
+  "1022": {
+    "last_message_id": 6167,
+    "responded_at": "2026-04-06 19:06:45",
+    "initial_sent": false
+  },
+  "1023": {
+    "last_message_id": 6162,
+    "responded_at": "2026-04-06 19:06:10",
+    "initial_sent": false
+  },
+  "1024": {
+    "last_message_id": 6166,
+    "responded_at": "2026-04-06 19:06:45",
+    "initial_sent": false
+  },
+  "1048": {
+    "last_message_id": 6203,
+    "responded_at": "2026-04-06 20:21:58",
+    "initial_sent": false
+  },
+  "1047": {
+    "last_message_id": 6202,
+    "responded_at": "2026-04-06 20:22:01",
+    "initial_sent": false
+  },
+  "1046": {
+    "last_message_id": 6201,
+    "responded_at": "2026-04-06 20:22:03",
+    "initial_sent": false
+  },
+  "1045": {
+    "last_message_id": 6200,
+    "responded_at": "2026-04-06 20:22:06",
+    "initial_sent": false
+  },
+  "1044": {
+    "last_message_id": 6198,
+    "responded_at": "2026-04-06 20:22:07",
+    "initial_sent": false
+  },
+  "1042": {
+    "last_message_id": 6196,
+    "responded_at": "2026-04-06 20:22:08",
+    "initial_sent": false
+  },
+  "1041": {
+    "last_message_id": 6195,
+    "responded_at": "2026-04-06 20:22:09",
+    "initial_sent": false
+  },
+  "1040": {
+    "last_message_id": 6194,
+    "responded_at": "2026-04-06 20:22:10",
+    "initial_sent": false
+  },
+  "1039": {
+    "last_message_id": 6192,
+    "responded_at": "2026-04-06 20:22:11",
+    "initial_sent": false
+  },
+  "1038": {
+    "last_message_id": 6191,
+    "responded_at": "2026-04-06 20:22:11",
+    "initial_sent": false
+  },
+  "1037": {
+    "last_message_id": 6190,
+    "responded_at": "2026-04-06 20:22:12",
+    "initial_sent": false
+  },
+  "1036": {
+    "last_message_id": 6189,
+    "responded_at": "2026-04-06 20:22:13",
+    "initial_sent": false
+  },
+  "1035": {
+    "last_message_id": 6228,
+    "responded_at": "2026-04-06 20:30:56",
+    "initial_sent": false
+  },
+  "1034": {
+    "last_message_id": 6186,
+    "responded_at": "2026-04-06 20:22:17",
+    "initial_sent": false
+  },
+  "1033": {
+    "last_message_id": 6185,
+    "responded_at": "2026-04-06 20:22:17",
+    "initial_sent": false
+  },
+  "1032": {
+    "last_message_id": 6184,
+    "responded_at": "2026-04-06 20:22:18",
+    "initial_sent": false
+  },
+  "1031": {
+    "last_message_id": 6180,
+    "responded_at": "2026-04-06 20:22:19",
+    "initial_sent": false
+  },
+  "1030": {
+    "last_message_id": 6178,
+    "responded_at": "2026-04-06 20:22:20",
+    "initial_sent": false
+  },
+  "1029": {
+    "last_message_id": 6177,
+    "responded_at": "2026-04-06 20:22:21",
+    "initial_sent": false
+  },
+  "1028": {
+    "last_message_id": 6176,
+    "responded_at": "2026-04-06 20:22:22",
+    "initial_sent": false
+  },
+  "1027": {
+    "last_message_id": 6174,
+    "responded_at": "2026-04-06 20:22:23",
+    "initial_sent": false
+  },
+  "1026": {
+    "last_message_id": 6173,
+    "responded_at": "2026-04-06 20:30:13",
+    "initial_sent": false
+  },
+  "1025": {
+    "last_message_id": 6171,
+    "responded_at": "2026-04-06 20:30:16",
+    "initial_sent": false
+  },
+  "1050": {
+    "last_message_id": 6232,
+    "responded_at": "2026-04-06 21:04:46",
+    "initial_sent": false
+  },
+  "1052": {
+    "last_message_id": 6239,
+    "responded_at": "2026-04-06 21:52:27",
+    "initial_sent": false
+  },
+  "1053": {
+    "last_message_id": 6242,
+    "responded_at": "2026-04-06 21:55:28",
+    "initial_sent": false
+  },
+  "1054": {
+    "last_message_id": 6244,
+    "responded_at": "2026-04-06 22:05:43",
+    "initial_sent": false
+  },
+  "1055": {
+    "last_message_id": 6246,
+    "responded_at": "2026-04-06 22:13:34",
+    "initial_sent": false
+  },
+  "1056": {
+    "last_message_id": 6248,
+    "responded_at": "2026-04-06 22:20:44",
+    "initial_sent": false
+  },
+  "1058": {
+    "last_message_id": 6251,
+    "responded_at": "2026-04-06 22:55:40",
+    "initial_sent": false
+  },
+  "1059": {
+    "last_message_id": 6258,
+    "responded_at": "2026-04-06 23:30:19",
+    "initial_sent": false
+  },
+  "1060": {
+    "last_message_id": 6260,
+    "responded_at": "2026-04-06 23:50:51",
+    "initial_sent": false
+  },
+  "1061": {
+    "last_message_id": 6262,
+    "responded_at": "2026-04-07 03:20:00",
+    "initial_sent": false
+  },
+  "1062": {
+    "last_message_id": 6264,
+    "responded_at": "2026-04-07 07:35:58",
+    "initial_sent": false
+  },
+  "1065": {
+    "last_message_id": 6268,
+    "responded_at": "2026-04-07 08:17:04",
+    "initial_sent": false
+  },
+  "1068": {
+    "last_message_id": 6285,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-07 09:32:17"
+  },
+  "1069": {
+    "last_message_id": 6289,
+    "responded_at": "2026-04-07 09:37:36",
+    "initial_sent": false
+  },
+  "1072": {
+    "last_message_id": 6315,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-07 10:49:17"
+  }
+}

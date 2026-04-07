@@ -95,8 +95,6 @@ ESTADO = 'V'
 CONDICION_IVA = 'C'  # consumidor final
 USUARIO = 'COWORK-TN'
 
-LOG_FILE = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.json')
-
 # ── Config POS 109 ──
 # Endpoint del sistema del 109 para registrar ventas
 POS_109_URL = 'http://192.168.2.109/clz_ventas/api/tiendanube_gen_remito'
@@ -195,7 +193,8 @@ def listar_ordenes_procesadas(tienda: str = 'default', limit: int = 50) -> list:
 
 
 def _init_sqlite_if_needed(conn):
-    """Crea tabla si no existe (idempotente)."""
+    """Crea tabla si no existe (idempotente). WAL mode para concurrencia."""
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS ordenes (
             order_id TEXT PRIMARY KEY,

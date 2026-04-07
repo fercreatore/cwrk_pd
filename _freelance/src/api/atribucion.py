@@ -240,7 +240,7 @@ async def pendientes_factura(cod: str = None):
     """Ventas sin factura de servicio emitida."""
     if cod:
         sql = """
-            SELECT va.*, vf.codigo_atrib, vf.cuit AS vendedor_cuit
+            SELECT va.*, vf.codigo_atrib, ISNULL(vf.cuit, '') AS vendedor_cuit
             FROM omicronvt.dbo.venta_atribucion va
             JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = va.vendedor_id
             WHERE va.estado_factura = 'PEND' AND vf.codigo_atrib = ?
@@ -249,7 +249,7 @@ async def pendientes_factura(cod: str = None):
         return {"pendientes": query(sql, 'omicronvt', (cod,))}
     else:
         sql = """
-            SELECT va.*, vf.codigo_atrib, vf.cuit AS vendedor_cuit
+            SELECT va.*, vf.codigo_atrib, ISNULL(vf.cuit, '') AS vendedor_cuit
             FROM omicronvt.dbo.venta_atribucion va
             JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = va.vendedor_id
             WHERE va.estado_factura = 'PEND'

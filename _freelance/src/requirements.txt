@@ -1,10 +1,19 @@
+# FastAPI + ASGI Server
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
+
+# Database drivers
 pyodbc>=5.1.0
 pymysql>=1.1.0
-python-dateutil>=2.9.0
-jinja2==3.1.5
-python-multipart==0.0.19
-Pillow==11.1.0
+
+# Configuration & utilities
 pydantic==2.10.5
 pydantic-settings==2.7.1
+python-dateutil>=2.9.0
+
+# Templates & forms
+jinja2==3.1.5
+python-multipart==0.0.19
+
+# Image processing
+Pillow==11.1.0

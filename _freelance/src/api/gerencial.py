@@ -72,7 +72,7 @@ async def dashboard(meses: int = 1):
     sql_alertas = """
         SELECT vf.codigo_atrib, vf.categoria_mono,
                vj.descripcion AS nombre,
-               SUM(va.fee_monto) AS facturado_anual
+               ISNULL(SUM(va.fee_monto), 0) AS facturado_anual
         FROM omicronvt.dbo.vendedor_freelance vf
         JOIN msgestionC.dbo.viajantes vj ON vj.codigo = vf.viajante_cod
         LEFT JOIN omicronvt.dbo.venta_atribucion va
@@ -134,17 +134,17 @@ async def ahorro_vs_empleado(anio: int = None, mes: int = None):
     sql = """
         SELECT vf.id, vf.codigo_atrib, vf.viajante_cod, vf.cuota_mono, vf.canon_mensual,
                vj.descripcion AS nombre,
-               (SELECT TOP 1 SUM(me.importe)
+               ISNULL((SELECT TOP 1 SUM(me.importe)
                 FROM msgestionC.dbo.moviempl1 me
                 WHERE me.numero_cuenta = vf.viajante_cod
                   AND me.codigo_movimiento IN (8,10,30,31)
                   AND YEAR(me.fecha_contable) = ? AND MONTH(me.fecha_contable) = ?
-               ) AS sueldo_bruto,
-               (SELECT ISNULL(SUM(va.fee_monto), 0)
+               ), 0) AS sueldo_bruto,
+               ISNULL((SELECT SUM(va.fee_monto)
                 FROM omicronvt.dbo.venta_atribucion va
                 WHERE va.vendedor_id = vf.id
                   AND YEAR(va.fecha) = ? AND MONTH(va.fecha) = ?
-               ) AS fee_total
+               ), 0) AS fee_total
         FROM omicronvt.dbo.vendedor_freelance vf
         JOIN msgestionC.dbo.viajantes vj ON vj.codigo = vf.viajante_cod
         WHERE vf.activo = 1

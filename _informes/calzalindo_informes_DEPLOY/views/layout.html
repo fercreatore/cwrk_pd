@@ -122,6 +122,20 @@
                         </a>
                     </li>
                     {{pass}}
+                    {{if _puede_ver('inteligencia_comercial.bcg_matrix'):}}
+                    <li {{if request.controller=='inteligencia_comercial':}}class="active"{{pass}}>
+                        <a href="{{=URL('inteligencia_comercial','bcg_matrix')}}">
+                            <i class="glyphicon glyphicon-eye-open"></i> Inteligencia
+                        </a>
+                    </li>
+                    {{pass}}
+                    {{if _puede_ver('salud_negocio.dashboard'):}}
+                    <li {{if request.controller=='salud_negocio':}}class="active"{{pass}}>
+                        <a href="{{=URL('salud_negocio','dashboard')}}">
+                            <i class="glyphicon glyphicon-heart"></i> Salud
+                        </a>
+                    </li>
+                    {{pass}}
                     {{if _es_admin():}}
                     <li {{if request.controller=='admin_roles':}}class="active"{{pass}}>
                         <a href="{{=URL('admin_roles','index')}}" style="color:#f39c12;">

@@ -95,115 +95,160 @@
     const COLORS = {INSTAGRAM:'#E4405F', WHATSAPP:'#25D366', PRESENCIAL:'#0f3460', ML:'#FFE600', WEB:'#333', TIKTOK:'#000'};
 
     async function loadDashboard() {
-        const res = await fetch('/api/v1/gerencial/dashboard');
-        const d = await res.json();
-        document.getElementById('periodo').textContent = d.periodo;
-
-        document.getElementById('kpis').innerHTML = `
-            <div class="kpi big">
-                <div class="kpi-label">Venta total (producto)</div>
-                <div class="kpi-val">$${fmt(d.ventas.total_producto)}</div>
-                <div class="kpi-sub">${d.ventas.operaciones} operaciones · ${d.ventas.pares} pares</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-label">Fees generados</div>
-                <div class="kpi-val">$${fmt(d.ventas.total_fee)}</div>
-                <div class="kpi-sub">Ingreso de los vendedores</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-label">Vendedores activos</div>
-                <div class="kpi-val">${d.red.vendedores_con_ventas} / ${d.red.vendedores_registrados}</div>
-                <div class="kpi-sub">Con ventas / registrados</div>
-            </div>
-        `;
-
-        // Canales
-        if (d.canales.length > 0) {
-            const total = d.canales.reduce((s,c) => s + (c.monto||0), 0);
-            let barHtml = '<div class="canal-bar">';
-            let detHtml = '<table><tr><th>Canal</th><th class="num">Operaciones</th><th class="num">Monto</th><th class="num">%</th></tr>';
-            for (const c of d.canales) {
-                const pct = total > 0 ? (c.monto/total*100) : 0;
-                const color = COLORS[c.canal] || '#999';
-                barHtml += `<div class="canal-seg" style="width:${Math.max(pct,5)}%;background:${color}">${c.canal}</div>`;
-                detHtml += `<tr><td>${c.canal}</td><td class="num">${c.operaciones}</td><td class="num">$${fmt(c.monto)}</td><td class="num">${pct.toFixed(1)}%</td></tr>`;
+        try {
+            const res = await fetch('/api/v1/gerencial/dashboard');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
             }
-            barHtml += '</div>';
-            detHtml += '</table>';
-            document.getElementById('canales').innerHTML = barHtml + detHtml;
-        }
+            const d = await res.json();
+            document.getElementById('periodo').textContent = d.periodo || 'Periodo desconocido';
 
-        // Alertas
-        if (d.alertas_monotributo.length > 0) {
-            document.getElementById('alertas-section').style.display = 'block';
-            let html = '';
-            for (const a of d.alertas_monotributo) {
-                html += `<div style="padding:8px 0;border-bottom:1px solid #eee">
-                    <span class="alert-badge ${a.tipo==='PELIGRO'?'danger':'warn'}">${a.tipo}</span>
-                    <strong>${a.vendedor}</strong> ${a.nombre} — Cat ${a.categoria} al ${a.pct_tope}% del tope
-                </div>`;
+            const v = (d.ventas || {});
+            const r = (d.red || {});
+            document.getElementById('kpis').innerHTML = `
+                <div class="kpi big">
+                    <div class="kpi-label">Venta total (producto)</div>
+                    <div class="kpi-val">$${fmt(v.total_producto || 0)}</div>
+                    <div class="kpi-sub">${v.operaciones || 0} operaciones · ${v.pares || 0} pares</div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">Fees generados</div>
+                    <div class="kpi-val">$${fmt(v.total_fee || 0)}</div>
+                    <div class="kpi-sub">Ingreso de los vendedores</div>
+                </div>
+                <div class="kpi">
+                    <div class="kpi-label">Vendedores activos</div>
+                    <div class="kpi-val">${r.vendedores_con_ventas || 0} / ${r.vendedores_registrados || 0}</div>
+                    <div class="kpi-sub">Con ventas / registrados</div>
+                </div>
+            `;
+
+            // Canales
+            if (d.canales && d.canales.length > 0) {
+                const total = d.canales.reduce((s,c) => s + (c.monto||0), 0);
+                let barHtml = '<div class="canal-bar">';
+                let detHtml = '<table><tr><th>Canal</th><th class="num">Operaciones</th><th class="num">Monto</th><th class="num">%</th></tr>';
+                for (const c of d.canales) {
+                    const pct = total > 0 ? (c.monto/total*100) : 0;
+                    const color = COLORS[c.canal] || '#999';
+                    barHtml += `<div class="canal-seg" style="width:${Math.max(pct,5)}%;background:${color}">${c.canal}</div>`;
+                    detHtml += `<tr><td>${c.canal}</td><td class="num">${c.operaciones || 0}</td><td class="num">$${fmt(c.monto || 0)}</td><td class="num">${pct.toFixed(1)}%</td></tr>`;
+                }
+                barHtml += '</div>';
+                detHtml += '</table>';
+                document.getElementById('canales').innerHTML = barHtml + detHtml;
+            } else {
+                document.getElementById('canales').innerHTML = '<p style="color:#999">No hay datos de canales</p>';
             }
-            document.getElementById('alertas').innerHTML = html;
+
+            // Alertas
+            if (d.alertas_monotributo && d.alertas_monotributo.length > 0) {
+                document.getElementById('alertas-section').style.display = 'block';
+                let html = '';
+                for (const a of d.alertas_monotributo) {
+                    html += `<div style="padding:8px 0;border-bottom:1px solid #eee">
+                        <span class="alert-badge ${a.tipo==='PELIGRO'?'danger':'warn'}">${a.tipo}</span>
+                        <strong>${a.vendedor || 'N/A'}</strong> ${a.nombre || ''} — Cat ${a.categoria || 'N/A'} al ${a.pct_tope || 0}% del tope
+                    </div>`;
+                }
+                document.getElementById('alertas').innerHTML = html;
+            }
+        } catch(e) {
+            console.error('Error loading dashboard:', e);
+            document.getElementById('kpis').innerHTML = '<div class="kpi" style="color:#c62828;">Error cargando dashboard</div>';
         }
     }
 
     async function loadAhorro() {
-        const res = await fetch('/api/v1/gerencial/ahorro');
-        const d = await res.json();
-        document.getElementById('ahorro').innerHTML = `
-            <div class="kpi-row" style="margin-bottom:0">
-                <div class="kpi big">
-                    <div class="kpi-label">Ahorro total vs empleados</div>
-                    <div class="kpi-val">$${fmt(d.totales.ahorro_total)}/mes</div>
-                    <div class="kpi-sub">${d.totales.ahorro_pct}% de ahorro vs costo laboral anterior ($${fmt(d.totales.costo_modelo_empleado)})</div>
+        try {
+            const res = await fetch('/api/v1/gerencial/ahorro');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const d = await res.json();
+            const totales = d.totales || {};
+            document.getElementById('ahorro').innerHTML = `
+                <div class="kpi-row" style="margin-bottom:0">
+                    <div class="kpi big">
+                        <div class="kpi-label">Ahorro total vs empleados</div>
+                        <div class="kpi-val">$${fmt(totales.ahorro_total || 0)}/mes</div>
+                        <div class="kpi-sub">${totales.ahorro_pct || 0}% de ahorro vs costo laboral anterior ($${fmt(totales.costo_modelo_empleado || 0)})</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="kpi-label">Mejora neto vendedores</div>
+                        <div class="kpi-val">$${fmt(totales.mejora_neto_vendedores || 0)}</div>
+                        <div class="kpi-sub">Extra que ganan los vendedores</div>
+                    </div>
                 </div>
-                <div class="kpi">
-                    <div class="kpi-label">Mejora neto vendedores</div>
-                    <div class="kpi-val">$${fmt(d.totales.mejora_neto_vendedores)}</div>
-                    <div class="kpi-sub">Extra que ganan los vendedores</div>
-                </div>
-            </div>
-            <p style="font-size:13px;color:#666;margin-top:12px;padding:8px;background:#f8f9fa;border-radius:8px">
-                ${d.nota}
-            </p>
-        `;
+                <p style="font-size:13px;color:#666;margin-top:12px;padding:8px;background:#f8f9fa;border-radius:8px">
+                    ${d.nota || 'Sin información disponible'}
+                </p>
+            `;
+        } catch(e) {
+            console.error('Error loading ahorro:', e);
+            document.getElementById('ahorro').innerHTML = '<p style="color:#c62828;">Error cargando datos de ahorro</p>';
+        }
     }
 
     async function loadLiquidaciones() {
-        const res = await fetch('/api/v1/liquidacion/resumen');
-        const d = await res.json();
-        if (!d.liquidaciones || d.liquidaciones.length === 0) {
-            document.getElementById('liquidaciones').innerHTML = '<p style="color:#999">No hay liquidaciones. Presiona "Generar liquidaciones".</p>';
-            return;
+        try {
+            const res = await fetch('/api/v1/liquidacion/resumen');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const d = await res.json();
+            if (!d.liquidaciones || d.liquidaciones.length === 0) {
+                document.getElementById('liquidaciones').innerHTML = '<p style="color:#999">No hay liquidaciones. Presiona "Generar liquidaciones".</p>';
+                return;
+            }
+            let html = `<table>
+                <tr><th>Vendedor</th><th class="num">Ventas</th><th class="num">Fee</th><th class="num">Mono</th><th class="num">Neto</th><th>Estado</th></tr>`;
+            for (const l of d.liquidaciones) {
+                html += `<tr>
+                    <td><strong>${l.vendedor || 'N/A'}</strong> ${l.nombre || ''}</td>
+                    <td class="num">$${fmt(l.ventas_producto || 0)}</td>
+                    <td class="num">$${fmt(l.fee_total || 0)}</td>
+                    <td class="num">$${fmt(l.mono || 0)}</td>
+                    <td class="num"><strong>$${fmt(l.neto || 0)}</strong></td>
+                    <td>${l.estado || 'PENDIENTE'}</td>
+                </tr>`;
+            }
+            html += '</table>';
+            document.getElementById('liquidaciones').innerHTML = html;
+        } catch(e) {
+            console.error('Error loading liquidaciones:', e);
+            document.getElementById('liquidaciones').innerHTML = '<p style="color:#c62828;">Error cargando liquidaciones</p>';
         }
-        let html = `<table>
-            <tr><th>Vendedor</th><th class="num">Ventas</th><th class="num">Fee</th><th class="num">Mono</th><th class="num">Neto</th><th>Estado</th></tr>`;
-        for (const l of d.liquidaciones) {
-            html += `<tr>
-                <td><strong>${l.vendedor}</strong> ${l.nombre}</td>
-                <td class="num">$${fmt(l.ventas_producto)}</td>
-                <td class="num">$${fmt(l.fee_total)}</td>
-                <td class="num">$${fmt(l.mono)}</td>
-                <td class="num"><strong>$${fmt(l.neto)}</strong></td>
-                <td>${l.estado}</td>
-            </tr>`;
-        }
-        html += '</table>';
-        document.getElementById('liquidaciones').innerHTML = html;
     }
 
     async function syncVentas() {
-        const res = await fetch('/api/v1/atribucion/sync_viajante', {method:'POST'});
-        const d = await res.json();
-        alert('Sincronizadas: ' + d.sincronizadas + ' ventas nuevas');
-        loadDashboard();
+        try {
+            const res = await fetch('/api/v1/atribucion/sync_viajante', {method:'POST'});
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const d = await res.json();
+            alert('Sincronizadas: ' + (d.sincronizadas || 0) + ' ventas nuevas');
+            loadDashboard();
+        } catch(e) {
+            console.error('Error syncing ventas:', e);
+            alert('Error sincronizando ventas');
+        }
     }
 
     async function generarLiquidaciones() {
-        const res = await fetch('/api/v1/liquidacion/generar', {method:'POST'});
-        const d = await res.json();
-        alert('Generadas: ' + d.generadas + ' liquidaciones');
-        loadLiquidaciones();
+        try {
+            const res = await fetch('/api/v1/liquidacion/generar', {method:'POST'});
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
+            const d = await res.json();
+            alert('Generadas: ' + (d.generadas || 0) + ' liquidaciones');
+            loadLiquidaciones();
+        } catch(e) {
+            console.error('Error generating liquidaciones:', e);
+            alert('Error generando liquidaciones');
+        }
     }
 
     loadDashboard();

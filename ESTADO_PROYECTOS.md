@@ -11,29 +11,35 @@
 
 ## PROYECTOS ACTIVOS
 
-### 1. 🔴 SISTEMA VENDEDOR FREELANCE (PRIORIDAD)
+### 1. 🟡 SISTEMA VENDEDOR FREELANCE
 - **Objetivo**: Sistema omnicanal para vendedores freelance con atribución, liquidación, panel personal y dashboard gerencial
 - **Stack**: FastAPI + Python 3.14 + pyodbc + ODBC Driver 17 + SQL Server
 - **Arquitectura**: App en .112:8001 → DB en .111. Convive con web2py en .111:8000
-- **Estado**: App corriendo en .112:8001, login page funcional, DB conecta con pyodbc
-- **Qué falta para cerrar auth**:
-  - [ ] ⚡ Copiar `db.py` actualizado (pyodbc) al .112 — el actual en .112 tiene pymssql que NO conecta
-  - [ ] ⚡ Copiar `auth.py` actualizado al .112 (fix del salt PBKDF2)
-  - [ ] ⚡ Copiar `main.py` actualizado al .112 (rutas de auth + redirect)
-  - [ ] ⚡ Copiar `home.html` actualizado al .112 (login email/password)
-  - [ ] ⚡ Copiar `config.py` actualizado al .112 (DB_AUTH)
-  - [ ] Probar login con fcalaianov@calzalindo.com.ar
-  - [ ] Dar de alta vendedores piloto via API
+- **Estado**: Código corregido y listo para deploy. NO deployado al .112 todavía.
+- **Fixes aplicados (23-mar-2026)**:
+  - [x] Auth thread-safe con threading.Lock en sesiones
+  - [x] Auth checks en todos los endpoints de vendedor (admin ve todo, vendedor solo lo suyo)
+  - [x] Credenciales MySQL movidas a config.py (ya no hardcodeadas en auth.py)
+  - [x] Templates robustos para data vacía (home, panel_vendedor, admin_dashboard)
+  - [x] SQL seed: 30 productos catálogo comercial (`sql/002_seed_data.sql`)
+  - [x] Alta Mati: viajante 755 RODRIGUEZ MATIAS como V755 (`sql/003_alta_mati.sql`)
+  - [x] Script maestro SQL: `sql/RUN_ALL.sql` (tablas + seed + alta Mati)
+  - [x] Deploy scripts: `deploy_todo.sh`, `start_freelance.bat`, `install_service.bat`
+- **Para deployar (desde Mac)**:
+  1. `cd ~/Desktop/cowork_pedidos/_freelance/src && bash deploy_todo.sh`
+  2. En .111 SSMS: ejecutar `C:\cowork_pedidos\_freelance\src\sql\RUN_ALL.sql` en omicronvt
+  3. En .112: `cd C:\calzalindo_freelance && start_freelance.bat`
+  4. Probar login con fcalaianov@calzalindo.com.ar
+  5. Probar panel vendedor con código V755 (Mati)
 - **Qué falta módulos**:
-  - [ ] M1: Catálogo Comercial (fotos + contenido redes)
+  - [ ] M1: Catálogo Comercial — CRUD listo, seed 30 productos listos, falta deploy
   - [ ] M3: Generador Contenido Omnicanal (IG/WA/ML/TN templates)
   - [ ] M5: Facturación Dual (borradores factura C)
   - [ ] APIs externas: Tiendanube, WhatsApp Business, Instagram Graph, Facebook
-  - [ ] Configurar uvicorn como servicio Windows en .112
+  - [x] Configurar uvicorn como servicio Windows en .112 — `install_service.bat` con NSSM
 - **Archivos clave**: `_freelance/src/` (toda la carpeta)
 - **Detalle**: leer `_freelance/ARQUITECTURA_SISTEMA_VENDEDOR_FREELANCE.md`
-- **Correr**: en .112: `cd C:\calzalindo_freelance && iniciar.bat`
-- **Iniciar.bat**: `"C:\Users\fer\AppData\Local\Programs\Python\Python314\python.exe" -m uvicorn main:app --host 0.0.0.0 --port 8001 --reload`
+- **Correr**: en .112: `cd C:\calzalindo_freelance && start_freelance.bat`
 
 ### 2. 🟡 CARGA AUTOMÁTICA DE PEDIDOS + PROYECCIÓN
 - **Objetivo**: Cargar notas de pedido/facturas desde PDF → SQL Server + proyección de compras

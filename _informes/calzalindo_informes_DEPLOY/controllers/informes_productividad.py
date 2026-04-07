@@ -18,7 +18,8 @@ URLs:
 """
 
 # ─── CONFIG INCENTIVOS ───────────────────────────────────────────────
-BANDAS_MARGEN = [
+# Defaults — se sobreescriben desde tabla omicronvt.dbo.config_incentivos si existe
+BANDAS_MARGEN_DEFAULT = [
     (0.55, 0.07, 'Elite'),
     (0.50, 0.055, 'Excelente'),
     (0.45, 0.04, 'Muy Bueno'),
@@ -27,12 +28,12 @@ BANDAS_MARGEN = [
     (0.00, 0.00, 'Insuficiente'),
 ]
 
-FACTOR_ESTACIONAL = {
+FACTOR_ESTACIONAL_DEFAULT = {
     1: 0.9, 2: 1.0, 3: 1.3, 4: 1.2, 5: 1.1, 6: 1.0,
     7: 1.0, 8: 1.1, 9: 1.2, 10: 0.9, 11: 0.9, 12: 0.8
 }
 
-BONUS_PRODUCTIVIDAD = [
+BONUS_PRODUCTIVIDAD_DEFAULT = [
     (10.0, 0.02), (7.0, 0.015), (5.0, 0.01), (3.0, 0.005)
 ]
 
@@ -42,11 +43,81 @@ DEPOSITOS = {
     15: 'Junin GO'
 }
 
+# ─── FACTORES COSTO LABORAL (3 ESCENARIOS) ───────────────────────────
+# Escenario 1: Blanqueado ideal (CCT 130/75 completo)
+#   +16% jubilación + 2% PAMI + 6% OS patronal + 2.5% ART + 0.5% Seg.Vida
+#   + 8.33% SAC + 8.33% vacaciones proporcionales = +58.33%
+FACTOR_BLANQUEADO = 1.5833
+
+# Escenario 2: Realidad contable
+#   Ratio leyes sociales / sueldos medido en co_movact_v abr-dic 2025 ≈ 12%
+#   (5012100 Leyes Sociales / 501200x Sueldos comercialización)
+FACTOR_REAL_CONTABLE = 1.12
+
+# Escenario 3: Freelance — fee sobre venta mensual
+# Breakeven vendedor: fee_indif = sueldo_neto / vta_mensual ≈ 0.80/productividad
+# Breakeven H4 vs blanqueado: fee = 1.5833/productividad
+# 8% es el punto donde H4 gana ≥ realidad contable para la mayoría de los vendedores
+FEE_FREELANCE = 0.08
+
+# Sucursales agrupadas por deposito para comparativo
+SUCURSALES = {
+    0: 'Central 263', 1: 'Glam', 2: 'Norte', 4: 'Marroquineria',
+    6: 'Cuore', 7: 'Eva Peron', 8: 'Junin', 9: 'Tokyo Express',
+    15: 'Junin GO'
+}
+
+
+def _cargar_config_incentivos():
+    """Intenta cargar bandas/factores desde omicronvt.dbo.config_incentivos.
+    Si la tabla no existe o falla, usa defaults."""
+    global BANDAS_MARGEN, FACTOR_ESTACIONAL, BONUS_PRODUCTIVIDAD
+    try:
+        rows = db_omicronvt.executesql(
+            "SELECT tipo, umbral, valor, nombre FROM config_incentivos ORDER BY tipo, umbral DESC",
+            as_dict=True
+        )
+        if rows:
+            bandas = []
+            factores = {}
+            bonus = []
+            for r in rows:
+                if r['tipo'] == 'BANDA':
+                    bandas.append((float(r['umbral']), float(r['valor']), r['nombre']))
+                elif r['tipo'] == 'FACTOR_EST':
+                    factores[int(r['umbral'])] = float(r['valor'])
+                elif r['tipo'] == 'BONUS_PROD':
+                    bonus.append((float(r['umbral']), float(r['valor'])))
+            if bandas:
+                BANDAS_MARGEN = bandas
+            if factores:
+                FACTOR_ESTACIONAL = factores
+            if bonus:
+                BONUS_PRODUCTIVIDAD = bonus
+            return True
+    except:
+        pass
+    BANDAS_MARGEN = BANDAS_MARGEN_DEFAULT
+    FACTOR_ESTACIONAL = FACTOR_ESTACIONAL_DEFAULT
+    BONUS_PRODUCTIVIDAD = BONUS_PRODUCTIVIDAD_DEFAULT
+    return False
+
+# Cargar al iniciar
+_config_desde_db = _cargar_config_incentivos()
+
 
 # ─── HELPERS ─────────────────────────────────────────────────────────
 def _timer():
     """Retorna dict para medir tiempos de queries"""
     return {'_start': time.time(), '_steps': []}
+
+
+def _parse_date(val, fallback):
+    """Parsea una fecha en formato YYYY-MM-DD. Si falla, retorna fallback."""
+    try:
+        return datetime.datetime.strptime(val, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return fallback
 
 def _tick(t, label):
     """Registra un paso con su tiempo"""
@@ -74,16 +145,44 @@ def _sql_mssql(db_conn, sql):
     return db_conn.executesql(sql, as_dict=True)
 
 
-def _query_sueldos(desde, hasta):
-    """Sueldos promedio por vendedor desde moviempl1"""
+def _query_cargas_sociales_global(desde, hasta):
+    """Suma total de cargas sociales registradas en contabilidad (co_movact_v).
+    Cuentas: 5012100 Leyes Sociales Comerc, 5012200 Cuota Sindical, 5020500 Leyes Soc Admin.
+    Retorna dict con sueldos_contables, cargas_contables, total_contable."""
     sql = """
-        SELECT SUM(moviempl1.importe) / (DATEDIFF(month, MIN(fecha_contable), MAX(fecha_contable)) + 1) AS sueldo,
-               moviempl1.numero_cuenta
-        FROM moviempl1
-        WHERE moviempl1.codigo_movimiento IN (8, 10, 30, 31)
-          AND moviempl1.fecha_contable >= '%s'
-          AND moviempl1.fecha_contable <= '%s'
-        GROUP BY moviempl1.numero_cuenta
+        SELECT
+            SUM(CASE WHEN cuenta IN ('5012000','5012001','5012002','5020400') THEN debe ELSE 0 END) AS sueldos,
+            SUM(CASE WHEN cuenta IN ('5012100','5020500') THEN debe ELSE 0 END) AS leyes_sociales,
+            SUM(CASE WHEN cuenta = '5012200' THEN debe ELSE 0 END) AS cuota_sindical
+        FROM co_movact_v
+        WHERE cuenta IN ('5012000','5012001','5012002','5012100','5012200','5020400','5020500')
+          AND fecha >= '%s' AND fecha <= '%s'
+    """ % (desde, hasta)
+    try:
+        rows = _sql_mssql(dbC, sql)
+        if rows:
+            r = rows[0]
+            sueldos = float(r['sueldos'] or 0)
+            cargas = float(r['leyes_sociales'] or 0) + float(r['cuota_sindical'] or 0)
+            return {'sueldos': sueldos, 'cargas': cargas, 'total': sueldos + cargas}
+    except:
+        pass
+    return {'sueldos': 0, 'cargas': 0, 'total': 0}
+
+
+def _query_sueldos(desde, hasta):
+    """Sueldos promedio por vendedor desde moviempl1.
+    Usa msgestion01.dbo.moviempl1 con codigo_movimiento=10 (sueldo bruto).
+    Codigo 10 = bruto, 7 = neto, 11 = retenciones. Se usa 10 para costo real al empleador.
+    """
+    sql = """
+        SELECT SUM(m.importe) / (DATEDIFF(month, MIN(m.fecha_contable), MAX(m.fecha_contable)) + 1) AS sueldo,
+               m.numero_cuenta
+        FROM msgestion01.dbo.moviempl1 m
+        WHERE m.codigo_movimiento = 10
+          AND m.fecha_contable >= '%s'
+          AND m.fecha_contable <= '%s'
+        GROUP BY m.numero_cuenta
     """ % (desde, hasta)
     rows = _sql_mssql(db1, sql)
     return {r['numero_cuenta']: float(r['sueldo']) for r in rows if r['sueldo']}
@@ -176,12 +275,14 @@ def dashboard():
 
     hoy = request.now.date()
     hace_6m = hoy - datetime.timedelta(days=180)
-    desde = request.vars.get('desde', hace_6m.strftime('%Y-%m-%d'))
-    hasta = request.vars.get('hasta', hoy.strftime('%Y-%m-%d'))
+    d_desde = _parse_date(request.vars.get('desde'), hace_6m)
+    d_hasta = _parse_date(request.vars.get('hasta'), hoy)
+    if d_desde > d_hasta:
+        d_desde, d_hasta = d_hasta, d_desde
+    desde = d_desde.strftime('%Y-%m-%d')
+    hasta = d_hasta.strftime('%Y-%m-%d')
 
     # Calcular meses en el periodo para mensualizar venta
-    d_desde = datetime.datetime.strptime(desde, '%Y-%m-%d').date()
-    d_hasta = datetime.datetime.strptime(hasta, '%Y-%m-%d').date()
     meses_periodo = max(1, (d_hasta.year - d_desde.year) * 12 + d_hasta.month - d_desde.month + 1)
 
     viajantes = _query_viajantes()
@@ -229,11 +330,24 @@ def dashboard():
         turnos = turnos_map.get(cod, 0)
         conversion = float(tix) / turnos if turnos > 0 else None
 
+        # ── 3 escenarios de costo laboral ──
+        costo_blanqueado  = sueldo * FACTOR_BLANQUEADO   if sueldo > 0 else 0
+        costo_real        = sueldo * FACTOR_REAL_CONTABLE if sueldo > 0 else 0
+        costo_freelance   = vta_mensual * FEE_FREELANCE
+        ahorro_freelance  = costo_blanqueado - costo_freelance   # ahorro potencial vs blanqueado
+        brecha_informalidad = costo_blanqueado - costo_real      # lo que "falta" declarar
+        # fee_indif: fee mínimo para que el vendedor no gane menos que su sueldo neto actual
+        # sueldo_neto ≈ sueldo * 0.83 (17% retenciones) → fee_indif = sueldo_neto / vta_mensual
+        fee_indif = (sueldo * 0.83) / vta_mensual if vta_mensual > 0 and sueldo > 0 else None
+        # fee_h4_break: fee donde H4 iguala lo que paga hoy (costo_real)
+        fee_h4_break = costo_real / vta_mensual if vta_mensual > 0 and sueldo > 0 else None
+
         rows.append(dict(
             codigo=cod,
             nombre=nombre,
             sueldo=sueldo,
             venta=vta,
+            vta_mensual=vta_mensual,
             costo=costo,
             margen=margen,
             pct_margen=pct_margen,
@@ -250,6 +364,14 @@ def dashboard():
             bonus_prod=bonus_prod,
             bonus_monto=bonus_monto,
             total_incentivo=comision_base + bonus_monto,
+            # escenarios costo laboral
+            costo_blanqueado=costo_blanqueado,
+            costo_real=costo_real,
+            costo_freelance=costo_freelance,
+            ahorro_freelance=ahorro_freelance,
+            brecha_informalidad=brecha_informalidad,
+            fee_indif=fee_indif,
+            fee_h4_break=fee_h4_break,
         ))
 
     rows.sort(key=lambda x: x['productividad'], reverse=True)
@@ -263,6 +385,18 @@ def dashboard():
     vendedores_con_sueldo = len([r for r in rows if r['sueldo'] > 0])
     pct_margen_global = total_margen / total_venta if total_venta > 0 else 0
     prod_promedio = (total_venta / meses_periodo) / total_sueldo if total_sueldo > 0 else 0
+
+    # KPIs de costo laboral — 3 escenarios (solo vendedores con sueldo registrado)
+    rows_con_sueldo = [r for r in rows if r['sueldo'] > 0]
+    total_costo_blanqueado  = sum(r['costo_blanqueado']  for r in rows_con_sueldo)
+    total_costo_real        = sum(r['costo_real']        for r in rows_con_sueldo)
+    total_costo_freelance   = sum(r['costo_freelance']   for r in rows_con_sueldo)
+    total_ahorro_freelance  = total_costo_blanqueado - total_costo_freelance
+    total_brecha_informal   = total_costo_blanqueado - total_costo_real
+
+    # Datos reales de contabilidad para contexto (co_movact_v)
+    cargas_contables = _query_cargas_sociales_global(desde, hasta)
+    _tick(t, 'cargas_contables')
 
     estrellas = [r for r in rows if r['sueldo'] > 0 and r['productividad'] >= 5 and r['pct_margen'] >= 0.45]
     revisar = [r for r in rows if r['sueldo'] > 0 and (r['productividad'] < 2 or r['pct_margen'] < 0.35)]
@@ -301,6 +435,16 @@ def dashboard():
         es_admin=_es_admin(),
         puede_ver=_puede_ver,
         roles=_roles_usuario(),
+        # 3 escenarios costo laboral
+        total_costo_blanqueado=total_costo_blanqueado,
+        total_costo_real=total_costo_real,
+        total_costo_freelance=total_costo_freelance,
+        total_ahorro_freelance=total_ahorro_freelance,
+        total_brecha_informal=total_brecha_informal,
+        cargas_contables=cargas_contables,
+        factor_blanqueado=FACTOR_BLANQUEADO,
+        factor_real=FACTOR_REAL_CONTABLE,
+        fee_freelance=FEE_FREELANCE,
     )
 
 
@@ -724,17 +868,394 @@ def ticket_historico():
     )
 
 
-# ─── API JSON (para charts) ──────────────────────────────────────────
-def api_productividad():
-    """JSON con datos de productividad para Highcharts"""
+# ─── COMPARATIVO SUCURSALES ──────────────────────────────────────────
+def sucursales():
+    """Comparativo de productividad entre sucursales/depositos"""
+    _requiere_acceso()
+    t = _timer()
+
     hoy = request.now.date()
     hace_6m = hoy - datetime.timedelta(days=180)
     desde = request.vars.get('desde', hace_6m.strftime('%Y-%m-%d'))
     hasta = request.vars.get('hasta', hoy.strftime('%Y-%m-%d'))
 
-    # Meses en el periodo
     d_desde = datetime.datetime.strptime(desde, '%Y-%m-%d').date()
     d_hasta = datetime.datetime.strptime(hasta, '%Y-%m-%d').date()
+    meses_periodo = max(1, (d_hasta.year - d_desde.year) * 12 + d_hasta.month - d_desde.month + 1)
+
+    # Ventas por sucursal (deposito de ventas1_vendedor)
+    sql = """
+        SELECT deposito,
+               SUM(total_item * cantidad) AS venta,
+               SUM(precio_costo * cantidad) AS costo,
+               SUM(cantidad) AS pares,
+               (COUNT(DISTINCT(CASE WHEN codigo=1 THEN numero END))
+                - COUNT(DISTINCT(CASE WHEN codigo=3 THEN numero END))) AS tickets,
+               COUNT(DISTINCT viajante) AS vendedores
+        FROM ventas1_vendedor
+        WHERE fecha >= '%s' AND fecha <= '%s'
+        GROUP BY deposito
+        ORDER BY SUM(total_item * cantidad) DESC
+    """ % (desde, hasta)
+    rows = _sql_mssql(db_omicronvt, sql)
+    _tick(t, 'ventas_sucursal')
+
+    # Sueldos por deposito (necesitamos mapear viajante → deposito)
+    # Por ahora usar promedio global
+    sueldos = _query_sueldos(desde, hasta)
+    sueldo_promedio = sum(sueldos.values()) / max(len(sueldos), 1) if sueldos else 0
+    _tick(t, 'sueldos')
+
+    sucursales_data = []
+    total_venta_global = sum(float(r['venta'] or 0) for r in rows)
+
+    for r in rows:
+        dep = r['deposito']
+        vta = float(r['venta'] or 0)
+        costo = float(r['costo'] or 0)
+        pares = float(r['pares'] or 0)
+        tix = int(r['tickets'] or 0)
+        vendedores = int(r['vendedores'] or 0)
+        margen = vta - costo
+        pct_margen = margen / vta if vta > 0 else 0
+        vta_mensual = vta / meses_periodo
+        ticket_prom = vta / tix if tix > 0 else 0
+        pares_ticket = pares / tix if tix > 0 else 0
+        participacion = vta / total_venta_global if total_venta_global > 0 else 0
+
+        sucursales_data.append(dict(
+            deposito=dep,
+            nombre=SUCURSALES.get(dep, 'Dep %s' % dep),
+            venta=vta,
+            venta_mensual=vta_mensual,
+            costo=costo,
+            margen=margen,
+            pct_margen=pct_margen,
+            pares=pares,
+            tickets=tix,
+            ticket_prom=ticket_prom,
+            pares_ticket=pares_ticket,
+            vendedores=vendedores,
+            participacion=participacion,
+        ))
+    _tick(t, 'procesamiento')
+
+    # Chart data
+    chart_json = json.dumps([{
+        'name': s['nombre'],
+        'venta': round(s['venta_mensual']),
+        'margen': round(s['pct_margen'] * 100, 1),
+        'tickets': s['tickets'],
+    } for s in sucursales_data], ensure_ascii=False)
+
+    return dict(
+        sucursales=sucursales_data,
+        desde=desde,
+        hasta=hasta,
+        chart_json=chart_json,
+        timing=t['_steps'],
+        es_admin=_es_admin(),
+        puede_ver=_puede_ver,
+        roles=_roles_usuario(),
+    )
+
+
+# ─── ALERTAS VENDEDORES ─────────────────────────────────────────────
+def alertas():
+    """Vendedores con rendimiento bajo 2+ meses consecutivos.
+    Retorna JSON para integrar con WhatsApp task_manager."""
+    _requiere_acceso()
+
+    hoy = request.now.date()
+    hace_3m = hoy - datetime.timedelta(days=90)
+    desde = hace_3m.strftime('%Y-%m-%d')
+    hasta = hoy.strftime('%Y-%m-%d')
+
+    viajantes = _query_viajantes()
+    sueldos = _query_sueldos(desde, hasta)
+    mensual = _query_ventas_mensual(desde, hasta)
+
+    # Agrupar por vendedor
+    por_vendedor = defaultdict(list)
+    for r in mensual:
+        por_vendedor[r['viajante']].append(r)
+
+    alertas_list = []
+    for cod, meses in por_vendedor.items():
+        if cod == 0 or cod not in sueldos:
+            continue
+        sueldo = sueldos[cod]
+        if sueldo == 0:
+            continue
+
+        meses_bajo = 0
+        for m in sorted(meses, key=lambda x: (x['anio'], x['mes'])):
+            vta = float(m['valor'] or 0)
+            costo = float(m['costo'] or 0)
+            pct_margen = (vta - costo) / vta if vta > 0 else 0
+            prod = vta / sueldo if sueldo > 0 else 0
+
+            if prod < 2.0 or pct_margen < 0.35:
+                meses_bajo += 1
+            else:
+                meses_bajo = 0
+
+        if meses_bajo >= 2:
+            nombre = viajantes.get(cod, 'Viajante %s' % cod)
+            alertas_list.append(dict(
+                codigo=cod,
+                nombre=nombre,
+                meses_bajo=meses_bajo,
+                ultimo_margen=round(pct_margen * 100, 1),
+                ultima_prod=round(prod, 1),
+            ))
+
+    alertas_list.sort(key=lambda x: x['meses_bajo'], reverse=True)
+    return response.json(dict(alertas=alertas_list, total=len(alertas_list)))
+
+
+# ─── MODELO FREELANCE ("UBER DEL CALZADO") ───────────────────────────
+# Vendedores Central que NO son convertibles a freelance (depositeros/logística)
+# Son costo de infraestructura, no de venta atribuible. Llenar con códigos reales.
+DEPOSITEROS_CENTRAL = []  # ej: [12, 47] — códigos viajante de los 2 depositeros
+
+# Fee H4 objetivo: 8% (equilibrio entre ahorro para H4 y retribución para el vendedor)
+FEE_OBJETIVO = FEE_FREELANCE   # mismo que el global (0.08)
+
+# Mínimo de venta mensual para ser candidato a freelance (filtro de ruido)
+VTA_MINIMA_FREELANCE = 500000
+
+
+def _query_ventas_por_viajante_deposito(desde, hasta):
+    """Ventas totales por viajante+deposito. Permite asignar deposito_principal."""
+    sql = """
+        SELECT
+            viajante,
+            deposito,
+            SUM(total_item * cantidad)   AS venta_total,
+            SUM(precio_costo * cantidad) AS costo_total,
+            COUNT(DISTINCT(CASE WHEN codigo=1 THEN numero END))
+            - COUNT(DISTINCT(CASE WHEN codigo=3 THEN numero END)) AS tickets
+        FROM ventas1_vendedor
+        WHERE fecha >= '%s' AND fecha <= '%s'
+        GROUP BY viajante, deposito
+    """ % (desde, hasta)
+    return _sql_mssql(db_omicronvt, sql)
+
+
+def freelance_modelo():
+    """Modelo de conversión freelance ('Uber del calzado') por local y vendedor."""
+    _requiere_acceso()
+    t = _timer()
+
+    hoy = request.now.date()
+    hace_6m = hoy - datetime.timedelta(days=180)
+    d_desde = _parse_date(request.vars.get('desde'), hace_6m)
+    d_hasta = _parse_date(request.vars.get('hasta'), hoy)
+    if d_desde > d_hasta:
+        d_desde, d_hasta = d_hasta, d_desde
+    desde = d_desde.strftime('%Y-%m-%d')
+    hasta  = d_hasta.strftime('%Y-%m-%d')
+    meses_periodo = max(1, (d_hasta.year - d_desde.year) * 12 + d_hasta.month - d_desde.month + 1)
+
+    viajantes = _query_viajantes()
+    _tick(t, 'viajantes')
+
+    sueldos = _query_sueldos(desde, hasta)
+    _tick(t, 'sueldos')
+
+    ventas_raw = _query_ventas_por_viajante_deposito(desde, hasta)
+    _tick(t, 'ventas_deposito')
+
+    # Agrupar por viajante: sumar ventas y asignar deposito_principal (el de mayor venta)
+    from collections import defaultdict
+    por_viajante = defaultdict(lambda: {'venta': 0, 'costo': 0, 'tickets': 0, 'dep_max': 0, 'vta_dep_max': 0})
+    for r in ventas_raw:
+        cod = r['viajante']
+        if not cod:
+            continue
+        vta = float(r['venta_total'] or 0)
+        costo = float(r['costo_total'] or 0)
+        tix = int(r['tickets'] or 0)
+        dep = r['deposito']
+        d = por_viajante[cod]
+        d['venta'] += vta
+        d['costo'] += costo
+        d['tickets'] += tix
+        if vta > d['vta_dep_max']:
+            d['vta_dep_max'] = vta
+            d['dep_max'] = dep
+
+    vendedores = []
+    for cod, d in por_viajante.items():
+        vta_total = d['venta']
+        if vta_total < VTA_MINIMA_FREELANCE * meses_periodo:
+            continue
+        nombre = viajantes.get(cod, 'Viajante %s' % cod)
+        dep = d['dep_max']
+        sueldo = sueldos.get(cod, 0)
+        costo_total = d['costo']
+        tickets = d['tickets']
+        margen = vta_total - costo_total
+        pct_margen = margen / vta_total if vta_total > 0 else 0
+        vta_mensual = vta_total / meses_periodo
+        productividad = vta_mensual / sueldo if sueldo > 0 else None
+
+        # Costos laborales
+        costo_blanqueado = sueldo * FACTOR_BLANQUEADO if sueldo > 0 else 0
+        costo_real       = sueldo * FACTOR_REAL_CONTABLE if sueldo > 0 else 0
+        costo_freelance  = vta_mensual * FEE_OBJETIVO
+
+        # Fee de indiferencia del vendedor (a partir del cual no pierde)
+        # sueldo_neto ≈ sueldo * 0.83 (retenciones ≈ 17%)
+        fee_indif_v = (sueldo * 0.83) / vta_mensual if vta_mensual > 0 and sueldo > 0 else None
+        # Fee de equilibrio H4 (igual a costo_real actual)
+        fee_h4_eq    = costo_real / vta_mensual if vta_mensual > 0 and sueldo > 0 else None
+
+        # ¿Es candidato a freelance?
+        # Central: depositeros excluidos. Todos los demás: sí.
+        es_depositero = (dep == 0 and cod in DEPOSITEROS_CENTRAL)
+        convertible = not es_depositero
+
+        # Diagnóstico
+        if not sueldo:
+            diagnostico = 'sin_sueldo'  # ya informal / monotributista / part-time
+        elif fee_indif_v and fee_indif_v < FEE_OBJETIVO:
+            diagnostico = 'favorable'   # vendedor gana más, H4 ahorra
+        elif fee_indif_v and fee_indif_v <= FEE_OBJETIVO * 1.25:
+            diagnostico = 'neutro'      # requiere negociación
+        else:
+            diagnostico = 'dificil'     # vendedor pierde demasiado al fee objetivo
+
+        ahorro_h4 = costo_blanqueado - costo_freelance
+        ahorro_vs_real = costo_real - costo_freelance
+
+        vendedores.append(dict(
+            codigo=cod,
+            nombre=nombre,
+            deposito=dep,
+            deposito_nombre=DEPOSITOS.get(dep, 'Dep %s' % dep),
+            sueldo=sueldo,
+            vta_total=vta_total,
+            vta_mensual=vta_mensual,
+            costo=costo_total,
+            margen=margen,
+            pct_margen=pct_margen,
+            tickets=tickets,
+            productividad=productividad,
+            costo_blanqueado=costo_blanqueado,
+            costo_real=costo_real,
+            costo_freelance=costo_freelance,
+            ahorro_h4=ahorro_h4,
+            ahorro_vs_real=ahorro_vs_real,
+            fee_indif=fee_indif_v,
+            fee_h4_eq=fee_h4_eq,
+            convertible=convertible,
+            es_depositero=es_depositero,
+            diagnostico=diagnostico,
+        ))
+
+    # Ordenar: por deposito luego por vta_mensual desc
+    vendedores.sort(key=lambda x: (x['deposito'], -x['vta_mensual']))
+    _tick(t, 'procesamiento')
+
+    # Agrupar por depósito para resumen
+    resumen_deposito = {}
+    for v in vendedores:
+        dep = v['deposito']
+        if dep not in resumen_deposito:
+            resumen_deposito[dep] = dict(
+                deposito=dep,
+                nombre=DEPOSITOS.get(dep, 'Dep %s' % dep),
+                vendedores=0, convertibles=0,
+                vta_mensual=0, costo_blanqueado=0, costo_real=0, costo_freelance=0,
+                ahorro_h4=0, ahorro_vs_real=0,
+                sin_sueldo=0,
+            )
+        rd = resumen_deposito[dep]
+        rd['vendedores'] += 1
+        if v['convertible']:
+            rd['convertibles'] += 1
+        rd['vta_mensual'] += v['vta_mensual']
+        rd['costo_blanqueado'] += v['costo_blanqueado']
+        rd['costo_real'] += v['costo_real']
+        rd['costo_freelance'] += v['costo_freelance']
+        rd['ahorro_h4'] += v['ahorro_h4']
+        rd['ahorro_vs_real'] += v['ahorro_vs_real']
+        if v['diagnostico'] == 'sin_sueldo':
+            rd['sin_sueldo'] += 1
+
+    depositos_resumen = sorted(resumen_deposito.values(), key=lambda x: -x['vta_mensual'])
+
+    # KPIs globales solo sobre convertibles
+    convertibles = [v for v in vendedores if v['convertible']]
+    total_ahorro_h4    = sum(v['ahorro_h4'] for v in convertibles)
+    total_ahorro_real  = sum(v['ahorro_vs_real'] for v in convertibles)
+    total_costo_free   = sum(v['costo_freelance'] for v in convertibles)
+    total_vta_mensual  = sum(v['vta_mensual'] for v in convertibles)
+    n_favorable = len([v for v in convertibles if v['diagnostico'] == 'favorable'])
+    n_neutro    = len([v for v in convertibles if v['diagnostico'] == 'neutro'])
+    n_dificil   = len([v for v in convertibles if v['diagnostico'] == 'dificil'])
+    n_sin_sueldo= len([v for v in convertibles if v['diagnostico'] == 'sin_sueldo'])
+
+    return dict(
+        vendedores=vendedores,
+        depositos_resumen=depositos_resumen,
+        desde=desde,
+        hasta=hasta,
+        meses_periodo=meses_periodo,
+        fee_objetivo=FEE_OBJETIVO,
+        factor_blanqueado=FACTOR_BLANQUEADO,
+        factor_real=FACTOR_REAL_CONTABLE,
+        total_convertibles=len(convertibles),
+        total_depositeros=len([v for v in vendedores if v['es_depositero']]),
+        total_ahorro_h4=total_ahorro_h4,
+        total_ahorro_real=total_ahorro_real,
+        total_costo_free=total_costo_free,
+        total_vta_mensual=total_vta_mensual,
+        n_favorable=n_favorable,
+        n_neutro=n_neutro,
+        n_dificil=n_dificil,
+        n_sin_sueldo=n_sin_sueldo,
+        depositos=DEPOSITOS,
+        timing=t['_steps'],
+        es_admin=_es_admin(),
+        puede_ver=_puede_ver,
+        roles=_roles_usuario(),
+    )
+
+
+# ─── ADMIN CONFIG INCENTIVOS ────────────────────────────────────────
+def config():
+    """Pantalla para editar bandas, factores y bonus (solo admin)"""
+    if not _es_admin():
+        session.flash = 'Solo administradores pueden editar la configuracion'
+        redirect(URL('informes_productividad', 'dashboard'))
+
+    return dict(
+        bandas=BANDAS_MARGEN,
+        factor_estacional=FACTOR_ESTACIONAL,
+        bonus_productividad=BONUS_PRODUCTIVIDAD,
+        config_desde_db=_config_desde_db,
+        es_admin=_es_admin(),
+        puede_ver=_puede_ver,
+        roles=_roles_usuario(),
+    )
+
+
+# ─── API JSON (para charts) ──────────────────────────────────────────
+def api_productividad():
+    """JSON con datos de productividad para Highcharts"""
+    if not auth.user:
+        return response.json({'error': 'No autorizado'})
+    hoy = request.now.date()
+    hace_6m = hoy - datetime.timedelta(days=180)
+    d_desde = _parse_date(request.vars.get('desde'), hace_6m)
+    d_hasta = _parse_date(request.vars.get('hasta'), hoy)
+    desde = d_desde.strftime('%Y-%m-%d')
+    hasta = d_hasta.strftime('%Y-%m-%d')
+
+    # Meses en el periodo
     meses_p = max(1, (d_hasta.year - d_desde.year) * 12 + d_hasta.month - d_desde.month + 1)
 
     sueldos = _query_sueldos(desde, hasta)
@@ -768,6 +1289,8 @@ def api_productividad():
 
 def api_estacionalidad_vendedor():
     """JSON mensual para un vendedor"""
+    if not auth.user:
+        return response.json({'error': 'No autorizado'})
     cod = int(request.vars.get('cod', 0))
     if cod == 0:
         return response.json([])
@@ -797,3 +1320,129 @@ def api_estacionalidad_vendedor():
         ))
 
     return response.json(data)
+
+
+# =============================================================================
+# VIAJANTE ADMIN — administracion de viajante_config
+# Solo accesible por informes_admin
+# URL: /calzalindo_informes/informes_productividad/viajante_admin
+# =============================================================================
+
+def viajante_admin():
+    """
+    Vista de administracion de viajante_config en omicronvt.
+    Permite listar, editar tipo/observaciones/activo y vincular auth_user_id.
+    Solo informes_admin.
+    """
+    _requiere_acceso()
+
+    mensaje = None
+    error = None
+
+    # ----------------------------------------------------------------
+    # POST: guardar cambios de una fila
+    # ----------------------------------------------------------------
+    if request.vars.get('accion') == 'guardar':
+        try:
+            cod = int(request.vars.get('viajante_codigo', 0))
+            tipo = request.vars.get('tipo', 'individual')
+            obs  = (request.vars.get('observaciones') or '').strip()
+            activo_str = request.vars.get('activo', '1')
+            activo = 1 if activo_str == '1' else 0
+            auth_uid = request.vars.get('auth_user_id') or None
+            if auth_uid:
+                auth_uid = int(auth_uid)
+            dep = request.vars.get('deposito_principal') or None
+            if dep:
+                dep = int(dep)
+
+            if tipo not in ('individual', 'grupal', 'excluido', 'ml'):
+                raise ValueError(u'Tipo invalido: %s' % tipo)
+
+            # Armar SQL de update dinamico
+            obs_escaped = obs.replace("'", "''")
+            fecha_baja_sql = 'NULL' if activo == 1 else 'GETDATE()'
+            auth_uid_sql   = str(auth_uid) if auth_uid else 'NULL'
+            dep_sql        = str(dep)       if dep      else 'NULL'
+
+            sql_upd = u"""
+                UPDATE omicronvt.dbo.viajante_config
+                SET tipo = '%s',
+                    observaciones = '%s',
+                    activo = %d,
+                    auth_user_id = %s,
+                    deposito_principal = %s,
+                    fecha_baja = %s
+                WHERE viajante_codigo = %d
+            """ % (tipo, obs_escaped, activo, auth_uid_sql, dep_sql, fecha_baja_sql, cod)
+
+            db_omicronvt.executesql(sql_upd)
+            db_omicronvt.commit()
+            mensaje = u'Viajante %d actualizado correctamente.' % cod
+
+        except Exception as ex:
+            db_omicronvt.rollback()
+            error = u'Error al guardar: %s' % str(ex)
+
+    # ----------------------------------------------------------------
+    # Filtros GET
+    # ----------------------------------------------------------------
+    filtro_tipo   = request.vars.get('ftipo', '')
+    filtro_activo = request.vars.get('factivo', '')
+
+    where_parts = []
+    if filtro_tipo:
+        where_parts.append(u"tipo = '%s'" % filtro_tipo)
+    if filtro_activo in ('0', '1'):
+        where_parts.append(u"activo = %s" % filtro_activo)
+
+    where_sql = (u'WHERE ' + u' AND '.join(where_parts)) if where_parts else u''
+
+    sql_lista = u"""
+        SELECT viajante_codigo, nombre, tipo, auth_user_id,
+               deposito_principal, activo, observaciones,
+               fecha_alta, fecha_baja
+        FROM omicronvt.dbo.viajante_config WITH (NOLOCK)
+        %s
+        ORDER BY tipo, viajante_codigo
+    """ % where_sql
+
+    try:
+        viajantes = _sql_mssql(db_omicronvt, sql_lista)
+    except Exception as ex:
+        viajantes = []
+        error = u'No se pudo leer viajante_config. Ejecuta crear_viajante_config.sql primero. (%s)' % str(ex)
+
+    # ----------------------------------------------------------------
+    # Lista de usuarios del sistema para el dropdown
+    # ----------------------------------------------------------------
+    try:
+        usuarios = db_autenticacion(db_autenticacion.auth_user).select(
+            db_autenticacion.auth_user.id,
+            db_autenticacion.auth_user.first_name,
+            db_autenticacion.auth_user.last_name,
+            db_autenticacion.auth_user.email,
+            orderby=db_autenticacion.auth_user.first_name
+        )
+    except Exception:
+        usuarios = []
+
+    # Mapa deposito para mostrar nombre
+    dep_nombres = {
+        0: u'Central', 1: u'Glam', 2: u'Norte', 4: u'Marroquineria',
+        6: u'Cuore', 7: u'Eva Peron', 8: u'Junin', 9: u'Tokyo Express',
+        15: u'Junin GO',
+    }
+
+    tipos_disponibles = ['individual', 'grupal', 'excluido', 'ml']
+
+    return dict(
+        viajantes=viajantes,
+        usuarios=usuarios,
+        dep_nombres=dep_nombres,
+        tipos_disponibles=tipos_disponibles,
+        filtro_tipo=filtro_tipo,
+        filtro_activo=filtro_activo,
+        mensaje=mensaje,
+        error=error,
+    )

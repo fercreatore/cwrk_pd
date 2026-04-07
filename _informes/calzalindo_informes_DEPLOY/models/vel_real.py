@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-vel_real.py — Velocidad Real corregida por quiebre de stock
-===========================================================
+vel_real.py — Velocidad Real corregida por quiebre de stock (algoritmo v3)
+==========================================================================
 Módulo independiente para calcular vel_real en el contexto web2py (DAL).
 
 Lógica extraída de app_reposicion.py::analizar_quiebre_batch() y adaptada
 para funcionar con las conexiones DAL de calzalindo_informes (db1, dbC).
+
+Algoritmo v3 incluye:
+  - Desestacionalización mensual (factores calculados por artículo)
+  - factor_disp: 1.20x si >50% quiebre, 1.10x si >30%, 1.0 si no
+  - Fallback 100% quiebre: vel_aparente * 1.15
+  - std_mensual: desvío estándar de meses con stock
+  - ventas_perdidas: estimación de ventas en meses quebrados
+  - vel_real_con_perdidas: (ventas_total + ventas_perdidas) / meses
 
 Uso desde controllers:
     from vel_real import vel_real_proveedor, vel_real_industria, analizar_quiebre_batch_dal
@@ -17,6 +25,7 @@ Autor: Cowork + Claude — Marzo 2026
 """
 
 import datetime
+import math
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
@@ -29,6 +38,88 @@ CODIGOS_EXCLUIR_VENTAS = '(7,36)'
 MARCAS_EXCLUIDAS_SQL = '(1316,1317,1158,436)'
 MESES_QUIEBRE_DEFAULT = 12
 
+# Factores estacionales globales (fallback cuando no hay historia propia)
+# Fuente: ESTACIONALIDAD_MENSUAL en app_reposicion.py
+ESTACIONALIDAD_MENSUAL = {
+    1: 0.88, 2: 1.04, 3: 0.74, 4: 0.73, 5: 0.93, 6: 1.05,
+    7: 0.98, 8: 0.92, 9: 0.93, 10: 1.22, 11: 1.04, 12: 1.51,
+}
+
+
+# ============================================================================
+# FACTOR ESTACIONAL BATCH v3 (DAL version)
+# ============================================================================
+
+def factor_estacional_batch_dal(codigos_sinonimo, anios=3):
+    """
+    Calcula factores estacionales por articulo en batch. Version DAL para web2py.
+    Adaptado de factor_estacional_batch() de crear_tabla_vel_real.py (v3).
+
+    Retorna dict {cs: {mes(1..12): factor_float}}
+
+    Logica:
+      - Suma ventas de los ultimos `anios` anios por (codigo_sinonimo, mes)
+      - Calcula factor = ventas_mes / media_mensual
+      - Si factores son "planos" (todos 0.8-1.2), usa ESTACIONALIDAD_MENSUAL global
+      - Si el articulo no tiene historia suficiente, usa ESTACIONALIDAD_MENSUAL global
+    """
+    if not codigos_sinonimo:
+        return {}
+
+    desde = (datetime.date.today() - relativedelta(years=anios)).replace(month=1, day=1)
+    filtro = ",".join("'%s'" % c for c in codigos_sinonimo)
+
+    sql = """
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
+               SUM(CASE WHEN v.operacion='+' THEN v.cantidad
+                        WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
+               MONTH(v.fecha) AS mes
+        FROM msgestionC.dbo.ventas1 v
+        JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
+        WHERE v.codigo NOT IN %s
+          AND LEFT(a.codigo_sinonimo, 10) IN (%s)
+          AND v.fecha >= '%s'
+        GROUP BY LEFT(a.codigo_sinonimo, 10), MONTH(v.fecha)
+    """ % (CODIGOS_EXCLUIR_VENTAS, filtro, desde)
+
+    try:
+        rows = dbC.executesql(sql, as_dict=True)
+    except Exception:
+        rows = []
+
+    # Indexar por csr
+    ventas_por_cs = {}
+    for r in rows:
+        cs = (r['csr'] or '').strip()
+        mes = int(r['mes'])
+        cant = float(r['cant'] or 0)
+        if cs not in ventas_por_cs:
+            ventas_por_cs[cs] = {}
+        ventas_por_cs[cs][mes] = cant
+
+    resultados = {}
+    for cs in codigos_sinonimo:
+        ventas_mes = ventas_por_cs.get(cs, {})
+        if not ventas_mes:
+            resultados[cs] = dict(ESTACIONALIDAD_MENSUAL)
+            continue
+
+        media = sum(ventas_mes.values()) / max(len(ventas_mes), 1)
+        if media <= 0:
+            resultados[cs] = dict(ESTACIONALIDAD_MENSUAL)
+            continue
+
+        factors = {m: round(ventas_mes.get(m, media) / media, 3) for m in range(1, 13)}
+
+        # Si factores son planos (sin estacionalidad real), usar global
+        is_flat = all(0.8 <= v <= 1.2 for v in factors.values())
+        if is_flat:
+            resultados[cs] = dict(ESTACIONALIDAD_MENSUAL)
+        else:
+            resultados[cs] = factors
+
+    return resultados
+
 
 # ============================================================================
 # CORE: analizar_quiebre_batch para DAL (web2py)
@@ -36,12 +127,24 @@ MESES_QUIEBRE_DEFAULT = 12
 
 def analizar_quiebre_batch_dal(codigos_sinonimo, meses=MESES_QUIEBRE_DEFAULT):
     """
-    Analiza quiebre para MÚLTIPLES codigo_sinonimo en batch.
-    Versión DAL: usa dbC (msgestionC) y db1 (msgestion01art).
+    Analiza quiebre para MULTIPLES codigo_sinonimo en batch. Algoritmo v3.
+    Version DAL: usa dbC (msgestionC) y db1 (msgestion01art).
+
+    Mejoras v3 sobre v1:
+      - Desestacionalizacion: ventas de meses OK divididas por factor estacional
+      - factor_disp: 1.20 si pct_quiebre>50%, 1.10 si >30%, 1.0 si no
+      - Fallback 100% quiebre: vel_aparente * 1.15
+      - std_mensual: desvio estandar de ventas en meses con stock
+      - ventas_perdidas: estimacion de ventas en meses quebrados
+      - vel_real_con_perdidas: (ventas_total + ventas_perdidas) / meses
+
+    Usa LEFT(a.codigo_sinonimo, 10) para alinear con el algoritmo v3.
 
     Retorna dict {codigo_sinonimo: {
         stock_actual, meses_quebrado, meses_ok, pct_quiebre,
-        vel_aparente, vel_real, ventas_total, ventas_ok, factor_quiebre
+        vel_aparente, vel_real, vel_base_desest, factor_disp,
+        ventas_total, ventas_ok, factor_quiebre,
+        std_mensual, ventas_perdidas, vel_real_con_perdidas
     }}
     """
     if not codigos_sinonimo:
@@ -52,42 +155,42 @@ def analizar_quiebre_batch_dal(codigos_sinonimo, meses=MESES_QUIEBRE_DEFAULT):
 
     filtro = ",".join("'%s'" % c for c in codigos_sinonimo)
 
-    # 1. Stock actual por codigo_sinonimo
+    # 1. Stock actual por codigo_sinonimo (LEFT 10 para alinear con v3)
     sql_stock = """
-        SELECT a.codigo_sinonimo,
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
                ISNULL(SUM(s.stock_actual), 0) AS stock
         FROM msgestionC.dbo.stock s
         JOIN msgestion01art.dbo.articulo a ON a.codigo = s.articulo
-        WHERE a.codigo_sinonimo IN (%s)
+        WHERE LEFT(a.codigo_sinonimo, 10) IN (%s)
           AND s.deposito IN %s
-        GROUP BY a.codigo_sinonimo
+        GROUP BY LEFT(a.codigo_sinonimo, 10)
     """ % (filtro, DEPOS_INFORMES_SQL)
 
-    # 2. Ventas mensuales
+    # 2. Ventas mensuales (LEFT 10)
     sql_ventas = """
-        SELECT a.codigo_sinonimo,
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
                SUM(CASE WHEN v.operacion='+' THEN v.cantidad
                         WHEN v.operacion='-' THEN -v.cantidad END) AS cant,
                YEAR(v.fecha) AS anio, MONTH(v.fecha) AS mes
         FROM msgestionC.dbo.ventas1 v
         JOIN msgestion01art.dbo.articulo a ON v.articulo = a.codigo
         WHERE v.codigo NOT IN %s
-          AND a.codigo_sinonimo IN (%s)
+          AND LEFT(a.codigo_sinonimo, 10) IN (%s)
           AND v.fecha >= '%s'
-        GROUP BY a.codigo_sinonimo, YEAR(v.fecha), MONTH(v.fecha)
+        GROUP BY LEFT(a.codigo_sinonimo, 10), YEAR(v.fecha), MONTH(v.fecha)
     """ % (CODIGOS_EXCLUIR_VENTAS, filtro, desde)
 
-    # 3. Compras mensuales
+    # 3. Compras mensuales (LEFT 10)
     sql_compras = """
-        SELECT a.codigo_sinonimo,
+        SELECT LEFT(a.codigo_sinonimo, 10) AS csr,
                SUM(rc.cantidad) AS cant,
                YEAR(rc.fecha) AS anio, MONTH(rc.fecha) AS mes
         FROM msgestionC.dbo.compras1 rc
         JOIN msgestion01art.dbo.articulo a ON rc.articulo = a.codigo
         WHERE rc.operacion = '+'
-          AND a.codigo_sinonimo IN (%s)
+          AND LEFT(a.codigo_sinonimo, 10) IN (%s)
           AND rc.fecha >= '%s'
-        GROUP BY a.codigo_sinonimo, YEAR(rc.fecha), MONTH(rc.fecha)
+        GROUP BY LEFT(a.codigo_sinonimo, 10), YEAR(rc.fecha), MONTH(rc.fecha)
     """ % (filtro, desde)
 
     # Ejecutar via dbC (conecta a msgestionC con cross-db JOINs)
@@ -107,29 +210,32 @@ def analizar_quiebre_batch_dal(codigos_sinonimo, meses=MESES_QUIEBRE_DEFAULT):
     # Indexar
     stock_dict = {}
     for r in stock_rows:
-        cs = (r['codigo_sinonimo'] or '').strip()
+        cs = (r['csr'] or '').strip()
         stock_dict[cs] = float(r['stock'] or 0)
 
     ventas_by_cs = {}
     for r in ventas_rows:
-        cs = (r['codigo_sinonimo'] or '').strip()
+        cs = (r['csr'] or '').strip()
         if cs not in ventas_by_cs:
             ventas_by_cs[cs] = {}
         ventas_by_cs[cs][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
 
     compras_by_cs = {}
     for r in compras_rows:
-        cs = (r['codigo_sinonimo'] or '').strip()
+        cs = (r['csr'] or '').strip()
         if cs not in compras_by_cs:
             compras_by_cs[cs] = {}
         compras_by_cs[cs][(int(r['anio']), int(r['mes']))] = float(r['cant'] or 0)
 
-    # Lista de meses hacia atrás
+    # Lista de meses hacia atras (de mas reciente a mas antiguo)
     meses_lista = []
     cursor = hoy.replace(day=1)
     for _ in range(meses):
         meses_lista.append((cursor.year, cursor.month))
         cursor -= relativedelta(months=1)
+
+    # Pre-calcular factores estacionales para todos los articulos del batch
+    factores_est = factor_estacional_batch_dal(codigos_sinonimo)
 
     # Reconstruir quiebre para cada codigo_sinonimo
     resultados = {}
@@ -137,12 +243,15 @@ def analizar_quiebre_batch_dal(codigos_sinonimo, meses=MESES_QUIEBRE_DEFAULT):
         stock_actual = stock_dict.get(cs, 0)
         v_dict = ventas_by_cs.get(cs, {})
         c_dict = compras_by_cs.get(cs, {})
+        f_est = factores_est.get(cs, {m: 1.0 for m in range(1, 13)})
 
         stock_fin = stock_actual
         meses_q = 0
         meses_ok = 0
         ventas_total = 0
         ventas_ok = 0
+        ventas_desest = 0      # ventas desestacionalizadas (meses OK)
+        ventas_meses_ok = []   # para calcular std_mensual
 
         for anio, mes in meses_lista:
             v = v_dict.get((anio, mes), 0)
@@ -155,23 +264,75 @@ def analizar_quiebre_batch_dal(codigos_sinonimo, meses=MESES_QUIEBRE_DEFAULT):
             else:
                 meses_ok += 1
                 ventas_ok += v
+                ventas_meses_ok.append(v)
+                # Desestacionalizar: dividir ventas por factor del mes
+                s_t = max(f_est.get(mes, 1.0), 0.1)
+                ventas_desest += v / s_t
 
             stock_fin = stock_inicio
 
         vel_ap = ventas_total / max(meses, 1)
-        vel_real = ventas_ok / max(meses_ok, 1) if meses_ok > 0 else vel_ap
-        factor = vel_real / vel_ap if vel_ap > 0 else 1.0
+
+        # vel_real v3: desestacionalizada + correccion disponibilidad
+        pct_q = meses_q / max(meses, 1)
+        if meses_ok > 0:
+            vel_base = ventas_desest / meses_ok
+        elif ventas_total > 0:
+            # Quiebre 100%: fallback vel_aparente x 1.15
+            vel_base = vel_ap * 1.15
+        else:
+            vel_base = 0.0
+
+        # Factor correccion por disponibilidad (demanda latente reprimida)
+        if pct_q > 0.5:
+            factor_disp = 1.20
+        elif pct_q > 0.3:
+            factor_disp = 1.10
+        else:
+            factor_disp = 1.0
+
+        vel_real = vel_base * factor_disp
+
+        # Desvio estandar mensual (solo meses no quebrados)
+        if ventas_meses_ok:
+            n = len(ventas_meses_ok)
+            media_ok = sum(ventas_meses_ok) / n
+            std_mes = math.sqrt(sum((x - media_ok) ** 2 for x in ventas_meses_ok) / max(n, 1))
+        else:
+            std_mes = 0.0
+
+        # Segunda pasada: estimacion de ventas perdidas
+        ventas_perdidas = 0.0
+        if meses_ok > 0 and vel_base > 0:
+            stock_fin2 = stock_actual
+            for anio, mes in meses_lista:
+                v = v_dict.get((anio, mes), 0)
+                c = c_dict.get((anio, mes), 0)
+                stock_inicio_check = stock_fin2 + v - c
+                if stock_inicio_check <= 0:
+                    factor_mes = max(f_est.get(mes, 1.0), 0.1)
+                    ventas_esperadas = vel_base * factor_mes
+                    ventas_perdidas += max(0.0, ventas_esperadas - v)
+                stock_fin2 = stock_inicio_check
+
+        vel_real_con_perdidas = round((ventas_total + ventas_perdidas) / max(meses, 1), 2)
+        factor_quiebre = round(vel_real / vel_ap, 3) if vel_ap > 0 else 1.0
 
         resultados[cs] = {
             'stock_actual': stock_actual,
             'meses_quebrado': meses_q,
             'meses_ok': meses_ok,
-            'pct_quiebre': round(meses_q / max(meses, 1) * 100, 1),
+            'pct_quiebre': round(pct_q * 100, 1),
             'vel_aparente': round(vel_ap, 2),
             'vel_real': round(vel_real, 2),
+            'vel_base_desest': round(vel_base, 2),
+            'factor_disp': factor_disp,
             'ventas_total': ventas_total,
             'ventas_ok': ventas_ok,
-            'factor_quiebre': round(factor, 2),
+            'factor_quiebre': round(factor_quiebre, 2),
+            'std_mensual': round(std_mes, 2),
+            'ventas_perdidas': round(ventas_perdidas),
+            'vel_real_con_perdidas': vel_real_con_perdidas,
         }
 
     return resultados
@@ -229,7 +390,7 @@ def vel_real_proveedor(nro_proveedor, meses=MESES_QUIEBRE_DEFAULT):
     # Calcular quiebre en batch
     quiebres = analizar_quiebre_batch_dal(csrs, meses)
 
-    # Armar DataFrame
+    # Armar DataFrame (incluye campos v3)
     data = []
     for cs in csrs:
         q = quiebres.get(cs, {})
@@ -239,10 +400,15 @@ def vel_real_proveedor(nro_proveedor, meses=MESES_QUIEBRE_DEFAULT):
             'stock_actual': q.get('stock_actual', 0),
             'vel_aparente': q.get('vel_aparente', 0),
             'vel_real': q.get('vel_real', 0),
+            'vel_base_desest': q.get('vel_base_desest', 0),
+            'factor_disp': q.get('factor_disp', 1.0),
             'factor_quiebre': q.get('factor_quiebre', 1.0),
             'pct_quiebre': q.get('pct_quiebre', 0),
             'meses_ok': q.get('meses_ok', 0),
             'meses_quebrado': q.get('meses_quebrado', 0),
+            'std_mensual': q.get('std_mensual', 0),
+            'ventas_perdidas': q.get('ventas_perdidas', 0),
+            'vel_real_con_perdidas': q.get('vel_real_con_perdidas', 0),
         })
 
     df = pd.DataFrame(data)

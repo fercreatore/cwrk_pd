@@ -1212,8 +1212,8 @@ empresa_sel = st.sidebar.radio("Empresa destino", ["H4", "CALZALINDO"], index=0)
 # Campos adicionales para Remito
 if tipo_code == "RM":
     st.sidebar.markdown("**Datos del remito proveedor:**")
-    sucursal_remito = st.sidebar.number_input("Sucursal (PV)", min_value=0, value=0, step=1)
-    numero_remito = st.sidebar.number_input("Numero remito", min_value=0, value=0, step=1)
+    sucursal_remito = st.sidebar.number_input("Sucursal (PV)", min_value=1, value=1, step=1)
+    numero_remito = st.sidebar.number_input("Numero remito", min_value=1, value=1, step=1)
     deposito_remito = st.sidebar.number_input("Deposito destino", min_value=0, value=11, step=1)
 else:
     sucursal_remito = 0
@@ -1363,9 +1363,10 @@ def _procesar(prov_id, prov_nombre, marca_id, nro_factura, fecha, tipo, modo_tes
                 num = res_comp.get("numero", 0)
                 if tipo == "RM":
                     orden = res_comp.get("orden", 0)
-                    st.success(f"✅ Remito insertado: R {sucursal_remito}-{num} orden {orden}")
+                    msg_ok = f"✅ Remito insertado: R {sucursal_remito}-{num} orden {orden}"
                 else:
-                    st.success(f"✅ Nota de pedido insertada: #{num}")
+                    msg_ok = f"✅ Nota de pedido insertada: #{num}"
+                st.session_state["ultimo_comprobante_ok"] = msg_ok
                 resultado["comprobante"] = res_comp
             else:
                 st.error(f"❌ Error insertando comprobante: {res_comp.get('error', 'desconocido')}")
@@ -1383,9 +1384,16 @@ def _procesar(prov_id, prov_nombre, marca_id, nro_factura, fecha, tipo, modo_tes
 
 st.title("📋 Carga de Comprobantes — H4/Calzalindo")
 
-tab_carga, tab_fotos, tab_resultado = st.tabs(["📦 Carga de Artículos", "📸 Fotos de Productos", "📊 Resultado"])
+tab_carga, tab_fotos, tab_resultado, tab_historial = st.tabs(["📦 Carga de Artículos", "📸 Fotos de Productos", "📊 Resultado", "📋 Historial Remitos"])
 
 with tab_carga:
+    # Mostrar resultado de última operación (persiste entre reruns)
+    if st.session_state.get("ultimo_comprobante_ok"):
+        st.success(st.session_state["ultimo_comprobante_ok"])
+        if st.button("✖ Limpiar mensaje", key="limpiar_ok"):
+            st.session_state["ultimo_comprobante_ok"] = None
+            st.rerun()
+
     # ── Upload de comprobante ──
     st.subheader("1. Subir Comprobante")
     img_factura = st.file_uploader(
@@ -2072,6 +2080,56 @@ with tab_resultado:
             )
     else:
         st.info("Procesá una factura para ver los resultados acá.")
+
+
+with tab_historial:
+    st.subheader("📋 Remitos cargados por la app")
+    st.caption("Muestra remitos insertados por COWORK/WB/APP-CARGA en los últimos 60 días.")
+
+    col_h1, col_h2, col_h3 = st.columns([2, 2, 1])
+    with col_h1:
+        filtro_empresa_h = st.selectbox("Empresa", ["Todas", "H4", "CALZALINDO"], key="hist_empresa")
+    with col_h2:
+        filtro_dias_h = st.number_input("Días hacia atrás", min_value=1, max_value=365, value=60, step=10, key="hist_dias")
+    with col_h3:
+        st.markdown("")
+        refrescar_h = st.button("🔄 Refrescar", key="hist_refrescar")
+
+    cache_key = f"hist_remitos_{filtro_empresa_h}_{filtro_dias_h}"
+    if refrescar_h or cache_key not in st.session_state:
+        try:
+            from paso9_insertar_remito import get_remitos_cargados
+            empresa_filtro = None if filtro_empresa_h == "Todas" else filtro_empresa_h
+            remitos_hist = get_remitos_cargados(empresa=empresa_filtro, dias=int(filtro_dias_h))
+            st.session_state[cache_key] = remitos_hist
+        except Exception as e_hist:
+            st.error(f"Error cargando historial: {e_hist}")
+            remitos_hist = []
+    else:
+        remitos_hist = st.session_state.get(cache_key, [])
+
+    if remitos_hist:
+        total_pares_h = sum(r["pares"] for r in remitos_hist)
+        total_monto_h = sum(r["monto"] for r in remitos_hist)
+        col_m1, col_m2, col_m3 = st.columns(3)
+        col_m1.metric("Remitos", len(remitos_hist))
+        col_m2.metric("Pares totales", f"{total_pares_h:,}")
+        col_m3.metric("Monto total", f"${total_monto_h:,.0f}")
+
+        st.divider()
+        for r in remitos_hist:
+            empresa_badge = "🔵 H4" if r["base"] == "MSGESTION03" else "🟢 CLZ"
+            st.markdown(
+                f"{empresa_badge} &nbsp; **{r['fecha']}** &nbsp; "
+                f"[{r['proveedor_num']}] {r['proveedor_nom'][:30]} &nbsp;|&nbsp; "
+                f"R{r['sucursal']}-{r['numero']} &nbsp;|&nbsp; "
+                f"{r['arts']} arts &nbsp; **{r['pares']} pares** &nbsp; "
+                f"${r['monto']:,.0f}"
+            )
+    elif not refrescar_h and cache_key not in st.session_state:
+        st.info("Hacé clic en Refrescar para cargar el historial.")
+    else:
+        st.info("No se encontraron remitos cargados por la app en el período seleccionado.")
 
 
 # ══════════════════════════════════════════════════════════════════

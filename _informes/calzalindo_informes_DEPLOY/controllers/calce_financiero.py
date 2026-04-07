@@ -16,6 +16,14 @@ import json
 import decimal
 import datetime
 import traceback
+import io
+import csv
+
+# Python 2/3 compatibility
+try:
+    unicode
+except NameError:
+    unicode = str  # Python 3
 
 # =============================================================================
 # HELPERS
@@ -27,13 +35,14 @@ def _fix_encoding(val):
     Cuando pyodbc lee UTF-8 almacenado en varchar, interpreta los bytes
     como latin-1, produciendo unicode roto (ej: u'CosmÃ©tica' en vez de u'Cosmética').
     Fix: re-encode a latin-1 (recupera bytes originales) y decode como UTF-8.
+    Compatible Python 2.7 y 3.x
     """
     if isinstance(val, unicode):
         try:
             return val.encode('latin-1').decode('utf-8')
         except (UnicodeDecodeError, UnicodeEncodeError):
             return val
-    if isinstance(val, str):
+    if isinstance(val, bytes):
         try:
             return val.decode('utf-8')
         except (UnicodeDecodeError, UnicodeEncodeError):
@@ -70,7 +79,7 @@ def _html(val):
     porque el output es 100% ASCII.
     Ej: u'Cosmética' -> XML('Cosm&#233;tica')
     """
-    val = _fix_encoding(val) if isinstance(val, (str, unicode)) else val
+    val = _fix_encoding(val) if isinstance(val, (bytes, unicode)) else val
     if isinstance(val, unicode):
         parts = []
         for c in val:
@@ -79,7 +88,7 @@ def _html(val):
             else:
                 parts.append(c)
         return XML(''.join(parts))
-    if isinstance(val, str):
+    if isinstance(val, bytes):
         try:
             return _html(val.decode('utf-8'))
         except:
@@ -196,12 +205,15 @@ def dashboard():
     grupo     = _fix_encoding(request.vars.grupo)     if request.vars.grupo     else ''
     linea     = _fix_encoding(request.vars.linea)     if request.vars.linea     else ''
     marca     = _fix_encoding(request.vars.marca)     if request.vars.marca     else ''
+    solo_pendientes = request.vars.solo_pendientes if request.vars.solo_pendientes is not None else '1'
 
     where_recupero = _where_industria(industria, proveedor, temporada)
 
     # --- Filtros para pedidos_cumplimiento_cache ---
     # Solo 2do semestre 2025 en adelante (pedidos anteriores son historicos)
     where_pedidos_parts = ["fecha_pedido >= '2025-07-01'"]
+    if solo_pendientes == '1':
+        where_pedidos_parts.append("estado_cumplimiento IN ('PENDIENTE', 'PARCIAL')")
     if industria:
         where_pedidos_parts.append("industria = '{}'".format(industria.replace("'", "''")))
     if proveedor:
@@ -301,7 +313,7 @@ def dashboard():
                 END)                           AS dias_75_real,
             -- pct_vendido_al_pago ajustado: si vendés más rápido, vendés más al pagar
             AVG(CASE WHEN vr.factor_quiebre > 0
-                     THEN LEAST(ri.pct_vendido_al_pago * vr.factor_quiebre, 100)
+                     THEN CASE WHEN ri.pct_vendido_al_pago * vr.factor_quiebre > 100 THEN 100 ELSE ri.pct_vendido_al_pago * vr.factor_quiebre END
                      ELSE ri.pct_vendido_al_pago
                 END)                           AS pct_vendido_al_pago_real,
             AVG(vr.factor_quiebre)             AS factor_quiebre_prom
@@ -750,6 +762,8 @@ def dashboard():
         try:
             sql_flujo = """
             SELECT semana_numero, semana_inicio, semana_fin,
+                   ISNULL(pagos_cheques, pagos_total) AS pagos_cheques,
+                   ISNULL(pagos_proyectados, 0) AS pagos_proyectados,
                    pagos_total, cant_ops, cant_proveedores,
                    cobranza_estimada, cobranza_costo,
                    balance_semanal, balance_acumulado
@@ -759,6 +773,50 @@ def dashboard():
             flujo_caja = [{k: _clean(v) for k, v in r.items()}
                           for r in _db_cfo.executesql(sql_flujo, as_dict=True)]
         except:
+            pass
+
+    # Pagos reales desde ordpag1 (el SP no puede hacer cross-db UPDATE)
+    if dbC and flujo_caja:
+        try:
+            sql_pagos_real = """
+            SELECT f.semana_numero,
+                (SELECT ISNULL(SUM(o.importe_pesos), 0) FROM (
+                    SELECT fecha_vencimiento, importe_pesos FROM msgestion03.dbo.ordpag1 WHERE importe_pesos > 0 AND estado = 'V'
+                    UNION ALL
+                    SELECT fecha_vencimiento, importe_pesos FROM msgestion01.dbo.ordpag1 WHERE importe_pesos > 0 AND estado = 'V'
+                ) o WHERE o.fecha_vencimiento BETWEEN f.semana_inicio AND f.semana_fin AND o.fecha_vencimiento >= CAST(GETDATE() AS DATE)
+                ) as pagos_cheques,
+                (SELECT COUNT(*) FROM (
+                    SELECT fecha_vencimiento FROM msgestion03.dbo.ordpag1 WHERE importe_pesos > 0 AND estado = 'V'
+                    UNION ALL
+                    SELECT fecha_vencimiento FROM msgestion01.dbo.ordpag1 WHERE importe_pesos > 0 AND estado = 'V'
+                ) o2 WHERE o2.fecha_vencimiento BETWEEN f.semana_inicio AND f.semana_fin AND o2.fecha_vencimiento >= CAST(GETDATE() AS DATE)
+                ) as cant_cheques
+            FROM omicronvt.dbo.t_flujo_caja_semanal f
+            ORDER BY f.semana_numero
+            """
+            pagos_rows = dbC.executesql(sql_pagos_real, as_dict=True)
+            pagos_map = {}
+            for pr in pagos_rows:
+                pagos_map[int(pr['semana_numero'])] = {
+                    'pagos_cheques': float(pr.get('pagos_cheques') or 0),
+                    'cant_cheques': int(pr.get('cant_cheques') or 0)
+                }
+            # Merge into flujo_caja
+            for fc in flujo_caja:
+                sn = int(fc.get('semana_numero', 0))
+                if sn in pagos_map:
+                    fc['pagos_cheques'] = pagos_map[sn]['pagos_cheques']
+                    fc['pagos_total'] = pagos_map[sn]['pagos_cheques']
+                    fc['cant_ops'] = pagos_map[sn]['cant_cheques']
+                    cob = float(fc.get('cobranza_estimada') or 0)
+                    fc['balance_semanal'] = cob - pagos_map[sn]['pagos_cheques']
+            # Recalculate acumulado
+            acum = 0
+            for fc in flujo_caja:
+                acum += float(fc.get('balance_semanal') or 0)
+                fc['balance_acumulado'] = acum
+        except Exception:
             pass
 
     # BLOQUE 9: ROI POR PROVEEDOR / RANKING DE COMPRA
@@ -838,6 +896,81 @@ def dashboard():
             """.format(where=sql_bench_where)
             roi_benchmark = [{k: _clean(v) for k, v in r.items()}
                              for r in _db_cfo.executesql(sql_benchmark, as_dict=True)]
+        except:
+            pass
+
+    # BLOQUE 9B: OPTIMIZACION DE PAGOS
+    # Cruza deuda real (moviprov1) con metricas ROI para recomendar pagos
+    optimizacion_pagos = []
+    if dbC:
+        try:
+            sql_optim = """
+            ;WITH saldo_prov AS (
+                SELECT numero_cuenta,
+                       SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) as saldo_neto
+                FROM moviprov1
+                GROUP BY numero_cuenta
+                HAVING SUM(CASE WHEN operacion = '+'
+                           THEN (importe_pesos - importe_can_pesos)
+                           ELSE -(importe_pesos - importe_can_pesos) END) > 1000
+            )
+            SELECT r.proveedor_id as numero_cuenta,
+                   p.denominacion as proveedor,
+                   r.industria,
+                   r.roi_anualizado as roi,
+                   r.dias_50,
+                   r.plazo_pago as plazo_pago,
+                   r.pct_vendido_al_pago,
+                   r.brecha as brecha,
+                   n.saldo_neto as deuda_actual
+            FROM omicronvt.dbo.t_roi_proveedor r
+            JOIN proveedores p ON r.proveedor_id = p.numero
+            JOIN saldo_prov n ON r.proveedor_id = n.numero_cuenta
+            ORDER BY r.roi_anualizado DESC
+            """
+            raw_optim = dbC.executesql(sql_optim, as_dict=True)
+            for r in raw_optim:
+                r = _fix_row(r)
+                roi_val = float(r.get('roi') or 0)
+                dias_50 = float(r.get('dias_50') or 0)
+                plazo = float(r.get('plazo_pago') or 0)
+                pct_vend = float(r.get('pct_vendido_al_pago') or 0)
+                brecha = float(r.get('brecha') or 0)
+                deuda = float(r.get('deuda_actual') or 0)
+
+                # Score: ROI * multiplier based on brecha
+                if brecha > 0:
+                    score = roi_val * 1.5
+                else:
+                    score = roi_val * 0.7
+
+                # Accion recomendada
+                if brecha > 15 and roi_val > 100:
+                    accion = 'PAGAR RAPIDO'
+                elif pct_vend > 60 and roi_val > 80:
+                    accion = 'PRIORIZAR'
+                elif brecha < -20:
+                    accion = 'NEGOCIAR PLAZO'
+                else:
+                    accion = 'MANTENER'
+
+                optimizacion_pagos.append({
+                    'numero_cuenta': r.get('numero_cuenta'),
+                    'proveedor': _fix_encoding(r.get('proveedor', '')),
+                    'industria': _fix_encoding(r.get('industria', '')),
+                    'roi': roi_val,
+                    'dias_50': dias_50,
+                    'plazo_pago': plazo,
+                    'pct_vendido_al_pago': pct_vend,
+                    'brecha': brecha,
+                    'deuda_actual': deuda,
+                    'score': score,
+                    'accion': accion,
+                })
+            # Sort by score DESC
+            optimizacion_pagos.sort(key=lambda x: x['score'], reverse=True)
         except:
             pass
 
@@ -1123,6 +1256,7 @@ def dashboard():
         roi_benchmark=roi_benchmark,
         roi_periodos_disponibles=roi_periodos_disponibles,
         roi_periodo_activo=roi_periodo_activo,
+        optimizacion_pagos=optimizacion_pagos,
         capital_trabajo=capital_trabajo,
         enriquecedores=enriquecedores,
         # Remitos viejos sin facturar (limpieza)
@@ -1150,6 +1284,7 @@ def dashboard():
         filtro_grupo=grupo,
         filtro_linea=linea,
         filtro_marca=marca,
+        filtro_solo_pendientes=solo_pendientes,
         fmt=_fmt_moneda,
     )
 
@@ -1856,7 +1991,7 @@ def exportar_csv():
                 val = _clean(v)
                 if isinstance(val, unicode):
                     clean_row[k] = val.encode('utf-8')
-                elif isinstance(val, str):
+                elif isinstance(val, bytes):
                     clean_row[k] = val
                 else:
                     clean_row[k] = str(val)
@@ -1865,3 +2000,45 @@ def exportar_csv():
     response.headers['Content-Type'] = 'text/csv; charset=utf-8'
     response.headers['Content-Disposition'] = 'attachment; filename=calce_financiero_%s.csv' % request.now.strftime('%Y-%m-%d')
     return b'\xef\xbb\xbf' + output.getvalue()
+
+
+# =============================================================================
+# PRESUPUESTO LIVE
+# =============================================================================
+
+def presupuesto_live():
+    """
+    Vista en tiempo real del presupuesto por industria.
+    Tabla: omicronvt.dbo.t_presupuesto_industria
+    """
+    _requiere_acceso()
+
+    def _fetch():
+        sql = """
+        SELECT industria, temporada,
+               presupuesto_costo, presupuesto_ajustado,
+               comprometido_costo, disponible_costo,
+               pct_ejecutado, factor_tendencia, diagnostico
+        FROM t_presupuesto_industria
+        ORDER BY presupuesto_costo DESC
+        """
+        rows = db_omicronvt.executesql(sql, as_dict=True)
+        cleaned = []
+        for r in rows:
+            r = _fix_row(r)
+            cleaned.append({k: _clean(v) for k, v in r.items()})
+        return cleaned
+
+    data = cache.ram('presupuesto_live_data', _fetch, 600)
+
+    # KPIs
+    total_presupuesto = sum(r.get('presupuesto_costo', 0) or 0 for r in data)
+    total_comprometido = sum(r.get('comprometido_costo', 0) or 0 for r in data)
+    total_disponible = sum(r.get('disponible_costo', 0) or 0 for r in data)
+
+    return dict(
+        data_json=json.dumps(data),
+        total_presupuesto=total_presupuesto,
+        total_comprometido=total_comprometido,
+        total_disponible=total_disponible,
+    )

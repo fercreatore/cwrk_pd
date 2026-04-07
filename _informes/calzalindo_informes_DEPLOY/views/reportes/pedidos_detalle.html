@@ -150,6 +150,17 @@
         <i class="glyphicon glyphicon-export"></i> Remito Devolucion
     </button>
     {{pass}}
+    <button class="btn btn-danger btn-sm pull-right" onclick="toggleReclamo()" title="Reclamar diferencias al proveedor" style="margin-right:5px;">
+        <i class="glyphicon glyphicon-exclamation-sign"></i> Reclamar Diferencias
+    </button>
+    <button class="btn btn-info btn-sm pull-right" onclick="enviarPedidoWA()" title="Enviar nota de pedido por WhatsApp" style="margin-right:5px;">
+        <i class="glyphicon glyphicon-send"></i> Enviar NP por WhatsApp
+    </button>
+    {{if telefono_wa:}}
+    <span class="pull-right" style="margin-right:10px; font-size:11px; color:#27ae60; line-height:30px;">
+        <i class="glyphicon glyphicon-phone"></i> {{=contacto_nombre}} {{=telefono_wa[-4:]}}
+    </span>
+    {{pass}}
 </h3>
 
 <!-- PANEL REMITO -->
@@ -359,6 +370,30 @@ r_talle = r.get('talle', '')
     </div>
 </div>
 {{pass}}
+
+<!-- PANEL RECLAMO DIFERENCIAS -->
+<div id="reclamo-panel" style="display:none; background:#fdf2f2; border:2px solid #e74c3c; border-radius:8px; padding:15px 20px; margin:15px 0;">
+    <h4 style="color:#c0392b; margin-top:0;">
+        <i class="glyphicon glyphicon-exclamation-sign"></i>
+        Diferencias detectadas — Reclamo al proveedor
+        <button class="btn btn-default btn-xs pull-right" onclick="cerrarReclamo()">
+            <i class="glyphicon glyphicon-remove"></i>
+        </button>
+    </h4>
+
+    <div id="reclamo-contenido"></div>
+
+    <div style="margin-top:12px;">
+        <button class="btn btn-danger" onclick="enviarReclamoWA()">
+            <i class="glyphicon glyphicon-phone"></i> Enviar por WhatsApp
+        </button>
+        <button class="btn btn-default" onclick="copiarReclamo()">
+            <i class="glyphicon glyphicon-copy"></i> Copiar texto
+        </button>
+        <button class="btn btn-default" onclick="cerrarReclamo()">Cerrar</button>
+        <span id="reclamo-copiado" style="display:none; color:#27ae60; margin-left:10px;">✓ Copiado</span>
+    </div>
+</div>
 
 <div style="margin-top:15px; max-height:75vh; overflow-y:auto;">
     <table class="table table-striped table-hover table-condensed tabla-detalle" id="tabla-detalle">
@@ -850,3 +885,256 @@ function crearRemito() {
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 {{pass}}
+
+<script>
+/* ---- RECLAMO DIFERENCIAS ---- */
+function toggleReclamo() {
+    var panel = document.getElementById('reclamo-panel');
+    if (panel.style.display === 'block') { cerrarReclamo(); return; }
+
+    // Leer datos de la tabla principal
+    var rows = document.querySelectorAll('#detalle-body tr');
+    var excedentes = [], faltantes = [];
+    var totalExcPares = 0, totalExcMonto = 0;
+    var totalFaltPares = 0, totalFaltMonto = 0;
+    var curvaCompra = {}, curvaRecibida = {};
+
+    rows.forEach(function(tr) {
+        var data = (tr.getAttribute('data-sort') || '').split('|');
+        var desc = data[3] || '';
+        var talle = data[4] || '';
+        var pedido = parseInt(data[7]) || 0;
+        var recibido = parseInt(data[8]) || 0;
+        var precio = parseFloat(data[11]) || 0;
+        var diff = recibido - pedido;
+
+        // Acumular curva por talle
+        curvaCompra[talle] = (curvaCompra[talle] || 0) + pedido;
+        curvaRecibida[talle] = (curvaRecibida[talle] || 0) + recibido;
+
+        if (diff > 0) {
+            excedentes.push({desc: desc, talle: talle, pedido: pedido, recibido: recibido, diff: diff, monto: diff * precio});
+            totalExcPares += diff;
+            totalExcMonto += diff * precio;
+        } else if (diff < 0) {
+            faltantes.push({desc: desc, talle: talle, pedido: pedido, recibido: recibido, diff: Math.abs(diff), monto: Math.abs(diff) * precio});
+            totalFaltPares += Math.abs(diff);
+            totalFaltMonto += Math.abs(diff) * precio;
+        }
+    });
+
+    if (excedentes.length === 0 && faltantes.length === 0) {
+        alert('No hay diferencias en este pedido. Todo fue entregado correctamente.');
+        return;
+    }
+
+    // Construir HTML del panel
+    var html = '';
+
+    // --- EXCEDENTES (nota de crédito) ---
+    if (excedentes.length > 0) {
+        html += '<div style="background:#fff; border:1px solid #e74c3c; border-radius:6px; padding:10px; margin-bottom:10px;">';
+        html += '<h5 style="color:#e74c3c; margin-top:0;"><i class="glyphicon glyphicon-arrow-up"></i> EXCEDENTES — Solicitar Nota de Crédito</h5>';
+        html += '<table class="table table-condensed" style="font-size:12px; margin:0;">';
+        html += '<thead><tr style="background:#fde8e8;"><th>Descripción</th><th>Talle</th><th class="text-right">Pedido</th><th class="text-right">Recibido</th><th class="text-right" style="color:#e74c3c;">Excedente</th><th class="text-right">Monto</th></tr></thead><tbody>';
+        excedentes.forEach(function(e) {
+            html += '<tr><td>' + e.desc + '</td><td class="text-center"><strong>' + e.talle + '</strong></td>';
+            html += '<td class="text-right">' + e.pedido + '</td><td class="text-right">' + e.recibido + '</td>';
+            html += '<td class="text-right" style="color:#e74c3c; font-weight:bold;">+' + e.diff + '</td>';
+            html += '<td class="text-right">$' + e.monto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div style="text-align:right; margin-top:5px; font-weight:bold; color:#e74c3c;">Total excedente: ' + totalExcPares + ' pares — $' + totalExcMonto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '</div>';
+        html += '</div>';
+    }
+
+    // --- FALTANTES ---
+    if (faltantes.length > 0) {
+        html += '<div style="background:#fff; border:1px solid #f39c12; border-radius:6px; padding:10px; margin-bottom:10px;">';
+        html += '<h5 style="color:#f39c12; margin-top:0;"><i class="glyphicon glyphicon-arrow-down"></i> FALTANTES — Solicitar envío</h5>';
+        html += '<table class="table table-condensed" style="font-size:12px; margin:0;">';
+        html += '<thead><tr style="background:#fef9e7;"><th>Descripción</th><th>Talle</th><th class="text-right">Pedido</th><th class="text-right">Recibido</th><th class="text-right" style="color:#f39c12;">Faltante</th><th class="text-right">Monto</th></tr></thead><tbody>';
+        faltantes.forEach(function(f) {
+            html += '<tr><td>' + f.desc + '</td><td class="text-center"><strong>' + f.talle + '</strong></td>';
+            html += '<td class="text-right">' + f.pedido + '</td><td class="text-right">' + f.recibido + '</td>';
+            html += '<td class="text-right" style="color:#f39c12; font-weight:bold;">-' + f.diff + '</td>';
+            html += '<td class="text-right">$' + f.monto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div style="text-align:right; margin-top:5px; font-weight:bold; color:#f39c12;">Total faltante: ' + totalFaltPares + ' pares — $' + totalFaltMonto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '</div>';
+        html += '</div>';
+    }
+
+    // --- DISCLAIMER: IMPACTO DE CURVA ---
+    var talles = Object.keys(curvaCompra).sort();
+    if (talles.length > 2) {
+        var totalCompra = 0, totalRecib = 0;
+        talles.forEach(function(t) { totalCompra += curvaCompra[t] || 0; totalRecib += curvaRecibida[t] || 0; });
+
+        html += '<div style="background:#eaf2f8; border:1px solid #3498db; border-radius:6px; padding:10px; margin-bottom:10px;">';
+        html += '<h5 style="color:#2c3e50; margin-top:0;"><i class="glyphicon glyphicon-stats"></i> Impacto en venta y rentabilidad</h5>';
+        html += '<table class="table table-condensed" style="font-size:12px; margin:0;">';
+        html += '<thead><tr style="background:#d6eaf8;"><th>Talle</th><th class="text-right">Pedido</th><th class="text-right">Recibido</th><th class="text-right">Diferencia</th><th class="text-right">% del pedido</th><th class="text-right">% recibido</th></tr></thead><tbody>';
+        talles.forEach(function(t) {
+            var ped = curvaCompra[t] || 0;
+            var rec = curvaRecibida[t] || 0;
+            var diff = rec - ped;
+            var pctPed = totalCompra > 0 ? (ped * 100 / totalCompra).toFixed(1) : '0';
+            var pctRec = totalRecib > 0 ? (rec * 100 / totalRecib).toFixed(1) : '0';
+            var color = diff > 0 ? '#e74c3c' : (diff < 0 ? '#f39c12' : '#27ae60');
+            var diffTxt = diff > 0 ? '+' + diff : '' + diff;
+            html += '<tr><td class="text-center"><strong>' + t + '</strong></td>';
+            html += '<td class="text-right">' + ped + '</td><td class="text-right">' + rec + '</td>';
+            html += '<td class="text-right" style="color:' + color + '; font-weight:bold;">' + diffTxt + '</td>';
+            html += '<td class="text-right">' + pctPed + '%</td><td class="text-right">' + pctRec + '%</td></tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div style="margin-top:8px; padding:8px; background:#fef9e7; border-radius:4px; font-size:12px;">';
+        html += '<strong>⚠️ Nota:</strong> Las sustituciones de talle (enviar un talle diferente al pedido) generan:<br>';
+        html += '• <strong>Stock dormido</strong> en talles que no rotan → capital inmovilizado → liquidación a pérdida<br>';
+        html += '• <strong>Venta perdida</strong> en talles con demanda real → clientes que no encuentran su talle<br>';
+        html += '• <strong>Menor rentabilidad</strong> del producto: el ROI cae porque se vende más lento y parte va a promo<br>';
+        html += '<em>La curva de talles fue calculada sobre velocidad real de venta de 3 temporadas con corrección de quiebre de stock.</em>';
+        html += '</div></div>';
+    }
+
+    document.getElementById('reclamo-contenido').innerHTML = html;
+    panel.style.display = 'block';
+    panel.scrollIntoView({behavior: 'smooth'});
+}
+
+function cerrarReclamo() {
+    document.getElementById('reclamo-panel').style.display = 'none';
+}
+
+function _generarTextoReclamo() {
+    var proveedor = '{{=proveedor}}';
+    var rows = document.querySelectorAll('#detalle-body tr');
+    var excedentes = [], faltantes = [];
+    var totalExcPares = 0, totalExcMonto = 0;
+    var totalFaltPares = 0, totalFaltMonto = 0;
+
+    rows.forEach(function(tr) {
+        var data = (tr.getAttribute('data-sort') || '').split('|');
+        var desc = data[3] || '';
+        var talle = data[4] || '';
+        var pedido = parseInt(data[7]) || 0;
+        var recibido = parseInt(data[8]) || 0;
+        var precio = parseFloat(data[11]) || 0;
+        var diff = recibido - pedido;
+        if (diff > 0) {
+            excedentes.push('• ' + desc + ' T' + talle + ': pedimos ' + pedido + ', recibimos ' + recibido + ' (+' + diff + ' de más, $' + (diff*precio).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ')');
+            totalExcPares += diff;
+            totalExcMonto += diff * precio;
+        } else if (diff < 0) {
+            faltantes.push('• ' + desc + ' T' + talle + ': pedimos ' + pedido + ', recibimos ' + recibido + ' (' + diff + ' faltante)');
+            totalFaltPares += Math.abs(diff);
+            totalFaltMonto += Math.abs(diff) * precio;
+        }
+    });
+
+    var msg = '*CALZALINDO — Reclamo de diferencias*\n';
+    msg += 'Proveedor: ' + proveedor + '\n';
+    msg += 'Fecha: ' + new Date().toLocaleDateString('es-AR') + '\n\n';
+
+    if (excedentes.length > 0) {
+        msg += '*EXCEDENTES (nota de crédito):*\n';
+        msg += excedentes.join('\n') + '\n';
+        msg += '_Total excedente: ' + totalExcPares + ' pares — $' + totalExcMonto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '_\n\n';
+    }
+    if (faltantes.length > 0) {
+        msg += '*FALTANTES (envío pendiente):*\n';
+        msg += faltantes.join('\n') + '\n';
+        msg += '_Total faltante: ' + totalFaltPares + ' pares — $' + totalFaltMonto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '_\n\n';
+    }
+
+    msg += '⚠️ _Las diferencias en curva de talles generan stock dormido y venta perdida. Solicitamos nota de crédito por los excedentes y envío inmediato de faltantes._';
+
+    return msg;
+}
+
+var _waWindow = null;
+var _telefonoWA = '{{=telefono_wa}}';
+
+function _abrirWA(msg) {
+    var tel = _telefonoWA ? '/' + _telefonoWA : '';
+    var url = 'https://wa.me' + tel + '?text=' + encodeURIComponent(msg);
+    // Reutilizar pestaña si sigue abierta
+    if (_waWindow && !_waWindow.closed) {
+        _waWindow.location.href = url;
+        _waWindow.focus();
+    } else {
+        _waWindow = window.open(url, 'calzalindo_wa');
+    }
+}
+
+function enviarReclamoWA() {
+    var msg = _generarTextoReclamo();
+    _abrirWA(msg);
+}
+
+function enviarPedidoWA() {
+    var proveedor = '{{=proveedor}}';
+    var rows = document.querySelectorAll('#detalle-body tr');
+    var items = {};
+    var totalPares = 0, totalMonto = 0;
+
+    rows.forEach(function(tr) {
+        var data = (tr.getAttribute('data-sort') || '').split('|');
+        var desc = data[3] || '';
+        var talle = data[4] || '';
+        var pedido = parseInt(data[7]) || 0;
+        var precio = parseFloat(data[11]) || 0;
+        if (pedido <= 0) return;
+
+        var key = desc;
+        if (!items[key]) items[key] = {desc: desc, talles: {}, precio: precio, total: 0};
+        items[key].talles[talle] = (items[key].talles[talle] || 0) + pedido;
+        items[key].total += pedido;
+        totalPares += pedido;
+        totalMonto += pedido * precio;
+    });
+
+    var msg = '*NOTA DE PEDIDO — CALZALINDO*\n';
+    msg += 'Proveedor: ' + proveedor + '\n';
+    msg += 'Fecha: ' + new Date().toLocaleDateString('es-AR') + '\n\n';
+
+    Object.keys(items).forEach(function(key) {
+        var item = items[key];
+        msg += '*' + item.desc + '* — $' + item.precio.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '\n';
+        var talleTxt = [];
+        var tallesOrden = Object.keys(item.talles).sort(function(a,b){ return parseInt(a)-parseInt(b); });
+        tallesOrden.forEach(function(t) {
+            talleTxt.push('T' + t + ':' + item.talles[t]);
+        });
+        msg += talleTxt.join(' | ') + ' = ' + item.total + ' pares\n\n';
+    });
+
+    msg += '─────────────────\n';
+    msg += '*TOTAL: ' + totalPares + ' pares — $' + totalMonto.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '*\n';
+
+    _abrirWA(msg);
+}
+
+function copiarReclamo() {
+    var msg = _generarTextoReclamo();
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(msg).then(function() {
+            var badge = document.getElementById('reclamo-copiado');
+            badge.style.display = 'inline';
+            setTimeout(function() { badge.style.display = 'none'; }, 2000);
+        });
+    } else {
+        // Fallback
+        var ta = document.createElement('textarea');
+        ta.value = msg;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        var badge = document.getElementById('reclamo-copiado');
+        badge.style.display = 'inline';
+        setTimeout(function() { badge.style.display = 'none'; }, 2000);
+    }
+}
+</script>

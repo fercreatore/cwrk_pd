@@ -302,48 +302,57 @@
     async function loadDashboard() {
         try {
             const res = await fetch(API + '/dashboard');
+            if (!res.ok) {
+                if (res.status === 404) {
+                    document.getElementById('kpis').innerHTML =
+                        '<div class="kpi-card" style="grid-column:span 2;text-align:center;color:#c62828;">Vendedor no encontrado. Verificar codigo.</div>';
+                    return;
+                }
+                throw new Error(`HTTP ${res.status}`);
+            }
             const data = await res.json();
-            const k = data.kpis;
-            const f = data.fee;
-            const r = data.ranking;
+            const k = data.kpis || {};
+            const f = data.fee || {};
+            const r = data.ranking || {};
 
-            document.getElementById('vendedor-nombre').textContent = data.vendedor.nombre;
+            document.getElementById('vendedor-nombre').textContent = (data.vendedor && data.vendedor.nombre) || 'Sin nombre';
             document.getElementById('vendedor-info').textContent =
-                (data.vendedor.instagram ? '@' + data.vendedor.instagram + ' · ' : '') +
-                'Monotributo ' + data.vendedor.categoria_mono;
+                (data.vendedor && data.vendedor.instagram ? '@' + data.vendedor.instagram + ' · ' : '') +
+                'Monotributo ' + (data.vendedor && data.vendedor.categoria_mono || 'N/A');
 
-            const rankClass = r.posicion <= 3 ? 'top3' : '';
+            const rankClass = r.posicion && r.posicion <= 3 ? 'top3' : '';
             document.getElementById('kpis').innerHTML = `
                 <div class="kpi-card highlight">
                     <div class="kpi-label">Neto estimado del mes</div>
-                    <div class="kpi-value">$${fmt(f.neto_estimado)}</div>
-                    <div class="kpi-sub">Fee $${fmt(f.estimado_mes)} - Mono $${fmt(f.cuota_mono)}</div>
+                    <div class="kpi-value">$${fmt(f.neto_estimado || 0)}</div>
+                    <div class="kpi-sub">Fee $${fmt(f.estimado_mes || 0)} - Mono $${fmt(f.cuota_mono || 0)}</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Venta hoy</div>
-                    <div class="kpi-value">$${fmt(k.venta_hoy)}</div>
-                    <div class="kpi-sub">${k.pares_hoy} pares</div>
+                    <div class="kpi-value">$${fmt(k.venta_hoy || 0)}</div>
+                    <div class="kpi-sub">${k.pares_hoy || 0} pares</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Ranking</div>
                     <div class="kpi-value">
-                        <span class="ranking-badge ${rankClass}">#${r.posicion} de ${r.total}</span>
+                        <span class="ranking-badge ${rankClass}">#${r.posicion || '-'} de ${r.total || '-'}</span>
                     </div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Venta del mes</div>
-                    <div class="kpi-value">$${fmt(k.venta_mes)}</div>
-                    <div class="kpi-sub">${k.pares_mes} pares · ${k.tickets_mes} tickets</div>
+                    <div class="kpi-value">$${fmt(k.venta_mes || 0)}</div>
+                    <div class="kpi-sub">${k.pares_mes || 0} pares · ${k.tickets_mes || 0} tickets</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Venta semana</div>
-                    <div class="kpi-value">$${fmt(k.venta_semana)}</div>
-                    <div class="kpi-sub">Margen ${k.margen_pct}%</div>
+                    <div class="kpi-value">$${fmt(k.venta_semana || 0)}</div>
+                    <div class="kpi-sub">Margen ${k.margen_pct || 0}%</div>
                 </div>
             `;
         } catch(e) {
+            console.error('Error loading dashboard:', e);
             document.getElementById('kpis').innerHTML =
-                '<div class="kpi-card" style="grid-column:span 2;text-align:center;color:#c62828;">Error cargando datos. Reintentando...</div>';
+                '<div class="kpi-card" style="grid-column:span 2;text-align:center;color:#c62828;">Error cargando datos. Reintentando en 3s...</div>';
             setTimeout(loadDashboard, 3000);
         }
     }
@@ -352,31 +361,38 @@
     async function loadCatalogo() {
         try {
             const res = await fetch(API + '/catalogo');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
             const data = await res.json();
             window._catalogoLoaded = true;
 
             let html = '';
-            if (data.productos.length === 0) {
+            if (!data.productos || data.productos.length === 0) {
                 html = '<p style="text-align:center;color:#999;padding:40px;">No hay productos cargados en el catalogo todavia.</p>';
-            }
-            for (const p of data.productos) {
-                html += `
-                <div class="producto-card">
-                    <div class="producto-info">
-                        <div class="producto-marca">${p.marca}</div>
-                        <div class="producto-nombre">${p.titulo}</div>
-                        <div class="producto-precio">$${fmt(p.precio_rango.min)}${p.precio_rango.max > p.precio_rango.min ? ' - $' + fmt(p.precio_rango.max) : ''}</div>
-                        <div class="producto-stock">${p.talles_con_stock} talles disponibles</div>
-                        <div class="producto-fee">Tu fee: $${fmt(p.fee_estimado_por_par)} por par (${(p.fee_pct*100).toFixed(0)}%)</div>
-                    </div>
-                    <div class="share-buttons">
-                        <button class="share-btn ig" onclick="compartir('${p.sku_base}', 'ig')">Instagram</button>
-                        <button class="share-btn wa" onclick="compartir('${p.sku_base}', 'wa')">WhatsApp</button>
-                    </div>
-                </div>`;
+            } else {
+                for (const p of data.productos) {
+                    const minPrice = p.precio_rango && p.precio_rango.min ? p.precio_rango.min : 0;
+                    const maxPrice = p.precio_rango && p.precio_rango.max ? p.precio_rango.max : 0;
+                    html += `
+                    <div class="producto-card">
+                        <div class="producto-info">
+                            <div class="producto-marca">${(p.marca || 'S/M').trim()}</div>
+                            <div class="producto-nombre">${p.titulo || p.sku_base}</div>
+                            <div class="producto-precio">$${fmt(minPrice)}${maxPrice > minPrice ? ' - $' + fmt(maxPrice) : ''}</div>
+                            <div class="producto-stock">${p.talles_con_stock || 0} talles disponibles</div>
+                            <div class="producto-fee">Tu fee: $${fmt(p.fee_estimado_por_par || 0)} por par (${((p.fee_pct || 0)*100).toFixed(0)}%)</div>
+                        </div>
+                        <div class="share-buttons">
+                            <button class="share-btn ig" onclick="compartir('${p.sku_base}', 'ig')">Instagram</button>
+                            <button class="share-btn wa" onclick="compartir('${p.sku_base}', 'wa')">WhatsApp</button>
+                        </div>
+                    </div>`;
+                }
             }
             document.getElementById('catalogo-content').innerHTML = html;
         } catch(e) {
+            console.error('Error loading catalogo:', e);
             document.getElementById('catalogo-content').innerHTML = '<p style="color:#c62828;">Error cargando catalogo</p>';
         }
     }
@@ -399,26 +415,33 @@
     async function loadVentas() {
         try {
             const res = await fetch(API + '/ventas?dias=30');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
             const data = await res.json();
             window._ventasLoaded = true;
 
             let html = '<div class="section-title">Ultimos 30 dias</div>';
-            for (const v of data.detalle) {
-                html += `
-                <div class="venta-item">
-                    <div>
-                        <div class="venta-dia">${v.dia}</div>
-                        <div class="venta-detalle">${v.pares} pares · ${v.tickets} tickets</div>
-                    </div>
-                    <div style="text-align:right">
-                        <div class="venta-monto">$${fmt(v.venta)}</div>
-                        <div class="venta-fee">Fee: $${fmt(v.fee_estimado)}</div>
-                    </div>
-                </div>`;
+            if (!data.detalle || data.detalle.length === 0) {
+                html += '<p style="text-align:center;color:#999;padding:40px;">Sin ventas en el periodo</p>';
+            } else {
+                for (const v of data.detalle) {
+                    html += `
+                    <div class="venta-item">
+                        <div>
+                            <div class="venta-dia">${v.dia || 'N/A'}</div>
+                            <div class="venta-detalle">${v.pares || 0} pares · ${v.tickets || 0} tickets</div>
+                        </div>
+                        <div style="text-align:right">
+                            <div class="venta-monto">$${fmt(v.venta || 0)}</div>
+                            <div class="venta-fee">Fee: $${fmt(v.fee_estimado || 0)}</div>
+                        </div>
+                    </div>`;
+                }
             }
-            if (data.detalle.length === 0) html += '<p style="text-align:center;color:#999;padding:40px;">Sin ventas en el periodo</p>';
             document.getElementById('ventas-content').innerHTML = html;
         } catch(e) {
+            console.error('Error loading ventas:', e);
             document.getElementById('ventas-content').innerHTML = '<p style="color:#c62828;">Error cargando ventas</p>';
         }
     }
@@ -427,10 +450,13 @@
     async function loadMono() {
         try {
             const res = await fetch(API + '/proyeccion');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
             const data = await res.json();
             window._monoLoaded = true;
 
-            const pct = data.pct_usado;
+            const pct = data.pct_usado || 0;
             const barClass = pct > 90 ? 'danger' : pct > 75 ? 'warn' : 'safe';
             let alertHtml = '';
             if (data.alerta) {
@@ -441,29 +467,30 @@
             document.getElementById('mono-content').innerHTML = `
                 ${alertHtml}
                 <div class="kpi-card" style="margin-bottom:12px">
-                    <div class="kpi-label">Categoria ${data.categoria_mono} — Tope anual</div>
-                    <div class="kpi-value">$${fmt(data.tope_anual)}</div>
+                    <div class="kpi-label">Categoria ${data.categoria_mono || 'N/A'} — Tope anual</div>
+                    <div class="kpi-value">$${fmt(data.tope_anual || 0)}</div>
                     <div class="progress-bar">
                         <div class="progress-fill ${barClass}" style="width:${Math.min(pct,100)}%"></div>
                     </div>
                     <div class="kpi-sub" style="margin-top:8px">
-                        Facturado: $${fmt(data.facturado_acumulado)} (${pct}%)
+                        Facturado: $${fmt(data.facturado_acumulado || 0)} (${pct.toFixed(1)}%)
                     </div>
                 </div>
                 <div class="kpi-grid" style="padding:0">
                     <div class="kpi-card">
                         <div class="kpi-label">Proyeccion anual</div>
-                        <div class="kpi-value">$${fmt(data.proyeccion_anual)}</div>
-                        <div class="kpi-sub">${data.pct_proyectado}% del tope</div>
+                        <div class="kpi-value">$${fmt(data.proyeccion_anual || 0)}</div>
+                        <div class="kpi-sub">${(data.pct_proyectado || 0).toFixed(1)}% del tope</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-label">Disponible</div>
-                        <div class="kpi-value">$${fmt(data.disponible)}</div>
-                        <div class="kpi-sub">${data.meses_restantes} meses restantes</div>
+                        <div class="kpi-value">$${fmt(data.disponible || 0)}</div>
+                        <div class="kpi-sub">${data.meses_restantes || 0} meses restantes</div>
                     </div>
                 </div>
             `;
         } catch(e) {
+            console.error('Error loading proyeccion:', e);
             document.getElementById('mono-content').innerHTML = '<p style="color:#c62828;">Error cargando proyeccion</p>';
         }
     }

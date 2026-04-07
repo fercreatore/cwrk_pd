@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # ── URL base para links de atribución ────────────────
     LINK_BASE: str = "https://h4calzados.com/p"
 
+    # ── MySQL Auth (clz_ventas_mysql en .109) ──────────────
+    MYSQL_AUTH_HOST: str = "192.168.2.109"
+    MYSQL_AUTH_USER: str = "root"
+    MYSQL_AUTH_PASSWORD: str = "cagr$2011"
+    MYSQL_AUTH_DATABASE: str = "clz_ventas_mysql"
+    MYSQL_AUTH_CHARSET: str = "utf8mb4"
+
     class Config:
         env_file = ".env"
         env_prefix = "CLZ_"

@@ -23,6 +23,15 @@
 .table-prod tr:hover { background: #eaf2f8; }
 .sin-sueldo { opacity: 0.6; }
 .section-title { border-bottom: 2px solid #337ab7; padding-bottom: 8px; margin-top: 25px; }
+.escenario-box { border-radius: 8px; padding: 12px; text-align: center; margin-bottom: 10px; }
+.esc-blanqueado { background: #fdf2f8; border: 2px solid #8e44ad; }
+.esc-real       { background: #fef9e7; border: 2px solid #f39c12; }
+.esc-freelance  { background: #eafaf1; border: 2px solid #27ae60; }
+.esc-blanqueado h3 { color: #8e44ad; margin: 0; }
+.esc-real h3       { color: #f39c12; margin: 0; }
+.esc-freelance h3  { color: #27ae60; margin: 0; }
+.ahorro-tag { background: #27ae60; color: #fff; padding: 3px 8px; border-radius: 3px; font-size: 13px; }
+.brecha-tag { background: #e74c3c; color: #fff; padding: 3px 8px; border-radius: 3px; font-size: 13px; }
 .filter-bar { background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
 #chart-scatter { width: 100%; height: 400px; }
 </style>
@@ -107,9 +116,45 @@
 </div>
 {{pass}}
 
+<!-- ── 3 Escenarios Costo Laboral ───────────────────────────────── -->
+<h4 class="section-title">Análisis de Costo Laboral — 3 Escenarios</h4>
+<div class="row">
+    <div class="col-md-4">
+        <div class="escenario-box esc-blanqueado">
+            <small style="color:#8e44ad; font-weight:bold;">BLANQUEADO IDEAL (CCT 130/75)</small>
+            <h3>${{='{:,.0f}'.format(total_costo_blanqueado)}}<small style="font-size:13px;">/mes</small></h3>
+            <small>Sueldo bruto × {{='{:.2f}x'.format(factor_blanqueado)}} &nbsp;|&nbsp; +contrib patronales + SAC + vacaciones</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="escenario-box esc-real">
+            <small style="color:#f39c12; font-weight:bold;">REALIDAD CONTABLE (co_movact_v)</small>
+            <h3>${{='{:,.0f}'.format(total_costo_real)}}<small style="font-size:13px;">/mes</small></h3>
+            <small>
+                Sueldos registrados: ${{='{:,.0f}'.format(cargas_contables['sueldos'])}} &nbsp;|&nbsp;
+                Cargas declaradas: ${{='{:,.0f}'.format(cargas_contables['cargas'])}}
+                &nbsp;&rarr;&nbsp; ratio real {{='{:.0f}%'.format((factor_real-1)*100)}}
+            </small>
+            <div style="margin-top:6px;">
+                <span class="brecha-tag">Brecha vs blanqueado: ${{='{:,.0f}'.format(total_brecha_informal)}}/mes</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="escenario-box esc-freelance">
+            <small style="color:#27ae60; font-weight:bold;">FREELANCE (fee {{='{:.0f}%'.format(fee_freelance*100)}} sobre venta)</small>
+            <h3>${{='{:,.0f}'.format(total_costo_freelance)}}<small style="font-size:13px;">/mes</small></h3>
+            <small>Sin cargas patronales, sin SAC, sin vacaciones</small>
+            <div style="margin-top:6px;">
+                <span class="ahorro-tag">Ahorro vs blanqueado: ${{='{:,.0f}'.format(total_ahorro_freelance)}}/mes</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Gráfico Scatter -->
 <h4 class="section-title">Productividad vs Margen</h4>
-<div id="chart-scatter"></div>
+<canvas id="chart-scatter" width="1100" height="420" style="width:100%;border:1px solid #ddd;border-radius:4px;background:#fafafa;"></canvas>
 
 <!-- Tabla principal -->
 <h4 class="section-title">Ranking de Productividad</h4>
@@ -118,7 +163,6 @@
 <thead>
 <tr>
     <th>#</th>
-    <th>Cod</th>
     <th>Vendedor</th>
     <th style="text-align:right">Sueldo $/mes</th>
     <th style="text-align:right">Venta $</th>
@@ -132,6 +176,10 @@
     <th style="text-align:right">Comisión $</th>
     <th style="text-align:right">Bonus $</th>
     <th style="text-align:right">Total Incentivo</th>
+    <th style="text-align:right; background:#6c3483; font-size:11px;">Costo<br>Blanqueado/m</th>
+    <th style="text-align:right; background:#f39c12; font-size:11px;">Costo<br>Real/m</th>
+    <th style="text-align:right; background:#1e8449; font-size:11px;">Costo<br>Freelance/m</th>
+    <th style="text-align:right; background:#1a5276; font-size:11px;">Ahorro<br>Potencial/m</th>
     <th></th>
 </tr>
 </thead>
@@ -141,7 +189,6 @@
 {{rank += 1}}
 <tr class="{{='sin-sueldo' if r['sueldo'] == 0 else ''}}">
     <td>{{=rank}}</td>
-    <td>{{=r['codigo']}}</td>
     <td><a href="{{=URL('informes_productividad','vendedor', args=r['codigo'])}}">{{=r['nombre']}}</a></td>
     <td style="text-align:right">{{='{:,.0f}'.format(r['sueldo']) if r['sueldo'] > 0 else '-'}}</td>
     <td style="text-align:right">{{='{:,.0f}'.format(r['venta'])}}</td>
@@ -161,6 +208,12 @@
     <td style="text-align:right">{{='{:,.0f}'.format(r['comision_base'])}}</td>
     <td style="text-align:right">{{='{:,.0f}'.format(r['bonus_monto'])}}</td>
     <td style="text-align:right; font-weight:bold">{{='{:,.0f}'.format(r['total_incentivo'])}}</td>
+    <td style="text-align:right; color:#8e44ad;">{{='{:,.0f}'.format(r['costo_blanqueado']) if r['sueldo'] > 0 else '-'}}</td>
+    <td style="text-align:right; color:#f39c12;">{{='{:,.0f}'.format(r['costo_real']) if r['sueldo'] > 0 else '-'}}</td>
+    <td style="text-align:right; color:#27ae60;">{{='{:,.0f}'.format(r['costo_freelance'])}}</td>
+    <td style="text-align:right; font-weight:bold; {{='color:#27ae60;' if r['ahorro_freelance'] > 0 else 'color:#e74c3c;'}}">
+        {{='{:,.0f}'.format(r['ahorro_freelance']) if r['sueldo'] > 0 else '-'}}
+    </td>
     <td><a href="{{=URL('informes_productividad','vendedor', args=r['codigo'])}}" class="btn btn-xs btn-default">Detalle</a></td>
 </tr>
 {{pass}}
@@ -183,62 +236,131 @@
 </tbody>
 </table>
 
-<script src="https://code.highcharts.com/highcharts.js"></script>
 <script>
 (function(){
-    var chartData = {{=XML(chart_json)}};
+    var data = {{=XML(chart_json)}};
     var vendedorUrl = '{{=URL("informes_productividad","vendedor")}}';
 
-    function renderChart() {
-        if (typeof Highcharts === 'undefined') {
-            // Fallback si Highcharts no carga: mostrar mensaje
-            document.getElementById('chart-scatter').innerHTML =
-                '<div style="padding:40px;text-align:center;color:#999;">' +
-                '<p>No se pudo cargar la libreria de graficos (Highcharts CDN).</p>' +
-                '<p>Datos disponibles: ' + chartData.length + ' vendedores con sueldo.</p></div>';
+    function renderScatter() {
+        var canvas = document.getElementById('chart-scatter');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var W = canvas.width, H = canvas.height;
+        var PAD = { top: 30, right: 20, bottom: 50, left: 65 };
+        var PW = W - PAD.left - PAD.right;
+        var PH = H - PAD.top - PAD.bottom;
+
+        if (!data.length) {
+            ctx.fillStyle = '#999'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('Sin datos con sueldo registrado', W/2, H/2);
             return;
         }
-        Highcharts.chart('chart-scatter', {
-            chart: { type: 'scatter', zoomType: 'xy' },
-            title: { text: 'Productividad vs Margen por Vendedor' },
-            xAxis: {
-                title: { text: '% Margen' },
-                plotLines: [{ value: 35, color: '#e74c3c', width: 2, dashStyle: 'dash', label: { text: 'Min 35%', style: { color: '#e74c3c' } } }]
-            },
-            yAxis: {
-                title: { text: 'Productividad (Venta/Sueldo)' },
-                plotLines: [{ value: 2, color: '#f39c12', width: 2, dashStyle: 'dash', label: { text: 'Min 2x' } }]
-            },
-            tooltip: {
-                formatter: function() { return '<b>' + this.point.name + '</b><br>Margen: ' + this.x + '%<br>Productividad: ' + this.y + 'x'; }
-            },
-            plotOptions: {
-                scatter: {
-                    cursor: 'pointer',
-                    point: {
-                        events: {
-                            click: function() { window.location.href = vendedorUrl + '/' + this.cod; }
-                        }
-                    }
-                }
-            },
-            series: [{
-                name: 'Vendedores',
-                data: chartData,
-                marker: { radius: 6 },
-                color: '#337ab7'
-            }]
+
+        var xs = data.map(function(d){ return d.x; });
+        var ys = data.map(function(d){ return d.y; });
+        var xMin = Math.min.apply(null, xs) - 5,  xMax = Math.max.apply(null, xs) + 5;
+        var yMin = 0, yMax = Math.max.apply(null, ys) * 1.1;
+
+        function px(v){ return PAD.left + (v - xMin) / (xMax - xMin) * PW; }
+        function py(v){ return PAD.top  + (1 - (v - yMin) / (yMax - yMin)) * PH; }
+
+        // fondo
+        ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, W, H);
+
+        // lineas de referencia
+        ctx.setLineDash([6,4]);
+        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(px(35), PAD.top); ctx.lineTo(px(35), PAD.top+PH); ctx.stroke();
+        ctx.strokeStyle = '#f39c12';
+        ctx.beginPath(); ctx.moveTo(PAD.left, py(2)); ctx.lineTo(PAD.left+PW, py(2)); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // etiquetas lineas de referencia
+        ctx.font = '11px sans-serif'; ctx.fillStyle = '#e74c3c'; ctx.textAlign = 'center';
+        ctx.fillText('35% margen', px(35), PAD.top - 8);
+        ctx.fillStyle = '#f39c12'; ctx.textAlign = 'left';
+        ctx.fillText('2x', PAD.left + 4, py(2) - 4);
+
+        // ejes
+        ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top+PH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top+PH); ctx.lineTo(PAD.left+PW, PAD.top+PH); ctx.stroke();
+
+        // ticks eje X
+        ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+        for (var xv = Math.ceil(xMin/10)*10; xv <= xMax; xv += 10) {
+            var xp = px(xv);
+            ctx.beginPath(); ctx.moveTo(xp, PAD.top+PH); ctx.lineTo(xp, PAD.top+PH+4); ctx.stroke();
+            ctx.fillText(xv + '%', xp, PAD.top+PH+16);
+        }
+        // ticks eje Y
+        ctx.textAlign = 'right';
+        var yStep = yMax > 50 ? 10 : yMax > 20 ? 5 : 2;
+        for (var yv = 0; yv <= yMax; yv += yStep) {
+            var yp = py(yv);
+            ctx.beginPath(); ctx.moveTo(PAD.left-4, yp); ctx.lineTo(PAD.left, yp); ctx.stroke();
+            ctx.fillText(yv + 'x', PAD.left - 7, yp + 4);
+        }
+
+        // labels ejes
+        ctx.fillStyle = '#333'; ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('% Margen', PAD.left + PW/2, H - 8);
+        ctx.save(); ctx.translate(14, PAD.top + PH/2);
+        ctx.rotate(-Math.PI/2); ctx.fillText('Productividad', 0, 0); ctx.restore();
+
+        // puntos
+        data.forEach(function(d) {
+            var xp = px(d.x), yp = py(d.y);
+            var color = (d.x >= 45 && d.y >= 5) ? '#27ae60' :
+                        (d.x < 35 || d.y < 2)   ? '#e74c3c' : '#337ab7';
+            ctx.beginPath(); ctx.arc(xp, yp, 7, 0, 2*Math.PI);
+            ctx.fillStyle = color; ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
         });
+
+        // tooltip en hover
+        var tooltip = document.getElementById('scatter-tooltip');
+        canvas.onmousemove = function(e) {
+            var rect = canvas.getBoundingClientRect();
+            var scaleX = canvas.width / rect.width;
+            var scaleY = canvas.height / rect.height;
+            var mx = (e.clientX - rect.left) * scaleX;
+            var my = (e.clientY - rect.top)  * scaleY;
+            var found = null;
+            data.forEach(function(d) {
+                var dx = px(d.x) - mx, dy = py(d.y) - my;
+                if (Math.sqrt(dx*dx+dy*dy) < 10) found = d;
+            });
+            if (found) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.clientX + 12) + 'px';
+                tooltip.style.top  = (e.clientY - 30) + 'px';
+                tooltip.innerHTML = '<b>' + found.name + '</b><br>Margen: ' + found.x + '%<br>Prod: ' + found.y + 'x';
+                canvas.style.cursor = 'pointer';
+            } else {
+                tooltip.style.display = 'none';
+                canvas.style.cursor = 'default';
+            }
+        };
+        canvas.onclick = function(e) {
+            var rect = canvas.getBoundingClientRect();
+            var scaleX = canvas.width / rect.width;
+            var scaleY = canvas.height / rect.height;
+            var mx = (e.clientX - rect.left) * scaleX;
+            var my = (e.clientY - rect.top)  * scaleY;
+            data.forEach(function(d) {
+                var dx = px(d.x) - mx, dy = py(d.y) - my;
+                if (Math.sqrt(dx*dx+dy*dy) < 10)
+                    window.location.href = vendedorUrl + '/' + d.cod;
+            });
+        };
     }
 
-    // Intentar render; si Highcharts aun no cargo, esperar
-    if (document.readyState === 'complete') {
-        renderChart();
-    } else {
-        window.addEventListener('load', renderChart);
-    }
+    window.addEventListener('load', renderScatter);
 })();
 </script>
+<div id="scatter-tooltip" style="display:none;position:fixed;background:#2c3e50;color:#fff;padding:8px 12px;border-radius:4px;font-size:12px;pointer-events:none;z-index:9999;"></div>
 
 <!-- Sensor de tiempos de carga -->
 {{if timing:}}

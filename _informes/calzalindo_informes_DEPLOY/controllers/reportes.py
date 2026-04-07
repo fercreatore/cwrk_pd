@@ -7,6 +7,19 @@ Usa db_omicronvt (definido en models/db.py) para ejecutar SQL contra omicronvt.
 # =============================================================================
 # HELPERS
 # =============================================================================
+def _uvar(val):
+    """Python 2.7: decodifica un var de request a unicode.
+    request.vars puede devolver str con bytes UTF-8 cuando el query string
+    tiene caracteres como É, Ñ, etc. (ej: proveedor=SOXPIGU%C3%89+S.A.)
+    pyodbc requiere unicode puro, no bytes no-ASCII.
+    """
+    if val is None:
+        return u''
+    if isinstance(val, str):
+        return val.decode('utf-8', errors='replace')
+    return val
+
+
 def _ejecutar_sql(sql, as_dict=True):
     """Ejecuta SQL contra omicronvt y devuelve lista de dicts o tuplas.
     Usa READ UNCOMMITTED para evitar bloqueos por locks (equivale a NOLOCK).
@@ -92,7 +105,7 @@ def pedidos():
         pass  # si falla el sync, usar cache vieja
 
     industria = request.vars.industria or ''
-    proveedor = request.vars.proveedor or ''
+    proveedor = _uvar(request.vars.proveedor)
     estado = request.vars.estado or ''
 
     where_parts = ["1=1"]
@@ -348,11 +361,11 @@ def pedidos_detalle():
     """Drill-down: detalle de artículos de un proveedor específico."""
     _requiere_acceso()
 
-    proveedor = request.vars.proveedor or ''
+    proveedor = _uvar(request.vars.proveedor)
     if not proveedor:
         redirect(URL('reportes', 'pedidos'))
 
-    sql = """
+    sql = u"""
     SELECT
         CAST(p.numero AS INT) AS nota_pedido,
         CAST(p.sucursal AS INT) AS ped_sucursal,
@@ -459,8 +472,8 @@ def recupero():
 
     fecha_desde = request.vars.fecha_desde or ''
     fecha_hasta = request.vars.fecha_hasta or ''
-    proveedor = request.vars.proveedor or ''
-    marca = request.vars.marca or ''
+    proveedor = _uvar(request.vars.proveedor)
+    marca = _uvar(request.vars.marca)
     vista = request.vars.vista or 'mes'  # mes | proveedor | marca
 
     where = _recupero_where(fecha_desde, fecha_hasta, proveedor, marca)
@@ -708,8 +721,8 @@ def recupero_csv():
 
     fecha_desde = request.vars.fecha_desde or ''
     fecha_hasta = request.vars.fecha_hasta or ''
-    proveedor = request.vars.proveedor or ''
-    marca = request.vars.marca or ''
+    proveedor = _uvar(request.vars.proveedor)
+    marca = _uvar(request.vars.marca)
     tipo = request.vars.tipo or 'detalle'
 
     where = _recupero_where(fecha_desde, fecha_hasta, proveedor, marca)
@@ -800,7 +813,7 @@ def recupero_inversion():
     anio = request.vars.anio or ''
     temporada = request.vars.temporada or ''
     estado = request.vars.estado or ''
-    proveedor = request.vars.proveedor or ''
+    proveedor = _uvar(request.vars.proveedor)
 
     where_parts = ["1=1"]
     if industria:
@@ -907,7 +920,7 @@ def recupero_inversion_detalle():
     """Drill-down: temporadas de un proveedor en t_recupero_inversion."""
     _requiere_acceso()
 
-    proveedor = request.vars.proveedor or ''
+    proveedor = _uvar(request.vars.proveedor)
     if not proveedor:
         redirect(URL('reportes', 'recupero_inversion'))
 
@@ -948,7 +961,7 @@ def recupero_inversion_movimientos():
     _requiere_acceso()
     import decimal as _dec
 
-    proveedor = request.vars.proveedor or ''
+    proveedor = _uvar(request.vars.proveedor)
     periodo = request.vars.periodo or ''
     if not proveedor or not periodo:
         redirect(URL('reportes', 'recupero_inversion'))
@@ -1245,8 +1258,8 @@ def negociacion_plazos():
     vista = request.vars.vista or 'proveedor'
     fecha_desde = request.vars.fecha_desde or '2025-01-01'
     fecha_hasta = request.vars.fecha_hasta or ''
-    prov_filtro = request.vars.proveedor or ''
-    marca_filtro = request.vars.marca or ''
+    prov_filtro = _uvar(request.vars.proveedor)
+    marca_filtro = _uvar(request.vars.marca)
     industria_filtro = request.vars.industria or ''
     rubro_filtro = request.vars.rubro or ''
 
@@ -1598,8 +1611,8 @@ def negociacion_csv():
     vista = request.vars.vista or 'proveedor'
     fecha_desde = request.vars.fecha_desde or '2025-01-01'
     fecha_hasta = request.vars.fecha_hasta or ''
-    prov_filtro = request.vars.proveedor or ''
-    marca_filtro = request.vars.marca or ''
+    prov_filtro = _uvar(request.vars.proveedor)
+    marca_filtro = _uvar(request.vars.marca)
 
     wm = [
         "m.codigo_movimiento = 2",
@@ -1677,6 +1690,154 @@ def _ejecutar_sql_gestionC(sql, as_dict=True):
     """Ejecuta SQL contra msgestionC via cross-database desde omicronvt."""
     db_omicronvt.executesql("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
     return db_omicronvt.executesql(sql, as_dict=as_dict)
+
+
+# =============================================================================
+# APROBACIÓN PRESUPUESTARIA DE PEDIDOS
+# =============================================================================
+
+def _aprobacion_pedidos(numeros=None):
+    """Devuelve dict {numero: {estado, monto_aprobado, usuario_aprobacion, notas, fecha_resolucion}}
+    para una lista de numeros de pedido (o todos si numeros=None)."""
+    if numeros:
+        lista = ','.join(str(int(n)) for n in numeros)
+        where = 'WHERE numero IN ({})'.format(lista)
+    else:
+        where = ''
+    sql = "SELECT numero, estado, monto_aprobado, usuario_aprobacion, notas, fecha_resolucion FROM omicronvt.dbo.pedido_aprobacion {}".format(where)
+    rows = db_omicronvt.executesql(sql, as_dict=True)
+    return {int(r['numero']): r for r in rows}
+
+
+def _registrar_aprobacion(numero):
+    """Inserta registro PENDIENTE si el pedido no tiene aprobación aún."""
+    db_omicronvt.executesql("""
+    IF NOT EXISTS (SELECT 1 FROM omicronvt.dbo.pedido_aprobacion WHERE numero={n})
+        INSERT INTO omicronvt.dbo.pedido_aprobacion (numero, estado, fecha_solicitud)
+        VALUES ({n}, 'PENDIENTE', GETDATE())
+    """.format(n=int(numero)))
+    db_omicronvt.commit()
+
+
+def pedido_aprobar():
+    """POST: Aprueba, rechaza o deja pendiente un pedido.
+    Params JSON: numero, accion ('APROBADO'|'RECHAZADO'|'PENDIENTE'),
+                 monto_aprobado (opcional), notas (opcional).
+    Requiere rol finanzas o admin.
+    """
+    _requiere_acceso()
+    import json
+
+    if not (_es_admin() or _tiene_acceso('reportes.pedido_aprobar')):
+        return json.dumps(dict(ok=False, msg='Sin permisos de finanzas'))
+
+    try:
+        body = json.loads(request.body.read())
+    except:
+        return json.dumps(dict(ok=False, msg='JSON invalido'))
+
+    numero = int(body.get('numero', 0))
+    accion = body.get('accion', '').upper()
+    monto  = body.get('monto_aprobado', None)
+    notas  = (body.get('notas', '') or '')[:2000]
+
+    if not numero:
+        return json.dumps(dict(ok=False, msg='Falta numero de pedido'))
+    if accion not in ('APROBADO', 'RECHAZADO', 'PENDIENTE'):
+        return json.dumps(dict(ok=False, msg='Accion invalida'))
+
+    usuario = auth.user.email if auth.user and auth.user.email else 'WEB'
+    monto_sql = str(round(float(monto), 2)) if monto is not None else 'NULL'
+    fecha_res = 'GETDATE()' if accion != 'PENDIENTE' else 'NULL'
+
+    db_omicronvt.executesql("""
+    MERGE omicronvt.dbo.pedido_aprobacion AS t
+    USING (SELECT {n} AS numero) AS s ON t.numero = s.numero
+    WHEN MATCHED THEN UPDATE SET
+        estado              = '{est}',
+        monto_aprobado      = {monto},
+        fecha_resolucion    = {fres},
+        usuario_aprobacion  = '{usr}',
+        notas               = '{notas}'
+    WHEN NOT MATCHED THEN INSERT (numero, estado, monto_aprobado, fecha_solicitud, fecha_resolucion, usuario_aprobacion, notas)
+        VALUES ({n}, '{est}', {monto}, GETDATE(), {fres}, '{usr}', '{notas}');
+    """.format(
+        n=numero, est=accion, monto=monto_sql, fres=fecha_res,
+        usr=usuario.replace("'", "''"),
+        notas=notas.replace("'", "''")
+    ))
+    db_omicronvt.commit()
+
+    return json.dumps(dict(ok=True, estado=accion, numero=numero))
+
+
+def pedidos_aprobacion():
+    """Vista de finanzas: lista de pedidos COWORK con estado aprobación.
+    Permite aprobar/rechazar desde la UI."""
+    _requiere_acceso()
+    import json
+
+    # Todos los pedidos COWORK vigentes con su aprobación
+    sql = """
+    SELECT
+        p2.numero, p2.sucursal, p2.cuenta, p2.denominacion AS proveedor,
+        p2.fecha_comprobante,
+        COUNT(p1.orden) AS renglones,
+        SUM(p1.cantidad) AS pares,
+        SUM(p1.cantidad * p1.precio) AS monto_total,
+        pa.estado AS estado_aprob,
+        pa.monto_aprobado,
+        pa.usuario_aprobacion,
+        pa.notas,
+        pa.fecha_resolucion
+    FROM msgestion01.dbo.pedico2 p2
+    LEFT JOIN msgestion01.dbo.pedico1 p1 ON p1.numero = p2.numero
+    LEFT JOIN omicronvt.dbo.pedido_aprobacion pa ON pa.numero = p2.numero
+    WHERE p2.usuario = 'COWORK' AND p2.estado = 'V'
+    GROUP BY p2.numero, p2.sucursal, p2.cuenta, p2.denominacion,
+             p2.fecha_comprobante, pa.estado, pa.monto_aprobado,
+             pa.usuario_aprobacion, pa.notas, pa.fecha_resolucion
+    ORDER BY pa.estado ASC, p2.fecha_comprobante DESC
+    """
+    pedidos_raw = db_omicronvt.executesql(sql, as_dict=True)
+
+    pedidos = []
+    for r in pedidos_raw:
+        monto = float(r.get('monto_total') or 0)
+        monto_ap = float(r.get('monto_aprobado') or 0) if r.get('monto_aprobado') else None
+        est = r.get('estado_aprob') or 'PENDIENTE'
+        pedidos.append({
+            'numero':       int(r['numero']),
+            'sucursal':     int(r.get('sucursal') or 0),
+            'proveedor':    r.get('proveedor', ''),
+            'fecha':        r.get('fecha_comprobante', ''),
+            'renglones':    int(r.get('renglones') or 0),
+            'pares':        int(r.get('pares') or 0),
+            'monto_total':  monto,
+            'estado_aprob': est,
+            'monto_aprobado': monto_ap,
+            'usuario_aprobacion': r.get('usuario_aprobacion', ''),
+            'notas':        r.get('notas', ''),
+            'fecha_resolucion': r.get('fecha_resolucion', ''),
+            'pct_aprobado': round(monto_ap / monto * 100, 0) if monto_ap and monto else None,
+        })
+
+    es_finanzas = _es_admin() or _tiene_acceso('reportes.pedido_aprobar')
+    resumen = {
+        'total':     len(pedidos),
+        'pendiente': sum(1 for p in pedidos if p['estado_aprob'] == 'PENDIENTE'),
+        'aprobado':  sum(1 for p in pedidos if p['estado_aprob'] == 'APROBADO'),
+        'rechazado': sum(1 for p in pedidos if p['estado_aprob'] == 'RECHAZADO'),
+        'monto_pendiente': sum(p['monto_total'] for p in pedidos if p['estado_aprob'] == 'PENDIENTE'),
+        'monto_aprobado':  sum(p['monto_total'] for p in pedidos if p['estado_aprob'] == 'APROBADO'),
+    }
+
+    return dict(
+        pedidos=pedidos,
+        resumen=resumen,
+        es_finanzas=es_finanzas,
+        formato_moneda=_formato_moneda,
+    )
 
 
 def remito_datos_proveedor():
@@ -1782,6 +1943,43 @@ def remito_crear():
     if not numero_remito:
         return json.dumps(dict(ok=False, msg='Falta numero de remito'))
 
+    # ---- CONTROL PRESUPUESTARIO ----
+    # Verificar aprobación de CADA pedido referenciado en los items
+    # Si algún pedido está RECHAZADO o PENDIENTE, bloquear el remito
+    numeros_pedido = set()
+    for it in items:
+        pn = int(it.get('ped_numero', 0) or 0)
+        if pn:
+            numeros_pedido.add(pn)
+
+    if numeros_pedido:
+        aprobaciones = _aprobacion_pedidos(numeros_pedido)
+        bloqueados = []
+        for num_ped in numeros_pedido:
+            ap = aprobaciones.get(num_ped)
+            if not ap:
+                # Sin registro → crear como PENDIENTE y bloquear
+                _registrar_aprobacion(num_ped)
+                bloqueados.append('Pedido #{} sin aprobación presupuestaria'.format(num_ped))
+            elif ap['estado'] == 'RECHAZADO':
+                bloqueados.append('Pedido #{} RECHAZADO por finanzas: {}'.format(
+                    num_ped, ap.get('notas', '') or 'sin notas'))
+            elif ap['estado'] == 'PENDIENTE':
+                bloqueados.append('Pedido #{} pendiente de aprobación presupuestaria'.format(num_ped))
+            # APROBADO → verificar monto si tiene límite parcial
+            elif ap['estado'] == 'APROBADO' and ap.get('monto_aprobado'):
+                # Calcular monto de este pedido en los items
+                monto_items_ped = sum(
+                    float(it.get('precio', 0)) * float(it.get('cant_clz', 0) or 0) +
+                    float(it.get('precio', 0)) * float(it.get('cant_h4', 0) or 0)
+                    for it in items if int(it.get('ped_numero', 0) or 0) == num_ped
+                )
+                if monto_items_ped > float(ap['monto_aprobado']):
+                    bloqueados.append('Pedido #{} supera monto aprobado (${:,.0f} > ${:,.0f})'.format(
+                        num_ped, monto_items_ped, float(ap['monto_aprobado'])))
+        if bloqueados:
+            return json.dumps(dict(ok=False, msg=' | '.join(bloqueados), bloqueado_presupuesto=True))
+
     # Obtener datos del proveedor
     sql_prov = """
     SELECT TOP 1
@@ -1799,7 +1997,7 @@ def remito_crear():
     prov = prov[0]
 
     operacion = '+' if tipo == 7 else '-'
-    serie = ''  # Serie vacia por ahora — pendiente implementar YYMM+seq 8 digitos
+    serie = ''  # Serie vacia — se implementará con codigo de barras
     usuario = auth.user.email[:10] if auth.user and auth.user.email else 'WEB'
     usr_movi = 'WB'  # 2 chars para movi_stock
 
@@ -1994,10 +2192,27 @@ GETDATE(), '{usr}', 'INFORMES-WEB'".format(
                 )
                 db_omicronvt.executesql(sql_ms)
 
-            # ---- STOCK: NO tocar manualmente ----
-            # El ERP actualiza stock automaticamente a partir de movi_stock.
-            # Si lo hacemos aca tambien, se duplica (bug detectado 13-mar-2026).
-            # movi_stock con operacion '+'/'-' ya le dice al ERP que sume/reste.
+            # ---- UPDATE stock (serie=' ') ----
+            # El ERP NO actualiza stock desde INSERTs SQL directos.
+            # Actualizamos manualmente SOLO serie=' ' (la fila consolidada).
+            # Bug 13-mar-2026 era doble escritura ('2603' + ' ') — aquí solo ' '.
+            for it in dest_items:
+                cant = float(it.get('cantidad', 0))
+                art = int(it.get('articulo', 0))
+                sql_stock = """
+                MERGE {b}.dbo.stock AS t
+                USING (SELECT {dep} AS deposito, {art} AS articulo) AS s
+                  ON t.deposito = s.deposito AND t.articulo = s.articulo AND t.serie = ' '
+                WHEN MATCHED THEN
+                    UPDATE SET t.stock_actual = t.stock_actual + ({cant} * {signo})
+                WHEN NOT MATCHED THEN
+                    INSERT (deposito, articulo, serie, stock_actual)
+                    VALUES ({dep}, {art}, ' ', {cant} * {signo});
+                """.format(
+                    b=base, dep=deposito, art=art,
+                    cant=int(cant), signo=signo_stock
+                )
+                db_omicronvt.executesql(sql_stock)
 
         # ---- INSERT pedico1_entregas + UPDATE pedico1.cantidad_entregada ----
         # El pedido existe en AMBAS bases (msgestion01 y msgestion03) con datos identicos.

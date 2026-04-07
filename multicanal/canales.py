@@ -530,7 +530,7 @@ def publicar_producto_nuevo(codigo_sinonimo: str, dry_run: bool = True,
     print("[4/5] Calculando precio para canal TiendaNube...")
     reglas_file = os.path.join(os.path.dirname(__file__), 'reglas_canales.json')
     reglas = cargar_reglas(reglas_file)
-    regla_tn = reglas.get('tiendanube', REGLAS_DEFAULT.get('tiendanube'))
+    regla_tn = reglas.get('tiendanube_pagonube') or reglas.get('tiendanube') or REGLAS_DEFAULT.get('tiendanube_pagonube')
 
     costo = articulo['precio_costo']
     if articulo['moneda'] == 1:

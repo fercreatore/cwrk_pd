@@ -20,6 +20,7 @@ Depende de: db.py (db1, db_omicronvt), db_extra.py (dbC), cer.py (fx_AjustarPorC
 Autor: Cowork + Claude — Marzo 2026
 """
 
+import math
 import pandas as pd
 import json
 import datetime
@@ -46,6 +47,13 @@ MESES_INVIERNO = (4, 5, 6, 7, 8, 9)
 
 # Meses de quiebre por defecto
 MESES_QUIEBRE_DEFAULT = 12
+
+# Factores estacionales globales (fallback cuando no hay historia propia)
+# Fuente: ESTACIONALIDAD_MENSUAL en app_reposicion.py y vel_real.py
+ESTACIONALIDAD_MENSUAL = {
+    1: 0.88, 2: 1.04, 3: 0.74, 4: 0.73, 5: 0.93, 6: 1.05,
+    7: 0.98, 8: 0.92, 9: 0.93, 10: 1.22, 11: 1.04, 12: 1.51,
+}
 
 
 # ============================================================================
@@ -446,8 +454,51 @@ def get_ventas_promedio_mensual(csr=None, **filtros):
 
 
 # ============================================================================
-# ANÁLISIS DE QUIEBRE DE STOCK — VERSIÓN MEJORADA
+# ANÁLISIS DE QUIEBRE DE STOCK — VERSIÓN v3
 # ============================================================================
+
+def _factor_estacional_single(csr, anios=3):
+    """
+    Calcula factores estacionales para un unico CSR (usado en calcular_quiebre_mensual v3).
+    Retorna dict {mes(1..12): factor_float}.
+    Si no hay historia suficiente o factores planos, usa ESTACIONALIDAD_MENSUAL global.
+    """
+    desde = (datetime.date.today() - relativedelta(years=anios)).replace(month=1, day=1)
+
+    t_sql = (
+        "SELECT "
+        "  SUM(CASE WHEN v.operacion='+' THEN v.cantidad "
+        "           WHEN v.operacion='-' THEN -v.cantidad END) AS cant, "
+        "  MONTH(v.fecha) AS mes "
+        "FROM omicron_ventas1 v "
+        "LEFT JOIN articulo a ON v.articulo=a.codigo "
+        "WHERE v.codigo NOT IN {excl} "
+        "  AND a.codigo_sinonimo='{csr}' "
+        "  AND v.fecha>='{desde}' "
+        "GROUP BY MONTH(v.fecha)"
+    ).format(excl=CODIGOS_EXCLUIR_VENTAS, csr=csr, desde=desde)
+
+    try:
+        data = db1.executesql(t_sql, as_dict=True)
+    except Exception:
+        data = []
+
+    if not data:
+        return dict(ESTACIONALIDAD_MENSUAL)
+
+    ventas_mes = {int(r['mes']): float(r['cant'] or 0) for r in data}
+    media = sum(ventas_mes.values()) / max(len(ventas_mes), 1)
+    if media <= 0:
+        return dict(ESTACIONALIDAD_MENSUAL)
+
+    factors = {m: round(ventas_mes.get(m, media) / media, 3) for m in range(1, 13)}
+
+    # Si factores son planos (sin estacionalidad real), usar global
+    is_flat = all(0.8 <= v <= 1.2 for v in factors.values())
+    if is_flat:
+        return dict(ESTACIONALIDAD_MENSUAL)
+    return factors
+
 
 def get_stock_actual_csr(csr):
     """
@@ -468,33 +519,37 @@ def get_stock_actual_csr(csr):
 
 def calcular_quiebre_mensual(csr, meses=MESES_QUIEBRE_DEFAULT):
     """
-    Calcula quiebre de stock MENSUAL reconstruyendo hacia atrás.
+    Calcula quiebre de stock MENSUAL reconstruyendo hacia atras. Algoritmo v3.
 
     FIX E02: Usa 12 meses por defecto (no el form de 3 meses).
-    FIX E05: Calcula velocidad REAL (solo meses con stock).
+    FIX E05: Velocidad REAL ajustada por quiebre.
+    v3: Desestacionalizacion + factor_disp + fallback 1.15x + std_mensual
+        + ventas_perdidas + vel_real_con_perdidas.
 
-    Método:
+    Metodo:
     1. Stock actual de web_stock (filtrado por depos_para_informes)
     2. Ventas mensuales de omicron_ventas1 (excluye cod 7,36)
     3. Compras mensuales de omicron_compras1_remitos (operacion='+')
-    4. Reconstruye: stock_mes_anterior = stock_mes + ventas_mes - compras_mes
-    5. Mes con stock_inicio <= 0 = QUEBRADO
+    4. Factores estacionales por mes (propios o globales si son planos)
+    5. Reconstruye stock mes a mes hacia atras
+    6. Meses con stock_inicio <= 0 = QUEBRADO
+    7. vel_real = ventas_desestacionalizadas_OK / meses_ok * factor_disp
 
     Retorna dict con:
-      - stock_actual: stock hoy
-      - meses_analizados: cantidad de meses
-      - meses_quebrado: meses con stock=0
-      - pct_quiebre: % de meses quebrado
-      - ventas_total: unidades vendidas total
-      - vel_aparente: ventas/meses (incluye meses sin stock)
-      - vel_real: ventas solo en meses con stock / meses con stock
-      - factor_quiebre: vel_real / vel_aparente (>1 si hay quiebre)
-      - detalle_mensual: lista de dicts por mes
+      - stock_actual, meses_analizados, meses_quebrado, meses_con_stock
+      - pct_quiebre, ventas_total
+      - vel_aparente, vel_real, vel_base_desest, factor_disp
+      - factor_quiebre
+      - std_mensual, ventas_perdidas, vel_real_con_perdidas
+      - detalle_mensual: lista de dicts por mes (cronologico)
     """
     hoy = datetime.date.today()
     desde = (hoy - relativedelta(months=meses)).replace(day=1)
 
     stock_actual = get_stock_actual_csr(csr)
+
+    # Factores estacionales (v3)
+    f_est = _factor_estacional_single(csr)
 
     # Ventas mensuales
     t_sql_v = (
@@ -535,23 +590,40 @@ def calcular_quiebre_mensual(csr, meses=MESES_QUIEBRE_DEFAULT):
     for r in compras_data:
         compras_dict[(r['anio'], r['mes'])] = float(r['cant'] or 0)
 
-    # Generar lista de meses
+    # Generar lista de meses (de mas reciente a mas antiguo)
     meses_lista = []
     cursor = hoy.replace(day=1)
     for i in range(meses):
         meses_lista.append((cursor.year, cursor.month))
         cursor = cursor - relativedelta(months=1)
 
-    # Reconstruir stock mes a mes (desde el más reciente hacia atrás)
+    # Reconstruir stock mes a mes (desde el mas reciente hacia atras)
     detalle = []
     stock_fin = stock_actual
+    meses_q = 0
+    meses_ok = 0
+    ventas_total = 0
+    ventas_ok = 0
+    ventas_desest = 0
+    ventas_meses_ok = []
 
     for anio, mes in meses_lista:
         v = ventas_dict.get((anio, mes), 0)
         c = compras_dict.get((anio, mes), 0)
-        stock_inicio = stock_fin + v - c  # reconstrucción hacia atrás
+        stock_inicio = stock_fin + v - c  # reconstruccion hacia atras
 
         quebrado = stock_inicio <= 0
+        ventas_total += v
+
+        if quebrado:
+            meses_q += 1
+        else:
+            meses_ok += 1
+            ventas_ok += v
+            ventas_meses_ok.append(v)
+            # Desestacionalizar: dividir ventas por factor del mes
+            s_t = max(f_est.get(mes, 1.0), 0.1)
+            ventas_desest += v / s_t
 
         detalle.append({
             'anio': anio,
@@ -564,31 +636,72 @@ def calcular_quiebre_mensual(csr, meses=MESES_QUIEBRE_DEFAULT):
             'quebrado': quebrado
         })
 
-        stock_fin = stock_inicio  # el inicio de este mes es el fin del anterior
+        stock_fin = stock_inicio
 
-    # Métricas
-    meses_quebrado = sum(1 for d in detalle if d['quebrado'])
-    meses_con_stock = len(detalle) - meses_quebrado
-    ventas_total = sum(d['ventas'] for d in detalle)
-    ventas_con_stock = sum(d['ventas'] for d in detalle if not d['quebrado'])
+    # Calcular metricas v3
+    vel_ap = ventas_total / max(meses, 1)
+    pct_q = meses_q / max(meses, 1)
 
-    vel_aparente = ventas_total / max(len(detalle), 1)
-    vel_real = ventas_con_stock / max(meses_con_stock, 1) if meses_con_stock > 0 else vel_aparente
+    if meses_ok > 0:
+        vel_base = ventas_desest / meses_ok
+    elif ventas_total > 0:
+        # Quiebre 100%: fallback vel_aparente x 1.15
+        vel_base = vel_ap * 1.15
+    else:
+        vel_base = 0.0
 
-    pct_quiebre = (meses_quebrado / max(len(detalle), 1)) * 100
-    factor_quiebre = vel_real / vel_aparente if vel_aparente > 0 else 1
+    # Factor correccion por disponibilidad (demanda latente reprimida)
+    if pct_q > 0.5:
+        factor_disp = 1.20
+    elif pct_q > 0.3:
+        factor_disp = 1.10
+    else:
+        factor_disp = 1.0
+
+    vel_real = vel_base * factor_disp
+    factor_quiebre = vel_real / vel_ap if vel_ap > 0 else 1.0
+
+    # Desvio estandar mensual (solo meses no quebrados)
+    if ventas_meses_ok:
+        n = len(ventas_meses_ok)
+        media_ok = sum(ventas_meses_ok) / n
+        std_mes = math.sqrt(sum((x - media_ok) ** 2 for x in ventas_meses_ok) / max(n, 1))
+    else:
+        std_mes = 0.0
+
+    # Segunda pasada: estimacion de ventas perdidas
+    ventas_perdidas = 0.0
+    if meses_ok > 0 and vel_base > 0:
+        stock_fin2 = stock_actual
+        for anio, mes in meses_lista:
+            v = ventas_dict.get((anio, mes), 0)
+            c = compras_dict.get((anio, mes), 0)
+            stock_inicio_check = stock_fin2 + v - c
+            if stock_inicio_check <= 0:
+                factor_mes = max(f_est.get(mes, 1.0), 0.1)
+                ventas_esperadas = vel_base * factor_mes
+                ventas_perdidas += max(0.0, ventas_esperadas - v)
+            stock_fin2 = stock_inicio_check
+
+    vel_real_con_perdidas = round((ventas_total + ventas_perdidas) / max(meses, 1), 2)
+    pct_quiebre = pct_q * 100
 
     return {
         'stock_actual': stock_actual,
         'meses_analizados': len(detalle),
-        'meses_quebrado': meses_quebrado,
-        'meses_con_stock': meses_con_stock,
+        'meses_quebrado': meses_q,
+        'meses_con_stock': meses_ok,
         'pct_quiebre': round(pct_quiebre, 1),
         'ventas_total': ventas_total,
-        'vel_aparente': round(vel_aparente, 2),
+        'vel_aparente': round(vel_ap, 2),
         'vel_real': round(vel_real, 2),
+        'vel_base_desest': round(vel_base, 2),
+        'factor_disp': factor_disp,
         'factor_quiebre': round(factor_quiebre, 2),
-        'detalle_mensual': list(reversed(detalle))  # cronológico
+        'std_mensual': round(std_mes, 2),
+        'ventas_perdidas': round(ventas_perdidas),
+        'vel_real_con_perdidas': vel_real_con_perdidas,
+        'detalle_mensual': list(reversed(detalle))  # cronologico
     }
 
 
@@ -703,6 +816,8 @@ def calcular_pedido_sugerido(csr, cobertura_meses=3, meses_quiebre=12):
         'csr': csr,
         'vel_real': quiebre['vel_real'],
         'vel_aparente': quiebre['vel_aparente'],
+        'vel_base_desest': quiebre.get('vel_base_desest', quiebre['vel_real']),
+        'factor_disp': quiebre.get('factor_disp', 1.0),
         'factor_estacional': round(factor_estacional, 3),
         'vel_ajustada': round(vel_ajustada, 2),
         'stock_actual': stock,
@@ -710,6 +825,9 @@ def calcular_pedido_sugerido(csr, cobertura_meses=3, meses_quiebre=12):
         'cobertura_objetivo': cobertura_meses,
         'pedir': pedir,
         'pct_quiebre': quiebre['pct_quiebre'],
+        'std_mensual': quiebre.get('std_mensual', 0),
+        'ventas_perdidas': quiebre.get('ventas_perdidas', 0),
+        'vel_real_con_perdidas': quiebre.get('vel_real_con_perdidas', 0),
         'detalle_quiebre': quiebre
     }
 
@@ -1138,6 +1256,8 @@ def analizar_marca_para_pedido(marca, cobertura_meses=3, meses_quiebre=12):
                 'stock_actual': pedido['stock_actual'],
                 'vel_aparente': pedido['vel_aparente'],
                 'vel_real': pedido['vel_real'],
+                'vel_base_desest': pedido.get('vel_base_desest', pedido['vel_real']),
+                'factor_disp': pedido.get('factor_disp', 1.0),
                 'pct_quiebre': pedido['pct_quiebre'],
                 'factor_estacional': pedido['factor_estacional'],
                 'vel_ajustada': pedido['vel_ajustada'],
@@ -1146,6 +1266,9 @@ def analizar_marca_para_pedido(marca, cobertura_meses=3, meses_quiebre=12):
                 'precio_unit': precio['precio'],
                 'precio_cer': precio['precio_cer'],
                 'monto_pedir': pedido['pedir'] * precio['precio_cer'],
+                'std_mensual': pedido.get('std_mensual', 0),
+                'ventas_perdidas': pedido.get('ventas_perdidas', 0),
+                'vel_real_con_perdidas': pedido.get('vel_real_con_perdidas', 0),
                 'imagen': get_imagen_mini_safe(csr)
             })
         except Exception as e:

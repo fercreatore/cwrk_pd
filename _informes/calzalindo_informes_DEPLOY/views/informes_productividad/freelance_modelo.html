@@ -1,0 +1,225 @@
+{{extend 'layout.html'}}
+
+<style>
+.esc-blanqueado { background: #f3e8ff; border-left: 4px solid #9b59b6; }
+.esc-real       { background: #fff3e0; border-left: 4px solid #e67e22; }
+.esc-freelance  { background: #e8f5e9; border-left: 4px solid #27ae60; }
+.kpi-box        { border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; }
+.kpi-num        { font-size: 1.6em; font-weight: 700; }
+.kpi-label      { font-size: 0.78em; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-favorable{ background: #27ae60; color: #fff; padding: 2px 7px; border-radius: 10px; font-size: 0.8em; }
+.badge-neutro   { background: #e67e22; color: #fff; padding: 2px 7px; border-radius: 10px; font-size: 0.8em; }
+.badge-dificil  { background: #c0392b; color: #fff; padding: 2px 7px; border-radius: 10px; font-size: 0.8em; }
+.badge-sin_sueldo{ background: #7f8c8d; color: #fff; padding: 2px 7px; border-radius: 10px; font-size: 0.8em; }
+.badge-depositero{ background: #2c3e50; color: #fff; padding: 2px 7px; border-radius: 10px; font-size: 0.8em; }
+.dep-header     { background: #2c3e50; color: #fff; padding: 6px 12px; margin: 18px 0 4px; border-radius: 4px; }
+.dep-central    { background: #8e44ad; }
+tr.no-convertible{ opacity: 0.5; font-style: italic; }
+.fee-bar-wrap   { background: #eee; border-radius: 4px; height: 8px; min-width: 80px; display: inline-block; vertical-align: middle; }
+.fee-bar-fill   { height: 8px; border-radius: 4px; background: #27ae60; }
+.fee-bar-obj    { border-left: 2px solid #c0392b; height: 12px; display: inline-block; vertical-align: middle; margin-left: -1px; }
+</style>
+
+<div class="container-fluid" style="padding: 15px;">
+<h3>Modelo Freelance <small>Uber del Calzado — Simulacion por local y vendedor</small></h3>
+
+<!-- Filtros -->
+<form class="form-inline" style="margin-bottom: 15px;">
+    <label>Desde:</label>
+    <input type="date" name="desde" value="{{=desde}}" class="form-control input-sm" />
+    <label>Hasta:</label>
+    <input type="date" name="hasta" value="{{=hasta}}" class="form-control input-sm" />
+    <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+    <span class="text-muted" style="margin-left: 12px;">Periodo: {{=meses_periodo}} meses | Fee objetivo: <strong>{{='%.0f%%' % (fee_objetivo*100)}}</strong></span>
+</form>
+
+<!-- KPIs globales -->
+<div class="row" style="margin-bottom: 18px;">
+    <div class="col-sm-3">
+        <div class="kpi-box esc-freelance">
+            <div class="kpi-num text-success">${{'${:,.0f}'.format(total_costo_free/1e6)}}M/mes</div>
+            <div class="kpi-label">Costo freelance {{='%.0f%%' % (fee_objetivo*100)}} (convertibles)</div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="kpi-box esc-blanqueado">
+            <div class="kpi-num" style="color:#9b59b6;">${{'${:,.0f}'.format(total_ahorro_h4/1e6)}}M/mes</div>
+            <div class="kpi-label">Ahorro vs blanqueado ideal</div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="kpi-box esc-real">
+            <div class="kpi-num" style="color:#e67e22;">${{'${:,.0f}'.format(total_ahorro_real/1e6)}}M/mes</div>
+            <div class="kpi-label">Ahorro vs costo real contable</div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="kpi-box" style="background:#f0f4f8; border-left: 4px solid #2980b9;">
+            <div class="kpi-num" style="color:#2980b9;">{{=total_convertibles}} <small style="font-size:.5em">vendedores</small></div>
+            <div class="kpi-label">
+                Convertibles: <span class="badge-favorable">{{=n_favorable}} favorable</span>
+                <span class="badge-neutro">{{=n_neutro}} neutro</span>
+                <span class="badge-dificil">{{=n_dificil}} difícil</span>
+                <span class="badge-sin_sueldo">{{=n_sin_sueldo}} sin sueldo</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen por depósito -->
+<h4>Resumen por local</h4>
+<div class="table-responsive" style="margin-bottom: 20px;">
+<table class="table table-condensed table-bordered table-hover" id="tbl_depositos">
+<thead>
+    <tr style="background:#2c3e50; color:#fff;">
+        <th>Local</th>
+        <th class="text-right">Vendedores</th>
+        <th class="text-right">Convertibles</th>
+        <th class="text-right">Vta Mensual</th>
+        <th class="text-right">Costo Blanqueado/m</th>
+        <th class="text-right">Costo Real/m</th>
+        <th class="text-right">Costo Freelance/m</th>
+        <th class="text-right">Ahorro vs Real/m</th>
+        <th class="text-right">Sin sueldo</th>
+    </tr>
+</thead>
+<tbody>
+{{for rd in depositos_resumen:}}
+<tr>
+    <td><strong>{{=rd['nombre']}}</strong></td>
+    <td class="text-right">{{=rd['vendedores']}}</td>
+    <td class="text-right">{{=rd['convertibles']}}</td>
+    <td class="text-right">${{'${:,.0f}'.format(rd['vta_mensual'])}}</td>
+    <td class="text-right" style="color:#9b59b6;">${{'${:,.0f}'.format(rd['costo_blanqueado'])}}</td>
+    <td class="text-right" style="color:#e67e22;">${{'${:,.0f}'.format(rd['costo_real'])}}</td>
+    <td class="text-right" style="color:#27ae60;">${{'${:,.0f}'.format(rd['costo_freelance'])}}</td>
+    <td class="text-right">
+        {{if rd['ahorro_vs_real'] > 0:}}
+        <strong style="color:#27ae60;">${{'${:,.0f}'.format(rd['ahorro_vs_real'])}}</strong>
+        {{else:}}
+        <span style="color:#c0392b;">${{'${:,.0f}'.format(rd['ahorro_vs_real'])}}</span>
+        {{pass}}
+    </td>
+    <td class="text-center">{{=rd['sin_sueldo']}}</td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+</div>
+
+<!-- Detalle por vendedor agrupado por depósito -->
+<h4>Detalle por vendedor</h4>
+<p class="text-muted" style="font-size:0.85em;">
+    <strong>Fee indif. vendedor</strong>: fee mínimo para que no gane menos que hoy (sueldo neto ÷ venta mensual).
+    <strong>Fee eq. H4</strong>: fee donde el costo freelance iguala el costo real actual de H4.
+    La zona verde entre ambos es la <em>zona de negociación</em>.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-bordered table-hover" id="tbl_vendedores">
+<thead>
+    <tr style="background:#34495e; color:#fff; font-size:0.82em;">
+        <th>Vendedor</th>
+        <th>Local</th>
+        <th>Rol</th>
+        <th class="text-right">Sueldo/m</th>
+        <th class="text-right">Vta Mensual</th>
+        <th class="text-right">% Margen</th>
+        <th class="text-right">Productiv.</th>
+        <th class="text-right">Costo Blank.</th>
+        <th class="text-right">Costo Real</th>
+        <th class="text-right">C. Free {{='%.0f%%' % (fee_objetivo*100)}}</th>
+        <th class="text-right">Ahorro/m</th>
+        <th class="text-right">Fee indif. V</th>
+        <th class="text-right">Fee eq. H4</th>
+        <th>Estado</th>
+    </tr>
+</thead>
+<tbody>
+{{current_dep = [None]}}
+{{for v in vendedores:}}
+    {{if v['deposito'] != current_dep[0]:}}
+    {{current_dep[0] = v['deposito']}}
+    <tr>
+        <td colspan="14" class="dep-header {{='dep-central' if v['deposito'] == 0 else ''}}">
+            <strong>{{=v['deposito_nombre']}}</strong>
+            {{if v['deposito'] == 0:}}
+            &nbsp;<small>⚠ Central: operatoria especial — depósitos en pisos 1-2-3, vendedores van a buscar pares</small>
+            {{pass}}
+        </td>
+    </tr>
+    {{pass}}
+<tr {{='class="no-convertible"' if not v['convertible'] else ''}}>
+    <td>
+        <a href="{{=URL('informes_productividad','vendedor',args=v['codigo'])}}">{{=v['nombre']}}</a>
+    </td>
+    <td>{{=v['deposito_nombre']}}</td>
+    <td>
+        {{if v['es_depositero']:}}
+        <span class="badge-depositero">Depositero</span>
+        {{else:}}
+        <span style="color:#27ae60; font-size:0.85em;">Vendedor</span>
+        {{pass}}
+    </td>
+    <td class="text-right">{{='{:,.0f}'.format(v['sueldo']) if v['sueldo'] else '—'}}</td>
+    <td class="text-right">${{'${:,.0f}'.format(v['vta_mensual'])}}</td>
+    <td class="text-right">{{='%.1f%%' % (v['pct_margen']*100)}}</td>
+    <td class="text-right">{{='%.1fx' % v['productividad'] if v['productividad'] else '—'}}</td>
+    <td class="text-right" style="color:#9b59b6; font-size:0.88em;">{{='{:,.0f}'.format(v['costo_blanqueado']) if v['costo_blanqueado'] else '—'}}</td>
+    <td class="text-right" style="color:#e67e22; font-size:0.88em;">{{='{:,.0f}'.format(v['costo_real']) if v['costo_real'] else '—'}}</td>
+    <td class="text-right" style="color:#27ae60; font-weight:600;">{{='{:,.0f}'.format(v['costo_freelance'])}}</td>
+    <td class="text-right">
+        {{if v['ahorro_vs_real'] > 0:}}
+        <strong style="color:#27ae60;">${{'${:,.0f}'.format(v['ahorro_vs_real'])}}</strong>
+        {{elif v['sueldo']:}}
+        <span style="color:#c0392b;">${{'${:,.0f}'.format(v['ahorro_vs_real'])}}</span>
+        {{else:}}—
+        {{pass}}
+    </td>
+    <td class="text-right">
+        {{if v['fee_indif'] is not None:}}
+        <span style="font-weight:600; color:{{'#27ae60' if v['fee_indif'] < fee_objetivo else '#c0392b'}};">
+            {{='%.1f%%' % (v['fee_indif']*100)}}
+        </span>
+        {{else:}}—{{pass}}
+    </td>
+    <td class="text-right">
+        {{if v['fee_h4_eq'] is not None:}}
+        {{='%.1f%%' % (v['fee_h4_eq']*100)}}
+        {{else:}}—{{pass}}
+    </td>
+    <td>
+        {{if v['diagnostico'] == 'favorable':}}
+        <span class="badge-favorable">Favorable</span>
+        {{elif v['diagnostico'] == 'neutro':}}
+        <span class="badge-neutro">Negociar</span>
+        {{elif v['diagnostico'] == 'dificil':}}
+        <span class="badge-dificil">Difícil</span>
+        {{elif v['diagnostico'] == 'sin_sueldo':}}
+        <span class="badge-sin_sueldo">Ya informal</span>
+        {{pass}}
+    </td>
+</tr>
+{{pass}}
+</tbody>
+</table>
+</div>
+
+<!-- Explicación metodología -->
+<div class="panel panel-default" style="margin-top: 20px;">
+    <div class="panel-heading"><strong>Metodología y supuestos</strong></div>
+    <div class="panel-body" style="font-size:0.85em;">
+        <ul>
+            <li><strong>Escenario Blanqueado</strong>: sueldo × {{='%.4f' % factor_blanqueado}} (CCT 130/75 completo: jubilación 16%, PAMI 2%, OS patronal 6%, ART 2.5%, seg. vida 0.5%, SAC 8.33%, vacaciones 8.33%)</li>
+            <li><strong>Escenario Real Contable</strong>: sueldo × {{='%.2f' % factor_real}} (ratio leyes sociales / sueldos medido en co_movact_v — aprox. 12% efectivo)</li>
+            <li><strong>Escenario Freelance</strong>: venta mensual × {{='%.0f%%' % (fee_objetivo*100)}} (fee objetivo "Uber del calzado")</li>
+            <li><strong>Fee indiferencia vendedor</strong>: sueldo_neto / vta_mensual (sueldo neto ≈ sueldo × 83%). Si fee objetivo &gt; fee indif, el vendedor gana más que hoy.</li>
+            <li><strong>Fee equilibrio H4</strong>: costo_real / vta_mensual. Si fee objetivo &lt; fee H4 eq, H4 ahorra respecto a hoy.</li>
+            <li><strong>Zona favorable</strong>: fee_objetivo &gt; fee_indif_V <em>y</em> fee_objetivo &lt; fee_H4_eq → todos ganan.</li>
+            <li><strong>Sin sueldo</strong>: no están en moviempl1 (ya monotributistas, part-time sin relación, etc.). Conversión sin costo.</li>
+            <li><strong>Central</strong>: los 2 depositeros son costo de infraestructura. No generan venta atribuible → no convertibles a fee.</li>
+        </ul>
+        <p class="text-muted">Periodo analizado: {{=desde}} → {{=hasta}} ({{=meses_periodo}} meses). Timing: {{=', '.join(timing)}}</p>
+    </div>
+</div>
+
+</div><!-- /container -->

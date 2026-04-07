@@ -129,12 +129,12 @@ async def resumen_liquidaciones(anio: int = None, mes: int = None):
 
     sql = """
         SELECT l.*, vf.codigo_atrib,
-               vj.descripcion AS nombre_vendedor
+               ISNULL(vj.descripcion, '') AS nombre_vendedor
         FROM omicronvt.dbo.liquidacion_vendedor l
         JOIN omicronvt.dbo.vendedor_freelance vf ON vf.id = l.vendedor_id
         LEFT JOIN msgestionC.dbo.viajantes vj ON vj.codigo = vf.viajante_cod
         WHERE l.periodo_anio = ? AND l.periodo_mes = ?
-        ORDER BY l.total_fee DESC
+        ORDER BY ISNULL(l.total_fee, 0) DESC
     """
 
     liqs = query(sql, 'omicronvt', (a, m))
@@ -178,8 +178,8 @@ async def liquidacion_vendedor(cod: str, anio: int = None, mes: int = None):
     m = mes or hoy.month
 
     vrows = query(
-        "SELECT vf.*, vj.descripcion AS nombre "
-        "FROM vendedor_freelance vf "
+        "SELECT vf.*, ISNULL(vj.descripcion, '') AS nombre "
+        "FROM omicronvt.dbo.vendedor_freelance vf "
         "JOIN msgestionC.dbo.viajantes vj ON vj.codigo = vf.viajante_cod "
         "WHERE vf.codigo_atrib = ?",
         'omicronvt',

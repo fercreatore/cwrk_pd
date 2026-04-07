@@ -12,6 +12,10 @@ DRIVER = "{ODBC Driver 17 for SQL Server}"
 
 
 def _build_conn_str(database: str = None) -> str:
+    """
+    Build connection string. For cross-DB queries, connect to the PRIMARY database
+    (typically omicronvt) and use 3-part names (database.dbo.table) for remote tables.
+    """
     db = database or settings.DB_ANALITICA
     return (
         f"DRIVER={DRIVER};"

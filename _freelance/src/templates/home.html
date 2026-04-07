@@ -113,16 +113,21 @@
             }
 
             // Redirigir según rol
-            if (data.usuario.es_admin) {
+            if (data.usuario && data.usuario.es_admin) {
                 window.location.href = '/admin/dashboard';
-            } else if (data.usuario.es_vendedor && data.usuario.codigo_vendedor) {
+            } else if (data.usuario && data.usuario.es_vendedor && data.usuario.codigo_vendedor) {
                 window.location.href = '/panel/' + data.usuario.codigo_vendedor;
-            } else {
+            } else if (data.usuario) {
                 // Usuario autenticado pero sin rol específico → admin si tiene permisos
                 window.location.href = '/admin/dashboard';
+            } else {
+                showError('Respuesta del servidor inválida');
+                btn.disabled = false;
+                btn.textContent = 'Ingresar';
             }
         } catch (e) {
-            showError('Error de conexión');
+            console.error('Login error:', e);
+            showError('Error de conexión: ' + e.message);
             btn.disabled = false;
             btn.textContent = 'Ingresar';
         }
@@ -134,9 +139,18 @@
     }
 
     // Si ya tiene sesión, redirigir
-    fetch('/api/v1/auth/check_token').then(r => r.json()).then(d => {
-        // No redirigir automáticamente, solo verificar
-    }).catch(() => {});
+    fetch('/api/v1/auth/check_token')
+        .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        })
+        .then(d => {
+            // No redirigir automáticamente, solo verificar
+        })
+        .catch(e => {
+            // Token ausente o inválido, es normal en login
+            console.debug('No active session');
+        });
     </script>
 </body>
 </html>

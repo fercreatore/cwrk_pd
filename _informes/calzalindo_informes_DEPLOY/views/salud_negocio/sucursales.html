@@ -1,0 +1,242 @@
+{{extend 'layout.html'}}
+{{response.title = 'Sucursales'}}
+<!--
+  Vista: views/salud_negocio/sucursales.html
+  Controller: salud_negocio.py -> sucursales()
+-->
+<link href="https://unpkg.com/tabulator-tables@5.5.4/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.4/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* === KPI CARDS === */
+.kpi-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.kpi-card {
+    flex: 1; min-width: 180px; background: #fff; border-radius: 8px;
+    padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); text-align: center;
+    border-top: 3px solid #007bff;
+}
+.kpi-card h5 { margin: 0 0 5px; font-size: 12px; color: #888; text-transform: uppercase; }
+.kpi-card .valor { font-size: 24px; font-weight: bold; color: #333; }
+.kpi-card .sub { font-size: 11px; color: #999; margin-top: 3px; }
+.kpi-card.verde { border-top-color: #28a745; }
+.kpi-card.rojo { border-top-color: #dc3545; }
+.kpi-card.naranja { border-top-color: #fd7e14; }
+.kpi-card.azul { border-top-color: #007bff; }
+/* === SUB-NAV === */
+.sub-nav { display: flex; gap: 5px; margin-bottom: 20px; }
+.sub-nav a {
+    padding: 8px 16px; border-radius: 6px; text-decoration: none;
+    background: #e9ecef; color: #495057; font-size: 13px;
+}
+.sub-nav a.active { background: #343a40; color: #fff; font-weight: bold; }
+.sub-nav a:hover:not(.active) { background: #dee2e6; }
+/* === CHART === */
+.chart-container {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px;
+    position: relative; height: 500px;
+}
+/* === ROW HIGHLIGHT === */
+.tabulator-row.row-rojo { background-color: #fff5f5 !important; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <!-- TITULO -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin:0;">
+            <i class="glyphicon glyphicon-home"></i>
+            Rentabilidad por Sucursal
+        </h3>
+    </div>
+
+    <!-- SUB-NAV -->
+    <div class="sub-nav">
+        <a href="{{=URL('salud_negocio', 'dashboard')}}">Dashboard</a>
+        <a href="{{=URL('salud_negocio', 'clientes')}}">Clientes</a>
+        <a href="{{=URL('salud_negocio', 'sucursales')}}" class="active">Sucursales</a>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+        <div class="kpi-card {{='verde' if margen_promedio >= 42 else 'naranja' if margen_promedio >= 35 else 'rojo'}}">
+            <h5>Margen Promedio</h5>
+            <div class="valor">{{=margen_promedio}}%</div>
+            <div class="sub">Ultimos 12 meses</div>
+        </div>
+        <div class="kpi-card azul">
+            <h5>Target</h5>
+            <div class="valor">{{=target}}%</div>
+            <div class="sub">Objetivo de margen</div>
+        </div>
+        <div class="kpi-card {{='rojo' if bajo_target > 0 else 'verde'}}">
+            <h5>Sucursales &lt;35%</h5>
+            <div class="valor">{{=bajo_target}}</div>
+            <div class="sub">Bajo umbral critico</div>
+        </div>
+    </div>
+
+    <!-- CHART -->
+    <h4 style="margin-bottom: 10px;">Margen Bruto por Sucursal (%)</h4>
+    <div class="chart-container">
+        <canvas id="margenChart"></canvas>
+    </div>
+
+    <!-- TABLE -->
+    <h4 style="margin-bottom: 10px;">Detalle por Sucursal (Ultimos 12 meses)</h4>
+    <div id="tabla-sucursales" style="margin-bottom: 30px;"></div>
+</div>
+
+<script>
+(function() {
+    function fmtPesos(n) {
+        if (n == null || isNaN(n)) return '$0';
+        var neg = n < 0;
+        n = Math.abs(n);
+        var parts = n.toFixed(0).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return (neg ? '-' : '') + '$' + parts.join(',');
+    }
+
+    var rawData = JSON.parse('{{=XML(data_json)}}');
+    var targetPct = {{=target}};
+
+    // =============================
+    // HORIZONTAL BAR CHART
+    // =============================
+    // Sort by margen_pct descending for chart
+    var sorted = rawData.slice().sort(function(a, b) { return b.margen_pct - a.margen_pct; });
+    var labels = [];
+    var values = [];
+    var bgColors = [];
+    for (var i = 0; i < sorted.length; i++) {
+        var r = sorted[i];
+        labels.push(r.nombre_local || ('Dep ' + r.deposito));
+        values.push(r.margen_pct != null ? parseFloat(r.margen_pct.toFixed(1)) : 0);
+        if (r.margen_pct >= 45) {
+            bgColors.push('#28a745');
+        } else if (r.margen_pct >= 35) {
+            bgColors.push('#fd7e14');
+        } else {
+            bgColors.push('#dc3545');
+        }
+    }
+
+    // Target line plugin
+    var targetLinePlugin = {
+        id: 'targetLine',
+        afterDraw: function(chart) {
+            var xScale = chart.scales.x;
+            var yScale = chart.scales.y;
+            var ctx = chart.ctx;
+            var xPos = xScale.getPixelForValue(targetPct);
+            if (xPos == null) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([6, 4]);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.moveTo(xPos, yScale.top);
+            ctx.lineTo(xPos, yScale.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Target ' + targetPct + '%', xPos, yScale.top - 6);
+            ctx.restore();
+        }
+    };
+
+    var ctx = document.getElementById('margenChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Margen %',
+                data: values,
+                backgroundColor: bgColors,
+                borderWidth: 0,
+                barThickness: 18
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Margen: ' + context.raw.toFixed(1) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(v) { return v + '%'; }
+                    }
+                }
+            }
+        },
+        plugins: [targetLinePlugin]
+    });
+
+    // =============================
+    // TABULATOR TABLE
+    // =============================
+    new Tabulator('#tabla-sucursales', {
+        data: rawData,
+        layout: 'fitColumns',
+        pagination: 'local',
+        paginationSize: 25,
+        initialSort: [{ column: 'venta', dir: 'desc' }],
+        rowFormatter: function(row) {
+            var d = row.getData();
+            if (d.margen_pct != null && d.margen_pct < 35) {
+                row.getElement().classList.add('row-rojo');
+            }
+        },
+        columns: [
+            { title: 'Dep', field: 'deposito', headerFilter: true, width: 60 },
+            { title: 'Local', field: 'nombre_local', headerFilter: true, width: 150 },
+            {
+                title: 'Venta', field: 'venta', hozAlign: 'right', sorter: 'number',
+                formatter: function(cell) { return fmtPesos(cell.getValue()); }
+            },
+            {
+                title: 'Costo', field: 'costo', hozAlign: 'right', sorter: 'number',
+                formatter: function(cell) { return fmtPesos(cell.getValue()); }
+            },
+            {
+                title: 'Margen Bruto', field: 'margen_bruto', hozAlign: 'right', sorter: 'number',
+                formatter: function(cell) { return fmtPesos(cell.getValue()); }
+            },
+            {
+                title: 'Margen %', field: 'margen_pct', hozAlign: 'right', sorter: 'number',
+                formatter: function(cell) {
+                    var v = cell.getValue();
+                    var color = '#333';
+                    if (v >= 45) color = '#28a745';
+                    else if (v >= 35) color = '#fd7e14';
+                    else color = '#dc3545';
+                    return '<span style="color:' + color + '; font-weight:bold;">' + (v != null ? v.toFixed(1) : '0.0') + '%</span>';
+                }
+            },
+            {
+                title: 'Clientes', field: 'clientes', hozAlign: 'right', sorter: 'number',
+                formatter: function(cell) { return cell.getValue() != null ? cell.getValue().toLocaleString() : '0'; }
+            },
+            {
+                title: 'Unidades', field: 'uds', hozAlign: 'right', sorter: 'number',
+                formatter: function(cell) { return cell.getValue() != null ? cell.getValue().toLocaleString() : '0'; }
+            }
+        ]
+    });
+})();
+</script>

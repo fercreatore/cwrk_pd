@@ -65,6 +65,14 @@
 .panel-calce .panel-heading { font-size: 14px; }
 /* === PRESION TABLE === */
 .presion-row { background: #fff5f5 !important; }
+/* === SORTABLE & FILTER === */
+.sortable { cursor: pointer; user-select: none; }
+.sortable:hover { background: rgba(0,0,0,0.05); }
+.sort-indicator { font-size: 10px; margin-left: 4px; opacity: 0.5; }
+.sort-indicator.active { opacity: 1; }
+.filter-row input { width: 90%; padding: 2px 4px; font-size: 11px; border: 1px solid #ddd; border-radius: 3px; }
+.filter-row { background: #f8f8f8; }
+.filter-row td { padding: 3px 5px !important; }
 </style>
 
 <div class="container-fluid" style="padding: 20px;">
@@ -105,6 +113,12 @@
             <label>Proveedor</label>
             <input type="text" id="fil-proveedor" class="form-control input-sm"
                    placeholder="Buscar..." value="{{=filtro_proveedor}}">
+        </div>
+        <div class="filtro-group" style="min-width: auto; display: flex; align-items: center;">
+            <label style="display: inline; margin-right: 5px; white-space: nowrap;">
+                <input type="checkbox" id="fil-solo-pendientes" {{if filtro_solo_pendientes=='1':}}checked{{pass}}>
+                Solo pendientes
+            </label>
         </div>
         <div style="display: flex; gap: 5px;">
             <button id="btnFiltrar" class="btn btn-primary btn-sm">
@@ -260,23 +274,29 @@
                     <span class="badge">{{=len(matriz)}}</span>
                 </div>
                 <div class="panel-body" style="padding: 0; overflow-x: auto;">
-                    <table class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
+                    <table id="tblMatriz" class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
                         <thead>
                             <tr>
-                                <th>Industria</th>
-                                <th class="text-right">Presupuesto</th>
-                                <th class="text-right" title="Pedidos pendientes de entrega">Pedidos Pend.</th>
-                                <th class="text-right" title="Remitos recibidos sin facturar. Deuda en formación.">Remitos s/f</th>
-                                <th class="text-right" title="Saldo neto en cuenta corriente proveedor (facturas - pagos)">Deuda CC</th>
-                                <th class="text-right" title="Presupuesto - Pedidos pend. - Remitos s/f - Deuda CC">Disponible</th>
-                                <th>Cumplimiento</th>
-                                <th class="text-center">Dias 50%</th>
-                                <th class="text-center">Plazo Pago</th>
-                                <th class="text-center">% Vend. al Pago</th>
-                                <th class="text-center" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin.</th>
-                                <th class="text-center" title="Días estimados hasta el pago de remitos recibidos">Pago Est.</th>
-                                <th class="text-center">Estado</th>
+                                <th class="sortable">Industria<span class="sort-indicator"></span></th>
+                                <th class="text-right sortable">Presupuesto<span class="sort-indicator"></span></th>
+                                <th class="text-right sortable" title="Pedidos pendientes de entrega">Pedidos Pend.<span class="sort-indicator"></span></th>
+                                <th class="text-right sortable" title="Remitos recibidos sin facturar. Deuda en formación.">Remitos s/f<span class="sort-indicator"></span></th>
+                                <th class="text-right sortable" title="Saldo neto en cuenta corriente proveedor (facturas - pagos)">Deuda CC<span class="sort-indicator"></span></th>
+                                <th class="text-right sortable" title="Presupuesto - Pedidos pend. - Remitos s/f - Deuda CC">Disponible<span class="sort-indicator"></span></th>
+                                <th class="sortable">Cumplimiento<span class="sort-indicator"></span></th>
+                                <th class="text-center sortable">Dias 50%<span class="sort-indicator"></span></th>
+                                <th class="text-center sortable">Plazo Pago<span class="sort-indicator"></span></th>
+                                <th class="text-center sortable">% Vend. al Pago<span class="sort-indicator"></span></th>
+                                <th class="text-center sortable" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin.<span class="sort-indicator"></span></th>
+                                <th class="text-center sortable" title="Días estimados hasta el pago de remitos recibidos">Pago Est.<span class="sort-indicator"></span></th>
+                                <th class="text-center sortable">Estado<span class="sort-indicator"></span></th>
                                 <th></th>
+                            </tr>
+                            <tr class="filter-row">
+                                <td><input type="text" placeholder="Industria..." data-col="0"></td>
+                                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                                <td><input type="text" placeholder="Estado..." data-col="12"></td>
+                                <td></td>
                             </tr>
                         </thead>
                         <tbody>
@@ -390,14 +410,19 @@
                     <span class="badge">{{=len(remitos_viejos)}} proveedores</span>
                 </div>
                 <div class="panel-body" style="padding: 0; overflow-x: auto;">
-                    <table class="table table-condensed table-striped" style="font-size: 12px; margin: 0;">
+                    <table id="tblRemitosViejos" class="table table-condensed table-striped" style="font-size: 12px; margin: 0;">
                         <thead><tr style="background:#e67e22; color:#fff;">
-                            <th>Proveedor</th>
-                            <th class="text-center">Remitos</th>
-                            <th class="text-right">Monto Total</th>
-                            <th class="text-center">Desde</th>
-                            <th class="text-center">Hasta</th>
-                        </tr></thead>
+                            <th class="sortable">Proveedor<span class="sort-indicator"></span></th>
+                            <th class="text-center sortable">Remitos<span class="sort-indicator"></span></th>
+                            <th class="text-right sortable">Monto Total<span class="sort-indicator"></span></th>
+                            <th class="text-center sortable">Desde<span class="sort-indicator"></span></th>
+                            <th class="text-center sortable">Hasta<span class="sort-indicator"></span></th>
+                        </tr>
+                        <tr class="filter-row">
+                            <td><input type="text" placeholder="Proveedor..." data-col="0"></td>
+                            <td></td><td></td><td></td><td></td>
+                        </tr>
+                        </thead>
                         <tbody>
                         {{for rv in remitos_viejos:}}
                         <tr>
@@ -421,16 +446,22 @@
                     <strong><i class="glyphicon glyphicon-warning-sign"></i> Top Proveedores en Presion de Caja</strong>
                 </div>
                 <div class="panel-body" style="padding: 0; overflow-x: auto;">
-                    <table class="table table-condensed table-striped" style="font-size: 12px; margin: 0;">
+                    <table id="tblPresion" class="table table-condensed table-striped" style="font-size: 12px; margin: 0;">
                         <thead><tr style="background:#dc3545; color:#fff;">
-                            <th>Proveedor</th>
-                            <th>Industria</th>
-                            <th class="text-right">Inversion</th>
-                            <th class="text-center">Dias 50%</th>
-                            <th class="text-center">Plazo Pago</th>
-                            <th class="text-center">% Vend. al Pago</th>
-                            <th class="text-center" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin.</th>
-                        </tr></thead>
+                            <th class="sortable">Proveedor<span class="sort-indicator"></span></th>
+                            <th class="sortable">Industria<span class="sort-indicator"></span></th>
+                            <th class="text-right sortable">Inversion<span class="sort-indicator"></span></th>
+                            <th class="text-center sortable">Dias 50%<span class="sort-indicator"></span></th>
+                            <th class="text-center sortable">Plazo Pago<span class="sort-indicator"></span></th>
+                            <th class="text-center sortable">% Vend. al Pago<span class="sort-indicator"></span></th>
+                            <th class="text-center sortable" title="Plazo Pago − Días 50%. Positivo = capital del proveedor.">Calce Fin.<span class="sort-indicator"></span></th>
+                        </tr>
+                        <tr class="filter-row">
+                            <td><input type="text" placeholder="Proveedor..." data-col="0"></td>
+                            <td><input type="text" placeholder="Industria..." data-col="1"></td>
+                            <td></td><td></td><td></td><td></td><td></td>
+                        </tr>
+                        </thead>
                         <tbody>
                         {{for p in proveedores_presion:}}
                         <tr>
@@ -468,12 +499,13 @@
                     <canvas id="chartFlujoCaja" height="220"></canvas>
                 </div>
                 <div class="col-md-4">
-                    <table class="table table-condensed" style="font-size: 11px; margin: 0;">
+                    <table id="tblFlujoCaja" class="table table-condensed" style="font-size: 11px; margin: 0;">
                         <thead><tr style="background:#17a2b8; color:#fff;">
-                            <th>Sem</th><th class="text-right">Pagos</th>
-                            <th class="text-right">Cobranza Est.</th>
-                            <th class="text-right">Balance</th>
-                            <th class="text-right">Acumulado</th>
+                            <th class="sortable">Sem<span class="sort-indicator"></span></th>
+                            <th class="text-right sortable">Pagos<span class="sort-indicator"></span></th>
+                            <th class="text-right sortable">Cobranza Est.<span class="sort-indicator"></span></th>
+                            <th class="text-right sortable">Balance<span class="sort-indicator"></span></th>
+                            <th class="text-right sortable">Acumulado<span class="sort-indicator"></span></th>
                         </tr></thead>
                         <tbody>
                         {{for fc in flujo_caja:}}
@@ -502,7 +534,7 @@
             </div>
             <div style="margin-top: 8px; font-size: 12px; color: #666; line-height: 1.6;">
                 <strong>Como leer este grafico:</strong> Muestra las proximas 12 semanas. Cada semana compara lo que sale (pagos) vs lo que entra (cobranzas).<br>
-                <strong style="color:#dc3545;">Pagos (rojo)</strong>: Cheques diferidos y transferencias con fecha de cobro en esa semana. Son salidas de caja comprometidas.<br>
+                <strong style="color:#dc3545;">Pagos (rojo)</strong>: Incluye cheques diferidos ya emitidos Y facturas por vencer en esa semana. Refleja las obligaciones reales de pago. Facturas vencidas sin pagar se acumulan en S1.<br>
                 <strong style="color:#28a745;">Cobranza Est. (verde)</strong>: Estimacion de ventas semanal basada en el ritmo de los ultimos 60 dias, ajustada por estacionalidad del mes.<br>
                 <strong style="color:#2196F3;">Balance Acum. (azul)</strong>: Diferencia acumulada entre cobranzas y pagos. Si sube, estas generando caja. Si baja, estas consumiendo reservas.<br>
                 <strong>Balance = Cobranza - Pagos</strong>. El acumulado arranca en 0 y suma semana a semana. Un acumulado alto indica holgura; uno negativo indica necesidad de financiamiento.
@@ -547,13 +579,18 @@
         {{if roi_benchmark:}}
         <div style="padding: 6px 15px; background: #f8f9fa; border-bottom: 1px solid #ddd; font-size: 11px; overflow-x:auto;">
             <strong>Benchmark por temporada (isotipos):</strong>
-            <table class="table table-condensed" style="margin:4px 0 0; font-size:11px;">
+            <table id="tblBenchmark" class="table table-condensed" style="margin:4px 0 0; font-size:11px;">
                 <thead><tr style="background:#e9ecef;">
-                    <th>Periodo</th><th class="text-center">Provs</th><th class="text-center">Isotipos</th>
-                    <th class="text-right">Margen</th><th class="text-right">ROI</th>
-                    <th class="text-right" style="color:#8e44ad;" title="ROI solo de proveedores presentes en 2+ temporadas">ROI Isotipo</th>
-                    <th class="text-center">Dias 50</th><th class="text-center">Calce</th>
-                    <th class="text-center">Score</th><th class="text-center" style="color:#8e44ad;">Score Iso</th>
+                    <th class="sortable">Periodo<span class="sort-indicator"></span></th>
+                    <th class="text-center sortable">Provs<span class="sort-indicator"></span></th>
+                    <th class="text-center sortable">Isotipos<span class="sort-indicator"></span></th>
+                    <th class="text-right sortable">Margen<span class="sort-indicator"></span></th>
+                    <th class="text-right sortable">ROI<span class="sort-indicator"></span></th>
+                    <th class="text-right sortable" style="color:#8e44ad;" title="ROI solo de proveedores presentes en 2+ temporadas">ROI Isotipo<span class="sort-indicator"></span></th>
+                    <th class="text-center sortable">Dias 50<span class="sort-indicator"></span></th>
+                    <th class="text-center sortable">Calce<span class="sort-indicator"></span></th>
+                    <th class="text-center sortable">Score<span class="sort-indicator"></span></th>
+                    <th class="text-center sortable" style="color:#8e44ad;">Score Iso<span class="sort-indicator"></span></th>
                 </tr></thead>
                 <tbody>
                 {{for bm in roi_benchmark:}}
@@ -580,21 +617,28 @@
         </div>
         {{pass}}
         <div class="panel-body" style="padding: 0; overflow-x: auto;">
-            <table class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
+            <table id="tblROI" class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
                 <thead>
                     <tr>
-                        <th style="width:30px;">#</th>
-                        <th>Proveedor</th>
-                        <th>Industria</th>
-                        <th class="text-right">Margen%</th>
-                        <th class="text-center">Dias 50%</th>
-                        <th class="text-right">Rotac. Anual</th>
-                        <th class="text-right" title="Margen × Rotacion Anualizada">ROI Anual%</th>
-                        <th class="text-center">Plazo Pago</th>
-                        <th class="text-center" title="Plazo Pago - Dias 50%">Calce</th>
-                        <th class="text-center">% Vend Pago</th>
-                        <th class="text-center" title="Score combinado: 50% ROI + 30% calce + 20% margen">Score</th>
+                        <th class="sortable" style="width:30px;">#<span class="sort-indicator"></span></th>
+                        <th class="sortable">Proveedor<span class="sort-indicator"></span></th>
+                        <th class="sortable">Industria<span class="sort-indicator"></span></th>
+                        <th class="text-right sortable">Margen%<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable">Dias 50%<span class="sort-indicator"></span></th>
+                        <th class="text-right sortable">Rotac. Anual<span class="sort-indicator"></span></th>
+                        <th class="text-right sortable" title="Margen × Rotacion Anualizada">ROI Anual%<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable">Plazo Pago<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable" title="Plazo Pago - Dias 50%">Calce<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable">% Vend Pago<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable" title="Score combinado: 50% ROI + 30% calce + 20% margen">Score<span class="sort-indicator"></span></th>
                         <th>Recomendacion</th>
+                    </tr>
+                    <tr class="filter-row">
+                        <td></td>
+                        <td><input type="text" placeholder="Proveedor..." data-col="1"></td>
+                        <td><input type="text" placeholder="Industria..." data-col="2"></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td><input type="text" placeholder="Recom..." data-col="11"></td>
                     </tr>
                 </thead>
                 <tbody>
@@ -652,6 +696,136 @@
         <div style="padding: 8px 15px; font-size: 11px; color: #888; border-top: 1px solid #eee;">
             <strong>Score</strong> = 50% ROI anualizado (margen × rotacion) + 30% calce financiero (brecha pagos) + 20% margen bruto.
             <strong>ROI Anual</strong> = Margen% × (365 / Dias al 50%). Ejemplo: 40% margen × 12 rotaciones = 480% ROI.
+        </div>
+    </div>
+    {{pass}}
+
+    <!-- ================================================================= -->
+    <!-- BLOQUE 9B: OPTIMIZACION DE PAGOS -->
+    <!-- ================================================================= -->
+    {{if optimizacion_pagos:}}
+    {{
+    # Calcular totales para resumen
+    total_deuda_rapido = sum([p['deuda_actual'] for p in optimizacion_pagos if p['brecha'] > 0])
+    total_deuda_lento = sum([p['deuda_actual'] for p in optimizacion_pagos if p['brecha'] <= 0])
+    }}
+    <div class="panel panel-info panel-calce">
+        <div class="panel-heading">
+            <strong><i class="glyphicon glyphicon-usd"></i> Optimizacion de Pagos</strong>
+            <span class="badge" style="background:#28a745;">CFO</span>
+            <span style="font-size:11px; color:#666; margin-left:10px;">
+                A quien conviene pagarle primero?
+            </span>
+        </div>
+        <!-- Resumen ejecutivo -->
+        <div style="padding: 10px 15px; background: #f0f9ff; border-bottom: 1px solid #ddd;">
+            <div class="row">
+                <div class="col-md-4">
+                    <div style="font-size:12px; color:#555;">
+                        <i class="glyphicon glyphicon-ok-sign" style="color:#28a745;"></i>
+                        <strong>Deuda con recupero rapido</strong> (brecha &gt; 0):
+                        <span style="font-size:14px; font-weight:bold; color:#28a745;">{{=fmt(total_deuda_rapido)}}</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div style="font-size:12px; color:#555;">
+                        <i class="glyphicon glyphicon-warning-sign" style="color:#dc3545;"></i>
+                        <strong>Deuda con recupero lento</strong> (brecha &le; 0):
+                        <span style="font-size:14px; font-weight:bold; color:#dc3545;">{{=fmt(total_deuda_lento)}}</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div style="font-size:12px; color:#333; background:#fff; padding:6px 10px; border-radius:4px; border:1px solid #bee5eb;">
+                        <strong>Recomendacion:</strong>
+                        Priorizar pago de {{=fmt(total_deuda_rapido)}} a proveedores con recupero rapido.
+                        Negociar extension de plazo para {{=fmt(total_deuda_lento)}} en proveedores lentos.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-body" style="padding: 0; overflow-x: auto;">
+            <table id="tblOptimizacion" class="table table-condensed table-hover tabla-matriz" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th class="sortable">Proveedor<span class="sort-indicator"></span></th>
+                        <th class="sortable">Industria<span class="sort-indicator"></span></th>
+                        <th class="text-right sortable">Deuda Actual<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable">Plazo Pago<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable">Dias 50%<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable">% Vend Pago<span class="sort-indicator"></span></th>
+                        <th class="text-right sortable">ROI%<span class="sort-indicator"></span></th>
+                        <th class="text-center sortable" title="Plazo Pago - Dias 50%. Positivo = recuperas ANTES de pagar">Brecha<span class="sort-indicator"></span></th>
+                        <th class="text-right sortable" title="ROI * (1.5 si brecha>0, 0.7 si brecha<=0)">Score<span class="sort-indicator"></span></th>
+                        <th class="sortable">Accion<span class="sort-indicator"></span></th>
+                    </tr>
+                    <tr class="filter-row">
+                        <td><input type="text" placeholder="Proveedor..." data-col="0"></td>
+                        <td><input type="text" placeholder="Industria..." data-col="1"></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td><input type="text" placeholder="Accion..." data-col="9"></td>
+                    </tr>
+                </thead>
+                <tbody>
+                {{for op in optimizacion_pagos:}}
+                {{
+                accion_op = op.get('accion', 'MANTENER')
+                if accion_op == 'PAGAR RAPIDO':
+                    row_bg = '#d4edda'
+                elif accion_op == 'PRIORIZAR':
+                    row_bg = '#fff3cd'
+                elif accion_op == 'NEGOCIAR PLAZO':
+                    row_bg = '#f8d7da'
+                else:
+                    row_bg = '#ffeeba'
+                pass
+                }}
+                <tr style="background:{{=row_bg}};">
+                    <td><strong>{{=html(op.get('proveedor', '-'))}}</strong></td>
+                    <td>{{=html(op.get('industria', '-'))}}</td>
+                    <td class="text-right"><strong>{{=fmt(op.get('deuda_actual', 0))}}</strong></td>
+                    <td class="text-center">{{="%.0f" % op.get('plazo_pago', 0)}}d</td>
+                    <td class="text-center">{{="%.0f" % op.get('dias_50', 0)}}d</td>
+                    <td class="text-center">
+                        {{pv_op = op.get('pct_vendido_al_pago', 0)}}
+                        <span style="color:{{if pv_op >= 75:}}#28a745{{elif pv_op >= 50:}}#fd7e14{{else:}}#dc3545{{pass}};">
+                            {{="%.0f" % pv_op}}%
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        {{roi_op = op.get('roi', 0)}}
+                        <strong style="color:{{if roi_op >= 200:}}#28a745{{elif roi_op >= 100:}}#fd7e14{{else:}}#dc3545{{pass}};">
+                            {{="%.0f" % roi_op}}%
+                        </strong>
+                    </td>
+                    <td class="text-center">
+                        {{br_op = op.get('brecha', 0)}}
+                        <span style="color:{{if br_op >= 0:}}#28a745{{else:}}#dc3545{{pass}}; font-weight:bold;">
+                            {{if br_op >= 0:}}+{{pass}}{{="%.0f" % br_op}}d
+                        </span>
+                    </td>
+                    <td class="text-right"><strong>{{="%.0f" % op.get('score', 0)}}</strong></td>
+                    <td>
+                        {{if accion_op == 'PAGAR RAPIDO':}}
+                        <span class="label label-success">{{=accion_op}}</span>
+                        {{elif accion_op == 'PRIORIZAR':}}
+                        <span class="label label-warning">{{=accion_op}}</span>
+                        {{elif accion_op == 'NEGOCIAR PLAZO':}}
+                        <span class="label label-danger">{{=accion_op}}</span>
+                        {{else:}}
+                        <span class="label label-default">{{=accion_op}}</span>
+                        {{pass}}
+                    </td>
+                </tr>
+                {{pass}}
+                </tbody>
+            </table>
+        </div>
+        <div style="padding: 8px 15px; font-size: 11px; color: #888; border-top: 1px solid #eee;">
+            <strong>Score</strong> = ROI% &times; 1.5 (si recuperas antes de pagar) o &times; 0.7 (si pagas antes de recuperar).
+            <strong>Brecha</strong> = Plazo pago &minus; Dias al 50% recupero. Positivo = recuperas antes de pagar.
+            <strong>PAGAR RAPIDO</strong>: brecha &gt; 15d y ROI &gt; 100%.
+            <strong>PRIORIZAR</strong>: &gt;60% vendido al pago y ROI &gt; 80%.
+            <strong>NEGOCIAR PLAZO</strong>: brecha &lt; -20d.
         </div>
     </div>
     {{pass}}
@@ -795,7 +969,7 @@
             <div class="kpi-row">
                 <div class="kpi-card azul">
                     <h5>COMPROMETIDO (PEDIDOS)</h5>
-                    <div class="valor">{{=fmt(kpi_comp.get('total_monto', 0))}}</div>
+                    <div class="valor">{{=fmt(kpi_comp.get('total_comprometido', 0))}}</div>
                     <div class="sub">Notas de pedido vigentes</div>
                 </div>
                 <div class="kpi-card naranja" style="border-top-color: #e67e22;">
@@ -826,14 +1000,19 @@
                 <div class="col-md-7">
                     {{if deuda_proveedores:}}
                     <h5 style="margin-top:0;"><strong>Top Proveedores por Saldo Vivo</strong></h5>
-                    <table class="table table-condensed tabla-matriz" style="font-size: 11px;">
+                    <table id="tblDeudaProveedores" class="table table-condensed tabla-matriz" style="font-size: 11px;">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Proveedor</th>
-                                <th style="text-align:right;">Saldo Vivo</th>
-                                <th style="text-align:center;">Comp.</th>
+                                <th class="sortable">#<span class="sort-indicator"></span></th>
+                                <th class="sortable">Proveedor<span class="sort-indicator"></span></th>
+                                <th class="sortable" style="text-align:right;">Saldo Vivo<span class="sort-indicator"></span></th>
+                                <th class="sortable" style="text-align:center;">Comp.<span class="sort-indicator"></span></th>
                                 <th style="width:30%;">% del Total</th>
+                            </tr>
+                            <tr class="filter-row">
+                                <td></td>
+                                <td><input type="text" placeholder="Proveedor..." data-col="1"></td>
+                                <td></td><td></td><td></td>
                             </tr>
                         </thead>
                         <tbody>
@@ -846,7 +1025,7 @@
                                 <td>
                                     {{pct_d = dp.get('saldo_vivo', 0) * 100.0 / funnel_deuda.get('saldo_vivo', 1) if funnel_deuda.get('saldo_vivo', 0) > 0 else 0}}
                                     <div class="barra-progreso">
-                                        <div class="barra-fill" style="width:{{=min(pct_d, 100)}}%; background:{{='#dc3545' if pct_d > 10 else '#fd7e14' if pct_d > 5 else '#28a745'}};"></div>
+                                        <div class="fill" style="width:{{=min(pct_d, 100)}}%; background:{{='#dc3545' if pct_d > 10 else '#fd7e14' if pct_d > 5 else '#28a745'}};"></div>
                                     </div>
                                     <small>{{="%.1f" % pct_d}}%</small>
                                 </td>
@@ -861,12 +1040,12 @@
                 <div class="col-md-5">
                     {{if pagos_por_medio:}}
                     <h5 style="margin-top:0;"><strong>Pagos Ultimos 6 Meses por Medio</strong></h5>
-                    <table class="table table-condensed" style="font-size: 11px;">
+                    <table id="tblPagosMedio" class="table table-condensed" style="font-size: 11px;">
                         <thead>
                             <tr style="background:#343a40; color:#fff;">
-                                <th>Medio de Pago</th>
-                                <th style="text-align:right;">Total</th>
-                                <th style="text-align:center;">Cant</th>
+                                <th class="sortable">Medio de Pago<span class="sort-indicator"></span></th>
+                                <th class="sortable" style="text-align:right;">Total<span class="sort-indicator"></span></th>
+                                <th class="sortable" style="text-align:center;">Cant<span class="sort-indicator"></span></th>
                                 <th style="width:25%;">%</th>
                             </tr>
                         </thead>
@@ -892,7 +1071,7 @@
                                 <td>
                                     {{_pct_p = pm.get('total_pagado', 0) * 100.0 / _total_pagos if _total_pagos > 0 else 0}}
                                     <div class="barra-progreso">
-                                        <div class="barra-fill" style="width:{{=min(_pct_p, 100)}}%; background:#007bff;"></div>
+                                        <div class="fill" style="width:{{=min(_pct_p, 100)}}%; background:#007bff;"></div>
                                     </div>
                                     <small>{{="%.1f" % _pct_p}}%</small>
                                 </td>
@@ -912,13 +1091,13 @@
 
                     {{if pagos_recientes:}}
                     <h5><strong>Pagos por Semana (ult. 4 semanas)</strong></h5>
-                    <table class="table table-condensed" style="font-size: 11px;">
+                    <table id="tblPagosSemana" class="table table-condensed" style="font-size: 11px;">
                         <thead>
                             <tr style="background:#343a40; color:#fff;">
-                                <th>Sem</th>
-                                <th style="text-align:right;">Total</th>
-                                <th style="text-align:center;">Ops</th>
-                                <th style="text-align:center;">Provs</th>
+                                <th class="sortable">Sem<span class="sort-indicator"></span></th>
+                                <th class="sortable" style="text-align:right;">Total<span class="sort-indicator"></span></th>
+                                <th class="sortable" style="text-align:center;">Ops<span class="sort-indicator"></span></th>
+                                <th class="sortable" style="text-align:center;">Provs<span class="sort-indicator"></span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -982,6 +1161,7 @@ $(document).ready(function() {
         if (grp) params.grupo = grp;
         if (lin) params.linea = lin;
         if (mrc) params.marca = mrc;
+        params.solo_pendientes = $('#fil-solo-pendientes').is(':checked') ? '1' : '0';
         window.location.href = '{{=URL("calce_financiero","dashboard")}}?' + $.param(params);
     });
     $('#btnLimpiar').on('click', function() {
@@ -1168,4 +1348,110 @@ $(document).ready(function() {
         }
     }
 });
+
+// ================================================================
+// GENERIC TABLE SORT & FILTER
+// ================================================================
+(function() {
+    // Parse cell value for sorting: strip $, ., %, d, x and parse as number if possible
+    function parseSortVal(text) {
+        var t = (text || '').trim();
+        // Strip HTML tags
+        t = t.replace(/<[^>]*>/g, ' ').trim();
+        // Remove common decorators
+        var num = t.replace(/\$/g, '').replace(/\./g, '').replace(/,/g, '.').replace(/%/g, '').replace(/[dx]/g, '').replace(/\+/g, '').replace(/\s+/g, ' ').trim();
+        // Handle "-" as no-data
+        if (num === '-' || num === '') return null;
+        var parsed = parseFloat(num);
+        if (!isNaN(parsed)) return parsed;
+        return t.toLowerCase();
+    }
+
+    // Sort table by column index
+    function sortTable(table, colIdx, asc) {
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rows.sort(function(a, b) {
+            var cellA = a.cells[colIdx];
+            var cellB = b.cells[colIdx];
+            if (!cellA || !cellB) return 0;
+            var va = parseSortVal(cellA.innerHTML);
+            var vb = parseSortVal(cellB.innerHTML);
+            // nulls go to bottom
+            if (va === null && vb === null) return 0;
+            if (va === null) return 1;
+            if (vb === null) return -1;
+            // Both numbers
+            if (typeof va === 'number' && typeof vb === 'number') {
+                return asc ? va - vb : vb - va;
+            }
+            // Both strings
+            var sa = String(va), sb = String(vb);
+            if (sa < sb) return asc ? -1 : 1;
+            if (sa > sb) return asc ? 1 : -1;
+            return 0;
+        });
+        for (var i = 0; i < rows.length; i++) {
+            tbody.appendChild(rows[i]);
+        }
+    }
+
+    // Filter table rows by text in a column
+    function filterTable(table) {
+        var inputs = table.querySelectorAll('.filter-row input[data-col]');
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        var rows = tbody.querySelectorAll('tr');
+        rows.forEach(function(row) {
+            var show = true;
+            inputs.forEach(function(inp) {
+                var col = parseInt(inp.getAttribute('data-col'));
+                var val = inp.value.toLowerCase().trim();
+                if (!val) return;
+                var cell = row.cells[col];
+                if (!cell) { show = false; return; }
+                var cellText = (cell.textContent || '').toLowerCase();
+                if (cellText.indexOf(val) === -1) show = false;
+            });
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    // Initialize all sortable headers
+    document.querySelectorAll('th.sortable').forEach(function(th) {
+        th.addEventListener('click', function() {
+            var table = th.closest('table');
+            if (!table) return;
+            // Find column index (skip filter-row)
+            var headerRow = th.parentElement;
+            var colIdx = Array.prototype.indexOf.call(headerRow.children, th);
+            // Determine sort direction
+            var indicator = th.querySelector('.sort-indicator');
+            var currentDir = th.getAttribute('data-sort-dir');
+            var asc = currentDir !== 'asc';
+            // Reset all indicators in this table
+            table.querySelectorAll('th.sortable').forEach(function(h) {
+                h.setAttribute('data-sort-dir', '');
+                var ind = h.querySelector('.sort-indicator');
+                if (ind) { ind.textContent = ''; ind.classList.remove('active'); }
+            });
+            // Set current
+            th.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+            if (indicator) {
+                indicator.textContent = asc ? ' \u25B2' : ' \u25BC';
+                indicator.classList.add('active');
+            }
+            sortTable(table, colIdx, asc);
+        });
+    });
+
+    // Initialize all filter inputs
+    document.querySelectorAll('.filter-row input[data-col]').forEach(function(inp) {
+        var table = inp.closest('table');
+        inp.addEventListener('input', function() {
+            filterTable(table);
+        });
+    });
+})();
 </script>

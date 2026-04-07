@@ -1,0 +1,90 @@
+{{extend 'layout.html'}}
+
+<div class="container-fluid" style="padding: 15px;">
+    <h3>Comparativo Sucursales <small>Productividad por local</small></h3>
+
+    <!-- Filtros -->
+    <form class="form-inline" style="margin-bottom: 15px;">
+        <label>Desde:</label>
+        <input type="date" name="desde" value="{{=desde}}" class="form-control input-sm" />
+        <label>Hasta:</label>
+        <input type="date" name="hasta" value="{{=hasta}}" class="form-control input-sm" />
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+    </form>
+
+    <!-- Chart -->
+    <div id="chart_sucursales" style="min-height: 350px; margin-bottom: 20px;"></div>
+
+    <!-- Tabla -->
+    <div class="table-responsive">
+        <table class="table table-striped table-condensed table-bordered" id="tbl_sucursales">
+            <thead>
+                <tr>
+                    <th>Sucursal</th>
+                    <th class="text-right">Venta Total</th>
+                    <th class="text-right">Venta Mensual</th>
+                    <th class="text-right">Margen</th>
+                    <th class="text-right">% Margen</th>
+                    <th class="text-right">Tickets</th>
+                    <th class="text-right">$/Ticket</th>
+                    <th class="text-right">Pares/Ticket</th>
+                    <th class="text-right">Vendedores</th>
+                    <th class="text-right">% Participacion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{for s in sucursales:}}
+                <tr>
+                    <td><strong>{{=s['nombre']}}</strong></td>
+                    <td class="text-right">{{='{:,.0f}'.format(s['venta'])}}</td>
+                    <td class="text-right">{{='{:,.0f}'.format(s['venta_mensual'])}}</td>
+                    <td class="text-right">{{='{:,.0f}'.format(s['margen'])}}</td>
+                    <td class="text-right {{='text-success' if s['pct_margen'] >= 0.45 else 'text-warning' if s['pct_margen'] >= 0.35 else 'text-danger'}}">
+                        {{='{:.1f}%'.format(s['pct_margen'] * 100)}}
+                    </td>
+                    <td class="text-right">{{='{:,}'.format(s['tickets'])}}</td>
+                    <td class="text-right">{{='{:,.0f}'.format(s['ticket_prom'])}}</td>
+                    <td class="text-right">{{='{:.1f}'.format(s['pares_ticket'])}}</td>
+                    <td class="text-right">{{=s['vendedores']}}</td>
+                    <td class="text-right">{{='{:.1f}%'.format(s['participacion'] * 100)}}</td>
+                </tr>
+                {{pass}}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-muted small">{{=', '.join(timing)}}</p>
+</div>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script>
+var chartData = {{=XML(chart_json)}};
+Highcharts.chart('chart_sucursales', {
+    chart: { type: 'bar' },
+    title: { text: 'Venta Mensual por Sucursal' },
+    xAxis: { categories: chartData.map(function(d) { return d.name; }) },
+    yAxis: [
+        { title: { text: 'Venta Mensual ($)' } },
+        { title: { text: '% Margen' }, opposite: true, min: 0, max: 70 }
+    ],
+    series: [
+        {
+            name: 'Venta Mensual',
+            data: chartData.map(function(d) { return d.venta; }),
+            color: '#337ab7'
+        },
+        {
+            name: '% Margen',
+            data: chartData.map(function(d) { return d.margen; }),
+            yAxis: 1,
+            type: 'scatter',
+            color: '#5cb85c',
+            marker: { radius: 6 }
+        }
+    ],
+    tooltip: {
+        shared: true,
+        pointFormat: '<b>{series.name}</b>: {point.y:,.0f}<br/>'
+    }
+});
+</script>

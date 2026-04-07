@@ -1,0 +1,271 @@
+{{extend 'layout.html'}}
+{{response.title = 'BCG Matrix'}}
+<!--
+  Vista: views/inteligencia_comercial/bcg_matrix.html
+  Controller: inteligencia_comercial.py -> bcg_matrix()
+-->
+<link href="https://unpkg.com/tabulator-tables@5.5.4/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.5.4/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* === KPI CARDS === */
+.kpi-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.kpi-card {
+    flex: 1; min-width: 180px; background: #fff; border-radius: 8px;
+    padding: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); text-align: center;
+    border-top: 3px solid #007bff;
+}
+.kpi-card h5 { margin: 0 0 5px; font-size: 12px; color: #888; text-transform: uppercase; }
+.kpi-card .valor { font-size: 24px; font-weight: bold; color: #333; }
+.kpi-card .sub { font-size: 11px; color: #999; margin-top: 3px; }
+.kpi-card.verde { border-top-color: #28a745; }
+.kpi-card.rojo { border-top-color: #dc3545; }
+.kpi-card.naranja { border-top-color: #fd7e14; }
+.kpi-card.azul { border-top-color: #007bff; }
+/* === SUB-NAV === */
+.sub-nav { display: flex; gap: 5px; margin-bottom: 20px; }
+.sub-nav a {
+    padding: 8px 16px; border-radius: 6px; text-decoration: none;
+    background: #e9ecef; color: #495057; font-size: 13px;
+}
+.sub-nav a.active { background: #343a40; color: #fff; font-weight: bold; }
+.sub-nav a:hover:not(.active) { background: #dee2e6; }
+/* === CHART === */
+.chart-container {
+    background: #fff; border-radius: 8px; padding: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px;
+    position: relative; height: 500px;
+}
+/* === LEGEND === */
+.bcg-legend { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+.bcg-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.bcg-legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+</style>
+
+<div class="container-fluid" style="padding: 20px;">
+    <!-- TITULO -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin:0;">
+            <i class="glyphicon glyphicon-th-large"></i>
+            Matriz BCG por Marca
+        </h3>
+    </div>
+
+    <!-- SUB-NAV -->
+    <div class="sub-nav">
+        <a href="{{=URL('inteligencia_comercial', 'bcg_matrix')}}" class="active">BCG Matrix</a>
+        <a href="{{=URL('inteligencia_comercial', 'proveedores_roi')}}">Proveedores ROI</a>
+        <a href="{{=URL('inteligencia_comercial', 'stock_muerto')}}">Stock Muerto</a>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+        <div class="kpi-card verde">
+            <h5>Mediana Margen</h5>
+            <div class="valor">{{=mediana_margen}}%</div>
+            <div class="sub">Linea divisoria horizontal</div>
+        </div>
+        <div class="kpi-card azul">
+            <h5>Mediana Rotacion</h5>
+            <div class="valor">{{=mediana_rotacion}}</div>
+            <div class="sub">Linea divisoria vertical</div>
+        </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="bcg-legend">
+        <div class="bcg-legend-item"><span class="bcg-legend-dot" style="background:#28a745;"></span> ESTRELLA (alto margen + alta rotacion)</div>
+        <div class="bcg-legend-item"><span class="bcg-legend-dot" style="background:#007bff;"></span> VACA (alto margen + baja rotacion)</div>
+        <div class="bcg-legend-item"><span class="bcg-legend-dot" style="background:#fd7e14;"></span> INTERROGACION (bajo margen + alta rotacion)</div>
+        <div class="bcg-legend-item"><span class="bcg-legend-dot" style="background:#dc3545;"></span> PERRO (bajo margen + baja rotacion)</div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-container">
+        <canvas id="bcgChart"></canvas>
+    </div>
+
+    <!-- TABLE -->
+    <div id="tabla-bcg" style="margin-top: 20px;"></div>
+</div>
+
+<script>
+(function() {
+    var rawData = {{=XML(data_json)}};
+    var medMargen = {{=mediana_margen}};
+    var medRotacion = {{=mediana_rotacion}};
+
+    var colorMap = {
+        'ESTRELLA': '#28a745',
+        'VACA': '#007bff',
+        'INTERROGACION': '#fd7e14',
+        'PERRO': '#dc3545'
+    };
+
+    // =============================
+    // CHART — se reconstruye al filtrar
+    // =============================
+    var bcgChart = null;
+
+    function buildChart(data) {
+        var maxVenta = 1;
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].venta_total > maxVenta) maxVenta = data[i].venta_total;
+        }
+
+        // Limites sin outliers: percentil 95
+        var rots = data.map(function(d) { return d.rotacion; }).sort(function(a,b){return a-b;});
+        var p95 = Math.floor(rots.length * 0.95);
+        var maxRot = rots.length > 0 ? Math.max(rots[p95] * 1.2, medRotacion * 3) : 20;
+
+        var groups = {};
+        for (var i = 0; i < data.length; i++) {
+            var d = data[i];
+            var cls = d.clasificacion || 'PERRO';
+            if (!groups[cls]) groups[cls] = [];
+            var radius = Math.max(5, Math.sqrt(d.venta_total / maxVenta) * 30);
+            groups[cls].push({
+                x: d.rotacion,
+                y: d.margen_pct,
+                r: radius,
+                label: d.marca || ('Marca ' + d.cod_marca)
+            });
+        }
+
+        var datasets = [];
+        var clases = ['ESTRELLA', 'VACA', 'INTERROGACION', 'PERRO'];
+        for (var c = 0; c < clases.length; c++) {
+            var cls = clases[c];
+            if (groups[cls] && groups[cls].length > 0) {
+                datasets.push({
+                    label: cls,
+                    data: groups[cls],
+                    backgroundColor: colorMap[cls] + '99',
+                    borderColor: colorMap[cls],
+                    borderWidth: 1
+                });
+            }
+        }
+
+        // Destruir chart anterior si existe
+        if (bcgChart) { bcgChart.destroy(); }
+
+        var ctx = document.getElementById('bcgChart').getContext('2d');
+        bcgChart = new Chart(ctx, {
+            type: 'bubble',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Rotacion (uds vendidas / stock)', font: { size: 13 } },
+                        beginAtZero: true,
+                        max: maxRot
+                    },
+                    y: {
+                        title: { display: true, text: 'Margen %', font: { size: 13 } },
+                        min: 10,
+                        max: 90
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                var p = ctx.raw;
+                                return p.label + ' | Margen: ' + p.y.toFixed(1) + '% | Rotacion: ' + p.x.toFixed(2);
+                            }
+                        }
+                    },
+                    legend: { position: 'top' }
+                }
+            },
+            plugins: [{
+                id: 'medianLines',
+                afterDraw: function(chart) {
+                    var chartCtx = chart.ctx;
+                    var xAxis = chart.scales.x;
+                    var yAxis = chart.scales.y;
+                    chartCtx.save();
+                    chartCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    chartCtx.lineWidth = 1;
+                    chartCtx.setLineDash([5, 5]);
+                    var xPx = xAxis.getPixelForValue(medRotacion);
+                    chartCtx.beginPath();
+                    chartCtx.moveTo(xPx, yAxis.top);
+                    chartCtx.lineTo(xPx, yAxis.bottom);
+                    chartCtx.stroke();
+                    var yPx = yAxis.getPixelForValue(medMargen);
+                    chartCtx.beginPath();
+                    chartCtx.moveTo(xAxis.left, yPx);
+                    chartCtx.lineTo(xAxis.right, yPx);
+                    chartCtx.stroke();
+                    chartCtx.restore();
+                }
+            }]
+        });
+    }
+
+    // Render inicial
+    buildChart(rawData);
+
+    // =============================
+    // TABLE — al filtrar, actualiza el chart
+    // =============================
+    function pesosFormatter(cell) {
+        var v = cell.getValue();
+        if (v === null || v === undefined) return '-';
+        return '$' + Math.round(v).toLocaleString('es-AR');
+    }
+
+    function pctFormatter(cell) {
+        var v = cell.getValue();
+        if (v === null || v === undefined) return '-';
+        return v.toFixed(1) + '%';
+    }
+
+    function clasificacionFormatter(cell) {
+        var v = cell.getValue();
+        var colors = {
+            'ESTRELLA': {bg: '#d4edda', color: '#155724'},
+            'VACA': {bg: '#cce5ff', color: '#004085'},
+            'INTERROGACION': {bg: '#fff3cd', color: '#856404'},
+            'PERRO': {bg: '#f8d7da', color: '#721c24'}
+        };
+        var c = colors[v] || {bg: '#e9ecef', color: '#495057'};
+        cell.getElement().style.background = c.bg;
+        cell.getElement().style.color = c.color;
+        cell.getElement().style.fontWeight = 'bold';
+        cell.getElement().style.textAlign = 'center';
+        return v;
+    }
+
+    var table = new Tabulator("#tabla-bcg", {
+        data: rawData,
+        layout: "fitColumns",
+        height: "500px",
+        pagination: "local",
+        paginationSize: 50,
+        initialSort: [{column: "venta_total", dir: "desc"}],
+        columns: [
+            {title: "Marca", field: "marca", headerFilter: "input", width: 150},
+            {title: "Venta Total", field: "venta_total", hozAlign: "right", formatter: pesosFormatter, sorter: "number", width: 140},
+            {title: "Margen %", field: "margen_pct", hozAlign: "right", formatter: pctFormatter, sorter: "number", width: 100},
+            {title: "Rotacion", field: "rotacion", hozAlign: "right", sorter: "number", width: 100,
+                formatter: function(cell) { return cell.getValue() !== null ? cell.getValue().toFixed(2) : '-'; }},
+            {title: "Stock", field: "stock_total", hozAlign: "right", sorter: "number", width: 90},
+            {title: "F. Quiebre", field: "factor_quiebre", hozAlign: "right", sorter: "number", width: 100},
+            {title: "Clasificacion", field: "clasificacion", formatter: clasificacionFormatter, headerFilter: "list",
+                headerFilterParams: {values: {"": "Todas", "ESTRELLA": "ESTRELLA", "VACA": "VACA", "INTERROGACION": "INTERROGACION", "PERRO": "PERRO"}},
+                width: 140}
+        ]
+    });
+
+    // Cuando cambian los filtros de la tabla, reconstruir el chart
+    table.on("dataFiltered", function(filters, rows) {
+        var filteredData = rows.map(function(row) { return row.getData(); });
+        buildChart(filteredData);
+    });
+})();
+</script>

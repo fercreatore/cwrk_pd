@@ -69,31 +69,68 @@ ESTADO = 'V'
 CONDICION_IVA = 'C'  # consumidor final
 USUARIO = 'COWORK-ML'
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'mercadolibre_config.json')
-LOG_FILE = os.path.join(os.path.dirname(__file__), 'ordenes_ml_procesadas.json')
 SQLITE_DB = os.path.join(os.path.dirname(__file__), 'ordenes_procesadas.db')
 
 ML_API_BASE = 'https://api.mercadolibre.com'
 
-
-# ── Config ──
-
-def guardar_config(access_token: str, user_id: str, refresh_token: str = ''):
-    """Guarda credenciales de ML."""
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump({
-            'access_token': access_token,
-            'user_id': user_id,
-            'refresh_token': refresh_token,
-            'updated_at': datetime.now().isoformat(),
-        }, f, indent=2)
+# ── Cuentas ML disponibles ──
+CUENTAS_ML = {
+    'calzalindo_h':    {'user_id': '196198035', 'empresa': 'H4',  'descripcion': 'Calzalindo H4'},
+    'calzalindo_tama': {'user_id': '159354061', 'empresa': 'ABI', 'descripcion': 'Calzalindo TAMA'},
+    'calzalindo_lu':   {'user_id': '529435195', 'empresa': 'ABI', 'descripcion': 'Calzalindo LU'},
+}
 
 
-def cargar_config() -> dict:
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE) as f:
+# ── Config multi-cuenta ──
+
+def _config_path(account: str = None) -> str:
+    if account:
+        return os.path.join(os.path.dirname(__file__), f'mercadolibre_config_{account}.json')
+    return os.path.join(os.path.dirname(__file__), 'mercadolibre_config.json')
+
+
+def guardar_config(access_token: str, user_id: str, refresh_token: str = '', account: str = None):
+    """Guarda credenciales de ML para una cuenta."""
+    path = _config_path(account)
+    config = {}
+    if os.path.exists(path):
+        with open(path) as f:
+            config = json.load(f)
+    config.update({
+        'access_token': access_token,
+        'user_id': user_id,
+        'updated_at': datetime.now().isoformat(),
+    })
+    if refresh_token:
+        config['refresh_token'] = refresh_token
+    if account:
+        config['account_name'] = account
+    with open(path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+
+def cargar_config(account: str = None) -> dict:
+    """Carga config de una cuenta ML. None = default (calzalindo_h)."""
+    path = _config_path(account)
+    if os.path.exists(path):
+        with open(path) as f:
             return json.load(f)
     return {}
+
+
+def listar_cuentas_ml() -> list:
+    """Lista cuentas ML configuradas con config file existente."""
+    import glob as _glob
+    cuentas = []
+    default = _config_path()
+    if os.path.exists(default):
+        cfg = cargar_config()
+        cuentas.append(('default', cfg.get('account_name', 'calzalindo_h'), cfg.get('user_id', '')))
+    for f in sorted(_glob.glob(os.path.join(os.path.dirname(__file__), 'mercadolibre_config_*.json'))):
+        nombre = os.path.basename(f).replace('mercadolibre_config_', '').replace('.json', '')
+        cfg = cargar_config(nombre)
+        cuentas.append((nombre, cfg.get('account_name', nombre), cfg.get('user_id', '')))
+    return cuentas
 
 
 # ── Persistencia de órdenes procesadas (SQLite — compartida con TN) ──
@@ -572,26 +609,28 @@ def construir_factura(orden: dict, articulos_erp: dict, numero: int, orden_dia: 
 # ── Flujo principal ──
 
 def sincronizar_ordenes_ml(dry_run: bool = True, dias_atras: int = 7,
-                           empresa: str = 'H4') -> dict:
+                           empresa: str = 'H4', account: str = None) -> dict:
     """
     Procesa órdenes pagadas de MercadoLibre e inserta facturas B en el ERP.
 
     Args:
         empresa: 'H4' (msgestion03) o 'ABI' (msgestion01/CALZALINDO).
+        account: Cuenta ML ('calzalindo_h', 'calzalindo_tama', 'calzalindo_lu', None=default)
     """
     base = _base_para_empresa(empresa)
+    nombre_cuenta = account or 'default'
     modo = "DRY RUN" if dry_run else "FACTURACION REAL"
     print(f"\n{'='*60}")
     print(f"  FACTURADOR MercadoLibre → ERP [{modo}]")
-    print(f"  Empresa: {empresa} → {base}")
+    print(f"  Cuenta: {nombre_cuenta} | Empresa: {empresa} → {base}")
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Buscando órdenes de los últimos {dias_atras} días")
     print(f"{'='*60}\n")
 
-    config = cargar_config()
+    config = cargar_config(account)
     if not config.get('access_token') or not config.get('user_id'):
-        print("ERROR: No hay config de MercadoLibre. Ejecutar guardar_config() primero.")
-        return {'error': 'Sin config MercadoLibre'}
+        print(f"ERROR: No hay config para cuenta ML '{nombre_cuenta}'.")
+        return {'error': f'Sin config MercadoLibre para {nombre_cuenta}'}
 
     token = config['access_token']
     user_id = config['user_id']
@@ -771,10 +810,12 @@ if __name__ == '__main__':
                         help='Días hacia atrás para buscar órdenes (default: 7)')
     parser.add_argument('--empresa', type=str, default='H4',
                         help='Empresa destino: H4 (msgestion03) o ABI (msgestion01)')
+    parser.add_argument('--account', type=str, default=None,
+                        help='Cuenta ML: calzalindo_h (default), calzalindo_tama, calzalindo_lu')
     args = parser.parse_args()
 
     reporte = sincronizar_ordenes_ml(dry_run=args.dry_run, dias_atras=args.dias,
-                                      empresa=args.empresa)
+                                      empresa=args.empresa, account=args.account)
 
     if reporte.get('error'):
         sys.exit(1)

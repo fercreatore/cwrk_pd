@@ -1,258 +1,275 @@
 #!/usr/bin/env python3
 """
-Envío masivo de WhatsApp a agencias de viaje — Valijas GO
-Usa la API de Meta WhatsApp Cloud directamente (WABA Chatwoot)
+Envio masivo WhatsApp a agencias de viaje - Valijas GO
+Usa Meta WhatsApp Cloud API via credenciales Chatwoot WABA
+
+Uso:
+  python3 enviar_whatsapp_agencias.py --test           # Solo a Fernando
+  python3 enviar_whatsapp_agencias.py --prioridad ALTA  # Solo ALTA
+  python3 enviar_whatsapp_agencias.py --todas            # Todas con telefono
+  python3 enviar_whatsapp_agencias.py --dry-run --todas  # Ver sin enviar
 """
-import requests
-import pandas as pd
-import re
-import time
-import json
+import json, time, re, sys, os
 from datetime import datetime
+import pandas as pd
+import urllib.request, urllib.error, ssl
 
-# === CONFIGURACIÓN ===
 API_KEY = "EAAT9fQyZAdWYBQ4qolDqcaRYaTT8tZAZBAMxHm2bwfhZAFLCDqkKEWNCXgQjlLGdUGJae0T1LY5rvVKh40uQLqQEgPXta1ssn1fWosn0BRynxrgf4k8BBwLH3D1Pk3klIlGbsILmPquDWCKUeCIkS6ra3rlhhEred73rbDb2TwrMm5z9x9U3hfUPxFG3KVPRdgZDZD"
-PHONE_NUMBER_ID = "1046697335188691"
-WABA_ID = "2155048721625121"
-API_URL = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+PHONE_NUMBER_ID = "1024637650727570"  # Calzalindo 1170
+TEMPLATE_NAME = "valijas_go_propuesta_v2"
+TEMPLATE_LANG = "es_AR"
+CHATWOOT_TOKEN = "zvQpseDYDoeqJpwM41GCb1LP"
+CHATWOOT_URL = "https://chat.calzalindo.com.ar"
+CHATWOOT_ACCOUNT = 3
+CHATWOOT_INBOX = 10  # Calzalindo 1170
+EXCEL_PATH = os.path.join(os.path.dirname(__file__), "LISTA_AGENCIAS_PROSPECCION.xlsx")
+OPTOUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "optout_list.json")
+FERNANDO_PHONE = "5493462672330"
 
-# Template a usar
-TEMPLATE_NAME = "go_valijas_agencias_2025"  # Pendiente aprobación Meta
-# TEMPLATE_NAME = "promo_winback"  # Fallback ya aprobado
 
-EXCEL_PATH = "/Users/fernandocalaianov/Desktop/cowork_pedidos/valijas/LISTA_AGENCIAS_PROSPECCION.xlsx"
-LOG_PATH = "/Users/fernandocalaianov/Desktop/cowork_pedidos/valijas/log_envios_agencias.json"
+def load_optout_phones() -> set:
+    """Carga telefonos opt-out como set de ultimos 8 digitos para matching flexible."""
+    if not os.path.exists(OPTOUT_FILE):
+        return set()
+    try:
+        with open(OPTOUT_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        phones = set()
+        for entry in data:
+            tel = entry.get("telefono", "").lstrip("+").strip()
+            if tel:
+                phones.add(tel)
+                if len(tel) >= 8:
+                    phones.add(tel[-8:])
+        return phones
+    except (json.JSONDecodeError, IOError):
+        return set()
 
-# === FUNCIONES ===
 
-def limpiar_telefono(tel_raw):
-    """Convierte teléfono argentino a formato WhatsApp: 549XXXXXXXXXX"""
-    if not tel_raw or str(tel_raw).strip() in ['(ver web)', '(ver Facebook)', '(ver Instagram)', 'nan']:
+def is_optout(telefono: str, optout_phones: set) -> bool:
+    """Verifica si un telefono esta en la lista de opt-out."""
+    tel = telefono.lstrip("+").strip()
+    if tel in optout_phones:
+        return True
+    if len(tel) >= 8 and tel[-8:] in optout_phones:
+        return True
+    return False
+
+def normalizar_telefono(raw):
+    if not raw or str(raw).strip() in ['(ver web)','(ver Facebook)','(ver Instagram)','nan']:
         return None
-
-    tel = re.sub(r'[^\d+]', '', str(tel_raw))
-
-    # Sacar el + inicial si existe
-    tel = tel.lstrip('+')
-
-    # Si empieza con 54 9, ya está en formato correcto
-    if tel.startswith('549') and len(tel) >= 12:
-        return tel
-
-    # Si empieza con 54 sin 9, agregar 9
-    if tel.startswith('54') and not tel.startswith('549'):
-        tel = '549' + tel[2:]
-        return tel if len(tel) >= 12 else None
-
-    # Si empieza con 0 (código de área argentino)
+    tel = re.sub(r'[^\d+]', '', str(raw)).lstrip('+')
+    if tel.startswith('549') and len(tel) >= 12: return tel
+    if tel.startswith('54') and not tel.startswith('549'): return '549' + tel[2:]
     if tel.startswith('0'):
-        tel = tel[1:]  # Sacar el 0
-        if tel.startswith('11'):  # CABA: 011 -> 54911
-            return '549' + tel
-        elif tel.startswith('810'):  # 0810, no es celular
-            return None
-        else:
-            return '549' + tel
-
-    # Si empieza con 15 (celular sin código de área) - asumir CABA
-    if tel.startswith('15') and len(tel) == 10:
-        return '54911' + tel[2:]
-
-    # Si empieza con 11 (CABA sin 0)
-    if tel.startswith('11') and len(tel) == 10:
+        tel = tel[1:]
+        if tel.startswith('15'): return '54911' + tel[2:]
         return '549' + tel
+    if tel.startswith('15'): return '54911' + tel[2:]
+    if tel.startswith('11'): return '549' + tel
+    if len(tel) >= 10: return '549' + tel
+    return None
 
-    # Si es solo el número local (8 dígitos con código de área)
-    if len(tel) >= 10 and not tel.startswith('54'):
-        return '549' + tel
+def extraer_primer_nombre(nombre):
+    nombre = nombre.strip().strip('"').strip("'")
+    if ' - ' in nombre: nombre = nombre.split(' - ')[0]
+    return nombre
 
-    return tel if len(tel) >= 12 else None
+def enviar_template(telefono, nombre):
+    url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+    payload = {"messaging_product":"whatsapp","to":telefono,"type":"template",
+        "template":{"name":TEMPLATE_NAME,"language":{"code":TEMPLATE_LANG},
+            "components":[{"type":"body","parameters":[{"type":"text","text":nombre}]}]}}
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=data, method='POST')
+    req.add_header('Authorization', f'Bearer {API_KEY}')
+    req.add_header('Content-Type', 'application/json')
+    try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        resp = urllib.request.urlopen(req, context=ctx, timeout=30)
+        result = json.loads(resp.read().decode())
+        return True, result.get('messages',[{}])[0].get('id','ok')
+    except urllib.error.HTTPError as e:
+        return False, e.read().decode()[:200]
 
+def crear_contacto_chatwoot(nombre, telefono):
+    url = f"{CHATWOOT_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT}/contacts"
+    payload = {"inbox_id":CHATWOOT_INBOX,"name":nombre,"phone_number":f"+{telefono}"}
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=data, method='POST')
+    req.add_header('api_access_token', CHATWOOT_TOKEN)
+    req.add_header('Content-Type', 'application/json')
+    ctx = ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+    try:
+        resp = urllib.request.urlopen(req, context=ctx, timeout=15)
+        return True
+    except: return False
 
-def check_template_status():
-    """Verifica si el template está aprobado"""
-    url = f"https://graph.facebook.com/v19.0/{WABA_ID}/message_templates"
-    params = {"name": TEMPLATE_NAME, "access_token": API_KEY}
-    resp = requests.get(url, params=params)
-    data = resp.json()
-    for t in data.get('data', []):
-        if t['name'] == TEMPLATE_NAME:
-            return t['status']
-    return 'NOT_FOUND'
+def buscar_conversacion_chatwoot(telefono):
+    """Busca conversación abierta en inbox 10 para este teléfono."""
+    url = f"{CHATWOOT_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT}/conversations?inbox_id={CHATWOOT_INBOX}&status=open&page=1"
+    req = urllib.request.Request(url)
+    req.add_header('api_access_token', CHATWOOT_TOKEN)
+    ctx = ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+    try:
+        resp = urllib.request.urlopen(req, context=ctx, timeout=15)
+        data = json.loads(resp.read().decode())
+        payload = data.get('data',{}).get('payload',[]) if isinstance(data.get('data'),dict) else []
+        for c in payload:
+            sender = c.get('meta',{}).get('sender',{})
+            phone = str(sender.get('phone_number',''))
+            if telefono[-8:] in phone:
+                return c['id']
+    except: pass
+    return None
 
+def enviar_msg_chatwoot(conv_id, content):
+    """Envía mensaje de texto por Chatwoot."""
+    url = f"{CHATWOOT_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT}/conversations/{conv_id}/messages"
+    payload = {"content":content,"message_type":"outgoing","private":False}
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=data, method='POST')
+    req.add_header('api_access_token', CHATWOOT_TOKEN)
+    req.add_header('Content-Type', 'application/json')
+    ctx = ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+    try:
+        resp = urllib.request.urlopen(req, context=ctx, timeout=15)
+        return True
+    except: return False
 
-def enviar_template(telefono, nombre_agencia, template=None):
-    """Envía template de WhatsApp a un número"""
-    tpl = template or TEMPLATE_NAME
+def enviar_msg_chatwoot_con_fotos(conv_id, content, fotos):
+    """Envía mensaje con attachments por Chatwoot usando multipart."""
+    import subprocess
+    cmd = ['curl', '-sk', '-X', 'POST',
+           '-H', f'api_access_token: {CHATWOOT_TOKEN}',
+           '-F', f'content={content}',
+           '-F', 'message_type=outgoing',
+           '-F', 'private=false']
+    for foto in fotos:
+        cmd.extend(['-F', f'attachments[]=@{foto};type=image/jpeg'])
+    cmd.append(f'{CHATWOOT_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT}/conversations/{conv_id}/messages')
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    return result.returncode == 0
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
+def enviar_botones_interactivos(telefono):
+    """Envía mensaje interactivo con 3 botones via Meta API."""
+    url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+    payload = {
+        "messaging_product":"whatsapp","to":telefono,"type":"interactive",
+        "interactive":{
+            "type":"button",
+            "header":{"type":"text","text":"Opciones para agencias"},
+            "body":{"text":"Tenemos dos modelos de negocio. Elegí el que más te sirva y te explico en detalle:"},
+            "footer":{"text":"Calzalindo - 35 años en el negocio"},
+            "action":{"buttons":[
+                {"type":"reply","reply":{"id":"btn_comision","title":"Comisión $20K/set"}},
+                {"type":"reply","reply":{"id":"btn_mayorista","title":"Mayorista $100K/set"}},
+                {"type":"reply","reply":{"id":"btn_fotos","title":"Ver más fotos"}}
+            ]}
+        }
     }
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=data, method='POST')
+    req.add_header('Authorization', f'Bearer {API_KEY}')
+    req.add_header('Content-Type', 'application/json')
+    ctx = ssl.create_default_context(); ctx.check_hostname=False; ctx.verify_mode=ssl.CERT_NONE
+    try:
+        resp = urllib.request.urlopen(req, context=ctx, timeout=30)
+        return True
+    except: return False
 
-    # Armar payload según template
-    if tpl == "promo_winback":
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": telefono,
-            "type": "template",
-            "template": {
-                "name": tpl,
-                "language": {"code": "es_AR"},
-                "components": [
-                    {"type": "body", "parameters": [{"type": "text", "text": nombre_agencia}]}
-                ]
-            }
-        }
-    else:
-        # go_valijas_agencias_2025
-        payload = {
-            "messaging_product": "whatsapp",
-            "to": telefono,
-            "type": "template",
-            "template": {
-                "name": tpl,
-                "language": {"code": "es_AR"},
-                "components": [
-                    {"type": "body", "parameters": [{"type": "text", "text": nombre_agencia}]}
-                ]
-            }
-        }
+MSG2_CONTENT = """📦 *SET DE 3 VALIJAS RIGIDAS GO*
 
-    resp = requests.post(API_URL, headers=headers, json=payload)
-    return resp.json()
+✅ 3 tamaños: 18" (carry on) + 19" (cabina) + 21" (mediana)
+✅ Material ABS ultra resistente
+✅ 8 ruedas 360° (giran para todos lados)
+✅ Cierre de seguridad TSA
+✅ 4 colores: Negro, Rojo, Rosa Gold, Rosa
+✅ Envío gratis a todo el país
 
+💰 *Precio público:* $162.499 (o $129.999 transferencia)
+💰 *6 cuotas sin interés:* $27.083/mes
 
-def cargar_agencias():
-    """Lee Excel y prepara lista de agencias con teléfono válido"""
+Ideal para tus pasajeros: livianas, resistentes y con diseño premium."""
+
+FOTOS = [
+    "/tmp/valijas_imgs/set_negro.jpg",
+    "/tmp/valijas_imgs/set_rosagold.jpg",
+    "/tmp/valijas_imgs/interior_ruedas.jpeg"
+]
+
+def cargar_agencias(prioridad=None):
     df = pd.read_excel(EXCEL_PATH)
     agencias = []
-    sin_tel = []
-
     for _, row in df.iterrows():
-        tel = limpiar_telefono(row.get('Telefono/WhatsApp'))
-        nombre = str(row.get('Nombre', '')).strip()
+        tel = normalizar_telefono(row.get('Telefono/WhatsApp'))
+        if not tel: continue
+        if prioridad and str(row.get('Prioridad','')).upper() != prioridad.upper(): continue
+        agencias.append({'nombre':row['Nombre'],'ciudad':row.get('Ciudad',''),
+            'telefono':tel,'prioridad':row.get('Prioridad',''),
+            'primer_nombre':extraer_primer_nombre(str(row['Nombre']))})
+    return agencias
 
-        if tel:
-            agencias.append({
-                'numero': int(row.get('#', 0)),
-                'nombre': nombre,
-                'ciudad': str(row.get('Ciudad', '')).strip(),
-                'telefono': tel,
-                'prioridad': str(row.get('Prioridad', '')).strip(),
-                'tipo': str(row.get('Tipo', '')).strip()
-            })
-        else:
-            sin_tel.append(nombre)
-
-    return agencias, sin_tel
-
-
-def enviar_campana(solo_alta=False, solo_test=False, test_numero=None):
-    """Ejecuta la campaña de envío"""
-
-    # Verificar template
-    status = check_template_status()
-    print(f"\n📋 Template '{TEMPLATE_NAME}': {status}")
-
-    if status != 'APPROVED':
-        print(f"⚠️  Template no aprobado ({status}). Opciones:")
-        print(f"   1. Esperar aprobación de Meta")
-        print(f"   2. Usar 'promo_winback' (ya aprobado)")
-        usar_fallback = input("¿Usar promo_winback? (s/n): ").strip().lower()
-        if usar_fallback == 's':
-            tpl = "promo_winback"
-        else:
-            print("Abortando.")
-            return
+def main():
+    args = sys.argv[1:]
+    dry_run = '--dry-run' in args
+    test_mode = '--test' in args
+    if test_mode:
+        agencias = [{'nombre':'Fernando Test','ciudad':'VT','telefono':FERNANDO_PHONE,
+                      'prioridad':'TEST','primer_nombre':'Fernando'}]
+    elif '--prioridad' in args:
+        idx = args.index('--prioridad')
+        prio = args[idx+1] if idx+1 < len(args) else 'ALTA'
+        agencias = cargar_agencias(prioridad=prio)
+    elif '--todas' in args:
+        agencias = cargar_agencias()
     else:
-        tpl = TEMPLATE_NAME
-
-    # Test a un número específico
-    if solo_test and test_numero:
-        print(f"\n🧪 TEST → {test_numero}")
-        result = enviar_template(test_numero, "Fernando Test", tpl)
-        print(f"   Resultado: {json.dumps(result, indent=2)}")
+        print("Uso:\n  --test\n  --prioridad ALTA\n  --todas\n  --dry-run --todas")
         return
 
-    # Cargar agencias
-    agencias, sin_tel = cargar_agencias()
+    optout_phones = load_optout_phones()
+    print(f"\n{'='*60}\nCAMPANA VALIJAS GO - WhatsApp Agencias\nTemplate: {TEMPLATE_NAME}\nAgencias: {len(agencias)} | Opt-outs cargados: {len(optout_phones)}\nModo: {'DRY RUN' if dry_run else 'ENVIO REAL'}\n{'='*60}\n")
+    enviados, errores, saltados = 0, 0, 0
+    for i, ag in enumerate(agencias):
+        print(f"\n[{i+1}/{len(agencias)}] {ag['nombre']} ({ag['ciudad']}) -> {ag['telefono']}")
 
-    if sin_tel:
-        print(f"\n⚠️  {len(sin_tel)} agencias SIN teléfono: {', '.join(sin_tel[:5])}...")
+        # Verificar opt-out
+        if is_optout(ag['telefono'], optout_phones):
+            print(f"  -> SALTADO (opt-out registrado)")
+            saltados += 1
+            continue
 
-    if solo_alta:
-        agencias = [a for a in agencias if a['prioridad'] == 'ALTA']
+        if dry_run:
+            print("  -> [DRY RUN] MSG1 template + MSG2 info+fotos + MSG3 botones"); continue
 
-    print(f"\n📱 Enviando a {len(agencias)} agencias con template '{tpl}':")
-    for a in agencias:
-        print(f"   {a['numero']:2d}. {a['nombre']:30s} | {a['ciudad']:15s} | {a['telefono']} | {a['prioridad']}")
+        # MSG1: Template
+        crear_contacto_chatwoot(ag['nombre'], ag['telefono'])
+        ok, msg = enviar_template(ag['telefono'], ag['primer_nombre'])
+        if not ok:
+            print(f"  -> ERROR MSG1: {msg[:80]}"); errores += 1; continue
+        print(f"  -> MSG1 OK (template)")
+        enviados += 1
+        time.sleep(4)
 
-    confirmar = input(f"\n¿Confirmar envío a {len(agencias)} agencias? (s/n): ").strip().lower()
-    if confirmar != 's':
-        print("Cancelado.")
-        return
-
-    # Enviar
-    log = []
-    enviados = 0
-    errores = 0
-
-    for i, a in enumerate(agencias):
-        print(f"\n[{i+1}/{len(agencias)}] {a['nombre']} → {a['telefono']}...", end=" ")
-
-        result = enviar_template(a['telefono'], a['nombre'], tpl)
-
-        if 'messages' in result:
-            msg_id = result['messages'][0].get('id', '?')
-            status = result['messages'][0].get('message_status', '?')
-            print(f"✅ {status} (id: {msg_id[:20]}...)")
-            enviados += 1
-            log.append({**a, 'status': 'enviado', 'msg_id': msg_id, 'timestamp': datetime.now().isoformat()})
+        # MSG2: Info + fotos via Chatwoot
+        conv_id = buscar_conversacion_chatwoot(ag['telefono'])
+        if conv_id:
+            enviar_msg_chatwoot_con_fotos(conv_id, MSG2_CONTENT, FOTOS)
+            print(f"  -> MSG2 OK (info+fotos)")
         else:
-            error = result.get('error', {}).get('message', str(result))
-            print(f"❌ {error[:60]}")
-            errores += 1
-            log.append({**a, 'status': 'error', 'error': error, 'timestamp': datetime.now().isoformat()})
+            print(f"  -> MSG2 SKIP (sin conversacion en Chatwoot)")
+        time.sleep(4)
 
-        # Rate limit: esperar 3 segundos entre mensajes
-        if i < len(agencias) - 1:
-            time.sleep(3)
+        # MSG3: Botones interactivos
+        if enviar_botones_interactivos(ag['telefono']):
+            print(f"  -> MSG3 OK (botones)")
+        else:
+            print(f"  -> MSG3 SKIP (botones interactivos)")
 
-    # Guardar log
-    with open(LOG_PATH, 'w') as f:
-        json.dump(log, f, indent=2, ensure_ascii=False)
-
-    print(f"\n{'='*50}")
-    print(f"✅ Enviados: {enviados}")
-    print(f"❌ Errores: {errores}")
-    print(f"📄 Log: {LOG_PATH}")
-
+        if i < len(agencias)-1: time.sleep(5)
+    print(f"\n{'='*60}\nRESULTADO: {enviados} enviados, {errores} errores, {saltados} saltados (opt-out)\n{'='*60}")
 
 if __name__ == '__main__':
-    import sys
-
-    if len(sys.argv) > 1:
-        if sys.argv[1] == 'test':
-            # Test a Fernando
-            enviar_campana(solo_test=True, test_numero="5493462672330")
-        elif sys.argv[1] == 'alta':
-            # Solo prioridad ALTA
-            enviar_campana(solo_alta=True)
-        elif sys.argv[1] == 'status':
-            # Ver estado template
-            status = check_template_status()
-            print(f"Template '{TEMPLATE_NAME}': {status}")
-        elif sys.argv[1] == 'todas':
-            # Todas las agencias
-            enviar_campana()
-        else:
-            print("Uso: python enviar_whatsapp_agencias.py [test|alta|status|todas]")
-    else:
-        print("🔧 Campaña WhatsApp — Valijas GO para Agencias")
-        print("="*50)
-        print("Comandos:")
-        print("  python enviar_whatsapp_agencias.py test    → Envía test a Fernando")
-        print("  python enviar_whatsapp_agencias.py status  → Ver estado del template")
-        print("  python enviar_whatsapp_agencias.py alta    → Enviar a agencias ALTA")
-        print("  python enviar_whatsapp_agencias.py todas   → Enviar a TODAS")
+    main()

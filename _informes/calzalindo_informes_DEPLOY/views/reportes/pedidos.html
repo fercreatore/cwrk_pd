@@ -100,6 +100,9 @@
     <button id="btn-sync" class="btn btn-warning btn-sm pull-right" onclick="syncDatos()" title="Fuerza refresco de datos desde produccion">
         <i class="glyphicon glyphicon-refresh" id="sync-icon"></i> Actualizar datos
     </button>
+    <a href="{{=URL('reportes','pedidos_aprobacion')}}" class="btn btn-success btn-sm pull-right" style="margin-right:8px;">
+        <i class="glyphicon glyphicon-ok-sign"></i> Aprobación Presupuestaria
+    </a>
     <small class="pull-right" style="margin-right:15px; margin-top:8px; color:#95a5a6; font-size:12px;">
         Carga: {{=elapsed}}s
     </small>

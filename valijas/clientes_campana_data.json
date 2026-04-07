@@ -1,0 +1,2864 @@
+[
+  {
+    "phone": "+5493462304228",
+    "name": "MARCOS",
+    "conv_id": 838,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igualmente para vos"
+  },
+  {
+    "phone": "+5493462647223",
+    "name": "Gloria",
+    "conv_id": 837,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364579873",
+    "name": "Edith Tuñon",
+    "conv_id": 793,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias que tienen?"
+  },
+  {
+    "phone": "+5492364532281",
+    "name": "Cristian Loyola",
+    "conv_id": 835,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias!! bendiciones 🙌"
+  },
+  {
+    "phone": "+5493462553487",
+    "name": "Cristina",
+    "conv_id": 836,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas a toda la familia de calzalindo..😘"
+  },
+  {
+    "phone": "+5492364628108",
+    "name": "Sandra",
+    "conv_id": 829,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igualmente para ustedes"
+  },
+  {
+    "phone": "+5492342458383",
+    "name": "Angelica",
+    "conv_id": 830,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462647296",
+    "name": "Mayco",
+    "conv_id": 831,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364329168",
+    "name": "Lia",
+    "conv_id": 832,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igualmente"
+  },
+  {
+    "phone": "+5492364304659",
+    "name": "Bety🌸",
+    "conv_id": 833,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias"
+  },
+  {
+    "phone": "+5493462635891",
+    "name": "😀",
+    "conv_id": 834,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5493462678566",
+    "name": "DANIELA",
+    "conv_id": 828,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas para toda la glia calzalindo! ..mi nombre no es erminda😁😁igual gracias!!"
+  },
+  {
+    "phone": "+5493462595407",
+    "name": "Marina❤️❤️",
+    "conv_id": 827,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462549018",
+    "name": "ERICA 🌷",
+    "conv_id": 826,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462510200",
+    "name": "Sofi Pettinari",
+    "conv_id": 825,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462677703",
+    "name": "Carolina Druetta",
+    "conv_id": 824,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462540283",
+    "name": "Sabina",
+    "conv_id": 823,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462621770",
+    "name": "🧿🍀",
+    "conv_id": 821,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5493462416891",
+    "name": "• S •  ♡",
+    "conv_id": 822,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462310437",
+    "name": "Mili Caceres",
+    "conv_id": 820,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5492353405805",
+    "name": "Maxi Rodríguez",
+    "conv_id": 819,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462684899",
+    "name": "Pedro",
+    "conv_id": 818,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462518761",
+    "name": "Claudia Vianchi",
+    "conv_id": 817,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364459210",
+    "name": "Andrea",
+    "conv_id": 816,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias"
+  },
+  {
+    "phone": "+5493462601365",
+    "name": "Cristina",
+    "conv_id": 580,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? gracias"
+  },
+  {
+    "phone": "+5493462602353",
+    "name": "Ale🥰",
+    "conv_id": 716,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462645385",
+    "name": "Daniel",
+    "conv_id": 814,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque 👍"
+  },
+  {
+    "phone": "+5493462683855",
+    "name": "(:  ",
+    "conv_id": 815,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462384630",
+    "name": "Tachexxxx😎😎😎😎",
+    "conv_id": 813,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492473472661",
+    "name": "Sole",
+    "conv_id": 811,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5493462550074",
+    "name": "Mirian Robledo",
+    "conv_id": 810,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchísimas gracias!"
+  },
+  {
+    "phone": "+5493462662309",
+    "name": "Catalina Medina",
+    "conv_id": 809,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364353328",
+    "name": "Angela Lobarto",
+    "conv_id": 808,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493462312947",
+    "name": "Alicia",
+    "conv_id": 807,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias felices pascua a toda la familia calzalindo"
+  },
+  {
+    "phone": "+5493462606666",
+    "name": "German",
+    "conv_id": 806,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364712162",
+    "name": "Marcelo",
+    "conv_id": 805,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias,felices pascuas para calzalindooo🥳🥳"
+  },
+  {
+    "phone": "+5492364377222",
+    "name": "Juan Ignacio Polito",
+    "conv_id": 804,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "👍"
+  },
+  {
+    "phone": "+5492364326175",
+    "name": "Sil Derrocco",
+    "conv_id": 802,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5492364335224",
+    "name": "Marta Dufour",
+    "conv_id": 803,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias"
+  },
+  {
+    "phone": "+5492364265306",
+    "name": "María Laura🩷",
+    "conv_id": 792,
+    "msgs_count": 3,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "  "
+  },
+  {
+    "phone": "+5493462660205",
+    "name": "Silvana Natividad Lucero",
+    "conv_id": 801,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5493462681187",
+    "name": "Veronica Soulier",
+    "conv_id": 632,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? "
+  },
+  {
+    "phone": "+5492364553817",
+    "name": "Anto Moris Ortiz Nails Studio",
+    "conv_id": 653,
+    "msgs_count": 1,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "holiss👋, bienvenida a antonela moris ortiz nails studio & academia \n\n¿cómo podemos ayudarte?\n\n\nnuest"
+  },
+  {
+    "phone": "+5493462312504",
+    "name": "María Isabel Canelo",
+    "conv_id": 656,
+    "msgs_count": 4,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber? qué medios de pago aceptan van a trabajar ? tarjetas , efect"
+  },
+  {
+    "phone": "+5492364641781",
+    "name": "CARMEN EPIFANO",
+    "conv_id": 670,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5491153353276",
+    "name": "𝓑𝓮𝓵𝓮́𝓷",
+    "conv_id": 699,
+    "msgs_count": 2,
+    "intent": "quiere_online",
+    "is_business": false,
+    "sample_text": "que va a haber? online no será??"
+  },
+  {
+    "phone": "+5492364329059",
+    "name": ".",
+    "conv_id": 715,
+    "msgs_count": 2,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "hola que tal esto es en venado tuerto?"
+  },
+  {
+    "phone": "+5492364663825",
+    "name": "Norma",
+    "conv_id": 711,
+    "msgs_count": 6,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "hola chicas .. zapatillas  deportivas. negro hacd 2 meses  les compre  unas tipo zapatilla buenísima"
+  },
+  {
+    "phone": "+5492364324386",
+    "name": "Raquel",
+    "conv_id": 720,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias!!!! igualmente familia calzalindoooo!!!! "
+  },
+  {
+    "phone": "+5492364558210",
+    "name": "Juan Pablo",
+    "conv_id": 730,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5493462632562",
+    "name": "Claudia Tapia",
+    "conv_id": 775,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5492364272754",
+    "name": "Mari",
+    "conv_id": 786,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5492364523742",
+    "name": "🌵✨",
+    "conv_id": 787,
+    "msgs_count": 2,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": " igual para todo el equipo de calzalindo!!!🕊️✨"
+  },
+  {
+    "phone": "+5493462301626",
+    "name": "Ramon Castro",
+    "conv_id": 794,
+    "msgs_count": 2,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "hola yo no me llamo maría yo me llamo alberto"
+  },
+  {
+    "phone": "+5493462506605",
+    "name": "Andrea",
+    "conv_id": 798,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5492364308893",
+    "name": "Andrea Barreto",
+    "conv_id": 799,
+    "msgs_count": 2,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen? graaaacias!!!"
+  },
+  {
+    "phone": "+5493462503743",
+    "name": "Mariana",
+    "conv_id": 800,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364469762",
+    "name": "Cristina Muñoz -Estabio",
+    "conv_id": 797,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias,igualmente."
+  },
+  {
+    "phone": "+5493462412113",
+    "name": "Nora Magri",
+    "conv_id": 796,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? felices pascuas!"
+  },
+  {
+    "phone": "+5493462380398",
+    "name": "Maxi",
+    "conv_id": 795,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364684902",
+    "name": "Mabel Marisa",
+    "conv_id": 789,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igual para ustedes  !!!!!!❤️ 👍🏽👍🏽👍🏽"
+  },
+  {
+    "phone": "+5493462684150",
+    "name": "Q Chevere",
+    "conv_id": 790,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364324765",
+    "name": "Favio Sanchez",
+    "conv_id": 791,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias igualmente👏👏"
+  },
+  {
+    "phone": "+5493462341037",
+    "name": "At",
+    "conv_id": 788,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462335372",
+    "name": "Rosalba🌷",
+    "conv_id": 754,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "gracias!! calzalindo y familia!! felices pascuas de resurreccion!! gracias por la invitacion... que "
+  },
+  {
+    "phone": "+5493462559145",
+    "name": "Yamila Suarez",
+    "conv_id": 785,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con fátima polirubro🌻\nen la brevedad se te responderá☺️"
+  },
+  {
+    "phone": "+5493462626117",
+    "name": "Carlos Aguinaga",
+    "conv_id": 784,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462541478",
+    "name": "Hernán Pablo Tomada",
+    "conv_id": 783,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con motos san martin .en breve contestaremos tu msj muchas gracias\nhorario d"
+  },
+  {
+    "phone": "+5493462515047",
+    "name": "Mis Pilares!",
+    "conv_id": 781,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? felices pascuas!"
+  },
+  {
+    "phone": "+5493468533823",
+    "name": "Maxi",
+    "conv_id": 782,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364525286",
+    "name": "Claudia",
+    "conv_id": 780,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias, igualmente"
+  },
+  {
+    "phone": "+5492364614864",
+    "name": "Rosa Yacanto",
+    "conv_id": 779,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5492364698230",
+    "name": "Juli",
+    "conv_id": 778,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas. gracias miraré lo que me enviaron"
+  },
+  {
+    "phone": "+5493462615164",
+    "name": "Eli Gallardo",
+    "conv_id": 777,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493382445156",
+    "name": "Gloria Cordoba",
+    "conv_id": 776,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias igualmente y felices pascuas para todos"
+  },
+  {
+    "phone": "+5492364364413",
+    "name": "Miss Adri",
+    "conv_id": 774,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5492364324203",
+    "name": "Jennifer •",
+    "conv_id": 672,
+    "msgs_count": 3,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque ah soy de junin. gracias"
+  },
+  {
+    "phone": "+5493463405523",
+    "name": "Jorge",
+    "conv_id": 773,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462537282",
+    "name": "Julia Quinteros",
+    "conv_id": 772,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364534055",
+    "name": "Blanca",
+    "conv_id": 771,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias felicidades"
+  },
+  {
+    "phone": "+5492364669166",
+    "name": "Monica",
+    "conv_id": 770,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5492364357733",
+    "name": "Silvia Bibiana Ricci",
+    "conv_id": 769,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493462547833",
+    "name": "Nora",
+    "conv_id": 768,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias!!"
+  },
+  {
+    "phone": "+5493462572446",
+    "name": "Rocío Damen",
+    "conv_id": 767,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias!"
+  },
+  {
+    "phone": "+5493462542539",
+    "name": "Cumples Tematicos",
+    "conv_id": 766,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con cumples tematicos. ¿cómo podemos ayudarte?"
+  },
+  {
+    "phone": "+5492364503589",
+    "name": "Patri 🐾",
+    "conv_id": 765,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias igual para ustedes!"
+  },
+  {
+    "phone": "+5493468547579",
+    "name": "Cecilia Ferrero",
+    "conv_id": 764,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": true,
+    "sample_text": "hola, dejá tu nombre y a la brevedad te respondo🌟"
+  },
+  {
+    "phone": "+5492473449842",
+    "name": "Natalia",
+    "conv_id": 763,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias por tu mensaje. por temas laborales, enviar al teléfono: 3462566354"
+  },
+  {
+    "phone": "+5492364265189",
+    "name": "Dario José Cuervo",
+    "conv_id": 762,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias! felices pascuas !"
+  },
+  {
+    "phone": "+5493462560010",
+    "name": "Yasmín Zalazar",
+    "conv_id": 760,
+    "msgs_count": 1,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "hola 👋🏻 😚 \nsomos regalería mimos & caprichos 🎀 una tienda de regalos y mucho más 🎁. \n\n👉🏻 podes ver n"
+  },
+  {
+    "phone": "+5492364345008",
+    "name": "Yoana",
+    "conv_id": 761,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con yoa gutierrez. ¿cómo podemos ayudarte?"
+  },
+  {
+    "phone": "+5493462688622",
+    "name": "Stella Dalio",
+    "conv_id": 759,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462340744",
+    "name": "Estela Taddia",
+    "conv_id": 758,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "graciasss"
+  },
+  {
+    "phone": "+5492364600417",
+    "name": "Silvia Fernandez",
+    "conv_id": 755,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias e igualmente!!! 👍🏼"
+  },
+  {
+    "phone": "+5492364552181",
+    "name": "Mario Belen",
+    "conv_id": 757,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493462303653",
+    "name": "Toñito Fuertes",
+    "conv_id": 756,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462611006",
+    "name": "Candela Becerra",
+    "conv_id": 753,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462569627",
+    "name": "Dora",
+    "conv_id": 752,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5492364656439",
+    "name": "Angie",
+    "conv_id": 750,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "👍gracias  e igualmente para ustedes"
+  },
+  {
+    "phone": "+5492364412199",
+    "name": "German",
+    "conv_id": 751,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarse con zona cero.\na la brevedad responderemos su mensaje \nnuestros horarios son"
+  },
+  {
+    "phone": "+5493462513035",
+    "name": "Agustina Balige",
+    "conv_id": 749,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364679342",
+    "name": "Pety Olivera😄",
+    "conv_id": 748,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias felices pascuas"
+  },
+  {
+    "phone": "+5493462531165",
+    "name": "Dora",
+    "conv_id": 746,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462678965",
+    "name": "Romina",
+    "conv_id": 747,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364548458",
+    "name": "Gladys",
+    "conv_id": 744,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364345869",
+    "name": "Silvia Rafael",
+    "conv_id": 745,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias igual para ustedes"
+  },
+  {
+    "phone": "+5493462568314",
+    "name": "Guille",
+    "conv_id": 743,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? felices pascuas!"
+  },
+  {
+    "phone": "+5492364691439",
+    "name": "Susana",
+    "conv_id": 741,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igualmente"
+  },
+  {
+    "phone": "+5493462306510",
+    "name": "Sonya Willy",
+    "conv_id": 742,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493468416401",
+    "name": "Carlos",
+    "conv_id": 739,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462301317",
+    "name": "María Emilia",
+    "conv_id": 740,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? felices pascuas!"
+  },
+  {
+    "phone": "+5493462337555",
+    "name": "Jorge",
+    "conv_id": 738,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493416455802",
+    "name": "Gabriel Andreo",
+    "conv_id": 736,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493468513751",
+    "name": "Raul Berigozzi",
+    "conv_id": 737,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias!!!"
+  },
+  {
+    "phone": "+5493462344060",
+    "name": "Ceci",
+    "conv_id": 735,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462629745",
+    "name": "Karu 💖",
+    "conv_id": 734,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462325062",
+    "name": "Marcelo Atencio",
+    "conv_id": 733,
+    "msgs_count": 1,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "campañón... 👏 👏 👏 \nvoy a tomarme el atrevimiento de tomar prestada ésta idea!"
+  },
+  {
+    "phone": "+5492364541821",
+    "name": "Maria Ines",
+    "conv_id": 729,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias ! igual para todos uds ! 😊😘👋 👌👏😘👋"
+  },
+  {
+    "phone": "+5492364608932",
+    "name": "José Luis.",
+    "conv_id": 732,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493463440838",
+    "name": "Martii Jeiel Carranza",
+    "conv_id": 728,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364655238",
+    "name": "barrionuevomariel🙏♥️☀️🌛",
+    "conv_id": 731,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igualmente!!!!🙏🙏🙏🙏"
+  },
+  {
+    "phone": "+5493462568906",
+    "name": "Alejandra Durich",
+    "conv_id": 727,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462592971",
+    "name": "Brian One.Style",
+    "conv_id": 725,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462381837",
+    "name": "Ideas inteligentes",
+    "conv_id": 726,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con ideas inteligentes. por favor, haznos saber cómo podemos ayudarte. en es"
+  },
+  {
+    "phone": "+5493468542974",
+    "name": "Fede",
+    "conv_id": 724,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364693673",
+    "name": "Laura Perazzo",
+    "conv_id": 722,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "hola.   muchas gracias.  igualmente para todas.    abrazo gracias!!!!"
+  },
+  {
+    "phone": "+5492364454566",
+    "name": "Anahi",
+    "conv_id": 723,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462640265",
+    "name": "Olga 🌼",
+    "conv_id": 721,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462382828",
+    "name": "Luis Dionisio Gonzalez",
+    "conv_id": 719,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364224820",
+    "name": "Anto Caggiano",
+    "conv_id": 718,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias por su mensaje. el horario de atención es de lunes a viernes de 8 a 15 horas. cuando retome "
+  },
+  {
+    "phone": "+5492364553134",
+    "name": "Mirta",
+    "conv_id": 717,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias a buenisimo"
+  },
+  {
+    "phone": "+5493465535472",
+    "name": "Mariano Menna",
+    "conv_id": 714,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462561002",
+    "name": "Silvina",
+    "conv_id": 712,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5493462596105",
+    "name": "Ro",
+    "conv_id": 713,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? felices pascuas!"
+  },
+  {
+    "phone": "+5493462532949",
+    "name": "Natalia Uruzuna",
+    "conv_id": 709,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462639007",
+    "name": "Guille Gorosito",
+    "conv_id": 710,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364670840",
+    "name": "Gaston Rizzi",
+    "conv_id": 707,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias igualmente para uds."
+  },
+  {
+    "phone": "+5493462554915",
+    "name": "Pastelería Leonela",
+    "conv_id": 708,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con pastelería leonela. ¿cómo podemos ayudarte?en un momento será 🎂🍪atendien"
+  },
+  {
+    "phone": "+5492364664045",
+    "name": "Romi...poch",
+    "conv_id": 706,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5492364270268",
+    "name": "Fusióngrupoasesor",
+    "conv_id": 664,
+    "msgs_count": 2,
+    "intent": "sin_plata",
+    "is_business": true,
+    "sample_text": "te comunicaste con fusión ,\nno puedo atender en este momento , déjame un mensaje ,me comunico a la b"
+  },
+  {
+    "phone": "+5493513846277",
+    "name": "BERNARDA",
+    "conv_id": 705,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462681519",
+    "name": "Bren 🩵",
+    "conv_id": 704,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364589500",
+    "name": "Rosana Salazar",
+    "conv_id": 703,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462675287",
+    "name": "Dai",
+    "conv_id": 702,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5493462572864",
+    "name": "🌺💫❣️VALERIAGISELA🌈🧘🙏",
+    "conv_id": 701,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462336628",
+    "name": "Pablo Leger",
+    "conv_id": 700,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462506324",
+    "name": "Laura",
+    "conv_id": 698,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462560900",
+    "name": "Lu",
+    "conv_id": 695,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462412477",
+    "name": "Mabel",
+    "conv_id": 696,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462312342",
+    "name": "Lorena Russo",
+    "conv_id": 694,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364418140",
+    "name": "GRISEL CORTEZ",
+    "conv_id": 693,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493462548603",
+    "name": "Romina 😊",
+    "conv_id": 692,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493382571971",
+    "name": "Nestór Gabriel Martínez",
+    "conv_id": 689,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493382444341",
+    "name": "Lorena Seguer",
+    "conv_id": 690,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462524163",
+    "name": "Mari 🌸",
+    "conv_id": 691,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462506325",
+    "name": "Ruben Alonso",
+    "conv_id": 688,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias"
+  },
+  {
+    "phone": "+5493462685724",
+    "name": "Ana maria Oliva grau",
+    "conv_id": 686,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5493462576782",
+    "name": "Claudia Quiroga",
+    "conv_id": 687,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5492364227782",
+    "name": "Norma",
+    "conv_id": 685,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5492364413854",
+    "name": "Claudia Zavala",
+    "conv_id": 619,
+    "msgs_count": 3,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "hola cómo estás? 😊\n🌸si es x art. limpieza déjame tu pedido o mensaje. \n🌸x tattoo party  querés saber"
+  },
+  {
+    "phone": "+5493462376919",
+    "name": "Javier",
+    "conv_id": 684,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462511162",
+    "name": "Tama Galván",
+    "conv_id": 682,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462565322",
+    "name": "carmen",
+    "conv_id": 683,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493465415772",
+    "name": "blue-sunset-310",
+    "conv_id": 681,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462466190",
+    "name": "Sofia 🌻",
+    "conv_id": 680,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? felices pascuas!"
+  },
+  {
+    "phone": "+5493462579111",
+    "name": "Sandra De Juarez",
+    "conv_id": 679,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462625250",
+    "name": "Gaston 😁",
+    "conv_id": 678,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364411950",
+    "name": "Mariaesther",
+    "conv_id": 677,
+    "msgs_count": 2,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "que va a haber? voy!!!"
+  },
+  {
+    "phone": "+5492364663810",
+    "name": "Mercedes Aranda",
+    "conv_id": 676,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5492364322224",
+    "name": "Andrés",
+    "conv_id": 675,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias!!. igualmente para ustedes!!"
+  },
+  {
+    "phone": "+5492364568440",
+    "name": "Jorge Calatroni",
+    "conv_id": 674,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493462579235",
+    "name": "Susy",
+    "conv_id": 673,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493472430753",
+    "name": "Cristina",
+    "conv_id": 671,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462698286",
+    "name": "Rosana",
+    "conv_id": 583,
+    "msgs_count": 3,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber? gracias igualmente"
+  },
+  {
+    "phone": "+5493382483423",
+    "name": "Meli Guerrera",
+    "conv_id": 659,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493382447425",
+    "name": "Marcos Bellorin ⚡🐲🧿🏀🦅",
+    "conv_id": 660,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462699042",
+    "name": "Vero",
+    "conv_id": 669,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364344134",
+    "name": "Antonela Ferro",
+    "conv_id": 668,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con anto bagues. 🥰 ¿en qué puedo ayudarte?\n⭐para comprar podés hacerlo a tra"
+  },
+  {
+    "phone": "+5492364457392",
+    "name": "Rosana Lopez",
+    "conv_id": 667,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con rosana lopez showroom. ¿cómo podemos ayudarte? gracias por tu mensaje. e"
+  },
+  {
+    "phone": "+5493462384873",
+    "name": "Carolina///",
+    "conv_id": 663,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igualmente"
+  },
+  {
+    "phone": "+5492364695828",
+    "name": "Walter Oddo",
+    "conv_id": 665,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493462609812",
+    "name": "Dani",
+    "conv_id": 666,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364221398",
+    "name": "Cleanco",
+    "conv_id": 662,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con lavadero 🫧 clean&co, en  este momento no podemos responder, pero lo hare"
+  },
+  {
+    "phone": "+5493462503120",
+    "name": "María Belén Paz",
+    "conv_id": 661,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462540081",
+    "name": "Manuela Muñiz",
+    "conv_id": 658,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462381838",
+    "name": "Ideas Inteligentes",
+    "conv_id": 657,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con ideas inteligentes. por favor, haznos saber cómo podemos ayudarte. hola!"
+  },
+  {
+    "phone": "+5492364221004",
+    "name": "Estefy Lovera",
+    "conv_id": 654,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462673122",
+    "name": "17/07/2024",
+    "conv_id": 655,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462637990",
+    "name": "Yanina",
+    "conv_id": 652,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5491165168388",
+    "name": "Pamela",
+    "conv_id": 651,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462321114",
+    "name": "Celia Petinari",
+    "conv_id": 564,
+    "msgs_count": 3,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "gracias si voy a ir gracias gracias  felices pascuas !!"
+  },
+  {
+    "phone": "+5492364640437",
+    "name": "Jesica",
+    "conv_id": 649,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493382401902",
+    "name": "El Pekee🤙",
+    "conv_id": 650,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5492364531862",
+    "name": "Luis Afflitto",
+    "conv_id": 648,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "muchas gracias igualmente para ustedes"
+  },
+  {
+    "phone": "+5493462678405",
+    "name": "Chiara",
+    "conv_id": 645,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462560932",
+    "name": "Elida",
+    "conv_id": 646,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364589247",
+    "name": "Manolitos Bebes",
+    "conv_id": 647,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con natalia de manolitos bebés ¿cómo poduedo ayudarte?"
+  },
+  {
+    "phone": "+5493462635215",
+    "name": "Mikka",
+    "conv_id": 644,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5493462603866",
+    "name": "Sonia",
+    "conv_id": 556,
+    "msgs_count": 3,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? buenos días muchas gracias por avisar ahí estare que bueno"
+  },
+  {
+    "phone": "+5492364224640",
+    "name": "Ninoska",
+    "conv_id": 642,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "que tienen?"
+  },
+  {
+    "phone": "+5493462672505",
+    "name": "Juani Villa",
+    "conv_id": 643,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con juani villa ¿cómo podemos ayudarte? gracias por contactarnos, nuestro ho"
+  },
+  {
+    "phone": "+5493462320111",
+    "name": "😸🇦🇷🇪🇸",
+    "conv_id": 641,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462508454",
+    "name": "Tefii Mórales",
+    "conv_id": 640,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462525577",
+    "name": "Marcelo Valdatta",
+    "conv_id": 639,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "felices pascuas!"
+  },
+  {
+    "phone": "+5493462593300",
+    "name": "Lorena",
+    "conv_id": 638,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462647943",
+    "name": "Ade",
+    "conv_id": 637,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "felices pascuas! que va a haber?"
+  },
+  {
+    "phone": "+5493462597017",
+    "name": "Silvia Jaime",
+    "conv_id": 614,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462679915",
+    "name": "Moskatelo Refrigeración Repuestos",
+    "conv_id": 612,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias por comunicarse con *moskatelo refrigeración*\n.....   ... *horario* ...   ....\n*lunes a vier"
+  },
+  {
+    "phone": "+5493462622059",
+    "name": "Natyy Allison",
+    "conv_id": 611,
+    "msgs_count": 3,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": " uggh⁷hpjjggggvgggg "
+  },
+  {
+    "phone": "+5493462464347",
+    "name": "dámaris maldonado",
+    "conv_id": 609,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462410353",
+    "name": "🕷️",
+    "conv_id": 615,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462649353",
+    "name": "Daro",
+    "conv_id": 610,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462678926",
+    "name": "Andrea Romanzini",
+    "conv_id": 608,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462380765",
+    "name": "Rocio",
+    "conv_id": 606,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462653296",
+    "name": "Gustavo",
+    "conv_id": 607,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462673011",
+    "name": "Valentina Baez",
+    "conv_id": 605,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462699204",
+    "name": "Natalia Bozizio",
+    "conv_id": 603,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "hooolaa!!! cómo estás? en este momento no te puedo responder, pero lo haré ni bien me desocupe! grac"
+  },
+  {
+    "phone": "+5493462647410",
+    "name": "Sole",
+    "conv_id": 602,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462610350",
+    "name": "Guaupos Vt",
+    "conv_id": 601,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462386214",
+    "name": "viviana",
+    "conv_id": 599,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias ok"
+  },
+  {
+    "phone": "+5493462328672",
+    "name": "J.F",
+    "conv_id": 600,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462318052",
+    "name": "Manu",
+    "conv_id": 598,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462536305",
+    "name": "Norma Susana",
+    "conv_id": 597,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "fui y no me gustó. la atencionnnn"
+  },
+  {
+    "phone": "+5493462540537",
+    "name": "Alex",
+    "conv_id": 584,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? hoy esta abierto?"
+  },
+  {
+    "phone": "+5493462540767",
+    "name": "rioselena759",
+    "conv_id": 596,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias"
+  },
+  {
+    "phone": "+5493462651110",
+    "name": "𝚂𝚒𝚕",
+    "conv_id": 594,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462684705",
+    "name": "Luci",
+    "conv_id": 595,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462650481",
+    "name": "Edith",
+    "conv_id": 593,
+    "msgs_count": 3,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "ya voy  hir chicas . 😘 👍🏻"
+  },
+  {
+    "phone": "+5493462605359",
+    "name": "🌹DANY R.🌹🙌",
+    "conv_id": 592,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462546033",
+    "name": "Cristina Mabel Oviedo",
+    "conv_id": 591,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462231238",
+    "name": "Betty Espindola",
+    "conv_id": 537,
+    "msgs_count": 4,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "que va a haber? jajaja \nbuen dia si si voy a ir seguro jaja \nya estoy invitando a mis hermanas graci"
+  },
+  {
+    "phone": "+5493462677934",
+    "name": "Euge 💙",
+    "conv_id": 589,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462571315",
+    "name": "Vale",
+    "conv_id": 590,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias por tu mensaje. \n🕓 el horario de atención es de 8 a 16 horas de lunes a viernes. ❕\nsi tenes "
+  },
+  {
+    "phone": "+5493462635066",
+    "name": "Luciana",
+    "conv_id": 582,
+    "msgs_count": 3,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? algunas fotos d lo k va a ver ? zapatillas ?"
+  },
+  {
+    "phone": "+5493462340059",
+    "name": "Karina",
+    "conv_id": 588,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462607705",
+    "name": "Cristian",
+    "conv_id": 587,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "hola 👋"
+  },
+  {
+    "phone": "+5493462510339",
+    "name": "Victoria🙂",
+    "conv_id": 585,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462535399",
+    "name": "Macarena Kresic 💫",
+    "conv_id": 581,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462656646",
+    "name": "pereyrazulmasusana",
+    "conv_id": 579,
+    "msgs_count": 1,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "bueno gracias x el mensajito los voy a estar  visitando"
+  },
+  {
+    "phone": "+5493462688554",
+    "name": "🌱",
+    "conv_id": 578,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462515001",
+    "name": ".",
+    "conv_id": 577,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462466018",
+    "name": "Raul Agüero",
+    "conv_id": 567,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "ok"
+  },
+  {
+    "phone": "+5493462416685",
+    "name": "Yanina Maldonado",
+    "conv_id": 570,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias..💖"
+  },
+  {
+    "phone": "+5493462330735",
+    "name": "Belén Cúchero",
+    "conv_id": 576,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462319307",
+    "name": "Guillermo",
+    "conv_id": 575,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462419686",
+    "name": "Alito",
+    "conv_id": 574,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462660986",
+    "name": "Clau Tarpin",
+    "conv_id": 573,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462621628",
+    "name": "Nestor",
+    "conv_id": 572,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462570961",
+    "name": "Alma .fede.fran🥰",
+    "conv_id": 571,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462640881",
+    "name": "Tano Equipamientos",
+    "conv_id": 613,
+    "msgs_count": 2,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "😘 "
+  },
+  {
+    "phone": "+5493462576196",
+    "name": "jesica benitez",
+    "conv_id": 569,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462677240",
+    "name": "Ani",
+    "conv_id": 568,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462343892",
+    "name": "Claudia Gonzalez",
+    "conv_id": 565,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462571681",
+    "name": "🇦🇷🇦🇷🇦🇷🇦🇷",
+    "conv_id": 563,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462309386",
+    "name": "Belu",
+    "conv_id": 559,
+    "msgs_count": 3,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque hola"
+  },
+  {
+    "phone": "+5493462621014",
+    "name": "jesica🥰",
+    "conv_id": 555,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? gracias hay estare y felices pascua"
+  },
+  {
+    "phone": "+5493462649149",
+    "name": "Silvina Audicana",
+    "conv_id": 561,
+    "msgs_count": 1,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "gracias nos vamos"
+  },
+  {
+    "phone": "+5493462598310",
+    "name": "Marcela",
+    "conv_id": 562,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462651562",
+    "name": "María CRISTINA CESARATO",
+    "conv_id": 560,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462609464",
+    "name": "Rosa Elisa Rodriguez",
+    "conv_id": 558,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462552349",
+    "name": "Aicos",
+    "conv_id": 534,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "👍👍👍👍👍"
+  },
+  {
+    "phone": "+5493462602811",
+    "name": "Carina Canelo😁",
+    "conv_id": 542,
+    "msgs_count": 3,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber? bueno muchas gracias que es la credencial municimal atr"
+  },
+  {
+    "phone": "+5493462384575",
+    "name": "Andres Arreguy",
+    "conv_id": 616,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462513227",
+    "name": "Cristina Rodriguez",
+    "conv_id": 546,
+    "msgs_count": 1,
+    "intent": "sin_plata",
+    "is_business": false,
+    "sample_text": "hola, yo también extraño, pero no hay plata"
+  },
+  {
+    "phone": "+5493462555656",
+    "name": "😊",
+    "conv_id": 557,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462694253",
+    "name": "Rodolfo Ricardo Torres",
+    "conv_id": 550,
+    "msgs_count": 1,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "hola cómo anda muchas gracias por avisar ya voy andar por ay"
+  },
+  {
+    "phone": "+5493462662501",
+    "name": "Ariana Mateini",
+    "conv_id": 552,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462411470",
+    "name": "Walter",
+    "conv_id": 551,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462561494",
+    "name": "Etelvina",
+    "conv_id": 549,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462653051",
+    "name": "Daiana Avila",
+    "conv_id": 548,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462416133",
+    "name": "Federico Nicola",
+    "conv_id": 547,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462536717",
+    "name": "Hugo",
+    "conv_id": 544,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462596798",
+    "name": "Carla",
+    "conv_id": 543,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462511740",
+    "name": "Mariano",
+    "conv_id": 541,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462637737",
+    "name": "Angi",
+    "conv_id": 539,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462650170",
+    "name": "Alicia Lerda",
+    "conv_id": 538,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462626579",
+    "name": "♡",
+    "conv_id": 536,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462419321",
+    "name": "Maricha",
+    "conv_id": 535,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462622463",
+    "name": "Brisa",
+    "conv_id": 533,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462687122",
+    "name": "Silvia Galvagno",
+    "conv_id": 532,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462569780",
+    "name": "Estela Garcia",
+    "conv_id": 531,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462309835",
+    "name": "Blanca Ontivero",
+    "conv_id": 530,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "buenos  día bendiciones  gracia"
+  },
+  {
+    "phone": "+5493462638427",
+    "name": "Graciela",
+    "conv_id": 529,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": ""
+  },
+  {
+    "phone": "+5493462542196",
+    "name": "Viviana 💜💜💜🦉",
+    "conv_id": 528,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5493462341139",
+    "name": "Nelson",
+    "conv_id": 524,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque gracias"
+  },
+  {
+    "phone": "+5493462627806",
+    "name": "Maria Fernanda Artaza",
+    "conv_id": 526,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque muchas gracias!"
+  },
+  {
+    "phone": "+5493462581999",
+    "name": "Romi",
+    "conv_id": 523,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462637251",
+    "name": "Lucia Giordano (Ger)",
+    "conv_id": 520,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493764527858",
+    "name": "Jungle Travel",
+    "conv_id": 447,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "buen día !!! de que localidad o barrio sos😄👍"
+  },
+  {
+    "phone": "+5493462610216",
+    "name": "Guille",
+    "conv_id": 431,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "hola."
+  },
+  {
+    "phone": "+5493462671791",
+    "name": "Marta Seghetti",
+    "conv_id": 540,
+    "msgs_count": 3,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber? dale !!"
+  },
+  {
+    "phone": "+5493462549044",
+    "name": "Victor",
+    "conv_id": 617,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493468647972",
+    "name": "Gustavo",
+    "conv_id": 618,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque que va a haber?"
+  },
+  {
+    "phone": "+5492364539733",
+    "name": "Silvia2025.",
+    "conv_id": 620,
+    "msgs_count": 1,
+    "intent": "va_a_ir",
+    "is_business": false,
+    "sample_text": "hola no hace mucho porque voy todos los meses a pagar jaja"
+  },
+  {
+    "phone": "+5492364456998",
+    "name": "(♡CRZT2000♡)シ︎ᗰᗩᘜᗩᒪIシ︎",
+    "conv_id": 622,
+    "msgs_count": 2,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "hola yo no me llamo martina te habrás equivocado"
+  },
+  {
+    "phone": "+5493462413302",
+    "name": "Clara",
+    "conv_id": 623,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462662375",
+    "name": "Agustina🥀🖤",
+    "conv_id": 624,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364726214",
+    "name": "Stella Maris Battaglia",
+    "conv_id": 621,
+    "msgs_count": 2,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "👍😍 sería genial pero soy de junín pcia de bs así acá también son válidas las promos???"
+  },
+  {
+    "phone": "+5493462629722",
+    "name": "Uligeromatelio",
+    "conv_id": 625,
+    "msgs_count": 2,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "que va a haber? avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462554972",
+    "name": "Marti Giumbini",
+    "conv_id": 626,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462591545",
+    "name": "Silvia Zabaleta",
+    "conv_id": 627,
+    "msgs_count": 1,
+    "intent": "neutro",
+    "is_business": false,
+    "sample_text": "hola este número no corresponde a esa persona ."
+  },
+  {
+    "phone": "+5493462699656",
+    "name": "David Romero",
+    "conv_id": 628,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5492364694394",
+    "name": "Lorena",
+    "conv_id": 629,
+    "msgs_count": 2,
+    "intent": "quiere_online",
+    "is_business": false,
+    "sample_text": "que va a haber? yo soy de junin"
+  },
+  {
+    "phone": "+5493462549243",
+    "name": "Lury",
+    "conv_id": 630,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462672330",
+    "name": "Fernando Test",
+    "conv_id": 432,
+    "msgs_count": 7,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "comision $20k/set ver más fotos que va a haber? que va a haber? que va a haber? que va a haber? feli"
+  },
+  {
+    "phone": "+5493462698572",
+    "name": "Gustavo",
+    "conv_id": 631,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5493462627059",
+    "name": "Gonzalo Esquivel",
+    "conv_id": 554,
+    "msgs_count": 2,
+    "intent": "interesado_productos",
+    "is_business": true,
+    "sample_text": "hola 👋 gracias por contactarte.\nsomos una empresa de construcción e instalaciones integrales.\n\n📍 ven"
+  },
+  {
+    "phone": "+5493382445169",
+    "name": "😁",
+    "conv_id": 633,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462535052",
+    "name": "Mauro",
+    "conv_id": 635,
+    "msgs_count": 1,
+    "intent": "interesado_productos",
+    "is_business": false,
+    "sample_text": "que va a haber?"
+  },
+  {
+    "phone": "+5493462598445",
+    "name": "Hugo",
+    "conv_id": 634,
+    "msgs_count": 1,
+    "intent": "quiere_aviso",
+    "is_business": false,
+    "sample_text": "avisame cuando arranque"
+  },
+  {
+    "phone": "+5492364645431",
+    "name": "Analia Buccino",
+    "conv_id": 636,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "gracias igual mente"
+  },
+  {
+    "phone": "+5493462674133",
+    "name": "Manager Software de Gestion",
+    "conv_id": 527,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": false,
+    "sample_text": "este es un mensaje automatico\n\n*estoy fuera de mi trabajo por estos días.*\n\npor cualquier inconvenie"
+  },
+  {
+    "phone": "+5493462546579",
+    "name": "thomy",
+    "conv_id": 522,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con thomy. nuevo número de contacto... 3462 223140. gracias por tu mensaje. "
+  },
+  {
+    "phone": "+5493462650172",
+    "name": "Agua mari",
+    "conv_id": 525,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con agua marí. ¿cómo podemos ayudarte? gracias por tu mensaje. en este momen"
+  },
+  {
+    "phone": "+5493462376923",
+    "name": "Josue",
+    "conv_id": 545,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con kinta de josue. ¿cómo podemos ayudarte?"
+  },
+  {
+    "phone": "+5493462332287",
+    "name": "Mauro Nacre",
+    "conv_id": 553,
+    "msgs_count": 2,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con mauro nacre, soy representante de nacre alineaciones, en qué puedo ayuda"
+  },
+  {
+    "phone": "+5493462536588",
+    "name": "Bianco Sanz Productores De Seguros",
+    "conv_id": 566,
+    "msgs_count": 1,
+    "intent": "sin_plata",
+    "is_business": false,
+    "sample_text": "gracias por su mensaje. en este momento no puedo responder pero lo hare lo antes posible. horario de"
+  },
+  {
+    "phone": "+5493462577474",
+    "name": "Matafuegos Perucca",
+    "conv_id": 586,
+    "msgs_count": 1,
+    "intent": "positivo",
+    "is_business": true,
+    "sample_text": "gracias por comunicarte con matafuegos perucca. ¿cómo podemos ayudarte?"
+  }
+]

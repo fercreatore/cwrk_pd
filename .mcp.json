@@ -8,6 +8,19 @@
         "OPENSSL_CONF": "/tmp/openssl_legacy.cnf"
       }
     },
+    "clz-ventas": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub", "--dsn", "sqlserver://meta106:Meta106%23@192.168.2.112:1433/clz_ventas_sql?sslmode=disable"],
+      "env": {
+        "OPENSSL_CONF": "/tmp/openssl_legacy.cnf"
+      }
+    },
+    "mysql-auth": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub", "--dsn", "mysql://root:cagr%242011@192.168.2.109:3306/clz_ventas_mysql"]
+    },
     "postgres": {
       "type": "stdio",
       "command": "npx",

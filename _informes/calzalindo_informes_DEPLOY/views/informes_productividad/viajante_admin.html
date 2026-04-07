@@ -1,0 +1,266 @@
+{{extend 'layout.html'}}
+
+<style>
+.badge-tipo {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.tipo-individual { background: #27ae60; }
+.tipo-grupal     { background: #f39c12; }
+.tipo-excluido   { background: #e74c3c; }
+.tipo-ml         { background: #2980b9; }
+
+.filter-bar { background: #ecf0f1; padding: 12px 15px; border-radius: 5px; margin-bottom: 18px; }
+.table-vjt th { font-size: 12px; background: #2c3e50; color: #fff; }
+.table-vjt td { font-size: 12px; vertical-align: middle; }
+.table-vjt tr:hover { background: #eaf2f8; }
+.fila-inactivo { opacity: 0.55; }
+
+.modal-tipo-select { min-width: 120px; }
+.btn-editar { padding: 2px 8px; font-size: 11px; }
+
+#modal-editar .modal-header { background: #2c3e50; color: #fff; }
+#modal-editar .modal-header .close { color: #fff; opacity: 0.8; }
+</style>
+
+<h2>
+    Configuracion de Viajantes
+    <small>Admin &mdash; solo informes_admin</small>
+</h2>
+
+{{if mensaje:}}
+<div class="alert alert-success alert-dismissible">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    {{=mensaje}}
+</div>
+{{pass}}
+
+{{if error:}}
+<div class="alert alert-danger alert-dismissible">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    {{=error}}
+</div>
+{{pass}}
+
+<!-- ===== Filtros ===== -->
+<div class="filter-bar">
+    <form method="GET" class="form-inline">
+        <div class="form-group">
+            <label style="margin-right:5px;">Tipo:</label>
+            <select name="ftipo" class="form-control input-sm">
+                <option value="">Todos</option>
+                {{for t in tipos_disponibles:}}
+                <option value="{{=t}}" {{='selected' if filtro_tipo == t else ''}}>{{=t}}</option>
+                {{pass}}
+            </select>
+        </div>
+        <div class="form-group" style="margin-left:12px;">
+            <label style="margin-right:5px;">Activo:</label>
+            <select name="factivo" class="form-control input-sm">
+                <option value="">Todos</option>
+                <option value="1" {{='selected' if filtro_activo == '1' else ''}}>Si</option>
+                <option value="0" {{='selected' if filtro_activo == '0' else ''}}>No</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-default btn-sm" style="margin-left:10px;">Filtrar</button>
+        <a href="{{=URL('informes_productividad','viajante_admin')}}"
+           class="btn btn-link btn-sm" style="margin-left:5px;">Limpiar</a>
+        <span class="text-muted" style="margin-left:20px; font-size:12px;">
+            {{=len(viajantes)}} registros
+        </span>
+    </form>
+</div>
+
+<!-- ===== Tabla principal ===== -->
+<div class="table-responsive">
+<table class="table table-bordered table-condensed table-vjt">
+    <thead>
+        <tr>
+            <th>Codigo</th>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Deposito</th>
+            <th>Usuario vinculado</th>
+            <th>Activo</th>
+            <th>Observaciones</th>
+            <th>Alta</th>
+            <th style="width:70px;"></th>
+        </tr>
+    </thead>
+    <tbody>
+    {{for v in viajantes:}}
+    {{
+        fila_class = '' if v.get('activo') else 'fila-inactivo'
+        tipo_val   = v.get('tipo') or 'individual'
+        dep_cod    = v.get('deposito_principal')
+        dep_txt    = dep_nombres.get(dep_cod, str(dep_cod)) if dep_cod is not None else u'\u2014'
+        uid        = v.get('auth_user_id')
+        usuario_txt = u'\u2014'
+        for u_obj in usuarios:
+            if u_obj.id == uid:
+                usuario_txt = u'%s %s' % (u_obj.first_name or '', u_obj.last_name or '')
+                break
+    }}
+    <tr class="{{=fila_class}}"
+        data-cod="{{=v.get('viajante_codigo')}}"
+        data-nombre="{{=v.get('nombre') or ''}}"
+        data-tipo="{{=tipo_val}}"
+        data-dep="{{=dep_cod if dep_cod is not None else ''}}"
+        data-uid="{{=uid if uid is not None else ''}}"
+        data-activo="{{='1' if v.get('activo') else '0'}}"
+        data-obs="{{=(v.get('observaciones') or '').replace(chr(34), '&quot;')}}">
+
+        <td><strong>{{=v.get('viajante_codigo')}}</strong></td>
+        <td>{{=v.get('nombre')}}</td>
+        <td>
+            <span class="badge-tipo tipo-{{=tipo_val}}">{{=tipo_val}}</span>
+        </td>
+        <td>{{=dep_txt}}</td>
+        <td>{{=usuario_txt}}</td>
+        <td style="text-align:center;">
+            {{if v.get('activo'):}}
+            <span class="label label-success">Si</span>
+            {{else:}}
+            <span class="label label-default">No</span>
+            {{pass}}
+        </td>
+        <td style="max-width:200px; word-wrap:break-word; font-size:11px; color:#666;">
+            {{=v.get('observaciones') or ''}}
+        </td>
+        <td style="font-size:11px; color:#999;">
+            {{= str(v.get('fecha_alta') or '')[:10] }}
+        </td>
+        <td>
+            <button type="button" class="btn btn-primary btn-editar"
+                    onclick="abrirModal(this)">
+                Editar
+            </button>
+        </td>
+    </tr>
+    {{pass}}
+    </tbody>
+</table>
+</div>
+
+<!-- ===== Modal de edicion ===== -->
+<div class="modal fade" id="modal-editar" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Editar viajante <span id="modal-titulo-cod"></span></h4>
+            </div>
+            <form method="POST" action="{{=URL('informes_productividad','viajante_admin')}}">
+                <input type="hidden" name="accion" value="guardar">
+                <input type="hidden" name="viajante_codigo" id="modal-cod">
+                <div class="modal-body">
+
+                    <div class="form-group">
+                        <label>Codigo</label>
+                        <p id="modal-nombre-display" class="form-control-static"></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-tipo">Tipo</label>
+                        <select name="tipo" id="modal-tipo" class="form-control modal-tipo-select">
+                            {{for t in tipos_disponibles:}}
+                            <option value="{{=t}}">{{=t}}</option>
+                            {{pass}}
+                        </select>
+                        <span class="help-block" style="font-size:11px;">
+                            individual = vendedor real &bull;
+                            grupal = cuenta compartida &bull;
+                            excluido = no incluir en analisis &bull;
+                            ml = operador Mercado Libre
+                        </span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-dep">Deposito principal</label>
+                        <select name="deposito_principal" id="modal-dep" class="form-control">
+                            <option value="">-- sin asignar --</option>
+                            {{for dep_k, dep_v in dep_nombres.items():}}
+                            <option value="{{=dep_k}}">{{=dep_k}} - {{=dep_v}}</option>
+                            {{pass}}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-uid">Usuario del sistema (auth_user)</label>
+                        <select name="auth_user_id" id="modal-uid" class="form-control">
+                            <option value="">-- sin vincular --</option>
+                            {{for u_obj in usuarios:}}
+                            <option value="{{=u_obj.id}}">
+                                {{=u_obj.first_name}} {{=u_obj.last_name}} ({{=u_obj.email}})
+                            </option>
+                            {{pass}}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-activo">Activo</label>
+                        <select name="activo" id="modal-activo" class="form-control">
+                            <option value="1">Si</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-obs">Observaciones</label>
+                        <textarea name="observaciones" id="modal-obs"
+                                  class="form-control" rows="3"
+                                  maxlength="500"></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function abrirModal(btn) {
+    var tr = btn.closest('tr');
+    var cod    = tr.getAttribute('data-cod');
+    var nombre = tr.getAttribute('data-nombre');
+    var tipo   = tr.getAttribute('data-tipo');
+    var dep    = tr.getAttribute('data-dep');
+    var uid    = tr.getAttribute('data-uid');
+    var activo = tr.getAttribute('data-activo');
+    var obs    = tr.getAttribute('data-obs').replace(/&quot;/g, '"');
+
+    document.getElementById('modal-titulo-cod').textContent = cod + ' — ' + nombre;
+    document.getElementById('modal-cod').value   = cod;
+    document.getElementById('modal-nombre-display').textContent = nombre;
+    document.getElementById('modal-obs').value   = obs;
+
+    var selTipo = document.getElementById('modal-tipo');
+    for (var i = 0; i < selTipo.options.length; i++) {
+        selTipo.options[i].selected = (selTipo.options[i].value === tipo);
+    }
+    var selDep = document.getElementById('modal-dep');
+    for (var i = 0; i < selDep.options.length; i++) {
+        selDep.options[i].selected = (selDep.options[i].value === dep);
+    }
+    var selUid = document.getElementById('modal-uid');
+    for (var i = 0; i < selUid.options.length; i++) {
+        selUid.options[i].selected = (selUid.options[i].value === uid);
+    }
+    var selActivo = document.getElementById('modal-activo');
+    for (var i = 0; i < selActivo.options.length; i++) {
+        selActivo.options[i].selected = (selActivo.options[i].value === activo);
+    }
+
+    $('#modal-editar').modal('show');
+}
+</script>

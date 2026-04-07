@@ -620,3 +620,22 @@ Arrancar con FastAPI en Python 3 para los módulos nuevos. Convive con web2py. C
 Crear las tablas del Fase 1 en `omicronvt` (réplica .112 primero, luego producción .111) y empezar a construir el controller `panel_vendedor.py` como módulo web2py (para arrancar rápido) con migración posterior a FastAPI.
 
 ¿SQL para crear las tablas está listo arriba. ¿Arrancamos?
+
+---
+
+## 10. SEÑALES DE MERCADO — BITÁCORA
+
+### 5 de abril de 2026 — Uber apuesta $500M en Argentina
+
+**Fuente:** Nota periodística sobre inversión Uber Argentina (abril 2026)
+
+**Puntos clave:**
+- Argentina es **top 5 mundial** en viajes Uber, top 10 en gasto USD. Sobreperforma su peso poblacional.
+- **USD 500M de inversión** anunciada + relanzamiento de Uber Eats.
+- El CEO elogió a Milei pero tiene incentivo directo: acaba de comprometer 500 palos. No es análisis, es PR.
+- La señal real no es el discurso político — es que una empresa de esta escala apuesta en su mercado top 5 con producto nuevo.
+- **Dato útil para el modelo freelance:** Uber Eats entra donde ya tienen masa crítica de usuarios. Eso es exactamente la lógica de plataforma: primero volumen, después capas de servicio encima.
+- Riesgo que la nota ignora: el contexto macro (cepo en transición, flotación sucia) puede revertirse. Uber lo sabe y lo diversifica con escala.
+
+**Conexión con nuestro modelo:**
+Calzalindo ya tiene la masa crítica (15 sucursales, ~3,500 clientes/mes, catálogo de 10K+ artículos). El modelo freelance es la "capa de servicio encima" — vendedores independientes que amplifican el alcance sin carga social del 43%. Si Uber valida que el gig economy funciona en Argentina con $500M, la tesis se refuerza.

@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import secrets
 import time
+import threading
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from pydantic import BaseModel
@@ -22,25 +23,24 @@ from config import settings
 
 router = APIRouter()
 
-# ── Sesiones en memoria (simple, sin Redis) ──────────────
+# ── Sesiones en memoria (thread-safe con Lock) ─────────────
 # {token: {user_id, email, nombre, roles, sucursal, codigo_vendedor, ts}}
 SESSIONS: dict = {}
+SESSIONS_LOCK = threading.Lock()
 SESSION_TTL = 86400 * 7  # 7 días
-
-# ── MySQL auth connection (misma que web2py) ─────────────
-MYSQL_AUTH = {
-    "host": "192.168.2.109",
-    "user": "root",
-    "password": "cagr$2011",
-    "database": "clz_ventas_mysql",
-    "charset": "utf8mb4",
-    "cursorclass": pymysql.cursors.DictCursor,
-}
 
 
 def query_auth(sql: str, params: tuple = None) -> list:
     """Ejecuta query contra MySQL auth y retorna lista de dicts."""
-    conn = pymysql.connect(**MYSQL_AUTH)
+    mysql_config = {
+        "host": settings.MYSQL_AUTH_HOST,
+        "user": settings.MYSQL_AUTH_USER,
+        "password": settings.MYSQL_AUTH_PASSWORD,
+        "database": settings.MYSQL_AUTH_DATABASE,
+        "charset": settings.MYSQL_AUTH_CHARSET,
+        "cursorclass": pymysql.cursors.DictCursor,
+    }
+    conn = pymysql.connect(**mysql_config)
     try:
         with conn.cursor() as cur:
             if params:
@@ -149,25 +149,28 @@ def generate_token() -> str:
 
 
 def cleanup_sessions():
-    """Limpia sesiones expiradas."""
+    """Limpia sesiones expiradas (thread-safe)."""
     now = time.time()
-    expired = [k for k, v in SESSIONS.items() if now - v["ts"] > SESSION_TTL]
-    for k in expired:
-        del SESSIONS[k]
+    with SESSIONS_LOCK:
+        expired = [k for k, v in SESSIONS.items() if now - v["ts"] > SESSION_TTL]
+        for k in expired:
+            del SESSIONS[k]
 
 
 # ── Dependencia: obtener usuario actual ──────────────────
 async def get_current_user(request: Request) -> Optional[dict]:
-    """Extrae usuario de cookie o header Authorization."""
+    """Extrae usuario de cookie o header Authorization (thread-safe)."""
     token = request.cookies.get("h4_token")
     if not token:
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header[7:]
-    if token and token in SESSIONS:
-        session = SESSIONS[token]
-        if time.time() - session["ts"] < SESSION_TTL:
-            return session
+    if token:
+        with SESSIONS_LOCK:
+            if token in SESSIONS:
+                session = SESSIONS[token]
+                if time.time() - session["ts"] < SESSION_TTL:
+                    return session
     return None
 
 
@@ -232,7 +235,7 @@ async def login(data: LoginIn, response: Response):
     es_admin = "admins" in roles or "ges_admin" in roles
     es_vendedor = codigo_vendedor is not None
 
-    # Crear sesión
+    # Crear sesión (thread-safe)
     token = generate_token()
     session_data = {
         "user_id": user_id,
@@ -245,7 +248,8 @@ async def login(data: LoginIn, response: Response):
         "codigo_vendedor": codigo_vendedor,
         "ts": time.time(),
     }
-    SESSIONS[token] = session_data
+    with SESSIONS_LOCK:
+        SESSIONS[token] = session_data
 
     # Cookie httponly
     response.set_cookie(
@@ -290,10 +294,12 @@ async def me(user: dict = Depends(require_user)):
 
 @router.post("/logout")
 async def logout(request: Request, response: Response):
-    """Cerrar sesión."""
+    """Cerrar sesión (thread-safe)."""
     token = request.cookies.get("h4_token")
-    if token and token in SESSIONS:
-        del SESSIONS[token]
+    if token:
+        with SESSIONS_LOCK:
+            if token in SESSIONS:
+                del SESSIONS[token]
     response.delete_cookie("h4_token")
     return {"ok": True, "mensaje": "Sesión cerrada"}
 
