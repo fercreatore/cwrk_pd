@@ -25,5 +25,12 @@
     "nombre": "~Maxi~",
     "motivo": "numero equivocado",
     "fecha_baja": "2026-04-06"
+  },
+  {
+    "telefono": "5493462619822",
+    "nombre": "Pablo",
+    "motivo": "keyword: Es q estoy siempre trabajando",
+    "origen": "keyword",
+    "fecha_baja": "2026-04-07 12:53:03"
   }
 ]

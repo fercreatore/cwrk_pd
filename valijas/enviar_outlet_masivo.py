@@ -169,7 +169,10 @@ def main():
     sent_phones = load_sent_phones()
     optout_phones = load_optout_phones()
 
-    # Filtrar
+    # Filtrar por zona outlet (solo VT + alrededores, NO Junín)
+    ZONA_OUTLET_PREFIXES = ('549346',)  # VT, Firmat, Rufino, etc.
+    EXCLUIR_PREFIXES = ('549236', '54911', '549341', '549351')  # Junín, CABA, Rosario, Córdoba
+
     eligible = []
     for c in contacts:
         tel = c.get("telefono", c.get("telefono_normalizado", ""))
@@ -178,6 +181,9 @@ def main():
         if tel in sent_phones:
             continue
         if is_optout(tel, optout_phones):
+            continue
+        # Filtro zona: solo VT y alrededores
+        if not any(tel.startswith(p) for p in ZONA_OUTLET_PREFIXES):
             continue
         eligible.append(c)
 

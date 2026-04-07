@@ -2568,5 +2568,104 @@
     "responded_at": "",
     "initial_sent": false,
     "skipped_at": "2026-04-07 10:49:17"
+  },
+  "1075": {
+    "last_message_id": 6321,
+    "responded_at": "2026-04-07 11:35:38",
+    "initial_sent": false
+  },
+  "1076": {
+    "last_message_id": 6324,
+    "responded_at": "2026-04-07 12:30:11",
+    "initial_sent": false
+  },
+  "1077": {
+    "last_message_id": 6328,
+    "responded_at": "2026-04-07 12:31:59",
+    "initial_sent": false
+  },
+  "1078": {
+    "last_message_id": 6330,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-07 12:31:58"
+  },
+  "1079": {
+    "last_message_id": 6332,
+    "responded_at": "2026-04-07 12:33:21",
+    "initial_sent": false
+  },
+  "1080": {
+    "last_message_id": 6334,
+    "responded_at": "2026-04-07 12:36:08",
+    "initial_sent": false
+  },
+  "1081": {
+    "last_message_id": 6336,
+    "responded_at": "2026-04-07 12:36:43",
+    "initial_sent": false
+  },
+  "1082": {
+    "last_message_id": 6338,
+    "responded_at": "2026-04-07 12:38:07",
+    "initial_sent": false
+  },
+  "1084": {
+    "last_message_id": 6341,
+    "responded_at": "2026-04-07 12:38:43",
+    "initial_sent": false
+  },
+  "1083": {
+    "last_message_id": 6344,
+    "responded_at": "2026-04-07 12:39:20",
+    "initial_sent": false
+  },
+  "1085": {
+    "last_message_id": 6361,
+    "responded_at": "2026-04-07 12:40:16",
+    "initial_sent": false,
+    "skipped_at": "2026-04-07 12:46:44"
+  },
+  "1086": {
+    "last_message_id": 6349,
+    "responded_at": "",
+    "initial_sent": false,
+    "skipped_at": "2026-04-07 12:41:07"
+  },
+  "1087": {
+    "last_message_id": 6350,
+    "responded_at": "2026-04-07 12:41:43",
+    "initial_sent": false
+  },
+  "1088": {
+    "last_message_id": 6352,
+    "responded_at": "2026-04-07 12:42:02",
+    "initial_sent": false
+  },
+  "1089": {
+    "last_message_id": 6360,
+    "responded_at": "2026-04-07 12:46:44",
+    "initial_sent": false
+  },
+  "1090": {
+    "last_message_id": 6364,
+    "responded_at": "2026-04-07 12:51:16",
+    "initial_sent": false
+  },
+  "1091": {
+    "last_message_id": 6377,
+    "responded_at": "2026-04-07 12:56:37",
+    "initial_sent": false
+  },
+  "1092": {
+    "last_message_id": 6370,
+    "responded_at": "2026-04-07 12:53:03",
+    "initial_sent": true,
+    "optout": true
+  },
+  "1093": {
+    "last_message_id": 6379,
+    "responded_at": "2026-04-07 12:57:49",
+    "initial_sent": false
   }
 }
