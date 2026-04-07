@@ -1,0 +1,16 @@
+# Dependencias del sistema de carga H4/Calzalindo
+# Instalar: pip install -r requirements.txt
+
+pyodbc>=4.0.39         # conexión SQL Server
+streamlit>=1.30.0      # interfaz web para operadores
+Pillow>=10.0.0         # procesamiento de imágenes
+requests>=2.31.0       # búsqueda de imágenes web
+pdfplumber>=0.10.0     # extracción de texto PDF (fallback si no hay PyMuPDF)
+PyMuPDF>=1.23.0        # extracción rápida de texto PDF (opcional)
+openpyxl>=3.1.0        # lectura de Excel .xlsx
+
+# Market Intelligence
+beautifulsoup4>=4.12.0 # scraping ML (HTML parser)
+pandas>=2.0.0          # análisis de datos market intelligence
+pytrends>=4.9.0        # Google Trends integration
+lxml>=4.9.0            # parser HTML rápido para BeautifulSoup
