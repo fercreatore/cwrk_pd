@@ -222,6 +222,37 @@ osascript -e '
 ' 2>/dev/null
 
 # =============================================================
+# 6. CREAR SYMLINKS ~/mnt/ → /Volumes/ (para deploy.sh)
+# =============================================================
+# deploy.sh y watch_sync.sh usan ~/mnt/ como mount point.
+# reconectar_auto monta via Finder a /Volumes/.
+# Symlinks unen los dos mundos.
+log ""
+log "${YELLOW}Creando symlinks ~/mnt/ → /Volumes/...${NC}"
+mkdir -p "$HOME/mnt" 2>/dev/null
+
+# cowork_111 → /Volumes/cowork_pedidos
+if mount | grep -q "/Volumes/cowork_pedidos"; then
+    # Remover mount point viejo si existe como directorio (no symlink)
+    if [ -d "$HOME/mnt/cowork_111" ] && [ ! -L "$HOME/mnt/cowork_111" ]; then
+        umount -f "$HOME/mnt/cowork_111" 2>/dev/null
+        rmdir "$HOME/mnt/cowork_111" 2>/dev/null
+    fi
+    ln -sfn "/Volumes/cowork_pedidos" "$HOME/mnt/cowork_111"
+    log "  ${GREEN}✓ ~/mnt/cowork_111 → /Volumes/cowork_pedidos${NC}"
+fi
+
+# compartido_112 → /Volumes/compartido
+if mount | grep -q "/Volumes/compartido"; then
+    if [ -d "$HOME/mnt/compartido_112" ] && [ ! -L "$HOME/mnt/compartido_112" ]; then
+        umount -f "$HOME/mnt/compartido_112" 2>/dev/null
+        rmdir "$HOME/mnt/compartido_112" 2>/dev/null
+    fi
+    ln -sfn "/Volumes/compartido" "$HOME/mnt/compartido_112"
+    log "  ${GREEN}✓ ~/mnt/compartido_112 → /Volumes/compartido${NC}"
+fi
+
+# =============================================================
 # 7. RESULTADO
 # =============================================================
 log ""

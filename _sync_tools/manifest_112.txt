@@ -1,0 +1,28 @@
+# Archivos para deploy al 112 (Streamlit apps)
+# Uno por linea. Rutas relativas a cowork_pedidos/
+# Editar esta lista cuando se agregue un nuevo archivo a la app.
+
+# Apps Streamlit
+app_h4.py
+app_carga.py
+app_reposicion.py
+
+# Core
+config.py
+proveedores_db.py
+
+# OCR
+ocr_factura.py
+
+# Pipeline
+paso3_calcular_periodo.py
+paso4_insertar_pedido.py
+paso5_parsear_excel.py
+paso8_carga_factura.py
+paso9_insertar_remito.py
+
+# Talles
+resolver_talle.py
+
+# Dependencias
+requirements.txt

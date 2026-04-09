@@ -1,22 +1,19 @@
 #!/bin/bash
-# watch_sync.sh — Vigila cambios en cowork_pedidos y sincroniza al 111 automáticamente
+# watch_sync.sh — Vigila cambios en cowork_pedidos y sincroniza al 111
 #
-# Usa kqueue nativo de macOS (no necesita fswatch ni brew)
+# Usa polling nativo de macOS (no necesita fswatch ni brew)
 #
 # USO:
-#   chmod +x watch_sync.sh
-#   ./watch_sync.sh          ← corre en primer plano (ver logs en consola)
-#   ./watch_sync.sh &        ← corre en background
-#   ./watch_sync.sh stop     ← detiene el watcher
-#
-# REQUISITO: El share debe estar montado previamente:
-#   sudo mount_smbfs '//administrador:cagr$2011@192.168.2.111/c$/cowork_pedidos' /Volumes/cowork_111
+#   ./watch_sync.sh          <- corre en primer plano
+#   ./watch_sync.sh &        <- corre en background
+#   ./watch_sync.sh stop     <- detiene el watcher
 
-MAC_DIR="$HOME/Desktop/cowork_pedidos"
-SVR_DIR="/Volumes/cowork_111"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib_deploy.sh"
+
 PIDFILE="/tmp/cowork_sync_watcher.pid"
-LOGFILE="$MAC_DIR/sync_watch.log"
-DEBOUNCE=3  # segundos de espera para agrupar cambios rápidos
+LOGFILE="$SRC/sync_watch.log"
+DEBOUNCE=3  # segundos entre checks
 
 # --- Comando: stop ---
 if [ "$1" = "stop" ]; then
@@ -30,39 +27,31 @@ if [ "$1" = "stop" ]; then
     exit 0
 fi
 
-# --- Verificar share montado ---
-if ! mount | grep -q "cowork_111"; then
-    echo "ERROR: El share no está montado en /Volumes/cowork_111"
-    echo "Ejecutá primero:"
-    echo "  sudo mount_smbfs '//administrador:cagr\$2011@192.168.2.111/c\$/cowork_pedidos' /Volumes/cowork_111"
-    exit 1
-fi
+# --- Montar si no esta montado ---
+_montar_share "$MOUNT_111" "$SMB_URL_111" "cowork_pedidos (111)" || exit 1
 
 # --- Verificar escritura ---
-if [ ! -w "$SVR_DIR" ]; then
-    echo "ERROR: No se puede escribir en $SVR_DIR"
+if [ ! -w "$MOUNT_111" ]; then
+    echo -e "${RED}ERROR: No se puede escribir en $MOUNT_111${NC}"
     exit 1
 fi
 
-# --- Evitar doble ejecución ---
+# --- Evitar doble ejecucion ---
 if [ -f "$PIDFILE" ]; then
     OLD_PID=$(cat "$PIDFILE")
     if kill -0 "$OLD_PID" 2>/dev/null; then
-        echo "Ya hay un watcher corriendo (PID $OLD_PID). Usá './watch_sync.sh stop' para detenerlo."
+        echo "Ya hay un watcher corriendo (PID $OLD_PID). Usa './watch_sync.sh stop' para detenerlo."
         exit 1
     fi
 fi
 
-# Guardar PID
 echo $$ > "$PIDFILE"
-
-# Limpiar al salir
 trap 'rm -f "$PIDFILE"; echo "Watcher detenido."; exit 0' INT TERM EXIT
 
 echo "=========================================="
 echo " COWORK SYNC WATCHER"
-echo " Vigilando: $MAC_DIR"
-echo " Destino:   $SVR_DIR"
+echo " Vigilando: $SRC"
+echo " Destino:   $MOUNT_111"
 echo " PID:       $$"
 echo " Log:       $LOGFILE"
 echo "=========================================="
@@ -72,9 +61,11 @@ do_sync() {
     TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[$TIMESTAMP] Sincronizando..." | tee -a "$LOGFILE"
 
-    rsync -av --include='*.py' --include='*.md' --include='*.sql' --include='*.xlsx' \
+    # Solo codigo (NO .xlsx — ver CLAUDE.md regla de no rsync pesados)
+    rsync -av --include='*.py' --include='*.md' --include='*.sql' --include='*.json' \
+          --include='*.txt' --include='*.sh' --include='*.bat' \
           --include='*/' --exclude='*' \
-          "$MAC_DIR/" "$SVR_DIR/" 2>&1 | tee -a "$LOGFILE"
+          "$SRC/" "$MOUNT_111/" 2>&1 | tee -a "$LOGFILE"
 
     echo "[$TIMESTAMP] Sync completo." | tee -a "$LOGFILE"
     echo "---" >> "$LOGFILE"
@@ -85,23 +76,27 @@ echo "Sync inicial..."
 do_sync
 
 # --- Loop de vigilancia ---
-# Usa polling cada N segundos comparando checksums (compatible con cualquier macOS)
 LAST_HASH=""
 
 while true; do
     sleep "$DEBOUNCE"
 
     # Verificar que el share sigue montado
-    if ! mount | grep -q "cowork_111"; then
-        echo "[$(date '+%H:%M:%S')] AVISO: Share desmontado. Esperando reconexión..."
-        while ! mount | grep -q "cowork_111"; do
-            sleep 10
-        done
+    if ! _verificar_mount "$MOUNT_111"; then
+        echo "[$(date '+%H:%M:%S')] AVISO: Share desmontado. Intentando remontar..."
+        _montar_share "$MOUNT_111" "$SMB_URL_111" "cowork_pedidos (111)" 2>/dev/null
+        if ! _verificar_mount "$MOUNT_111"; then
+            echo "[$(date '+%H:%M:%S')] No se pudo remontar. Esperando 30s..."
+            sleep 30
+            continue
+        fi
         echo "[$(date '+%H:%M:%S')] Share reconectado."
     fi
 
-    # Calcular hash de archivos relevantes (nombre + tamaño + fecha modif)
-    CURRENT_HASH=$(find "$MAC_DIR" \( -name '*.py' -o -name '*.md' -o -name '*.sql' -o -name '*.xlsx' \) \
+    # Hash de archivos relevantes (nombre + tamano + fecha modif)
+    # Solo codigo, NO xlsx
+    CURRENT_HASH=$(find "$SRC" \( -name '*.py' -o -name '*.md' -o -name '*.sql' -o -name '*.json' \) \
+                   -not -path '*/.claude/*' -not -path '*/__pycache__/*' \
                    -exec stat -f '%N %z %m' {} \; 2>/dev/null | sort | md5)
 
     if [ "$CURRENT_HASH" != "$LAST_HASH" ]; then

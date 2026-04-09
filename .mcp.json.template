@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "sql-replica": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub", "--dsn", "sqlserver://{{SQL_USER}}:{{SQL_PASS}}@192.168.2.111:1433/msgestionC?sslmode=disable"],
+      "env": {
+        "OPENSSL_CONF": "/tmp/openssl_legacy.cnf"
+      }
+    },
+    "clz-ventas": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub", "--dsn", "sqlserver://{{CLZ_VENTAS_USER}}:{{CLZ_VENTAS_PASS}}@192.168.2.112:1433/clz_ventas_sql?sslmode=disable"],
+      "env": {
+        "OPENSSL_CONF": "/tmp/openssl_legacy.cnf"
+      }
+    },
+    "mysql-auth": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub", "--dsn", "mysql://{{MYSQL_USER}}:{{MYSQL_PASS}}@192.168.2.109:3306/clz_ventas_mysql"]
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub", "--dsn", "postgresql://{{PG_USER}}:{{PG_PASS}}@200.58.109.125:5432/clz_productos"]
+    },
+    "n8n": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--streamableHttp",
+        "https://n8n.calzalindo.com.ar/mcp-server/http",
+        "--header",
+        "authorization:Bearer {{N8N_JWT_TOKEN}}"
+      ]
+    }
+  }
+}

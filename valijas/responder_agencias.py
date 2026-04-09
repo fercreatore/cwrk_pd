@@ -110,19 +110,19 @@ RESPUESTA_OPTOUT = (
 
 KEYWORDS_OPTOUT = [
     "no me manden mas", "no me manden más",
-    "baja", "stop",
-    "no quiero", "dejen de mandar",
-    "no molestar", "no me escriban",
+    "dame de baja", "darme de baja", "darse de baja",
+    "no quiero recibir", "dejen de mandar",
+    "no molestar", "no me escriban mas",
     "sacar de la lista", "desuscribir",
-    "quitadme", "quitame", "quitar de la lista", "quiten",
-    "sacame", "sacame de la lista", "borrame", "borrar",
-    "eliminar", "eliminame", "no enviar", "no envien",
-    "spam", "bloquear", "bloqueo", "denunciar",
-    "que me mandas", "que me mandan", "dejen de",
-    "no me interesa", "no gracias",
-    "se equivocaron", "equivocaron de numero", "numero equivocado",
-    "no soy", "no me llamo", "ese no soy yo", "no es mi nombre",
+    "quitadme", "quitame de la lista", "quitar de la lista",
+    "sacame de la lista", "borrame de la lista",
+    "no me envien", "no me manden",
+    "esto es spam", "los voy a bloquear", "los voy a denunciar",
+    "dejen de mandarme",
 ]
+# NOTA: NO usar palabras cortas como "baja" (matchea "trabajando"),
+# "no gracias" (matchea "bueno gracias"), "stop", "borrar", "eliminar"
+# Solo frases completas e inequívocas de baja.
 
 # Respuesta para número equivocado (más empática que opt-out genérico)
 # RRHH — Maite
@@ -489,13 +489,26 @@ def classify_message(text, initial_already_sent):
         "mensaje automatico",
         "fuera de horario",
         "respuesta automatica",
+        "en breve te respondo",  # auto-reply personal
+        "en breve conte",  # "en breve contestamos"
+        "en la brevedad",  # "a la brevedad te respondo"
+        "deja tu nombre",  # "dejá tu nombre y te respondo"
+        "deja tu mensaje",
+        "estoy fuera de mi trabajo",  # fuera de oficina
+        "este es un mensaje automatico",
+        "hace tu pedido",  # bots de delivery
+        "comunicate al",  # redireccionadores
+        "podes dejar tu",  # "podes dejar tu mensaje"
+        "nuestro horario",  # respuestas de horario comercial
     ]
     if any(kw in t for kw in autoresponder_patterns):
         return None  # skip silencioso, no loguear como unmatched
 
     # Número equivocado (prioridad máxima — dar de baja con disculpa)
     if any(kw in t for kw in ["se equivocaron", "equivocaron de numero", "numero equivocado",
-                                "no soy", "no me llamo", "ese no soy yo", "no es mi nombre"]):
+                                "no soy", "no me llamo", "ese no soy yo", "no es mi nombre",
+                                "no es para mi", "este no es el telefono", "quien te dio mi numero",
+                                "quien sos", "no es mi nombre", "no es para mi ese mensaje"]):
         return "NUMERO_EQUIVOCADO"
 
     # Opt-out detection (prioridad maxima absoluta)
@@ -511,6 +524,20 @@ def classify_message(text, initial_already_sent):
     if any(kw in t for kw in ["cambio", "cambiar", "devolucion", "devolver", "talle",
                                 "no me anda", "me queda grande", "me queda chico"]):
         return "CAMBIOS"
+
+    # Medios de pago
+    if any(kw in t for kw in ["como pago", "medios de pago", "formas de pago", "cuotas",
+                                "tarjeta", "transferencia", "efectivo", "debito", "credito",
+                                "pago", "los pagos"]):
+        return "MEDIOS_PAGO"
+
+    # Consulta de producto / stock / talle
+    if any(kw in t for kw in ["tienen", "tenes", "hay en", "modelo", "consulta",
+                                "quisiera saber", "quiero saber", "talle 3", "talle 4",
+                                "nro 3", "nro 4", "numero 3", "numero 4",
+                                "rojo", "azul", "negro", "blanco", "rosa",
+                                "river", "boca", "conjunto"]):
+        return "CONSULTA_PRODUCTO"
 
     # Ventas por mayor
     if any(kw in t for kw in ["por mayor", "mayorista", "mayoreo", "cantidad", "lote"]):
@@ -776,6 +803,18 @@ def process_conversations():
                     f"Mensaje: {content[:200]}\n"
                     f"👉 Fernando: contactalo"
                 )
+                changed = True
+                continue
+
+            # Medios de pago
+            if response == "MEDIOS_PAGO":
+                send_message(conv_id, "Aceptamos efectivo, debito, credito hasta 6 cuotas sin interes, y transferencia bancaria (con descuento extra). En el outlet que arranca mañana hay precios especiales! Te esperamos.")
+                changed = True
+                continue
+
+            # Consulta de producto
+            if response == "CONSULTA_PRODUCTO":
+                send_message(conv_id, "Hola! Para consultas de stock y talles te recomendamos pasar por el local o escribirnos a +5493462672330. Mañana arranca el outlet con descuentos increibles en todas las marcas!")
                 changed = True
                 continue
 

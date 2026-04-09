@@ -1,6 +1,10 @@
 # Claude worktrees
 .claude/worktrees/
 
+# Credenciales (generado por setup_mcp.sh desde .mcp.json.template)
+.mcp.json
+~/.cowork_creds
+
 # Sub-repo (tiene su propio git)
 clz_wpu/
 

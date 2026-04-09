@@ -110,25 +110,21 @@ st.markdown("""
 
 
 # ============================================================================
-# DATABASE
+# DATABASE — conexión fresh cada query (SQL Server 2012 corta idle)
 # ============================================================================
-@st.cache_resource
-def get_connection(conn_str):
-    try:
-        return pyodbc.connect(conn_str)
-    except Exception as e:
-        st.error(f"Error de conexión: {e}")
-        return None
+def _connect(conn_str):
+    """Abre conexión fresca. No cachear: SQL Server corta idle."""
+    return pyodbc.connect(conn_str, timeout=15)
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner="Consultando SQL Server...")
 def query_df(sql, conn_str=CONN_COMPRAS):
     """Execute SQL and return DataFrame. Cached 5 min."""
-    conn = get_connection(conn_str)
-    if conn is None:
-        return pd.DataFrame()
     try:
-        return pd.read_sql(sql, conn)
+        conn = _connect(conn_str)
+        df = pd.read_sql(sql, conn)
+        conn.close()
+        return df
     except Exception as e:
         st.error(f"Error SQL: {e}")
         return pd.DataFrame()
@@ -136,16 +132,15 @@ def query_df(sql, conn_str=CONN_COMPRAS):
 
 def exec_sql(sql, params=None, conn_str=CONN_ANALITICA):
     """Execute INSERT/UPDATE on omicronvt."""
-    conn = get_connection(conn_str)
-    if conn is None:
-        return False
     try:
+        conn = _connect(conn_str)
         c = conn.cursor()
         if params:
             c.execute(sql, params)
         else:
             c.execute(sql)
         conn.commit()
+        conn.close()
         return True
     except Exception as e:
         st.error(f"Error SQL: {e}")
@@ -171,16 +166,12 @@ def load_ventas_vendedor(dias=30):
     return query_df(f"""
         SELECT v.viajante, vj.descripcion as vendedor, v.deposito,
             v.total_item, v.cantidad, v.cuenta, v.fecha, v.operacion,
-            v.articulo, v.codigo
+            v.codigo
         FROM msgestionC.dbo.ventas1 v WITH (NOLOCK)
         LEFT JOIN msgestionC.dbo.viajantes vj ON v.viajante = vj.codigo
         WHERE v.codigo IN (1,3)
             AND v.viajante NOT IN (7, 36)
             AND v.fecha >= DATEADD(DAY, -{dias}, GETDATE())
-            AND NOT EXISTS (
-                SELECT 1 FROM msgestion01art.dbo.articulo a
-                WHERE a.codigo = v.articulo AND a.marca IN (1316,1317,1158,436)
-            )
     """)
 
 
@@ -197,10 +188,6 @@ def load_ventas_periodo(fecha_desde, fecha_hasta):
             AND v.viajante NOT IN (7, 36)
             AND v.fecha >= '{fecha_desde}'
             AND v.fecha < '{fecha_hasta}'
-            AND NOT EXISTS (
-                SELECT 1 FROM msgestion01art.dbo.articulo a
-                WHERE a.codigo = v.articulo AND a.marca IN (1316,1317,1158,436)
-            )
     """)
 
 
@@ -219,10 +206,6 @@ def load_ventas_mensual_vendedores(meses=6):
         WHERE v.codigo IN (1,3)
             AND v.viajante NOT IN (7, 36)
             AND v.fecha >= DATEADD(MONTH, -{meses}, GETDATE())
-            AND NOT EXISTS (
-                SELECT 1 FROM msgestion01art.dbo.articulo a
-                WHERE a.codigo = v.articulo AND a.marca IN (1316,1317,1158,436)
-            )
         GROUP BY v.viajante, vj.descripcion, v.deposito,
                  YEAR(v.fecha), MONTH(v.fecha)
     """)
@@ -253,7 +236,19 @@ def load_sueldos_mensual(meses=12):
 # ============================================================================
 
 def dep_nombre(dep):
-    return DEPOSITOS.get(int(dep), f"Dep {dep}") if dep is not None else "?"
+    try:
+        return DEPOSITOS.get(int(dep), f"Dep {dep}") if dep is not None and not pd.isna(dep) else "?"
+    except (ValueError, TypeError):
+        return "?"
+
+
+def _get_activos(df_emp):
+    """Filtra empleados activos (motivo_baja != 'B')."""
+    if df_emp.empty or "motivo_baja" not in df_emp.columns:
+        return pd.DataFrame()
+    return df_emp[
+        (df_emp["motivo_baja"] != "B") | (df_emp["motivo_baja"].isna())
+    ].copy()
 
 
 def calcular_ranking(df_ventas):
@@ -792,13 +787,13 @@ def render_nomina():
     df_sueldos = load_sueldos_mensual(meses=12)
 
     if df_emp.empty:
-        st.warning("Sin datos de empleados.")
+        st.warning("Sin datos de empleados. Verificá la conexión a SQL Server.")
         return
 
-    # Separar activos
-    activos = df_emp[
-        (df_emp["motivo_baja"] != "B") | (df_emp["motivo_baja"].isna())
-    ].copy()
+    activos = _get_activos(df_emp)
+    if activos.empty:
+        st.warning("Sin empleados activos.")
+        return
 
     tab_lista, tab_sueldos, tab_alertas, tab_costo = st.tabs([
         "👥 Empleados", "📊 Sueldos", "🔔 Alertas", "💵 Costo laboral"
@@ -1060,8 +1055,10 @@ FUENTES = ["WhatsApp", "Referido", "Aviso local", "Instagram", "Walk-in", "Otra"
 
 def _ensure_reclutamiento_tables():
     """Crea tablas de reclutamiento en omicronvt si no existen."""
-    conn = get_connection(CONN_ANALITICA)
-    if conn is None:
+    try:
+        conn = _connect(CONN_ANALITICA)
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
         return False
     c = conn.cursor()
     try:
@@ -1095,9 +1092,14 @@ def _ensure_reclutamiento_tables():
         )
         """)
         conn.commit()
+        conn.close()
         return True
     except Exception as e:
         st.error(f"Error creando tablas: {e}")
+        try:
+            conn.close()
+        except Exception:
+            pass
         return False
 
 
@@ -1358,8 +1360,12 @@ def render_overview():
     df_emp = load_empleados()
     df_sueldos = load_sueldos_mensual(meses=12)
 
-    activos = df_emp[(df_emp["motivo_baja"] != "B") | (df_emp["motivo_baja"].isna())].copy()
-    bajas = df_emp[df_emp["motivo_baja"] == "B"].copy()
+    if df_emp.empty:
+        st.warning("Sin datos de empleados. Verificá la conexión a SQL Server.")
+        return
+
+    activos = _get_activos(df_emp)
+    bajas = df_emp[df_emp["motivo_baja"] == "B"].copy() if "motivo_baja" in df_emp.columns else pd.DataFrame()
 
     hoy = date.today()
 
@@ -1381,13 +1387,14 @@ def render_overview():
         c2.metric("Antigüedad promedio", "?")
 
     # Costo laboral último mes
-    if not df_sueldos.empty:
+    costo_total = 0
+    if not df_sueldos.empty and "codigo_movimiento" in df_sueldos.columns:
         brutos = df_sueldos[df_sueldos["codigo_movimiento"].isin(COD_SUELDO_BRUTO)]
         if not brutos.empty:
             ultimo_mes = pd.to_datetime(brutos["fecha_contable"]).dt.to_period("M").max()
             brutos_ult = brutos[pd.to_datetime(brutos["fecha_contable"]).dt.to_period("M") == ultimo_mes]
-            costo_total = brutos_ult["importe"].sum()
-            c3.metric("Costo laboral (último mes)", formato_moneda(float(costo_total)))
+            costo_total = float(brutos_ult["importe"].sum())
+            c3.metric("Costo laboral (último mes)", formato_moneda(costo_total))
 
     # Ventas último mes (para ratio)
     df_ventas_30d = load_ventas_vendedor(30)
@@ -1396,7 +1403,7 @@ def render_overview():
             lambda r: r["total_item"] if r["operacion"] == "+" else -r["total_item"], axis=1
         ).sum()
 
-        if not df_sueldos.empty and costo_total > 0:
+        if costo_total > 0:
             ratio = float(costo_total) / float(fact_30d) * 100 if fact_30d > 0 else 0
             c4.metric("Costo/Facturación", f"{ratio:.1f}%")
 

@@ -91,19 +91,29 @@ def enviar_template(telefono, nombre, template_name, template_lang="es_AR"):
     req = urllib.request.Request(url, data=data, method='POST')
     req.add_header('Authorization', f'Bearer {API_KEY}')
     req.add_header('Content-Type', 'application/json')
-    try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        resp = urllib.request.urlopen(req, context=ctx, timeout=30)
-        result = json.loads(resp.read().decode())
-        return True, result.get('messages', [{}])[0].get('id', 'ok')
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()[:300]
-        # Si es rate limit, esperar y reintentar
-        if '429' in str(e.code) or 'rate' in body.lower():
-            return False, f"RATE_LIMIT: {body}"
-        return False, body
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    # Retry hasta 3 veces ante errores de red
+    for intento in range(3):
+        try:
+            resp = urllib.request.urlopen(req, context=ctx, timeout=30)
+            result = json.loads(resp.read().decode())
+            return True, result.get('messages', [{}])[0].get('id', 'ok')
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()[:300]
+            if '429' in str(e.code) or 'rate' in body.lower():
+                return False, f"RATE_LIMIT: {body}"
+            return False, body
+        except Exception as e:
+            if intento < 2:
+                time.sleep(10 * (intento + 1))  # 10s, 20s
+                # Recrear request (se consume con urlopen)
+                req = urllib.request.Request(url, data=data, method='POST')
+                req.add_header('Authorization', f'Bearer {API_KEY}')
+                req.add_header('Content-Type', 'application/json')
+                continue
+            return False, f"EXCEPTION: {str(e)[:200]}"
 
 def extraer_primer_nombre(nombre):
     if not nombre:
@@ -175,7 +185,7 @@ def main():
 
     eligible = []
     for c in contacts:
-        tel = c.get("telefono", c.get("telefono_normalizado", ""))
+        tel = c.get("telefono", c.get("telefono_whatsapp", c.get("telefono_normalizado", "")))
         if not tel:
             continue
         if tel in sent_phones:
@@ -220,7 +230,7 @@ Hora: {now.strftime('%H:%M')}
     start_time = time.time()
 
     for i, c in enumerate(batch):
-        tel = c.get("telefono", c.get("telefono_normalizado", ""))
+        tel = c.get("telefono", c.get("telefono_whatsapp", c.get("telefono_normalizado", "")))
         nombre = c.get("nombre", "amigo/a")
         primer_nombre = extraer_primer_nombre(nombre)
 
