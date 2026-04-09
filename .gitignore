@@ -46,3 +46,4 @@ valijas/*_tracking.json
 valijas/reportes_cruce/
 facturas_procesadas/
 multicanal/ordenes_procesadas.json
+valijas/log_*.log
