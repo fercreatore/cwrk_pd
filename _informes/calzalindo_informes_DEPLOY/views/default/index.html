@@ -157,6 +157,18 @@
         </div>
         {{pass}}
 
+        {{if puede_ver('importaciones.simulador'):}}
+        <div class="col-md-3 col-sm-6">
+            <a href="{{=URL('importaciones','simulador')}}" style="text-decoration:none; color:inherit;">
+                <div class="modulo-card" style="border-top-color:#fd7e14;">
+                    <div class="icono" style="color:#fd7e14;"><i class="glyphicon glyphicon-import"></i></div>
+                    <h4>Importaciones</h4>
+                    <p>Simulador de costos FOB → venta (y reverso)</p>
+                </div>
+            </a>
+        </div>
+        {{pass}}
+
         {{if es_admin:}}
         <div class="col-md-3 col-sm-6">
             <a href="{{=URL('admin_roles','index')}}" style="text-decoration:none; color:inherit;">
