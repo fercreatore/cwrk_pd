@@ -4925,10 +4925,10 @@ def render_dashboard():
     # ── TABS ──
     (tab_surtido, tab_dashboard, tab_waterfall, tab_optimizar,
      tab_curva, tab_canibal, tab_emergentes, tab_pedido, tab_historial,
-     tab_nichos) = st.tabs([
+     tab_nichos, tab_autorepo) = st.tabs([
         "🗺️ Mapa Surtido", "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
         "👟 Curva Talle", "🔬 Canibalización", "🚀 Emergentes",
-        "🛒 Armar Pedido", "📋 Historial", "🔍 Nichos"
+        "🛒 Armar Pedido", "📋 Historial", "🔍 Nichos", "🔁 Autorepo"
     ])
 
     # ══════════════════════════════════════════════════════════════
@@ -8200,6 +8200,212 @@ div[data-testid="stMetric"] {
                         pass  # No phone available
 
                     st.divider()
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 11: AUTOREPO (dashboard motor autocompensación inter-depósito)
+    # ══════════════════════════════════════════════════════════════
+    with tab_autorepo:
+        tab_autorepo_render()
+
+
+# ============================================================================
+# AUTOREPO — Dashboard del motor de autocompensación inter-depósito
+# ============================================================================
+
+def tab_autorepo_render():
+    """Tab Autorepo — Dashboard del motor de autocompensación inter-depósito.
+
+    F1: Solo visualiza propuestas generadas por autorepo_engine.py.
+    No ejecuta (el botón de ejecutar está DESACTIVADO en F1).
+    """
+    st.header("🔁 Autorepo — Motor de Autocompensación Inter-Depósito")
+    st.caption(
+        "Fase 1: sugerencias generadas por `autorepo_engine.py` (cron diario urgente + "
+        "jueves 18:00 rebalanceo). Aprobá/rechazá; la ejecución automática viene en F2."
+    )
+
+    # ── Check tablas existen ────────────────────────────
+    try:
+        conn = pyodbc.connect(CONN_COMPRAS, timeout=5)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(*) FROM sys.tables
+            WHERE name='autorepo_propuestas' AND schema_id = SCHEMA_ID('dbo')
+        """)
+        existe = cur.fetchone()[0] > 0
+        conn.close()
+    except Exception as e:
+        st.error(f"No se pudo conectar a SQL: {e}")
+        return
+
+    if not existe:
+        st.warning(
+            "⚠️ Las tablas `autorepo_propuestas` no existen aún. Ejecutá primero "
+            "`_scripts_oneshot/crear_tablas_autorepo.sql` en el servidor 111."
+        )
+        return
+
+    # ── Sub-tabs ────────────────────────────────────────
+    subtab1, subtab2, subtab3, subtab4 = st.tabs([
+        "📋 Propuestas Pendientes",
+        "📊 Historial",
+        "🛑 Frenado Dep 4",
+        "⚙️ Configuración",
+    ])
+
+    with subtab1:
+        _render_propuestas_pendientes()
+    with subtab2:
+        _render_historial_autorepo()
+    with subtab3:
+        _render_frenado_dep4()
+    with subtab4:
+        _render_config_autorepo()
+
+
+@st.cache_data(ttl=60)
+def _cargar_propuestas_pendientes():
+    sql = """
+    SELECT p.id, p.fecha_corrida, p.tipo, p.deposito_emisor, p.deposito_receptor,
+           p.total_pares, p.total_costo_cer, p.score_promedio,
+           p.beneficio_esperado, p.costo_transferencia, p.estado
+    FROM omicronvt.dbo.autorepo_propuestas p
+    WHERE p.estado = 'PENDIENTE'
+    ORDER BY p.fecha_corrida DESC, p.score_promedio DESC
+    """
+    with pyodbc.connect(CONN_COMPRAS) as conn:
+        return pd.read_sql(sql, conn)
+
+
+def _render_propuestas_pendientes():
+    df = _cargar_propuestas_pendientes()
+    if df.empty:
+        st.info("Sin propuestas pendientes. El motor corre diario 07:00 (urgente) y jueves 18:00 (rebalanceo).")
+        return
+
+    # Métricas arriba
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Propuestas", len(df))
+    c2.metric("Pares totales", int(df['total_pares'].sum()))
+    c3.metric("$ a mover (CER)", f"${df['total_costo_cer'].sum():,.0f}")
+    c4.metric("Score prom", f"{df['score_promedio'].mean():.1f}")
+
+    # Separar por tipo
+    df_urg = df[df['tipo'] == 'URGENTE']
+    df_reb = df[df['tipo'] == 'REBALANCEO']
+
+    if len(df_urg) > 0:
+        st.subheader(f"🚨 Urgentes ({len(df_urg)})")
+        st.dataframe(df_urg, use_container_width=True, hide_index=True)
+    if len(df_reb) > 0:
+        st.subheader(f"📦 Rebalanceo ({len(df_reb)})")
+        st.dataframe(df_reb, use_container_width=True, hide_index=True)
+
+    # Drill-down por propuesta
+    st.divider()
+    st.subheader("Detalle por propuesta")
+    prop_id = st.selectbox("ID propuesta", df['id'].tolist())
+    if prop_id:
+        _mostrar_detalle_propuesta(int(prop_id))
+
+    # Botón de ejecución DESACTIVADO en F1
+    st.divider()
+    st.info(
+        "🔒 **Ejecución automática desactivada en F1** — revisá las propuestas y "
+        "decidí manualmente qué transferir."
+    )
+
+
+def _mostrar_detalle_propuesta(prop_id: int):
+    sql = f"""
+    SELECT articulo, cantidad, precio_costo, score, vel_origen, vel_destino,
+           dias_cobertura_origen, dias_cobertura_destino, motivo
+    FROM omicronvt.dbo.autorepo_propuestas_det
+    WHERE propuesta_id = {prop_id}
+    ORDER BY score DESC
+    """
+    with pyodbc.connect(CONN_COMPRAS) as conn:
+        df = pd.read_sql(sql, conn)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+def _render_historial_autorepo():
+    st.subheader("Historial últimas 30 corridas")
+    sql = """
+    SELECT CAST(fecha_corrida AS DATE) as dia, tipo,
+           COUNT(*) as propuestas,
+           SUM(total_pares) as pares_totales,
+           SUM(total_costo_cer) as monto_total,
+           SUM(CASE WHEN estado='APROBADA' THEN 1 ELSE 0 END) as aprobadas,
+           SUM(CASE WHEN estado='RECHAZADA' THEN 1 ELSE 0 END) as rechazadas,
+           SUM(CASE WHEN estado='EJECUTADA' THEN 1 ELSE 0 END) as ejecutadas
+    FROM omicronvt.dbo.autorepo_propuestas
+    WHERE fecha_corrida >= DATEADD(day, -30, GETDATE())
+    GROUP BY CAST(fecha_corrida AS DATE), tipo
+    ORDER BY dia DESC, tipo
+    """
+    try:
+        with pyodbc.connect(CONN_COMPRAS) as conn:
+            df = pd.read_sql(sql, conn)
+        if df.empty:
+            st.info("Aún no hay corridas registradas.")
+        else:
+            st.dataframe(df, use_container_width=True, hide_index=True)
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+
+def _render_frenado_dep4():
+    st.subheader("📦 Stock frenado en Dep 4 (Marroquinería/Claudia)")
+    st.caption(
+        "Dep 4 está EXCLUIDO del solver F1. Este reporte identifica capital dormido "
+        "(stock>0, 0 ventas 90d, última compra >180d)."
+    )
+    try:
+        from autorepo.dep4_monitor import fetch_frenados_dep4, resumen_por_categoria
+        frenados = fetch_frenados_dep4(conn_string=CONN_COMPRAS, top=500)
+        if not frenados:
+            st.info("Sin data o sin conexión.")
+            return
+        df = pd.DataFrame([f.__dict__ for f in frenados])
+        resumen = resumen_por_categoria(frenados)
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Transferibles", f"{resumen.get('TRANSFERIBLE', {}).get('skus', 0)} SKUs")
+        c2.metric("A rematar", f"{resumen.get('REMATE', {}).get('skus', 0)} SKUs")
+        c3.metric("A revisar", f"{resumen.get('REVISION', {}).get('skus', 0)} SKUs")
+
+        tabs = st.tabs(["Transferibles", "Remate", "Revisión"])
+        with tabs[0]:
+            st.dataframe(df[df['categoria'] == 'TRANSFERIBLE'], hide_index=True)
+        with tabs[1]:
+            st.dataframe(df[df['categoria'] == 'REMATE'], hide_index=True)
+        with tabs[2]:
+            st.dataframe(df[df['categoria'] == 'REVISION'], hide_index=True)
+    except ImportError as e:
+        st.warning(f"Módulo `autorepo.dep4_monitor` no disponible: {e}")
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+
+def _render_config_autorepo():
+    try:
+        from autorepo.umbrales import UMBRALES_V1
+        from autorepo.costos import COSTOS_V1
+        from autorepo.routing import DEPOS_AUTOREPO_F1
+
+        st.subheader("Depósitos activos F1")
+        st.write(", ".join(str(d) for d in DEPOS_AUTOREPO_F1))
+
+        st.subheader("Umbrales de detección")
+        st.json(UMBRALES_V1)
+
+        st.subheader("Costos de transferencia")
+        st.json(COSTOS_V1)
+    except ImportError as e:
+        st.warning(f"Módulo `autorepo` no disponible: {e}")
+    except Exception as e:
+        st.error(f"Error: {e}")
 
 
 # ============================================================================

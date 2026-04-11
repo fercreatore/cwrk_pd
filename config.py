@@ -79,6 +79,24 @@ CODIGOS_REMITO    = (7, 36)        # excluir siempre
 CODIGO_FACTURA    = 1
 CODIGO_NC         = 3
 
+# ── AUTOREPO (autocompensación inter-depósito) ─────────
+# Depósitos que entran al solver del motor Fase 1
+DEPOS_AUTOREPO_F1 = (0, 2, 6, 7, 8, 11)
+# Dep 4 (Marroquinería/Claudia): excluido del solver, solo reporte de frenado
+DEPOS_AUTOREPO_MONITOREADOS = (4,)
+# Dep 1 (canal digital ML+TN): excluido en F1, se agrega en F2-F3
+DEPOS_AUTOREPO_EXCLUIDOS = (1, 4)
+
+# Mapeo depósito → empresa default (la base donde insertar el remito interno)
+DEPOSITO_EMPRESA = {
+    0: "H4",            # Central VT
+    2: "CALZALINDO",    # Norte
+    6: "CALZALINDO",    # Cuore / Chovet
+    7: "CALZALINDO",    # Eva Perón / Melincué
+    8: "CALZALINDO",    # Junín / Alcorta
+    11: "CALZALINDO",   # Alternativo / Zapatería VT
+}
+
 # ── PROVEEDORES ─────────────────────────────────────────
 # Cada proveedor define su estructura de pricing:
 #   precio_fabrica (base del proveedor)

@@ -153,7 +153,7 @@ Servidor VPS administrado por Guille. Corre servicios orientados al cliente fina
 
 ---
 
-## ESTADO REAL — 30 de marzo de 2026
+## ESTADO REAL — 11 de abril de 2026
 
 ### ✅ Deployado y funcionando en producción (111)
 
@@ -217,6 +217,7 @@ Servidor VPS administrado por Guille. Corre servicios orientados al cliente fina
 
 | Tarea | Detalle |
 |-------|---------|
+| Motor autocompensación inter-depósito | F1 completa en Mac (no deployada al 111) — módulos autorepo/ + SQL scripts + tests. Pendiente: crear tablas en 111, shadow mode 2 semanas, calibración |
 | GTN Campus Negro | 26 pares, prov 104, msgestion01 — script en preparación |
 | Pedidos invierno 2026 | 7 proveedores, ~7,288 pares — ver tabla arriba |
 | OLK/Olympikus | 504 pares — esperar confirmación Cecchini (proveedor GLOBAL BRANDS prov 722) |
@@ -274,6 +275,7 @@ cowork_pedidos/
 ├── _archivo/                          ← histórico / no activo
 ├── multicanal/                        ← TiendaNube, ML, facturador, canales
 ├── valijas/                           ← proyecto valijas GO
+├── autorepo/                          ← motor de autocompensación inter-depósito (F1 solo sugiere)
 └── clz_wpu/                           ← web push notifications
 ```
 
