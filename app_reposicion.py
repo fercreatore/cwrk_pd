@@ -1610,6 +1610,182 @@ def cargar_proveedores_dict():
 
 
 # ============================================================================
+# REPORTE MARCA — SO / SHARE / MOS (para preventa proveedores)
+# ============================================================================
+
+RUBROS_CALZADO_DEPORTE = '(1, 3, 4, 5, 6)'
+
+@st.cache_data(ttl=3600)
+def reporte_so_mensual(marca_codigo: int, anio: int = 2025):
+    """Sell Out mensual por marca: pares e importe."""
+    sql = f"""
+    SELECT MONTH(v2.fecha_comprobante) as mes,
+           SUM(CASE WHEN v1.operacion='+' THEN v1.cantidad
+                    WHEN v1.operacion='-' THEN -v1.cantidad ELSE 0 END) as pares,
+           SUM(CASE WHEN v1.operacion='+' THEN v1.cantidad * v1.precio
+                    WHEN v1.operacion='-' THEN -v1.cantidad * v1.precio ELSE 0 END) as importe
+    FROM msgestionC.dbo.ventas1 v1
+    JOIN msgestionC.dbo.ventas2 v2
+        ON v1.codigo = v2.codigo AND v1.numero = v2.numero
+        AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+    JOIN msgestion01art.dbo.articulo a ON v1.articulo = a.codigo
+    WHERE a.marca = {marca_codigo}
+      AND v2.codigo NOT IN {EXCL_VENTAS}
+      AND v2.fecha_comprobante >= '{anio}-01-01'
+      AND v2.fecha_comprobante < '{anio + 1}-01-01'
+    GROUP BY MONTH(v2.fecha_comprobante)
+    ORDER BY mes
+    """
+    return query_df(sql)
+
+
+@st.cache_data(ttl=3600)
+def reporte_share_mensual(marca_codigo: int, anio: int = 2025):
+    """SHARE: marca vs total negocio (rubros calzado/deporte, excl gastos)."""
+    sql = f"""
+    SELECT MONTH(v2.fecha_comprobante) as mes,
+           SUM(CASE WHEN a.marca = {marca_codigo} THEN
+               CASE WHEN v1.operacion='+' THEN v1.cantidad
+                    WHEN v1.operacion='-' THEN -v1.cantidad ELSE 0 END
+           ELSE 0 END) as marca_pares,
+           SUM(CASE WHEN v1.operacion='+' THEN v1.cantidad
+                    WHEN v1.operacion='-' THEN -v1.cantidad ELSE 0 END) as total_pares,
+           SUM(CASE WHEN a.marca = {marca_codigo} THEN
+               CASE WHEN v1.operacion='+' THEN v1.cantidad * v1.precio
+                    WHEN v1.operacion='-' THEN -v1.cantidad * v1.precio ELSE 0 END
+           ELSE 0 END) as marca_importe,
+           SUM(CASE WHEN v1.operacion='+' THEN v1.cantidad * v1.precio
+                    WHEN v1.operacion='-' THEN -v1.cantidad * v1.precio ELSE 0 END) as total_importe
+    FROM msgestionC.dbo.ventas1 v1
+    JOIN msgestionC.dbo.ventas2 v2
+        ON v1.codigo = v2.codigo AND v1.numero = v2.numero
+        AND v1.letra = v2.letra AND v1.sucursal = v2.sucursal
+    JOIN msgestion01art.dbo.articulo a ON v1.articulo = a.codigo
+    WHERE v2.codigo NOT IN {EXCL_VENTAS}
+      AND v2.fecha_comprobante >= '{anio}-01-01'
+      AND v2.fecha_comprobante < '{anio + 1}-01-01'
+      AND a.marca NOT IN {EXCL_MARCAS_GASTOS}
+      AND a.rubro IN {RUBROS_CALZADO_DEPORTE}
+    GROUP BY MONTH(v2.fecha_comprobante)
+    ORDER BY mes
+    """
+    return query_df(sql)
+
+
+@st.cache_data(ttl=3600)
+def reporte_compras_mensual(marca_codigo: int, anio: int = 2025):
+    """Compras (reposicion) de la marca por mes."""
+    sql = f"""
+    SELECT MONTH(c2.fecha_comprobante) as mes,
+           SUM(CASE WHEN c1.operacion='+' THEN c1.cantidad ELSE 0 END) as pares
+    FROM msgestionC.dbo.compras1 c1
+    JOIN msgestionC.dbo.compras2 c2
+        ON c1.codigo = c2.codigo AND c1.numero = c2.numero
+        AND c1.letra = c2.letra AND c1.sucursal = c2.sucursal
+    JOIN msgestion01art.dbo.articulo a ON c1.articulo = a.codigo
+    WHERE a.marca = {marca_codigo}
+      AND c2.codigo NOT IN {EXCL_VENTAS}
+      AND c2.fecha_comprobante >= '{anio}-01-01'
+      AND c2.fecha_comprobante < '{anio + 1}-01-01'
+    GROUP BY MONTH(c2.fecha_comprobante)
+    ORDER BY mes
+    """
+    return query_df(sql)
+
+
+@st.cache_data(ttl=3600)
+def reporte_vel_real_subrubro(marca_codigo: int):
+    """Vel_real agrupada por subrubro para una marca (desde tabla materializada)."""
+    sql = f"""
+    SELECT a.subrubro,
+           sr.descripcion as subrubro_desc,
+           COUNT(DISTINCT vr.codigo) as modelos,
+           SUM(vr.vel_real) as vel_real,
+           SUM(vr.vel_aparente) as vel_aparente,
+           AVG(vr.meses_quebrado) as avg_meses_quebrado,
+           AVG(vr.factor_quiebre) as avg_factor_quiebre,
+           SUM(vr.ventas_perdidas) as ventas_perdidas
+    FROM omicronvt.dbo.vel_real_articulo vr
+    JOIN (SELECT DISTINCT LEFT(codigo_sinonimo, 10) as csr, subrubro
+          FROM msgestion01art.dbo.articulo WHERE marca = {marca_codigo}) a
+        ON a.csr = vr.codigo
+    LEFT JOIN msgestionC.dbo.subrubro sr ON a.subrubro = sr.codigo
+    WHERE vr.vel_real > 0
+    GROUP BY a.subrubro, sr.descripcion
+    ORDER BY SUM(vr.vel_real) DESC
+    """
+    return query_df(sql)
+
+
+@st.cache_data(ttl=3600)
+def reporte_top_modelos(marca_codigo: int, top_n: int = 20):
+    """Top N modelos de la marca por vel_real con info de quiebre."""
+    sql = f"""
+    SELECT TOP {top_n}
+           vr.codigo,
+           vr.vel_real, vr.vel_aparente,
+           vr.meses_quebrado, vr.meses_con_stock,
+           vr.ventas_perdidas,
+           a.descripcion_1, a.subrubro,
+           sr.descripcion as subrubro_desc
+    FROM omicronvt.dbo.vel_real_articulo vr
+    JOIN (SELECT LEFT(codigo_sinonimo, 10) as csr,
+                 MIN(descripcion_1) as descripcion_1,
+                 MIN(subrubro) as subrubro
+          FROM msgestion01art.dbo.articulo WHERE marca = {marca_codigo}
+          GROUP BY LEFT(codigo_sinonimo, 10)) a
+        ON a.csr = vr.codigo
+    LEFT JOIN msgestionC.dbo.subrubro sr ON a.subrubro = sr.codigo
+    WHERE vr.vel_real > 0
+    ORDER BY vr.vel_real DESC
+    """
+    return query_df(sql)
+
+
+@st.cache_data(ttl=3600)
+def reporte_stock_vel_total(marca_codigo: int):
+    """Stock total + vel_real total de la marca para MOS global."""
+    sql = f"""
+    SELECT
+        (SELECT ISNULL(SUM(s.stock_actual), 0)
+         FROM msgestionC.dbo.stock s
+         JOIN msgestion01art.dbo.articulo a ON s.articulo = a.codigo
+         WHERE a.marca = {marca_codigo}
+           AND s.deposito IN {DEPOS_SQL}) as stock_total,
+        (SELECT ISNULL(SUM(vr.vel_real), 1)
+         FROM omicronvt.dbo.vel_real_articulo vr
+         JOIN (SELECT DISTINCT LEFT(codigo_sinonimo, 10) as csr
+               FROM msgestion01art.dbo.articulo WHERE marca = {marca_codigo}) a2
+           ON a2.csr = vr.codigo
+         WHERE vr.vel_real > 0) as vel_real_total
+    """
+    df = query_df(sql)
+    if df.empty:
+        return 0, 1
+    return float(df.iloc[0]['stock_total'] or 0), float(df.iloc[0]['vel_real_total'] or 1)
+
+
+@st.cache_data(ttl=3600)
+def reporte_stock_por_subrubro(marca_codigo: int):
+    """Stock actual por subrubro de la marca."""
+    sql = f"""
+    SELECT a.subrubro,
+           sr.descripcion as subrubro_desc,
+           COUNT(DISTINCT LEFT(a.codigo_sinonimo, 10)) as modelos,
+           SUM(s.stock_actual) as stock_pares
+    FROM msgestionC.dbo.stock s
+    JOIN msgestion01art.dbo.articulo a ON s.articulo = a.codigo
+    LEFT JOIN msgestionC.dbo.subrubro sr ON a.subrubro = sr.codigo
+    WHERE a.marca = {marca_codigo}
+      AND s.deposito IN {DEPOS_SQL}
+      AND s.stock_actual > 0
+    GROUP BY a.subrubro, sr.descripcion
+    ORDER BY SUM(s.stock_actual) DESC
+    """
+    return query_df(sql)
+
+
+# ============================================================================
 # PRESUPUESTO EN PARES (Agente 1)
 # ============================================================================
 
@@ -4925,10 +5101,10 @@ def render_dashboard():
     # ── TABS ──
     (tab_surtido, tab_dashboard, tab_waterfall, tab_optimizar,
      tab_curva, tab_canibal, tab_emergentes, tab_pedido, tab_historial,
-     tab_nichos) = st.tabs([
+     tab_nichos, tab_reporte_marca) = st.tabs([
         "🗺️ Mapa Surtido", "📊 Dashboard", "🌊 Waterfall", "💰 Optimizar Compra",
         "👟 Curva Talle", "🔬 Canibalización", "🚀 Emergentes",
-        "🛒 Armar Pedido", "📋 Historial", "🔍 Nichos"
+        "🛒 Armar Pedido", "📋 Historial", "🔍 Nichos", "📈 Reporte Marca"
     ])
 
     # ══════════════════════════════════════════════════════════════
@@ -8200,6 +8376,290 @@ div[data-testid="stMetric"] {
                         pass  # No phone available
 
                     st.divider()
+
+    # ══════════════════════════════════════════════════════════════
+    # TAB 10: REPORTE MARCA (SO / SHARE / MOS para preventa)
+    # ══════════════════════════════════════════════════════════════
+    with tab_reporte_marca:
+        st.subheader("Reporte Marca — SO / SHARE / MOS")
+        st.caption("Análisis completo de una marca para preparar preventas con proveedores. "
+                   "Incluye corrección por quiebre de stock.")
+
+        # ── Controles ──
+        _marcas = st.session_state.get('marcas_dict', {})
+        _rm_col1, _rm_col2 = st.columns([2, 1])
+        with _rm_col1:
+            _marca_opciones = {v: k for k, v in sorted(_marcas.items(), key=lambda x: x[1]) if v.strip()}
+            _marca_sel = st.selectbox(
+                "Marca", options=[""] + list(_marca_opciones.keys()),
+                key="rm_marca_sel"
+            )
+        with _rm_col2:
+            _rm_anio = st.selectbox("Año", options=[2025, 2024, 2023], key="rm_anio")
+
+        if not _marca_sel:
+            st.info("Seleccioná una marca para generar el reporte.")
+        else:
+            _marca_cod = _marca_opciones[_marca_sel]
+            MESES_NOMBRES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
+                             "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+
+            with st.spinner(f"Cargando datos de {_marca_sel}..."):
+                df_so = reporte_so_mensual(_marca_cod, _rm_anio)
+                df_share = reporte_share_mensual(_marca_cod, _rm_anio)
+                df_compras = reporte_compras_mensual(_marca_cod, _rm_anio)
+                _stk_total, _vel_total = reporte_stock_vel_total(_marca_cod)
+                df_vel_sub = reporte_vel_real_subrubro(_marca_cod)
+                df_top = reporte_top_modelos(_marca_cod)
+                df_stk_sub = reporte_stock_por_subrubro(_marca_cod)
+
+            # Convertir a dicts indexados por mes
+            so_dict = {}
+            for _, r in df_so.iterrows():
+                so_dict[int(r['mes'])] = (float(r['pares'] or 0), float(r['importe'] or 0))
+            share_dict = {}
+            for _, r in df_share.iterrows():
+                share_dict[int(r['mes'])] = {
+                    'marca_pares': float(r['marca_pares'] or 0),
+                    'total_pares': float(r['total_pares'] or 0),
+                    'marca_importe': float(r['marca_importe'] or 0),
+                    'total_importe': float(r['total_importe'] or 0),
+                }
+            compras_dict = {}
+            for _, r in df_compras.iterrows():
+                compras_dict[int(r['mes'])] = float(r['pares'] or 0)
+
+            # ── KPIs principales ──
+            _total_pares = sum(v[0] for v in so_dict.values())
+            _total_imp = sum(v[1] for v in so_dict.values())
+            _total_compras = sum(compras_dict.values())
+            _mos = _stk_total / _vel_total if _vel_total > 0 else 0
+
+            k1, k2, k3, k4, k5 = st.columns(5)
+            k1.metric("SO Anual", f"{_total_pares:,.0f} p")
+            k2.metric("SO $", f"${_total_imp/1e6:,.1f}M")
+            k3.metric("Stock", f"{_stk_total:,.0f} p")
+            k4.metric("MOS (vel real)", f"{_mos:.1f} m")
+            k5.metric("Vel Real", f"{_vel_total:,.0f} p/m")
+
+            # ── Tabla SO/SHARE/MOS mensual ──
+            st.markdown("#### SO / SHARE / MOS Mensual")
+
+            # Construir DataFrame para mostrar
+            tabla_rows = []
+            # SO pares
+            row_so = {"Indicador": "SO (pares)"}
+            for m in range(1, 13):
+                row_so[MESES_NOMBRES[m-1]] = int(so_dict.get(m, (0, 0))[0])
+            row_so["TOTAL"] = int(_total_pares)
+            tabla_rows.append(row_so)
+
+            # SO importe
+            row_imp = {"Indicador": "SO ($)"}
+            for m in range(1, 13):
+                row_imp[MESES_NOMBRES[m-1]] = round(so_dict.get(m, (0, 0))[1])
+            row_imp["TOTAL"] = round(_total_imp)
+            tabla_rows.append(row_imp)
+
+            # SHARE pares
+            row_shp = {"Indicador": "SHARE pares"}
+            shares_p = []
+            for m in range(1, 13):
+                sd = share_dict.get(m)
+                if sd and sd['total_pares'] > 0:
+                    sp = sd['marca_pares'] / sd['total_pares']
+                    shares_p.append(sp)
+                else:
+                    sp = 0
+                row_shp[MESES_NOMBRES[m-1]] = f"{sp:.1%}"
+            row_shp["TOTAL"] = f"{sum(shares_p)/len(shares_p):.1%}" if shares_p else "0%"
+            tabla_rows.append(row_shp)
+
+            # SHARE $
+            row_shi = {"Indicador": "SHARE $"}
+            shares_i = []
+            for m in range(1, 13):
+                sd = share_dict.get(m)
+                if sd and sd['total_importe'] > 0:
+                    si = sd['marca_importe'] / sd['total_importe']
+                    shares_i.append(si)
+                else:
+                    si = 0
+                row_shi[MESES_NOMBRES[m-1]] = f"{si:.1%}"
+            row_shi["TOTAL"] = f"{sum(shares_i)/len(shares_i):.1%}" if shares_i else "0%"
+            tabla_rows.append(row_shi)
+
+            # MOS reconstruido
+            row_mos = {"Indicador": "MOS (meses)"}
+            _stk_fin = _stk_total
+            _mos_by_m = {}
+            for m in range(12, 0, -1):
+                v_m = so_dict.get(m, (0, 0))[0]
+                c_m = compras_dict.get(m, 0)
+                stk_inicio = _stk_fin + v_m - c_m
+                _mos_by_m[m] = round(_stk_fin / _vel_total, 1) if _vel_total > 0 else 0
+                _stk_fin = stk_inicio
+            for m in range(1, 13):
+                row_mos[MESES_NOMBRES[m-1]] = _mos_by_m.get(m, 0)
+            row_mos["TOTAL"] = round(_mos, 1)
+            tabla_rows.append(row_mos)
+
+            # Compras
+            row_cpa = {"Indicador": "Compras (pares)"}
+            for m in range(1, 13):
+                row_cpa[MESES_NOMBRES[m-1]] = int(compras_dict.get(m, 0))
+            row_cpa["TOTAL"] = int(_total_compras)
+            tabla_rows.append(row_cpa)
+
+            # Balance
+            row_bal = {"Indicador": "Balance (C-V)"}
+            for m in range(1, 13):
+                row_bal[MESES_NOMBRES[m-1]] = int(compras_dict.get(m, 0) - so_dict.get(m, (0, 0))[0])
+            row_bal["TOTAL"] = int(_total_compras - _total_pares)
+            tabla_rows.append(row_bal)
+
+            df_tabla = pd.DataFrame(tabla_rows)
+            st.dataframe(df_tabla, use_container_width=True, hide_index=True)
+
+            # ── Gráfico SO + Compras ──
+            st.markdown("#### Evolución Mensual")
+            _chart_data = pd.DataFrame({
+                'Mes': MESES_NOMBRES,
+                'Ventas': [so_dict.get(m, (0, 0))[0] for m in range(1, 13)],
+                'Compras': [compras_dict.get(m, 0) for m in range(1, 13)],
+            }).set_index('Mes')
+            st.bar_chart(_chart_data)
+
+            # Pre-inicializar variables que se usan en export
+            _df_q = pd.DataFrame()
+            _df_show = pd.DataFrame()
+            _stk_rows = []
+
+            # ── Quiebre por categoría ──
+            st.markdown("#### Diagnóstico de Quiebre por Categoría")
+            if not df_vel_sub.empty:
+                _df_q = df_vel_sub.copy()
+                _df_q.columns = ['Subrubro', 'Categoría', 'Modelos', 'Vel Real p/m',
+                                 'Vel Aparente', 'Meses Quebr (avg)', 'Factor Quiebre',
+                                 'Vtas Perdidas 12m']
+                for col in ['Vel Real p/m', 'Vel Aparente', 'Factor Quiebre']:
+                    _df_q[col] = _df_q[col].apply(lambda x: round(float(x), 1) if x else 0)
+                _df_q['Vtas Perdidas 12m'] = _df_q['Vtas Perdidas 12m'].apply(
+                    lambda x: int(float(x)) if x else 0)
+                _df_q['Meses Quebr (avg)'] = _df_q['Meses Quebr (avg)'].apply(
+                    lambda x: int(x) if x else 0)
+                st.dataframe(_df_q, use_container_width=True, hide_index=True)
+
+                _total_vp = _df_q['Vtas Perdidas 12m'].sum()
+                if _total_vp > 0:
+                    st.warning(f"Ventas perdidas estimadas por quiebre: **{_total_vp:,} pares/año**")
+
+            # ── Stock + MOS por categoría ──
+            st.markdown("#### Stock y Cobertura por Categoría")
+            if not df_stk_sub.empty and not df_vel_sub.empty:
+                _vel_dict = {}
+                for _, r in df_vel_sub.iterrows():
+                    _vel_dict[int(r['subrubro'])] = float(r['vel_real'] or 0)
+
+                _stk_rows = []
+                for _, r in df_stk_sub.iterrows():
+                    sub = int(r['subrubro'])
+                    stk = float(r['stock_pares'] or 0)
+                    vel = _vel_dict.get(sub, 0)
+                    mos_cat = stk / vel if vel > 0 else 99
+                    _stk_rows.append({
+                        'Categoría': r['subrubro_desc'] or f"Sub {sub}",
+                        'Modelos': int(r['modelos']),
+                        'Stock': int(stk),
+                        'Vel Real p/m': round(vel, 1),
+                        'MOS': round(mos_cat, 1),
+                        'Estado': '🔴' if mos_cat < 2 else ('🟡' if mos_cat < 4 else '🟢'),
+                    })
+                df_stk_mos = pd.DataFrame(_stk_rows)
+                st.dataframe(df_stk_mos, use_container_width=True, hide_index=True)
+
+            # ── Top modelos ──
+            st.markdown("#### Top 20 Modelos — Velocidad Real y Quiebre")
+            if not df_top.empty:
+                _df_top = df_top.copy()
+                _df_top['descripcion_1'] = _df_top['descripcion_1'].apply(
+                    lambda x: (x or "")[:50])
+                _df_top['vel_real'] = _df_top['vel_real'].apply(lambda x: round(float(x), 1))
+                _df_top['vel_aparente'] = _df_top['vel_aparente'].apply(lambda x: round(float(x), 1))
+                _df_top['ventas_perdidas'] = _df_top['ventas_perdidas'].apply(
+                    lambda x: int(float(x)) if x else 0)
+                _df_top['factor'] = _df_top.apply(
+                    lambda r: round(float(r['vel_real']) / float(r['vel_aparente']), 1)
+                    if float(r['vel_aparente'] or 0) > 0 else 0, axis=1)
+                _df_show = _df_top[['descripcion_1', 'subrubro_desc', 'vel_real',
+                                    'vel_aparente', 'meses_con_stock', 'meses_quebrado',
+                                    'factor', 'ventas_perdidas']].copy()
+                _df_show.columns = ['Modelo', 'Categoría', 'Vel Real', 'Vel Aparente',
+                                    'Meses OK', 'Meses Quebr', 'Factor', 'Vtas Perd']
+                st.dataframe(_df_show, use_container_width=True, hide_index=True)
+
+            # ── Resumen para copiar ──
+            st.markdown("#### Resumen Ejecutivo")
+            _deficit = _total_pares - _total_compras
+            _share_p_avg = sum(shares_p) / len(shares_p) * 100 if shares_p else 0
+            _share_i_avg = sum(shares_i) / len(shares_i) * 100 if shares_i else 0
+
+            _resumen = f"""**{_marca_sel}** — Año {_rm_anio}
+- SO: {_total_pares:,.0f} pares — ${_total_imp/1e6:,.1f}M
+- Vel Real (corregida quiebre): {_vel_total:,.0f} p/mes → demanda real ~{_vel_total*12:,.0f} p/año
+- Share: {_share_p_avg:.1f}% pares / {_share_i_avg:.1f}% importe
+- Stock: {_stk_total:,.0f} pares — MOS: {_mos:.1f} meses
+- Compras: {_total_compras:,.0f} p — Déficit: {_deficit:,.0f} pares"""
+            st.markdown(_resumen)
+
+            # ── Exportar a Excel ──
+            st.markdown("---")
+            if st.button("📥 Exportar reporte a Excel", type="primary", key="rm_export"):
+                try:
+                    _output = io.BytesIO()
+                    with pd.ExcelWriter(_output, engine='openpyxl') as writer:
+                        # Hoja 1: Tabla resumen mensual
+                        df_tabla.to_excel(writer, sheet_name='SO-SHARE-MOS', index=False)
+
+                        # Hoja 2: Quiebre por categoría
+                        if not _df_q.empty:
+                            _df_q.to_excel(writer, sheet_name='Quiebre x Categoria', index=False)
+
+                        # Hoja 3: Top modelos
+                        if not _df_show.empty:
+                            _df_show.to_excel(writer, sheet_name='Top Modelos', index=False)
+
+                        # Hoja 4: Stock x categoría
+                        if _stk_rows:
+                            pd.DataFrame(_stk_rows).to_excel(
+                                writer, sheet_name='Stock x Categoria', index=False)
+
+                        # Hoja 5: Resumen ejecutivo
+                        resumen_data = {
+                            'Indicador': ['SO Pares', 'SO Importe', 'Vel Real p/m',
+                                         'Demanda Real Anual', 'Share Pares', 'Share Importe',
+                                         'Stock Actual', 'MOS', 'Compras', 'Déficit'],
+                            'Valor': [f"{_total_pares:,.0f}", f"${_total_imp/1e6:,.1f}M",
+                                     f"{_vel_total:,.0f}", f"{_vel_total*12:,.0f}",
+                                     f"{_share_p_avg:.1f}%", f"{_share_i_avg:.1f}%",
+                                     f"{_stk_total:,.0f}", f"{_mos:.1f}",
+                                     f"{_total_compras:,.0f}", f"{_deficit:,.0f}"]
+                        }
+                        pd.DataFrame(resumen_data).to_excel(
+                            writer, sheet_name='Resumen', index=False)
+
+                    _output.seek(0)
+                    _fname = f"reporte_{_marca_sel.replace(' ','_')}_{_rm_anio}.xlsx"
+                    st.download_button(
+                        label="💾 Descargar Excel",
+                        data=_output.getvalue(),
+                        file_name=_fname,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="rm_download",
+                    )
+                    st.success(f"Reporte generado: {_fname}")
+                except Exception as e:
+                    st.error(f"Error generando Excel: {e}")
 
 
 # ============================================================================
