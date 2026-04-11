@@ -34,6 +34,13 @@ deploy_scripts() {
     eval rsync -av $INCLUDES --include='*/' --exclude='*' \
         "\"$SRC/_scripts_oneshot/\"" "\"$MOUNT_111/_scripts_oneshot/\""
 
+    # 1b) autorepo/ (motor autocompensación inter-depósito)
+    if [ -d "$SRC/autorepo" ]; then
+        echo -e "${CYAN}  autorepo/${NC}"
+        eval rsync -av $INCLUDES --include='*/' --exclude='*' \
+            "\"$SRC/autorepo/\"" "\"$MOUNT_111/autorepo/\""
+    fi
+
     # 2) Raiz (pipeline core) — solo archivos de raiz, sin subcarpetas grandes
     echo -e "${CYAN}  raiz (pipeline core)${NC}"
     eval rsync -av $INCLUDES \
