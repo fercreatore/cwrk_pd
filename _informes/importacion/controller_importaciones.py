@@ -33,7 +33,7 @@ def simulador():
     GET  -> formulario vacío
     POST -> calcula y devuelve el desglose completo
     """
-    _requiere_acceso('informes_gerencia', 'informes_admin', 'informes_compras')
+    _requiere_acceso()
 
     resultado   = None
     precios     = None
@@ -116,7 +116,7 @@ def simulador_inverso():
     GET  -> formulario vacío
     POST -> calcula FOB máximo y desglose
     """
-    _requiere_acceso('informes_gerencia', 'informes_admin', 'informes_compras')
+    _requiere_acceso()
 
     resultado = None
     error     = None

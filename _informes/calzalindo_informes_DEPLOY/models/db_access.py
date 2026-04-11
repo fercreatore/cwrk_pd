@@ -102,6 +102,10 @@ _PERMISOS = {
     # Presupuesto Live
     'calce_financiero.presupuesto_live':     ['informes_admin', 'informes_gerencia', 'informes_finanzas'],
 
+    # Simulador de Importaciones - compras, gerencia y admin
+    'importaciones.simulador':               ['informes_admin', 'informes_gerencia', 'informes_compras'],
+    'importaciones.simulador_inverso':       ['informes_admin', 'informes_gerencia', 'informes_compras'],
+
     # Admin - solo admin
     'admin_roles.index':                    ['informes_admin'],
     'admin_roles.asignar_rol':              ['informes_admin'],
