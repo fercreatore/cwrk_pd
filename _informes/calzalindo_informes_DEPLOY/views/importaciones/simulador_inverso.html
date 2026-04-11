@@ -1,0 +1,289 @@
+{{extend 'layout.html'}}
+{{block content}}
+
+<style>
+.impo-card        { background:#fff; border:1px solid #ddd; border-radius:6px; padding:20px; margin-bottom:20px; }
+.impo-card h4     { margin-top:0; color:#555; border-bottom:1px solid #eee; padding-bottom:8px; }
+.impo-result-fob  { background:#dff0d8; }
+.impo-result-econ { background:#d9edf7; }
+.impo-desglose    { background:#f5f5f5; }
+.fob-grande       { font-size:2.4em; font-weight:bold; color:#2d6a2d; }
+.econ-grande      { font-size:1.6em; font-weight:bold; color:#31708f; }
+</style>
+
+<div class="row">
+  <div class="col-md-12">
+    <h2 style="margin-bottom:4px;">&#x1F4B9; FOB Máximo desde Precio de Venta</h2>
+    <p class="text-muted" style="margin-bottom:6px;">
+      ¿Cuánto puedo pagar en origen si quiero vender a $X con Y% de margen?
+    </p>
+    <p>
+      <a href="{{=URL('importaciones','simulador')}}">&#x2190; Volver al simulador forward (FOB → costo)</a>
+    </p>
+  </div>
+</div>
+
+{{if error:}}
+<div class="alert alert-danger"><strong>Error:</strong> {{=error}}</div>
+{{pass}}
+
+<div class="row">
+
+<!-- ════════════════════════════════════════════════════════
+     FORMULARIO
+═════════════════════════════════════════════════════════ -->
+<div class="col-md-5">
+<div class="impo-card">
+  <h4>&#x1F3AF; Objetivo de venta</h4>
+
+  <form method="POST" action="{{=URL('importaciones','simulador_inverso')}}">
+
+    <div class="form-group">
+      <label>Precio de venta objetivo (ARS) <small class="text-muted">— con IIBB incluido</small></label>
+      <input type="number" step="100" name="precio_venta_ars" class="form-control"
+             value="{{=post_vars.precio_venta_ars if post_vars else ''}}"
+             placeholder="ej: 80000" required>
+    </div>
+
+    <div class="form-group">
+      <label>Margen de utilidad (%)</label>
+      <input type="number" step="0.1" name="margen_pct" class="form-control"
+             value="{{=post_vars.margen_pct if post_vars else '98.9'}}"
+             placeholder="ej: 98.9" required>
+      <span class="help-block">Sobre costo económico, antes de IIBB (mismo criterio que proveedores locales)</span>
+    </div>
+
+    <div class="form-group">
+      <label>Tipo de cambio (ARS/USD) <small class="text-muted">— dólar vendedor BNA</small></label>
+      <input type="number" step="0.01" name="tipo_cambio" class="form-control"
+             value="{{=post_vars.tipo_cambio if post_vars else ''}}"
+             placeholder="ej: 1200" required>
+    </div>
+
+    <div class="form-group">
+      <label>IIBB Ventas (%)</label>
+      <input type="number" step="0.01" name="iibb_pct" class="form-control"
+             value="{{=post_vars.iibb_pct if post_vars else '3.5'}}"
+             placeholder="3.5">
+      <span class="help-block">Santa Fe calzado retail: 3.5%</span>
+    </div>
+
+    <h4 style="margin-top:20px;">&#x1F69A; Logística estimada</h4>
+    <p class="text-muted" style="font-size:0.9em;">
+      Usá <strong>logística fija</strong> si ya tenés cotización del flete.<br>
+      Usá <strong>% sobre FOB</strong> si solo querés estimar (flete ~10%, seguro ~1%).
+    </p>
+
+    <div class="row">
+      <div class="col-xs-12">
+        <div class="form-group">
+          <label>Logística fija unitaria (USD) <small class="text-muted">— flete + despachante prorrateado</small></label>
+          <input type="number" step="0.0001" name="logistica_unitaria_usd" class="form-control"
+                 value="{{=post_vars.logistica_unitaria_usd if post_vars else '0'}}"
+                 placeholder="ej: 3.45">
+        </div>
+      </div>
+      <div class="col-xs-6">
+        <div class="form-group">
+          <label>Flete (% del FOB)</label>
+          <input type="number" step="0.1" name="flete_pct" class="form-control"
+                 value="{{=post_vars.flete_pct if post_vars else '0'}}"
+                 placeholder="0">
+          <span class="help-block">Dejar en 0 si se usa logística fija</span>
+        </div>
+      </div>
+      <div class="col-xs-6">
+        <div class="form-group">
+          <label>Seguro (% del FOB)</label>
+          <input type="number" step="0.1" name="seguro_pct" class="form-control"
+                 value="{{=post_vars.seguro_pct if post_vars else '0'}}"
+                 placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-success btn-block btn-lg">
+      &#x1F4B0; Calcular FOB máximo
+    </button>
+
+  </form>
+</div><!-- /impo-card -->
+
+<!-- Referencia alícuotas -->
+<div class="impo-card" style="background:#fcf8e3;">
+  <h4>&#x1F4CB; Alícuotas aplicadas</h4>
+  <table class="table table-condensed" style="margin-bottom:0; font-size:0.9em;">
+    <tr><td>Derecho importación</td><td class="text-right"><strong>20%</strong> sobre CIF</td>
+        <td><span class="label label-danger">NO REC</span></td></tr>
+    <tr><td>Tasa estadística</td><td class="text-right"><strong>3%</strong> sobre CIF</td>
+        <td><span class="label label-danger">NO REC</span></td></tr>
+    <tr><td>IVA</td><td class="text-right"><strong>21%</strong> sobre base</td>
+        <td><span class="label label-success">REC</span></td></tr>
+    <tr><td>Percepción IVA</td><td class="text-right"><strong>20%</strong> sobre base</td>
+        <td><span class="label label-success">REC</span></td></tr>
+    <tr><td>Percepción Ganancias</td><td class="text-right"><strong>6%</strong> sobre base</td>
+        <td><span class="label label-success">REC</span></td></tr>
+  </table>
+  <p class="text-muted" style="font-size:0.8em; margin-top:8px; margin-bottom:0;">
+    REC = crédito fiscal para RI → no integra costo económico.
+    CIF = FOB + logística.
+  </p>
+</div>
+
+</div><!-- /col-md-5 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     RESULTADO
+═════════════════════════════════════════════════════════ -->
+<div class="col-md-7">
+{{if resultado:}}
+{{r = resultado}}
+
+<!-- FOB máximo — el número que importa -->
+<div class="impo-card impo-result-fob text-center" style="padding:30px;">
+  <div style="font-size:0.95em; color:#555; margin-bottom:6px;">FOB MÁXIMO PAGABLE EN ORIGEN</div>
+  <div class="fob-grande">USD {{='{:.2f}'.format(r['fob_maximo_usd'])}}</div>
+  <div style="font-size:0.85em; color:#555; margin-top:8px;">
+    por par &nbsp;·&nbsp; TC {{='{:,.0f}'.format(r['tipo_cambio']).replace(',','.')}}
+    &nbsp;·&nbsp; Margen {{=r['margen_aplicado_pct']}}%
+    &nbsp;·&nbsp; IIBB {{=r['iibb_aplicado_pct']}}%
+  </div>
+</div>
+
+<!-- Costo económico implícito -->
+<div class="impo-card impo-result-econ text-center">
+  <div style="font-size:0.9em; color:#555;">COSTO ECONÓMICO IMPLÍCITO</div>
+  <div class="econ-grande">
+    ${{='{:,.0f}'.format(r['costo_economico_ars']).replace(',','.')}}
+  </div>
+  <div style="font-size:0.8em; color:#555;">ARS &nbsp;|&nbsp;
+    USD {{='{:.2f}'.format(r['costo_economico_usd'])}}
+  </div>
+</div>
+
+<!-- Desglose del cálculo -->
+<div class="impo-card impo-desglose">
+  <h4>Desglose del cálculo inverso</h4>
+  <table class="table table-condensed" style="margin-bottom:0;">
+
+    <tr>
+      <td>Precio venta objetivo</td>
+      <td class="text-right">
+        ${{='{:,.0f}'.format(float(post_vars.precio_venta_ars or 0)).replace(',','.')}}
+      </td>
+    </tr>
+    <tr>
+      <td>÷ (1 + {{=r['margen_aplicado_pct']}}%) × (1 + {{=r['iibb_aplicado_pct']}}% IIBB)</td>
+      <td class="text-right text-muted">= Costo económico ARS</td>
+    </tr>
+    <tr style="background:#d9edf7;">
+      <td><strong>Costo económico ARS</strong></td>
+      <td class="text-right"><strong>
+        ${{='{:,.0f}'.format(r['costo_economico_ars']).replace(',','.')}}
+      </strong></td>
+    </tr>
+
+    <tr><td colspan="2"><hr style="margin:8px 0;"></td></tr>
+
+    <tr>
+      <td>÷ tipo de cambio {{='{:,.0f}'.format(r['tipo_cambio']).replace(',','.')}}</td>
+      <td class="text-right text-muted">= Costo económico USD</td>
+    </tr>
+    <tr>
+      <td><strong>Costo económico USD</strong></td>
+      <td class="text-right"><strong>USD {{='{:.4f}'.format(r['costo_economico_usd'])}}</strong></td>
+    </tr>
+
+    <tr><td colspan="2"><hr style="margin:8px 0;"></td></tr>
+
+    <tr>
+      <td>÷ (1 + DI 20% + TE 3%)</td>
+      <td class="text-right text-muted">= CIF USD</td>
+    </tr>
+    <tr>
+      <td><strong>CIF USD</strong></td>
+      <td class="text-right"><strong>USD {{='{:.4f}'.format(r['cif_usd'])}}</strong></td>
+    </tr>
+
+    <tr><td colspan="2"><hr style="margin:8px 0;"></td></tr>
+
+    <tr>
+      <td>- Logística unitaria</td>
+      <td class="text-right">USD {{='{:.4f}'.format(r['logistica_total_usd'])}}</td>
+    </tr>
+    {{if float(post_vars.flete_pct or 0) > 0 or float(post_vars.seguro_pct or 0) > 0:}}
+    <tr>
+      <td colspan="2">
+        <small class="text-muted">
+          &#x26A0; Logística variable (% FOB): el resultado considera la logística
+          calculada sobre el FOB resultante.
+        </small>
+      </td>
+    </tr>
+    {{pass}}
+    <tr style="background:#dff0d8; font-weight:bold; font-size:1.05em;">
+      <td>= FOB MÁXIMO PAGABLE</td>
+      <td class="text-right">USD {{='{:.4f}'.format(r['fob_maximo_usd'])}}</td>
+    </tr>
+
+  </table>
+</div>
+
+<!-- Verificación forward -->
+{{if r['verificacion']:}}
+{{v = r['verificacion']}}
+<div class="impo-card" style="border-color:#5bc0de;">
+  <h4 style="color:#31708f;">&#x2705; Verificación (recalculo forward)</h4>
+  <p class="text-muted" style="font-size:0.9em; margin-bottom:10px;">
+    Corriendo el simulador forward con FOB={{='{:.4f}'.format(r['fob_maximo_usd'])}} USD
+    y logística={{='{:.4f}'.format(r['logistica_total_usd'])}} USD:
+  </p>
+  <table class="table table-condensed" style="margin-bottom:0; font-size:0.9em;">
+    <tr>
+      <td>Costo económico ARS</td>
+      <td class="text-right">${{='{:,.0f}'.format(v['costo_economico_ars']).replace(',','.')}}</td>
+    </tr>
+    <tr>
+      <td>Costo financiero ARS <small class="text-muted">(desembolso)</small></td>
+      <td class="text-right">${{='{:,.0f}'.format(v['costo_financiero_ars']).replace(',','.')}}</td>
+    </tr>
+    <tr>
+      <td>CIF aduana ARS</td>
+      <td class="text-right">${{='{:,.0f}'.format(v['cif_ars']).replace(',','.')}}</td>
+    </tr>
+    <tr>
+      <td>Derecho importación ARS</td>
+      <td class="text-right">${{='{:,.0f}'.format(v['derecho_ars']).replace(',','.')}}</td>
+    </tr>
+    <tr>
+      <td>IVA (recuperable)</td>
+      <td class="text-right">${{='{:,.0f}'.format(v['iva_ars']).replace(',','.')}}</td>
+    </tr>
+    <tr>
+      <td>Percepciones (recuperables)</td>
+      <td class="text-right">${{='{:,.0f}'.format(v['percepcion_iva_ars'] + v['percepcion_ganancias_ars']).replace(',','.')}}</td>
+    </tr>
+  </table>
+</div>
+{{pass}}
+
+{{else:}}
+<div class="impo-card text-center" style="padding:40px; color:#aaa;">
+  <p style="font-size:2.5em;">&#x1F4B9;</p>
+  <p>Ingresá el <strong>precio de venta objetivo</strong> y el <strong>margen</strong><br>
+     para saber cuánto podés pagar FOB en origen.</p>
+  <p class="text-muted" style="font-size:0.9em;">
+    Ejemplo: venta $80.000 | margen 98.9% | TC 1.200 | logística $3 USD → FOB max ~USD 20
+  </p>
+  <hr>
+  <p>
+    <a href="{{=URL('importaciones','simulador')}}">&#x1F6A2; Ir al simulador forward (FOB → costo ARS)</a>
+  </p>
+</div>
+{{pass}}
+
+</div><!-- /col-md-7 -->
+</div><!-- /row -->
+
+{{end}}
