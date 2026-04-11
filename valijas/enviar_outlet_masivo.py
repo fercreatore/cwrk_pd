@@ -37,7 +37,7 @@ def load_optout_phones():
     if not os.path.exists(OPTOUT_FILE):
         return set()
     try:
-        with open(OPTOUT_FILE, "r") as f:
+        with open(OPTOUT_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
         phones = set()
         for entry in data:
@@ -60,13 +60,13 @@ def load_sent_phones():
     master = os.path.join(BASE_DIR, "phones_already_sent.json")
     if os.path.exists(master):
         try:
-            with open(master) as f:
+            with open(master, encoding="utf-8") as f:
                 sent.update(json.load(f))
         except: pass
     for f in os.listdir(BASE_DIR):
         if (f.startswith("log_batch") or f.startswith("log_pascuas")) and f.endswith(".json"):
             try:
-                with open(os.path.join(BASE_DIR, f)) as fh:
+                with open(os.path.join(BASE_DIR, f), encoding="utf-8") as fh:
                     data = json.load(fh)
                 for r in data:
                     if r.get("status") == "sent":
@@ -141,7 +141,7 @@ def load_contacts(source="at_risk"):
         filepath = ALL_CONTACTS_FILE
     else:
         filepath = AT_RISK_FILE
-    with open(filepath) as f:
+    with open(filepath, encoding="utf-8") as f:
         return json.load(f)
 
 def main():
@@ -206,8 +206,13 @@ def main():
     now = datetime.now()
     hour = now.hour
     if hour < 8 or hour >= 21:
-        print(f"ATENCION: Son las {now.strftime('%H:%M')}. Fuera de horario respetable (8-21). Cancela si no queres enviar ahora.")
-        time.sleep(5)
+        print(f"Fuera de horario (8-21hs). Son las {now.strftime('%H:%M')}. Esperando hasta las 8:00...")
+        while True:
+            now = datetime.now()
+            if 8 <= now.hour < 21:
+                print(f"Son las {now.strftime('%H:%M')}. Arrancando envío!")
+                break
+            time.sleep(300)  # Check cada 5 minutos
 
     print(f"""
 {'='*60}
@@ -230,6 +235,12 @@ Hora: {now.strftime('%H:%M')}
     start_time = time.time()
 
     for i, c in enumerate(batch):
+        # Check horario — parar a las 21hs
+        now_hour = datetime.now().hour
+        if now_hour >= 21 or now_hour < 8:
+            print(f"\n⏰ Son las {datetime.now().strftime('%H:%M')}. Parando hasta mañana 8:00.")
+            break
+
         tel = c.get("telefono", c.get("telefono_whatsapp", c.get("telefono_normalizado", "")))
         nombre = c.get("nombre", "amigo/a")
         primer_nombre = extraer_primer_nombre(nombre)
@@ -288,7 +299,7 @@ Hora: {now.strftime('%H:%M')}
     # Guardar log
     if not dry_run:
         log_file = os.path.join(BASE_DIR, f"log_batch{batch_num}_outlet.json")
-        with open(log_file, "w") as f:
+        with open(log_file, "w", encoding="utf-8") as f:
             json.dump(log, f, indent=2, ensure_ascii=False)
         print(f"\nLog guardado: {log_file}")
 

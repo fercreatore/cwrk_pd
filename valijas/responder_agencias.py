@@ -25,6 +25,8 @@ CHATWOOT_URL = "https://chat.calzalindo.com.ar"
 API_TOKEN = "zvQpseDYDoeqJpwM41GCb1LP"
 ACCOUNT_ID = 3
 INBOX_ID = 10  # Calzalindo 1170 (campaña valijas)
+# Monitorear TODOS los inboxes (WhatsApp + Instagram + Facebook)
+ALL_INBOXES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  # Todos los canales de Chatwoot
 POLL_INTERVAL = 30  # segundos
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -82,14 +84,14 @@ RESPUESTA_COMISION = (
     "Perfecto! Con la Opcion A, por cada set que tus pasajeros compren "
     "con tu codigo de descuento, te transferimos $20.000. Sin limite. "
     "Nosotros nos encargamos del envio y la atencion. Vos solo recomendas. "
-    "Para activar tu codigo, hablemos con Fernando: wa.me/5493462672330"
+    "Para activar tu codigo, hablemos con Fernando: wa.me/5493462410993"
 )
 
 RESPUESTA_MAYORISTA = (
     "Genial! Con la Opcion B compras los sets a $100.000 c/u (minimo 5 "
     "sets) y los revendes al precio que quieras. Te queda un margen de "
     "hasta $62.499 por set. Envio incluido a tu deposito. Para coordinar, "
-    "hablemos con Fernando: wa.me/5493462672330"
+    "hablemos con Fernando: wa.me/5493462410993"
 )
 
 RESPUESTA_GARANTIA = (
@@ -184,27 +186,29 @@ RESPUESTA_CAMBIOS = (
 
 # Respuesta para ventas por mayor
 RESPUESTA_MAYORISTA_OUTLET = (
-    "Si! Tenemos precios especiales por mayor. "
-    "Escribile directo a Fernando al +5493462672330 "
-    "y te arma una propuesta. 🤝"
+    "Si! El outlet es por mayor Y por menor, podes comprar la cantidad que quieras.\n"
+    "📍 Av. Santa Fe 1246, Venado Tuerto\n"
+    "🗓 Del 9 al 12 de abril\n"
+    "🕙 10:00 a 21:00hs\n"
+    "💰 Desde $4.999 en efectivo/transferencia\n"
+    "Para consultas de mayorista escribile a un vendedor: wa.me/5493462410993"
 )
 
 # --- OUTLET MUNICIPAL ATR ---
 RESPUESTA_OUTLET_AVISAME = (
-    "Listo! Te aviso el 9 de abril que arranca. "
-    "Guarda plata porque va a haber precios increibles 🔥\n\n"
+    "YA ARRANCO! 🔥 Veni hoy!\n\n"
     "📍 Av. Santa Fe 1246, Venado Tuerto\n"
     "🕐 10:00 a 21:00 hs\n"
-    "📅 Del 9 al 12 de abril (solo 4 dias!)\n"
-    "Sector Pague Lo Que Quiera + Ventas por mayor"
+    "📅 Hasta el 12 de abril (ultimos dias!)\n"
+    "Sector Pague Lo Que Quiera + Ventas por mayor y por menor"
 )
 
 RESPUESTA_OUTLET_QUE_HAY = (
     "LIQUIDAMOS TODO! 🔥\n\n"
     "Hombre - Mujer - Niños\n"
-    "Desde $4.999\n"
+    "Desde $4.999 en efectivo/transferencia\n"
     "Sector Pague Lo Que Quiera!\n"
-    "Ventas por mayor tambien.\n\n"
+    "Ventas por mayor y por menor.\n\n"
     "📅 Solo 4 dias: del 9 al 12 de abril\n"
     "📍 Av. Santa Fe 1246, Venado Tuerto\n"
     "🕐 De 10:00 a 21:00 hs\n\n"
@@ -216,31 +220,33 @@ OUTLET_FLYER_PATH = "/Users/fernandocalaianov/Desktop/cowork_pedidos/valijas/ima
 RESPUESTA_OUTLET_PASCUAS = (
     "Felices Pascuas para vos y toda tu familia! 🐣🙏\n"
     "Que pasen un hermoso dia juntos.\n\n"
-    "Y acordate: la semana que viene arranca el OUTLET! "
-    "Del 9 al 12 de abril, precios desde $4.999 + Sector Pague Lo Que Quiera.\n"
+    "Y acordate: el OUTLET ya arranco! Hasta el 12 de abril. "
+    "Del 9 al 12 de abril, precios desde $4.999 en efectivo/transferencia + Sector Pague Lo Que Quiera.\n"
     "Comparti el flyer con tu familia asi vienen todos! 🔥"
 )
 
 RESPUESTA_OUTLET_LOCALES = (
-    "Estamos en Venado Tuerto:\n"
-    "📍 Central: Brown 1080\n"
-    "📍 Norte: Castelli 401\n"
-    "📍 Eva Peron: Eva Peron 1150\n"
-    "El outlet es en TODOS los locales, del 9 al 12 de abril!\n"
-    "Horario: Lun a Vie 8:30-12:30 y 16:00-20:30, Sab 8:30-13:00 y 16:30-20:30"
+    "El outlet es en 📍 Av. Santa Fe 1246, Venado Tuerto\n"
+    "🗓 Del 9 al 12 de abril (solo 4 dias!)\n"
+    "🕙 10:00 a 21:00hs corrido\n"
+    "💰 Desde $4.999 en efectivo/transferencia\n"
+    "🏷 Sector Pague Lo Que Quiera\n"
+    "👫 Hombre, Mujer y Niños — por mayor y por menor\n"
+    "Te esperamos!"
 )
 
 RESPUESTA_OUTLET_HORARIO = (
-    "El outlet arranca el miercoles 9 de abril.\n"
-    "Horario: Lunes a Viernes 8:30-12:30 y 16:00-20:30\n"
-    "Sabados 8:30-13:00 y 16:30-20:30\n"
+    "El outlet es del 9 al 12 de abril (solo 4 dias!).\n"
+    "🕙 Horario: 10:00 a 21:00hs corrido\n"
+    "📍 Av. Santa Fe 1246, Venado Tuerto\n"
+    "💰 Desde $4.999 en efectivo/transferencia\n"
     "Te esperamos! 🔥"
 )
 
 RESPUESTA_OUTLET_JUNIN = (
     "Hola! En Junin no tenemos outlet presencial, pero esta semana "
     "liquidamos TODO en calzalindo.com.ar con ENVIO GRATIS a todo el pais! 📦\n"
-    "Zapatillas, botas, camperas desde $4.999.\n"
+    "Zapatillas, botas, camperas desde $4.999 en efectivo/transferencia.\n"
     "👉 calzalindo.com.ar"
 )
 
@@ -248,7 +254,7 @@ RESPUESTA_OUTLET_POSITIVA = (
     "Que bueno! 😊 Te esperamos del 9 al 12 de abril.\n"
     "📍 Av. Santa Fe 1246, Venado Tuerto\n"
     "🕐 10:00 a 21:00 hs\n"
-    "Hay Sector Pague Lo Que Quiera + ventas por mayor.\n\n"
+    "Hay Sector Pague Lo Que Quiera + ventas por mayor y por menor.\n\n"
     "Te pido un favor? 🙏 Compartí el flyer en tu estado de WhatsApp "
     "asi se enteran tus contactos. Cuantos mas vengan, mejor para todos! 🔥"
 )
@@ -264,7 +270,7 @@ RESPUESTA_OUTLET_GRACIAS = (
 
 RESPUESTA_OUTLET_SALUDO = (
     "Hola! 😊 Que bueno saber de vos! Te esperamos en nuestro outlet.\n"
-    "Liquidamos todo desde $4.999!\n"
+    "Liquidamos todo desde $4.999 en efectivo/transferencia!\n"
     "📅 Del 9 al 12 de abril\n"
     "📍 Av. Santa Fe 1246, Venado Tuerto\n"
     "🕐 10:00 a 21:00 hs\n"
@@ -272,10 +278,10 @@ RESPUESTA_OUTLET_SALUDO = (
 )
 
 RESPUESTA_OUTLET_HORARIO = (
-    "El outlet arranca el miercoles 9 de abril! 📅\n"
+    "El outlet YA ARRANCO! Hasta el 12 de abril 📅\n"
     "Del 9 al 12, de 10:00 a 21:00 hs.\n"
     "📍 Av. Santa Fe 1246, Venado Tuerto\n\n"
-    "Faltan pocos dias, guarda plata! 😉"
+    "Ya arranco! Veni antes de que se acabe 😉"
 )
 
 UNMATCHED_LOG = os.path.join(SCRIPT_DIR, "log_unmatched_messages.json")
@@ -425,10 +431,11 @@ def send_message(conversation_id: int, content: str):
 
 
 def get_conversations(page: int = 1) -> list:
-    """Lista conversaciones abiertas del inbox WhatsApp."""
+    """Lista conversaciones abiertas de TODOS los inboxes."""
+    # No filtrar por inbox_id → trae todos los canales
     endpoint = (
         f"/api/v1/accounts/{ACCOUNT_ID}/conversations"
-        f"?inbox_id={INBOX_ID}&status=open&page={page}"
+        f"?status=open&page={page}"
     )
     data = api_get(endpoint)
     # La API devuelve {"data": {"meta": {...}, "payload": [...]}}
@@ -808,43 +815,74 @@ def process_conversations():
 
             # Medios de pago
             if response == "MEDIOS_PAGO":
-                send_message(conv_id, "Aceptamos efectivo, debito, credito hasta 6 cuotas sin interes, y transferencia bancaria (con descuento extra). En el outlet que arranca mañana hay precios especiales! Te esperamos.")
+                send_message(conv_id, "Aceptamos efectivo, debito, credito hasta 6 cuotas sin interes, y transferencia bancaria. Los precios del outlet son en efectivo/transferencia. Para consultas puntuales escribile a un vendedor: wa.me/5493462410993")
                 changed = True
                 continue
 
-            # Consulta de producto
-            if response == "CONSULTA_PRODUCTO":
-                send_message(conv_id, "Hola! Para consultas de stock y talles te recomendamos pasar por el local o escribirnos a +5493462672330. Mañana arranca el outlet con descuentos increibles en todas las marcas!")
+            # Consulta de producto / talle / precio — dar info outlet + derivar humano
+            if response in ("CONSULTA_PRODUCTO", "CAMBIOS"):
+                send_message(conv_id,
+                    "Hola! Soy un asistente automatico del outlet.\n\n"
+                    "🏷 LIQUIDAMOS TODO - Hombre, Mujer y Niños\n"
+                    "📍 Av. Santa Fe 1246, Venado Tuerto\n"
+                    "🗓 Del 9 al 12 de abril\n"
+                    "🕙 10:00 a 21:00hs corrido\n"
+                    "💰 Desde $4.999 en efectivo/transferencia\n"
+                    "🏷 Sector Pague Lo Que Quiera\n\n"
+                    "Para consultas puntuales de talles o productos escribile a un vendedor: wa.me/5493462410993"
+                )
                 changed = True
                 continue
 
             if response in ("OUTLET_AVISAME", "OUTLET_QUE_HAY", "OUTLET_POSITIVA", "OUTLET_GRACIAS", "OUTLET_SALUDO", "OUTLET_PASCUAS", "OUTLET_LOCALES", "OUTLET_HORARIO", "OUTLET_JUNIN"):
-                text_map = {
-                    "OUTLET_AVISAME": RESPUESTA_OUTLET_AVISAME,
-                    "OUTLET_QUE_HAY": RESPUESTA_OUTLET_QUE_HAY,
-                    "OUTLET_POSITIVA": RESPUESTA_OUTLET_POSITIVA,
-                    "OUTLET_GRACIAS": RESPUESTA_OUTLET_GRACIAS,
-                    "OUTLET_SALUDO": RESPUESTA_OUTLET_SALUDO,
-                    "OUTLET_PASCUAS": RESPUESTA_OUTLET_PASCUAS,
-                    "OUTLET_LOCALES": RESPUESTA_OUTLET_LOCALES,
-                    "OUTLET_HORARIO": RESPUESTA_OUTLET_HORARIO,
-                    "OUTLET_JUNIN": RESPUESTA_OUTLET_JUNIN,
-                }
-                actual_text = text_map.get(response, RESPUESTA_OUTLET_QUE_HAY)
-                # Mandar flyer + texto via curl multipart
-                import subprocess
-                flyer = OUTLET_FLYER_PATH
-                if os.path.exists(flyer):
-                    cmd = ['curl', '-sk', '-X', 'POST',
-                           '-H', f'api_access_token: {API_TOKEN}',
-                           '-F', f'content={actual_text}',
-                           '-F', 'message_type=outgoing',
-                           '-F', 'private=false',
-                           '-F', f'attachments[]=@{flyer};type=image/jpeg',
-                           f'{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conv_id}/messages']
-                    subprocess.run(cmd, capture_output=True, timeout=30)
+                # Si ya le respondimos antes → respuesta corta SIN flyer
+                if initial_already_sent:
+                    short_replies = {
+                        "OUTLET_POSITIVA": "Genial, te esperamos! 😊",
+                        "OUTLET_GRACIAS": "De nada! Te esperamos 😊",
+                        "OUTLET_SALUDO": "Hola! El outlet es en Av. Santa Fe 1246, de 10 a 21hs. Te esperamos!",
+                        "OUTLET_PASCUAS": "Igualmente! Te esperamos en el outlet 😊",
+                        "OUTLET_AVISAME": "Listo, te avisamos! 😊",
+                    }
+                    short = short_replies.get(response)
+                    if short:
+                        send_message(conv_id, short)
+                    else:
+                        # Para preguntas reales (horario, ubicacion, que hay) sí responder completo pero sin flyer
+                        text_map = {
+                            "OUTLET_QUE_HAY": RESPUESTA_OUTLET_QUE_HAY,
+                            "OUTLET_LOCALES": RESPUESTA_OUTLET_LOCALES,
+                            "OUTLET_HORARIO": RESPUESTA_OUTLET_HORARIO,
+                            "OUTLET_JUNIN": RESPUESTA_OUTLET_JUNIN,
+                        }
+                        send_message(conv_id, text_map.get(response, "Te esperamos en el outlet! Av. Santa Fe 1246, 10 a 21hs 😊"))
                 else:
-                    send_message(conv_id, actual_text)
+                    # Primera respuesta → texto completo + flyer
+                    text_map = {
+                        "OUTLET_AVISAME": RESPUESTA_OUTLET_AVISAME,
+                        "OUTLET_QUE_HAY": RESPUESTA_OUTLET_QUE_HAY,
+                        "OUTLET_POSITIVA": RESPUESTA_OUTLET_POSITIVA,
+                        "OUTLET_GRACIAS": RESPUESTA_OUTLET_GRACIAS,
+                        "OUTLET_SALUDO": RESPUESTA_OUTLET_SALUDO,
+                        "OUTLET_PASCUAS": RESPUESTA_OUTLET_PASCUAS,
+                        "OUTLET_LOCALES": RESPUESTA_OUTLET_LOCALES,
+                        "OUTLET_HORARIO": RESPUESTA_OUTLET_HORARIO,
+                        "OUTLET_JUNIN": RESPUESTA_OUTLET_JUNIN,
+                    }
+                    actual_text = text_map.get(response, RESPUESTA_OUTLET_QUE_HAY)
+                    import subprocess
+                    flyer = OUTLET_FLYER_PATH
+                    if os.path.exists(flyer):
+                        cmd = ['curl', '-sk', '-X', 'POST',
+                               '-H', f'api_access_token: {API_TOKEN}',
+                               '-F', f'content={actual_text}',
+                               '-F', 'message_type=outgoing',
+                               '-F', 'private=false',
+                               '-F', f'attachments[]=@{flyer};type=image/jpeg',
+                               f'{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conv_id}/messages']
+                        subprocess.run(cmd, capture_output=True, timeout=30)
+                    else:
+                        send_message(conv_id, actual_text)
                 response = actual_text
             else:
                 send_message(conv_id, response)

@@ -1,0 +1,2610 @@
+[
+  {
+    "cuenta": 6601,
+    "nombre": "Calaianov Fernando Matias",
+    "cp": 260000,
+    "ultima_compra": "2026-03-28 00:00:00",
+    "gasto_24m": 11439104.56,
+    "telefono_wa": "5493462672330"
+  },
+  {
+    "cuenta": 7836,
+    "nombre": "Calaianov Tamara",
+    "cp": 260000,
+    "ultima_compra": "2026-03-27 00:00:00",
+    "gasto_24m": 7510594.14,
+    "telefono_wa": "5493462677067"
+  },
+  {
+    "cuenta": 24582288,
+    "nombre": "GIBELLI GIANA (emp)",
+    "cp": 260000,
+    "ultima_compra": "2026-03-26 00:00:00",
+    "gasto_24m": 6939705.2,
+    "telefono_wa": "5493462670544"
+  },
+  {
+    "cuenta": 24574459,
+    "nombre": "marisa goico",
+    "cp": 260100,
+    "ultima_compra": "2026-03-16 00:00:00",
+    "gasto_24m": 5135664.14,
+    "telefono_wa": "5493462414738"
+  },
+  {
+    "cuenta": 18032136,
+    "nombre": "Rodriguez Camila Mariel(emp)",
+    "cp": 260000,
+    "ultima_compra": "2026-02-27 00:00:00",
+    "gasto_24m": 4758701.31,
+    "telefono_wa": "5493462327802"
+  },
+  {
+    "cuenta": 18030705,
+    "nombre": "Calaianov Guillermo",
+    "cp": 260000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 4676796.09,
+    "telefono_wa": "5493462610216"
+  },
+  {
+    "cuenta": 18031827,
+    "nombre": "Villa Juan Ignacio",
+    "cp": 260000,
+    "ultima_compra": "2026-03-16 00:00:00",
+    "gasto_24m": 3897072.73,
+    "telefono_wa": "5493462672505"
+  },
+  {
+    "cuenta": 24573941,
+    "nombre": "DITURO FLORENCIA (emp)",
+    "cp": 263000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 3136248.0,
+    "telefono_wa": "5493462595157"
+  },
+  {
+    "cuenta": 3368,
+    "nombre": "Fernandez Long Eric  LT29/CANAL 8",
+    "cp": 260000,
+    "ultima_compra": "2026-03-31 00:00:00",
+    "gasto_24m": 2500411.22,
+    "telefono_wa": "5493462522263"
+  },
+  {
+    "cuenta": 41060560,
+    "nombre": "GALVAN, SUSANA ",
+    "cp": 260100,
+    "ultima_compra": "2026-03-23 00:00:00",
+    "gasto_24m": 2149228.87,
+    "telefono_wa": "5493462333106"
+  },
+  {
+    "cuenta": 1484,
+    "nombre": "SCHEFFER LILIANA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-30 00:00:00",
+    "gasto_24m": 2019898.0,
+    "telefono_wa": "5493462366922"
+  },
+  {
+    "cuenta": 41071309,
+    "nombre": "CONSOLI, ELISABET",
+    "cp": 260000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 1750831.0,
+    "telefono_wa": "5493462531224"
+  },
+  {
+    "cuenta": 18042319,
+    "nombre": "GUDIÑO, CARLA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 1666683.97,
+    "telefono_wa": "5493462526822"
+  },
+  {
+    "cuenta": 41060802,
+    "nombre": "AYALA, ANGELICA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 1647632.4,
+    "telefono_wa": "5493462699953"
+  },
+  {
+    "cuenta": 41060443,
+    "nombre": "BALESTRASSE, AGUSTINA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 1462163.0,
+    "telefono_wa": "5492364574614"
+  },
+  {
+    "cuenta": 24578208,
+    "nombre": "MAUMUS, SOLEDAD",
+    "cp": 261800,
+    "ultima_compra": "2026-03-31 00:00:00",
+    "gasto_24m": 1442718.1,
+    "telefono_wa": "5493462509784"
+  },
+  {
+    "cuenta": 41061115,
+    "nombre": "PRETZEL, ANGEL",
+    "cp": 260900,
+    "ultima_compra": "2026-02-20 00:00:00",
+    "gasto_24m": 1407925.0,
+    "telefono_wa": "5493462336226"
+  },
+  {
+    "cuenta": 41057532,
+    "nombre": "CARRIZO, YAMILA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-25 00:00:00",
+    "gasto_24m": 1345326.92,
+    "telefono_wa": "5492634310782"
+  },
+  {
+    "cuenta": 41057628,
+    "nombre": "TIELEMANS, GEORGINA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-27 00:00:00",
+    "gasto_24m": 1294274.14,
+    "telefono_wa": "5493462652473"
+  },
+  {
+    "cuenta": 41059661,
+    "nombre": "SAVINO, JAVIER NORBERTO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 1282369.14,
+    "telefono_wa": "5493462564991"
+  },
+  {
+    "cuenta": 41059244,
+    "nombre": "MORENO, BELEN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 1239357.04,
+    "telefono_wa": "5493462541147"
+  },
+  {
+    "cuenta": 18051534,
+    "nombre": "bustos mariela",
+    "cp": 260000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 1220461.03,
+    "telefono_wa": "5493462650172"
+  },
+  {
+    "cuenta": 41057716,
+    "nombre": "HERNANDEZ, LAURA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-05 00:00:00",
+    "gasto_24m": 1137257.12,
+    "telefono_wa": "5492364693673"
+  },
+  {
+    "cuenta": 41071681,
+    "nombre": "RIOS, SILVIA",
+    "cp": 600000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 1110112.58,
+    "telefono_wa": "5492364539733"
+  },
+  {
+    "cuenta": 24588907,
+    "nombre": "LUDUEñA, RICARDO",
+    "cp": 260000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 1102395.0,
+    "telefono_wa": "5493462567710"
+  },
+  {
+    "cuenta": 41057495,
+    "nombre": "URBE, MARIA HERMINIA",
+    "cp": 600900,
+    "ultima_compra": "2026-02-11 00:00:00",
+    "gasto_24m": 1018250.0,
+    "telefono_wa": "5493462302068"
+  },
+  {
+    "cuenta": 41058151,
+    "nombre": "VALLE, VIRGINIA",
+    "cp": 600000,
+    "ultima_compra": "2026-01-12 00:00:00",
+    "gasto_24m": 991511.5,
+    "telefono_wa": "5492364533192"
+  },
+  {
+    "cuenta": 41058822,
+    "nombre": "PRIOTTI, SILVANA",
+    "cp": 600000,
+    "ultima_compra": "2026-01-16 00:00:00",
+    "gasto_24m": 972136.88,
+    "telefono_wa": "5492364327590"
+  },
+  {
+    "cuenta": 18031976,
+    "nombre": "Unzaga Edith Graciela",
+    "cp": 260000,
+    "ultima_compra": "2026-01-13 00:00:00",
+    "gasto_24m": 947107.0,
+    "telefono_wa": "5493462665031"
+  },
+  {
+    "cuenta": 41060118,
+    "nombre": "GOMEZ, CAROLINA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-18 00:00:00",
+    "gasto_24m": 935683.0,
+    "telefono_wa": "5493462326649"
+  },
+  {
+    "cuenta": 41058694,
+    "nombre": "SELSO, DANIEL",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 912539.36,
+    "telefono_wa": "5493462665911"
+  },
+  {
+    "cuenta": 41060957,
+    "nombre": "IBARRA, MARILIN",
+    "cp": 260000,
+    "ultima_compra": "2026-03-04 00:00:00",
+    "gasto_24m": 848576.0,
+    "telefono_wa": "5493462565554"
+  },
+  {
+    "cuenta": 41059871,
+    "nombre": "FORTUNA, OSCAR",
+    "cp": 260000,
+    "ultima_compra": "2026-04-06 00:00:00",
+    "gasto_24m": 846989.0,
+    "telefono_wa": "5493462510009"
+  },
+  {
+    "cuenta": 41056955,
+    "nombre": "CARENA SOCIEDAD ANONIMA",
+    "cp": 261300,
+    "ultima_compra": "2026-02-14 00:00:00",
+    "gasto_24m": 839122.0,
+    "telefono_wa": "5493382573498"
+  },
+  {
+    "cuenta": 41061634,
+    "nombre": "BANFI, CAROLINA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 829125.69,
+    "telefono_wa": "5492364699091"
+  },
+  {
+    "cuenta": 1828244,
+    "nombre": "Bibiloni Gisela Soledad",
+    "cp": 260000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 828264.0,
+    "telefono_wa": "5493462568199"
+  },
+  {
+    "cuenta": 41059954,
+    "nombre": "USABIAGA, NORMA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 820613.02,
+    "telefono_wa": "5492364354921"
+  },
+  {
+    "cuenta": 41060117,
+    "nombre": "PORTILLO, CLAUDIA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 815983.0,
+    "telefono_wa": "5493462327335"
+  },
+  {
+    "cuenta": 41060555,
+    "nombre": "HERNANDEZ, LUCILA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-20 00:00:00",
+    "gasto_24m": 807969.0,
+    "telefono_wa": "5493462612551"
+  },
+  {
+    "cuenta": 41080684,
+    "nombre": "DI SIASIO, FERNANDO",
+    "cp": 600000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 786755.0,
+    "telefono_wa": "5492364374496"
+  },
+  {
+    "cuenta": 18050006,
+    "nombre": "VIERA CRISTINA TERESA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-23 00:00:00",
+    "gasto_24m": 785517.0,
+    "telefono_wa": "5493462553487"
+  },
+  {
+    "cuenta": 41059351,
+    "nombre": "MACIAS, SILVIA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-18 00:00:00",
+    "gasto_24m": 781470.0,
+    "telefono_wa": "5493462300031"
+  },
+  {
+    "cuenta": 41057570,
+    "nombre": "ESCUDERO, FERNANDO ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-21 00:00:00",
+    "gasto_24m": 768940.0,
+    "telefono_wa": "5493462515047"
+  },
+  {
+    "cuenta": 41057730,
+    "nombre": "MONTERO, MILAGROS",
+    "cp": 260000,
+    "ultima_compra": "2026-03-04 00:00:00",
+    "gasto_24m": 767829.0,
+    "telefono_wa": "5493462505134"
+  },
+  {
+    "cuenta": 41061072,
+    "nombre": "LOPEZ, NATALI",
+    "cp": 260000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 766464.0,
+    "telefono_wa": "5493462629632"
+  },
+  {
+    "cuenta": 18041295,
+    "nombre": "Bambini Laura",
+    "cp": 260000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 759417.0,
+    "telefono_wa": "5493462413181"
+  },
+  {
+    "cuenta": 41084017,
+    "nombre": "BELLORIN, MARCOS",
+    "cp": 260000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 753293.18,
+    "telefono_wa": "5493382447425"
+  },
+  {
+    "cuenta": 23746492,
+    "nombre": "Gabriel Buchaillot",
+    "cp": 260000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 747376.11,
+    "telefono_wa": "5493462546727"
+  },
+  {
+    "cuenta": 41057552,
+    "nombre": "AGUILERA, CARINA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-13 00:00:00",
+    "gasto_24m": 739469.03,
+    "telefono_wa": "5493462417537"
+  },
+  {
+    "cuenta": 41058293,
+    "nombre": "RIO, RAMON",
+    "cp": 260000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 730665.0,
+    "telefono_wa": "5493462623449"
+  },
+  {
+    "cuenta": 41062405,
+    "nombre": "FIORINO, MARIA INES",
+    "cp": 600000,
+    "ultima_compra": "2026-01-17 00:00:00",
+    "gasto_24m": 721930.49,
+    "telefono_wa": "5492364365232"
+  },
+  {
+    "cuenta": 41057738,
+    "nombre": "ZECCHINATI, EUGENIA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-17 00:00:00",
+    "gasto_24m": 720342.0,
+    "telefono_wa": "5493462582463"
+  },
+  {
+    "cuenta": 182218,
+    "nombre": "REYES YANINA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 711864.21,
+    "telefono_wa": "5493462535751"
+  },
+  {
+    "cuenta": 41059778,
+    "nombre": "CHAVEZ , NATALIA ",
+    "cp": 260000,
+    "ultima_compra": "2026-01-30 00:00:00",
+    "gasto_24m": 705450.71,
+    "telefono_wa": "5493462338412"
+  },
+  {
+    "cuenta": 19995735,
+    "nombre": "Porcari Sergio ",
+    "cp": 591500,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 700693.0,
+    "telefono_wa": "5493462469082"
+  },
+  {
+    "cuenta": 41075434,
+    "nombre": "RAMOS, MILTON",
+    "cp": 600000,
+    "ultima_compra": "2026-04-06 00:00:00",
+    "gasto_24m": 673706.0,
+    "telefono_wa": "5492364411304"
+  },
+  {
+    "cuenta": 41060287,
+    "nombre": "REGGIARDO, CLAUDIA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 662192.62,
+    "telefono_wa": "5492364592381"
+  },
+  {
+    "cuenta": 41061001,
+    "nombre": "TOLESCO, LUCIANO",
+    "cp": 260000,
+    "ultima_compra": "2026-01-13 00:00:00",
+    "gasto_24m": 659989.82,
+    "telefono_wa": "5493462614466"
+  },
+  {
+    "cuenta": 41075669,
+    "nombre": "RICCI, GRACIELA",
+    "cp": 261700,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 659510.0,
+    "telefono_wa": "5493462545092"
+  },
+  {
+    "cuenta": 41060614,
+    "nombre": "GARCIA, GLADYS",
+    "cp": 600000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 637589.0,
+    "telefono_wa": "5492364591870"
+  },
+  {
+    "cuenta": 41057519,
+    "nombre": "GUTIERREZ , MARIA LUJAN ",
+    "cp": 600900,
+    "ultima_compra": "2026-02-12 00:00:00",
+    "gasto_24m": 635053.0,
+    "telefono_wa": "5493462368052"
+  },
+  {
+    "cuenta": 41060673,
+    "nombre": "QUADRELLI, JOSE LUIS",
+    "cp": 260000,
+    "ultima_compra": "2026-03-12 00:00:00",
+    "gasto_24m": 604167.0,
+    "telefono_wa": "5493462674295"
+  },
+  {
+    "cuenta": 41071539,
+    "nombre": "GIMENEZ, NORBERTO",
+    "cp": 260000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 600232.0,
+    "telefono_wa": "5493462579214"
+  },
+  {
+    "cuenta": 41059381,
+    "nombre": "COLOMBANO, SILVIA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-20 00:00:00",
+    "gasto_24m": 599974.0,
+    "telefono_wa": "5493462229751"
+  },
+  {
+    "cuenta": 18045243,
+    "nombre": "CEBALLOS BRUNO",
+    "cp": 260000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 591285.9,
+    "telefono_wa": "5493462555766"
+  },
+  {
+    "cuenta": 41062539,
+    "nombre": "CORNACCHIA, HAYDEE HEBE",
+    "cp": 600000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 587574.0,
+    "telefono_wa": "5492364577999"
+  },
+  {
+    "cuenta": 41059693,
+    "nombre": "HERNANDEZ, ANDRES",
+    "cp": 260000,
+    "ultima_compra": "2026-02-14 00:00:00",
+    "gasto_24m": 586159.0,
+    "telefono_wa": "5493462375032"
+  },
+  {
+    "cuenta": 18053981,
+    "nombre": "RIVAROLA GRACIELA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 576456.0,
+    "telefono_wa": "5493462302211"
+  },
+  {
+    "cuenta": 41059627,
+    "nombre": "POMPEI, ALICIA",
+    "cp": 260300,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 569952.19,
+    "telefono_wa": "5493462527384"
+  },
+  {
+    "cuenta": 6357,
+    "nombre": "Lema Marcia Vanina",
+    "cp": 260100,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 569674.96,
+    "telefono_wa": "5493462411212"
+  },
+  {
+    "cuenta": 41085878,
+    "nombre": "TOBALDI, MARIANO ",
+    "cp": 260000,
+    "ultima_compra": "2026-04-06 00:00:00",
+    "gasto_24m": 555975.0,
+    "telefono_wa": "5493462317028"
+  },
+  {
+    "cuenta": 41057237,
+    "nombre": "GOROSITO, MARTHA EVA",
+    "cp": 260100,
+    "ultima_compra": "2026-03-13 00:00:00",
+    "gasto_24m": 553998.0,
+    "telefono_wa": "5493462230921"
+  },
+  {
+    "cuenta": 41060964,
+    "nombre": "SEGOVIA, LAURA ANDREA",
+    "cp": 600000,
+    "ultima_compra": "2026-01-16 00:00:00",
+    "gasto_24m": 536014.0,
+    "telefono_wa": "5492364661304"
+  },
+  {
+    "cuenta": 41058191,
+    "nombre": "GATICA, SILVIA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-10 00:00:00",
+    "gasto_24m": 526118.0,
+    "telefono_wa": "5493462540010"
+  },
+  {
+    "cuenta": 41057149,
+    "nombre": "RODRIGUEZ, EVELINA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-25 00:00:00",
+    "gasto_24m": 524067.0,
+    "telefono_wa": "5493462620741"
+  },
+  {
+    "cuenta": 41057522,
+    "nombre": "MARTINEZ, DIEGO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-20 00:00:00",
+    "gasto_24m": 514434.0,
+    "telefono_wa": "5493462681930"
+  },
+  {
+    "cuenta": 41057493,
+    "nombre": "MARTINEZ, SONIA ANABEL",
+    "cp": 600000,
+    "ultima_compra": "2026-01-23 00:00:00",
+    "gasto_24m": 507228.0,
+    "telefono_wa": "5492364645761"
+  },
+  {
+    "cuenta": 24574229,
+    "nombre": "vanesa bravo",
+    "cp": 260100,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 504631.03,
+    "telefono_wa": "5493462324412"
+  },
+  {
+    "cuenta": 41058849,
+    "nombre": "GUTIERREZ, ETELVINA ROSA ",
+    "cp": 600000,
+    "ultima_compra": "2026-02-12 00:00:00",
+    "gasto_24m": 504522.0,
+    "telefono_wa": "5492364579911"
+  },
+  {
+    "cuenta": 41060491,
+    "nombre": "CUEVAS, DELFINA",
+    "cp": 260900,
+    "ultima_compra": "2026-03-12 00:00:00",
+    "gasto_24m": 496791.0,
+    "telefono_wa": "5493462600884"
+  },
+  {
+    "cuenta": 41059847,
+    "nombre": "PANCHEIRA, MARCELO",
+    "cp": 260000,
+    "ultima_compra": "2026-01-22 00:00:00",
+    "gasto_24m": 493501.0,
+    "telefono_wa": "5493462508202"
+  },
+  {
+    "cuenta": 41058888,
+    "nombre": "RODRIGUEZ , ANGELA ",
+    "cp": 263300,
+    "ultima_compra": "2026-01-12 00:00:00",
+    "gasto_24m": 488358.0,
+    "telefono_wa": "5493465651293"
+  },
+  {
+    "cuenta": 41058309,
+    "nombre": "CUTTICA, CAROLINA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-10 00:00:00",
+    "gasto_24m": 475101.0,
+    "telefono_wa": "5493462390874"
+  },
+  {
+    "cuenta": 41059525,
+    "nombre": "LEIVA, YSABEL ANGELA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-28 00:00:00",
+    "gasto_24m": 473213.0,
+    "telefono_wa": "5493462688309"
+  },
+  {
+    "cuenta": 41056726,
+    "nombre": "TORREZ , LORENA ",
+    "cp": 260000,
+    "ultima_compra": "2026-02-23 00:00:00",
+    "gasto_24m": 469141.3,
+    "telefono_wa": "5493462368373"
+  },
+  {
+    "cuenta": 41057951,
+    "nombre": "ONTIVERO, JUAN IGNACIO",
+    "cp": 260000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 464985.0,
+    "telefono_wa": "5493462562168"
+  },
+  {
+    "cuenta": 41057806,
+    "nombre": "GREGO, MARIA JORGELINA",
+    "cp": 674800,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 463096.0,
+    "telefono_wa": "5492364711437"
+  },
+  {
+    "cuenta": 24588593,
+    "nombre": "ANAHI LOPEZ (emp)",
+    "cp": 260000,
+    "ultima_compra": "2026-03-30 00:00:00",
+    "gasto_24m": 462721.0,
+    "telefono_wa": "5493462598418"
+  },
+  {
+    "cuenta": 41060566,
+    "nombre": "STEAñY,  EMILIANO",
+    "cp": 260100,
+    "ultima_compra": "2026-04-01 00:00:00",
+    "gasto_24m": 457317.0,
+    "telefono_wa": "5493462671109"
+  },
+  {
+    "cuenta": 41057833,
+    "nombre": "MONSON, ANDREA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 450015.0,
+    "telefono_wa": "5492364701645"
+  },
+  {
+    "cuenta": 41061046,
+    "nombre": "BARRIOS, ARIEL ",
+    "cp": 260000,
+    "ultima_compra": "2026-01-24 00:00:00",
+    "gasto_24m": 445487.0,
+    "telefono_wa": "5493462598027"
+  },
+  {
+    "cuenta": 18049159,
+    "nombre": "Grahasmugg Daiana Yamila ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 437207.04,
+    "telefono_wa": "5493462388921"
+  },
+  {
+    "cuenta": 41057930,
+    "nombre": "MIRANDA, SUSANA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 436599.0,
+    "telefono_wa": "5493462438129"
+  },
+  {
+    "cuenta": 41060742,
+    "nombre": "ALBORNOZ, DIEGO",
+    "cp": 260000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 432708.0,
+    "telefono_wa": "5493462609380"
+  },
+  {
+    "cuenta": 41059400,
+    "nombre": "GUERRERO, SOFIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 424130.0,
+    "telefono_wa": "5493462377036"
+  },
+  {
+    "cuenta": 41060530,
+    "nombre": "TREY, CRISTIAN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 420071.95,
+    "telefono_wa": "5493462666208"
+  },
+  {
+    "cuenta": 41061106,
+    "nombre": "VILLAR, RAUL",
+    "cp": 260102,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 405692.0,
+    "telefono_wa": "5493462613775"
+  },
+  {
+    "cuenta": 18036829,
+    "nombre": "Ghio Lucrecia",
+    "cp": 260000,
+    "ultima_compra": "2026-02-10 00:00:00",
+    "gasto_24m": 386051.0,
+    "telefono_wa": "5493462554494"
+  },
+  {
+    "cuenta": 41057817,
+    "nombre": "RODRIGUEZ, MARINA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-09 00:00:00",
+    "gasto_24m": 384333.0,
+    "telefono_wa": "5493462595407"
+  },
+  {
+    "cuenta": 41060977,
+    "nombre": "CARRAZZA, ROGELIO",
+    "cp": 262400,
+    "ultima_compra": "2026-03-14 00:00:00",
+    "gasto_24m": 379019.0,
+    "telefono_wa": "5493468415589"
+  },
+  {
+    "cuenta": 41059253,
+    "nombre": "SANCHEZ, CRISTIAN FAVIO",
+    "cp": 600000,
+    "ultima_compra": "2026-03-21 00:00:00",
+    "gasto_24m": 378009.0,
+    "telefono_wa": "5492364324765"
+  },
+  {
+    "cuenta": 41058971,
+    "nombre": "ZARAGOZI, EMILIANO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 377936.0,
+    "telefono_wa": "5493465668480"
+  },
+  {
+    "cuenta": 41057211,
+    "nombre": "ARIAS, NOELIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-21 00:00:00",
+    "gasto_24m": 370017.23,
+    "telefono_wa": "5493462381837"
+  },
+  {
+    "cuenta": 41060276,
+    "nombre": "FRANCO, ALEXIS",
+    "cp": 260000,
+    "ultima_compra": "2026-03-04 00:00:00",
+    "gasto_24m": 369468.0,
+    "telefono_wa": "5493462593408"
+  },
+  {
+    "cuenta": 41061147,
+    "nombre": "ALVARES, PATRICIA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-27 00:00:00",
+    "gasto_24m": 365450.24,
+    "telefono_wa": "5492364512237"
+  },
+  {
+    "cuenta": 41059433,
+    "nombre": "BARRETO, RAMONA ANDREA ",
+    "cp": 600000,
+    "ultima_compra": "2026-02-14 00:00:00",
+    "gasto_24m": 364704.0,
+    "telefono_wa": "5492364308893"
+  },
+  {
+    "cuenta": 41057794,
+    "nombre": "QUINTEROS, EMANUEL",
+    "cp": 260000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 362164.23,
+    "telefono_wa": "5493462613936"
+  },
+  {
+    "cuenta": 41058353,
+    "nombre": "DE DIEGO, DANIELA ",
+    "cp": 260000,
+    "ultima_compra": "2026-01-17 00:00:00",
+    "gasto_24m": 362093.0,
+    "telefono_wa": "5493462461426"
+  },
+  {
+    "cuenta": 41059261,
+    "nombre": "ALAMO, GRACIELA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 361135.0,
+    "telefono_wa": "5493462554341"
+  },
+  {
+    "cuenta": 41057978,
+    "nombre": "FERRARI, CESAR",
+    "cp": 260000,
+    "ultima_compra": "2026-03-21 00:00:00",
+    "gasto_24m": 359382.0,
+    "telefono_wa": "5493462676502"
+  },
+  {
+    "cuenta": 41059407,
+    "nombre": "FUMERO, ANDRES",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 358435.0,
+    "telefono_wa": "5493462520855"
+  },
+  {
+    "cuenta": 41060471,
+    "nombre": "CASTILLO, VICTORIO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 356486.0,
+    "telefono_wa": "5493462660889"
+  },
+  {
+    "cuenta": 41061102,
+    "nombre": "SIGLIANO, NATALIA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-04 00:00:00",
+    "gasto_24m": 355250.0,
+    "telefono_wa": "5492364304562"
+  },
+  {
+    "cuenta": 41058038,
+    "nombre": "GARCIA, GIULIANA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-21 00:00:00",
+    "gasto_24m": 346829.0,
+    "telefono_wa": "5493462631292"
+  },
+  {
+    "cuenta": 41058999,
+    "nombre": "FUNES, VICENTE",
+    "cp": 600000,
+    "ultima_compra": "2026-01-12 00:00:00",
+    "gasto_24m": 345428.0,
+    "telefono_wa": "5492364411850"
+  },
+  {
+    "cuenta": 41058981,
+    "nombre": "CONTI, CAROLINA ",
+    "cp": 600000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 340455.0,
+    "telefono_wa": "5492364302292"
+  },
+  {
+    "cuenta": 1827816,
+    "nombre": "Zacco cristian",
+    "cp": 260000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 339186.0,
+    "telefono_wa": "5493462684250"
+  },
+  {
+    "cuenta": 41061447,
+    "nombre": "RAMIREZ, BARBARA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 337516.0,
+    "telefono_wa": "5492364363829"
+  },
+  {
+    "cuenta": 41059530,
+    "nombre": "VILLORES, GUSTAVO",
+    "cp": 600000,
+    "ultima_compra": "2026-02-26 00:00:00",
+    "gasto_24m": 336501.0,
+    "telefono_wa": "5492364373265"
+  },
+  {
+    "cuenta": 41058350,
+    "nombre": "LIVELONGHI, ROMINA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-10 00:00:00",
+    "gasto_24m": 334971.0,
+    "telefono_wa": "5493424053437"
+  },
+  {
+    "cuenta": 41057228,
+    "nombre": "SEBOLA, VALERIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-23 00:00:00",
+    "gasto_24m": 319751.0,
+    "telefono_wa": "5493462677074"
+  },
+  {
+    "cuenta": 41058146,
+    "nombre": "COPPA, MAURO",
+    "cp": 260000,
+    "ultima_compra": "2026-03-13 00:00:00",
+    "gasto_24m": 312399.0,
+    "telefono_wa": "5493462575210"
+  },
+  {
+    "cuenta": 41060679,
+    "nombre": "SALVADOR, IVAN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 309902.0,
+    "telefono_wa": "5493462664434"
+  },
+  {
+    "cuenta": 41059473,
+    "nombre": "RODA, MARIA DE LOS ANGELES",
+    "cp": 260000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 309100.0,
+    "telefono_wa": "5493462388133"
+  },
+  {
+    "cuenta": 41058238,
+    "nombre": "PELLEGRINI, PATRICIA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-16 00:00:00",
+    "gasto_24m": 308524.0,
+    "telefono_wa": "5493462509581"
+  },
+  {
+    "cuenta": 41057837,
+    "nombre": "ACUñA, CRISTINA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-27 00:00:00",
+    "gasto_24m": 302367.0,
+    "telefono_wa": "5493462324342"
+  },
+  {
+    "cuenta": 41057261,
+    "nombre": "ABI GANEM, ANAHI",
+    "cp": 260000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 302130.0,
+    "telefono_wa": "5493465537535"
+  },
+  {
+    "cuenta": 41061011,
+    "nombre": "CASTILLOS, ULISES",
+    "cp": 260000,
+    "ultima_compra": "2026-03-30 00:00:00",
+    "gasto_24m": 299528.0,
+    "telefono_wa": "5493462592265"
+  },
+  {
+    "cuenta": 41056738,
+    "nombre": "PETRACONE, LORENA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-31 00:00:00",
+    "gasto_24m": 294942.0,
+    "telefono_wa": "5493462386661"
+  },
+  {
+    "cuenta": 41061174,
+    "nombre": "SMARGIASSI, LAUTARO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-04 00:00:00",
+    "gasto_24m": 287924.0,
+    "telefono_wa": "5493462654303"
+  },
+  {
+    "cuenta": 41061188,
+    "nombre": "SANCHEZ, SILVIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 287546.0,
+    "telefono_wa": "5493462672480"
+  },
+  {
+    "cuenta": 41057057,
+    "nombre": "CHAVEZ, LEONELA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-03 00:00:00",
+    "gasto_24m": 278864.0,
+    "telefono_wa": "5493462554915"
+  },
+  {
+    "cuenta": 41058819,
+    "nombre": "NIEVAS, JOSE",
+    "cp": 260000,
+    "ultima_compra": "2026-01-22 00:00:00",
+    "gasto_24m": 278681.84,
+    "telefono_wa": "5493462655657"
+  },
+  {
+    "cuenta": 41057499,
+    "nombre": "DALIO, STELLA MARIS",
+    "cp": 261800,
+    "ultima_compra": "2026-01-23 00:00:00",
+    "gasto_24m": 278586.0,
+    "telefono_wa": "5493462688622"
+  },
+  {
+    "cuenta": 41057164,
+    "nombre": "BUFFA , ANGEL LUIS ",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 276235.0,
+    "telefono_wa": "5493462534868"
+  },
+  {
+    "cuenta": 41061916,
+    "nombre": "ALBAMONTE, MARIA RAQUEL",
+    "cp": 600000,
+    "ultima_compra": "2026-01-15 00:00:00",
+    "gasto_24m": 272907.0,
+    "telefono_wa": "5492364670889"
+  },
+  {
+    "cuenta": 41057129,
+    "nombre": "SANHUEZA, NORA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-20 00:00:00",
+    "gasto_24m": 272131.0,
+    "telefono_wa": "5493462523966"
+  },
+  {
+    "cuenta": 41057965,
+    "nombre": "TORRES, PAMELA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-03 00:00:00",
+    "gasto_24m": 271754.46,
+    "telefono_wa": "5493462595656"
+  },
+  {
+    "cuenta": 19996673,
+    "nombre": "sterzer raquel liliana",
+    "cp": 260000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 269067.0,
+    "telefono_wa": "5493462605379"
+  },
+  {
+    "cuenta": 41058830,
+    "nombre": "LEIVA, GERARLO",
+    "cp": 600000,
+    "ultima_compra": "2026-02-06 00:00:00",
+    "gasto_24m": 267165.0,
+    "telefono_wa": "5492364302019"
+  },
+  {
+    "cuenta": 41059459,
+    "nombre": "KUSTRA, NADIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 263592.0,
+    "telefono_wa": "5493462692554"
+  },
+  {
+    "cuenta": 41056763,
+    "nombre": "ALVAREZ, NINOSKA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-18 00:00:00",
+    "gasto_24m": 263445.0,
+    "telefono_wa": "5492364224640"
+  },
+  {
+    "cuenta": 41057632,
+    "nombre": "ARMENTE, MONICA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-27 00:00:00",
+    "gasto_24m": 261566.0,
+    "telefono_wa": "5493462426395"
+  },
+  {
+    "cuenta": 41057070,
+    "nombre": "MORONI, SUSANA ",
+    "cp": 600000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 260598.0,
+    "telefono_wa": "5492364679899"
+  },
+  {
+    "cuenta": 41058251,
+    "nombre": "PICCIRILLI, JOSE LUIS ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-17 00:00:00",
+    "gasto_24m": 255204.0,
+    "telefono_wa": "5493462322945"
+  },
+  {
+    "cuenta": 41059744,
+    "nombre": "VELASQUEZ, ISABELLA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-23 00:00:00",
+    "gasto_24m": 254810.0,
+    "telefono_wa": "5493462415977"
+  },
+  {
+    "cuenta": 19992082,
+    "nombre": "CATORI LEANDO ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-28 00:00:00",
+    "gasto_24m": 253308.0,
+    "telefono_wa": "5493462511930"
+  },
+  {
+    "cuenta": 41057984,
+    "nombre": "ZAMPAROLO, PAMELA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-27 00:00:00",
+    "gasto_24m": 253232.0,
+    "telefono_wa": "5492364312995"
+  },
+  {
+    "cuenta": 41061622,
+    "nombre": "ZABALETA, GRACIELA",
+    "cp": 600000,
+    "ultima_compra": "2026-01-16 00:00:00",
+    "gasto_24m": 250320.0,
+    "telefono_wa": "5492364469657"
+  },
+  {
+    "cuenta": 41059189,
+    "nombre": "OLAVE, FLORENCIA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 249225.0,
+    "telefono_wa": "5493462531254"
+  },
+  {
+    "cuenta": 41060174,
+    "nombre": "ORELLANO, RAMON",
+    "cp": 260000,
+    "ultima_compra": "2026-03-19 00:00:00",
+    "gasto_24m": 248462.0,
+    "telefono_wa": "5493462312301"
+  },
+  {
+    "cuenta": 24584898,
+    "nombre": "VILLARREAL, MAILEN (emp)",
+    "cp": 260000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 247881.0,
+    "telefono_wa": "5493462605618"
+  },
+  {
+    "cuenta": 41059394,
+    "nombre": "SANOTTI, BLANCA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 245462.0,
+    "telefono_wa": "5492364534055"
+  },
+  {
+    "cuenta": 41061830,
+    "nombre": "RODRIGUEZ, MARIA AYELEN",
+    "cp": 600000,
+    "ultima_compra": "2026-04-02 00:00:00",
+    "gasto_24m": 243020.0,
+    "telefono_wa": "5492364451115"
+  },
+  {
+    "cuenta": 41057035,
+    "nombre": "FUNES, SUSANA",
+    "cp": 674000,
+    "ultima_compra": "2026-03-23 00:00:00",
+    "gasto_24m": 243003.0,
+    "telefono_wa": "5492364691439"
+  },
+  {
+    "cuenta": 41058000,
+    "nombre": "ARAYA, NANCY",
+    "cp": 260000,
+    "ultima_compra": "2026-03-09 00:00:00",
+    "gasto_24m": 242905.0,
+    "telefono_wa": "5493462607550"
+  },
+  {
+    "cuenta": 41059148,
+    "nombre": "LAPORTE, SANDRA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 235962.0,
+    "telefono_wa": "5492364700443"
+  },
+  {
+    "cuenta": 41059968,
+    "nombre": "BARRIOS, EZEQUIEL",
+    "cp": 260000,
+    "ultima_compra": "2026-03-09 00:00:00",
+    "gasto_24m": 232711.81,
+    "telefono_wa": "5493462697650"
+  },
+  {
+    "cuenta": 41056825,
+    "nombre": "TABERNA, JAVIER",
+    "cp": 260000,
+    "ultima_compra": "2026-01-30 00:00:00",
+    "gasto_24m": 228768.0,
+    "telefono_wa": "5493462233192"
+  },
+  {
+    "cuenta": 41059684,
+    "nombre": "ESPINA, MARIA BELEN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 223637.0,
+    "telefono_wa": "5493462610550"
+  },
+  {
+    "cuenta": 41060763,
+    "nombre": "SALINA, MICAELA ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-16 00:00:00",
+    "gasto_24m": 221455.33,
+    "telefono_wa": "5493462326054"
+  },
+  {
+    "cuenta": 41059891,
+    "nombre": "GUERRA, MARIO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-23 00:00:00",
+    "gasto_24m": 221189.0,
+    "telefono_wa": "5493462626782"
+  },
+  {
+    "cuenta": 41059359,
+    "nombre": "CERDA, ROBERTO",
+    "cp": 260000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 220021.0,
+    "telefono_wa": "5493462301614"
+  },
+  {
+    "cuenta": 41060991,
+    "nombre": "ROJAS, MARTIN",
+    "cp": 260000,
+    "ultima_compra": "2026-01-23 00:00:00",
+    "gasto_24m": 219994.0,
+    "telefono_wa": "5493462559277"
+  },
+  {
+    "cuenta": 41057204,
+    "nombre": "PALACIO, MICAELA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-27 00:00:00",
+    "gasto_24m": 219836.0,
+    "telefono_wa": "5493462573992"
+  },
+  {
+    "cuenta": 41057935,
+    "nombre": "VELEZ, MARIA INES",
+    "cp": 600000,
+    "ultima_compra": "2026-02-20 00:00:00",
+    "gasto_24m": 219597.0,
+    "telefono_wa": "5492364541821"
+  },
+  {
+    "cuenta": 41058455,
+    "nombre": "TAPIA, LUZ",
+    "cp": 260000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 218373.0,
+    "telefono_wa": "5493462621604"
+  },
+  {
+    "cuenta": 41058253,
+    "nombre": "ANTONIENE, VALENTINA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-01 00:00:00",
+    "gasto_24m": 218117.0,
+    "telefono_wa": "5493462609636"
+  },
+  {
+    "cuenta": 41058959,
+    "nombre": "EREñU , ANTONELLA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 214944.0,
+    "telefono_wa": "5493462585090"
+  },
+  {
+    "cuenta": 41059082,
+    "nombre": "LUCERO, MERCEDES",
+    "cp": 260000,
+    "ultima_compra": "2026-01-26 00:00:00",
+    "gasto_24m": 212591.0,
+    "telefono_wa": "5493462222436"
+  },
+  {
+    "cuenta": 41058286,
+    "nombre": "SCHNEIDER , GABRIELA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-02 00:00:00",
+    "gasto_24m": 210890.0,
+    "telefono_wa": "5493462386740"
+  },
+  {
+    "cuenta": 41058887,
+    "nombre": "SCHOEPF, CARLA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 210086.0,
+    "telefono_wa": "5493462309201"
+  },
+  {
+    "cuenta": 41061178,
+    "nombre": "PANIAGUA, MARIA DEL CARMEN ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-06 00:00:00",
+    "gasto_24m": 209105.0,
+    "telefono_wa": "5493462649516"
+  },
+  {
+    "cuenta": 41059443,
+    "nombre": "CIARMATORI, MARIA JULIETA",
+    "cp": 603900,
+    "ultima_compra": "2026-01-26 00:00:00",
+    "gasto_24m": 205111.0,
+    "telefono_wa": "5493462337766"
+  },
+  {
+    "cuenta": 41062419,
+    "nombre": "BASABE, LUIS",
+    "cp": 600000,
+    "ultima_compra": "2026-04-08 00:00:00",
+    "gasto_24m": 204441.0,
+    "telefono_wa": "5492364502972"
+  },
+  {
+    "cuenta": 41056778,
+    "nombre": "UNSAGA, MARIA DEL CARMEN ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-10 00:00:00",
+    "gasto_24m": 200931.0,
+    "telefono_wa": "5493462680788"
+  },
+  {
+    "cuenta": 41061737,
+    "nombre": "GOMEZ, GISELA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-06 00:00:00",
+    "gasto_24m": 200423.0,
+    "telefono_wa": "5492364224183"
+  },
+  {
+    "cuenta": 41056820,
+    "nombre": "FARREYRA, MARIA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-21 00:00:00",
+    "gasto_24m": 197086.0,
+    "telefono_wa": "5493462565427"
+  },
+  {
+    "cuenta": 41060141,
+    "nombre": "MAGIONI, ORLANDO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-02 00:00:00",
+    "gasto_24m": 196474.0,
+    "telefono_wa": "5493462665262"
+  },
+  {
+    "cuenta": 41058342,
+    "nombre": "PIELI, MARIA ALEJANDRA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-14 00:00:00",
+    "gasto_24m": 196389.0,
+    "telefono_wa": "5493462643324"
+  },
+  {
+    "cuenta": 41057195,
+    "nombre": "DOBLARES, MARIA ELENA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-21 00:00:00",
+    "gasto_24m": 195615.49,
+    "telefono_wa": "5492364427184"
+  },
+  {
+    "cuenta": 41058219,
+    "nombre": "RODRIGUEZ, BRISA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-13 00:00:00",
+    "gasto_24m": 195600.0,
+    "telefono_wa": "5493462628577"
+  },
+  {
+    "cuenta": 41059784,
+    "nombre": "FERNANDEZ, EZEQUIEL",
+    "cp": 260000,
+    "ultima_compra": "2026-01-31 00:00:00",
+    "gasto_24m": 195588.0,
+    "telefono_wa": "5493462650209"
+  },
+  {
+    "cuenta": 41059066,
+    "nombre": "LOTTI, MILAGROS",
+    "cp": 260000,
+    "ultima_compra": "2026-03-10 00:00:00",
+    "gasto_24m": 191480.0,
+    "telefono_wa": "5493462664586"
+  },
+  {
+    "cuenta": 41058592,
+    "nombre": "CENTOZ, MARIELA ",
+    "cp": 600500,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 191266.0,
+    "telefono_wa": "5492364576605"
+  },
+  {
+    "cuenta": 41060524,
+    "nombre": "ARMINCHIARDI, MIGUEL",
+    "cp": 261800,
+    "ultima_compra": "2026-01-12 00:00:00",
+    "gasto_24m": 189118.0,
+    "telefono_wa": "5493462614378"
+  },
+  {
+    "cuenta": 41057127,
+    "nombre": "QUIROGA, SANDRA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-04 00:00:00",
+    "gasto_24m": 182169.0,
+    "telefono_wa": "5492364542287"
+  },
+  {
+    "cuenta": 41056845,
+    "nombre": "HEREDIA, JOSEFA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-12 00:00:00",
+    "gasto_24m": 177666.98,
+    "telefono_wa": "5493462664082"
+  },
+  {
+    "cuenta": 41057638,
+    "nombre": "ROSELLO, BENARDITA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-10 00:00:00",
+    "gasto_24m": 177590.0,
+    "telefono_wa": "5493462569882"
+  },
+  {
+    "cuenta": 41059030,
+    "nombre": "RODRIGUEZ, JUAN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 175821.0,
+    "telefono_wa": "5493462320598"
+  },
+  {
+    "cuenta": 41059543,
+    "nombre": " ARANDA, CAREN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 175459.0,
+    "telefono_wa": "5493462318321"
+  },
+  {
+    "cuenta": 41061044,
+    "nombre": "CALABRESE, VIVIANA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 174462.82,
+    "telefono_wa": "5492364622682"
+  },
+  {
+    "cuenta": 41059712,
+    "nombre": "LOPEZ, HERNAN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-14 00:00:00",
+    "gasto_24m": 174417.0,
+    "telefono_wa": "5493462662654"
+  },
+  {
+    "cuenta": 41058745,
+    "nombre": "RODRIGUEZ, FLORECIA SOLEDAD",
+    "cp": 600000,
+    "ultima_compra": "2026-02-20 00:00:00",
+    "gasto_24m": 170786.0,
+    "telefono_wa": "5492364350672"
+  },
+  {
+    "cuenta": 41057514,
+    "nombre": "GALLIZIO, CECILIA",
+    "cp": 261800,
+    "ultima_compra": "2026-02-03 00:00:00",
+    "gasto_24m": 170121.0,
+    "telefono_wa": "5493462323075"
+  },
+  {
+    "cuenta": 41059587,
+    "nombre": "SILVIA LUJAN, TRISTAN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-12 00:00:00",
+    "gasto_24m": 169574.0,
+    "telefono_wa": "5493462592353"
+  },
+  {
+    "cuenta": 41060239,
+    "nombre": "GALEANO, JUANA ANTONIA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-17 00:00:00",
+    "gasto_24m": 167534.0,
+    "telefono_wa": "5492364575831"
+  },
+  {
+    "cuenta": 41057442,
+    "nombre": "OLGUIN, FIORELA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-04 00:00:00",
+    "gasto_24m": 166525.0,
+    "telefono_wa": "5493468544483"
+  },
+  {
+    "cuenta": 41056715,
+    "nombre": "BIERECHMEYERE, ELIDA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-06 00:00:00",
+    "gasto_24m": 165105.0,
+    "telefono_wa": "5493462560932"
+  },
+  {
+    "cuenta": 41058290,
+    "nombre": "LEOTTA, LUIS ALFREDO",
+    "cp": 260000,
+    "ultima_compra": "2026-01-26 00:00:00",
+    "gasto_24m": 163824.5,
+    "telefono_wa": "5493462539671"
+  },
+  {
+    "cuenta": 41062403,
+    "nombre": "IGLESIAS, ALEJANDRO",
+    "cp": 600000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 162213.0,
+    "telefono_wa": "5492364347758"
+  },
+  {
+    "cuenta": 41057517,
+    "nombre": "DAVID, GOMEZ",
+    "cp": 600000,
+    "ultima_compra": "2026-03-03 00:00:00",
+    "gasto_24m": 159324.0,
+    "telefono_wa": "5492364609462"
+  },
+  {
+    "cuenta": 41059717,
+    "nombre": "LUCERO, LAURA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 158347.0,
+    "telefono_wa": "5493462611454"
+  },
+  {
+    "cuenta": 41060328,
+    "nombre": "AGUERO, KEILA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-21 00:00:00",
+    "gasto_24m": 157766.0,
+    "telefono_wa": "5493462676547"
+  },
+  {
+    "cuenta": 41056847,
+    "nombre": "PITELLI, MAYRA",
+    "cp": 600000,
+    "ultima_compra": "2026-01-14 00:00:00",
+    "gasto_24m": 151391.0,
+    "telefono_wa": "5492364706269"
+  },
+  {
+    "cuenta": 41057500,
+    "nombre": "MORRO, INES",
+    "cp": 260000,
+    "ultima_compra": "2026-02-03 00:00:00",
+    "gasto_24m": 149915.0,
+    "telefono_wa": "5493462467861"
+  },
+  {
+    "cuenta": 18033516,
+    "nombre": "Villarroel Norma",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 148468.76,
+    "telefono_wa": "5493462564972"
+  },
+  {
+    "cuenta": 18040443,
+    "nombre": "JOVELLANO DANIELA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-26 00:00:00",
+    "gasto_24m": 146769.0,
+    "telefono_wa": "5493462550482"
+  },
+  {
+    "cuenta": 41059510,
+    "nombre": "KELVIS, SHELDON",
+    "cp": 260000,
+    "ultima_compra": "2026-02-21 00:00:00",
+    "gasto_24m": 145384.72,
+    "telefono_wa": "5493462677572"
+  },
+  {
+    "cuenta": 41059804,
+    "nombre": "RUSSO, LIONEL",
+    "cp": 260000,
+    "ultima_compra": "2026-02-17 00:00:00",
+    "gasto_24m": 143879.0,
+    "telefono_wa": "5493462416095"
+  },
+  {
+    "cuenta": 41058363,
+    "nombre": "RIVOIRA, JULIAN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-09 00:00:00",
+    "gasto_24m": 143533.0,
+    "telefono_wa": "5493462661873"
+  },
+  {
+    "cuenta": 41060919,
+    "nombre": "DIMATIA, ANA ",
+    "cp": 600000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 142259.0,
+    "telefono_wa": "5492364325154"
+  },
+  {
+    "cuenta": 41059946,
+    "nombre": "ROJAS, LUCIANA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-04 00:00:00",
+    "gasto_24m": 142251.0,
+    "telefono_wa": "5493462541441"
+  },
+  {
+    "cuenta": 41057165,
+    "nombre": "CEBALLOS, FERNANDO",
+    "cp": 260000,
+    "ultima_compra": "2026-04-03 00:00:00",
+    "gasto_24m": 140715.0,
+    "telefono_wa": "5493462304924"
+  },
+  {
+    "cuenta": 41059112,
+    "nombre": "ARDILES, ENEREA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 138800.0,
+    "telefono_wa": "5493462591518"
+  },
+  {
+    "cuenta": 41059614,
+    "nombre": "HERRERA, PEDRO",
+    "cp": 260100,
+    "ultima_compra": "2026-02-26 00:00:00",
+    "gasto_24m": 138579.0,
+    "telefono_wa": "5493462378626"
+  },
+  {
+    "cuenta": 41059127,
+    "nombre": "CUESTA, MARIA",
+    "cp": 261700,
+    "ultima_compra": "2026-02-26 00:00:00",
+    "gasto_24m": 137412.0,
+    "telefono_wa": "5493462605895"
+  },
+  {
+    "cuenta": 41061118,
+    "nombre": "MONTANARO, PATRICIA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-14 00:00:00",
+    "gasto_24m": 136002.0,
+    "telefono_wa": "5492364372075"
+  },
+  {
+    "cuenta": 41056648,
+    "nombre": "GUITIERREZ, NICOLAS",
+    "cp": 260000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 133076.0,
+    "telefono_wa": "5493462516255"
+  },
+  {
+    "cuenta": 41059699,
+    "nombre": "SOSA, ANA",
+    "cp": 261700,
+    "ultima_compra": "2026-03-05 00:00:00",
+    "gasto_24m": 131947.0,
+    "telefono_wa": "5493462687570"
+  },
+  {
+    "cuenta": 41057983,
+    "nombre": "VIVAS SOSA, ALAN ARIEL",
+    "cp": 260000,
+    "ultima_compra": "2026-01-17 00:00:00",
+    "gasto_24m": 130967.0,
+    "telefono_wa": "5493462506796"
+  },
+  {
+    "cuenta": 41057036,
+    "nombre": "PEGOLO, AILEN",
+    "cp": 260000,
+    "ultima_compra": "2026-01-30 00:00:00",
+    "gasto_24m": 130237.0,
+    "telefono_wa": "5493462654089"
+  },
+  {
+    "cuenta": 41062423,
+    "nombre": "PETRILLO, ROBERTO",
+    "cp": 600000,
+    "ultima_compra": "2026-02-23 00:00:00",
+    "gasto_24m": 127561.0,
+    "telefono_wa": "5492364385098"
+  },
+  {
+    "cuenta": 41057167,
+    "nombre": "LUCERO, SILVANA NATIVIDAD",
+    "cp": 260000,
+    "ultima_compra": "2026-02-10 00:00:00",
+    "gasto_24m": 127217.0,
+    "telefono_wa": "5493462660205"
+  },
+  {
+    "cuenta": 41058919,
+    "nombre": "GUILLOTE, ROCIO",
+    "cp": 600000,
+    "ultima_compra": "2026-02-26 00:00:00",
+    "gasto_24m": 126382.0,
+    "telefono_wa": "5492364578109"
+  },
+  {
+    "cuenta": 41059513,
+    "nombre": "PEREZ, DANIEL",
+    "cp": 260000,
+    "ultima_compra": "2026-02-14 00:00:00",
+    "gasto_24m": 125241.0,
+    "telefono_wa": "5493462336284"
+  },
+  {
+    "cuenta": 41057536,
+    "nombre": "ITHURRART, DAIANA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 122255.0,
+    "telefono_wa": "5492342510471"
+  },
+  {
+    "cuenta": 41057465,
+    "nombre": "CARRANZA, VERONICA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-16 00:00:00",
+    "gasto_24m": 120769.0,
+    "telefono_wa": "5493462605052"
+  },
+  {
+    "cuenta": 41059760,
+    "nombre": "TUNTISI, MARIANA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-18 00:00:00",
+    "gasto_24m": 119483.0,
+    "telefono_wa": "5493462578670"
+  },
+  {
+    "cuenta": 41061096,
+    "nombre": "GARCIA, KAREN",
+    "cp": 600000,
+    "ultima_compra": "2026-04-02 00:00:00",
+    "gasto_24m": 118700.0,
+    "telefono_wa": "5492364459220"
+  },
+  {
+    "cuenta": 41060693,
+    "nombre": "PRIOTTI , DANILO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 116314.0,
+    "telefono_wa": "5493462611520"
+  },
+  {
+    "cuenta": 41059055,
+    "nombre": "ROMITI, ALDO CESAR",
+    "cp": 600900,
+    "ultima_compra": "2026-01-16 00:00:00",
+    "gasto_24m": 115591.0,
+    "telefono_wa": "5493462617000"
+  },
+  {
+    "cuenta": 41059706,
+    "nombre": "POLASTRE, NANCY",
+    "cp": 260000,
+    "ultima_compra": "2026-02-27 00:00:00",
+    "gasto_24m": 115514.0,
+    "telefono_wa": "5493462501255"
+  },
+  {
+    "cuenta": 41059175,
+    "nombre": "LUCERO, BRUNO",
+    "cp": 260000,
+    "ultima_compra": "2026-03-09 00:00:00",
+    "gasto_24m": 115438.0,
+    "telefono_wa": "5493462577662"
+  },
+  {
+    "cuenta": 41057174,
+    "nombre": "VIGERIEGO, JUAN CARLOS",
+    "cp": 273200,
+    "ultima_compra": "2026-03-14 00:00:00",
+    "gasto_24m": 112809.0,
+    "telefono_wa": "5493462558176"
+  },
+  {
+    "cuenta": 41061171,
+    "nombre": "BLANCO, MARGARITA ",
+    "cp": 600000,
+    "ultima_compra": "2026-01-30 00:00:00",
+    "gasto_24m": 111901.0,
+    "telefono_wa": "5492364572055"
+  },
+  {
+    "cuenta": 41060664,
+    "nombre": "RAMBAUD, EDUARDO ",
+    "cp": 260000,
+    "ultima_compra": "2026-02-11 00:00:00",
+    "gasto_24m": 110759.0,
+    "telefono_wa": "5493462309940"
+  },
+  {
+    "cuenta": 41060538,
+    "nombre": "DIAZ, EMANUEL ",
+    "cp": 260100,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 110661.0,
+    "telefono_wa": "5493462614560"
+  },
+  {
+    "cuenta": 41056721,
+    "nombre": "ANDUEZA, EZEQUIEL",
+    "cp": 260500,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 110477.0,
+    "telefono_wa": "5493462337673"
+  },
+  {
+    "cuenta": 41061042,
+    "nombre": "TORANCIO, GIANELA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-16 00:00:00",
+    "gasto_24m": 109381.0,
+    "telefono_wa": "5493462310496"
+  },
+  {
+    "cuenta": 41057566,
+    "nombre": "LONGONI, AGOSTINA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-06 00:00:00",
+    "gasto_24m": 108474.0,
+    "telefono_wa": "5493462310080"
+  },
+  {
+    "cuenta": 41056784,
+    "nombre": "PRODAN, SOFIA",
+    "cp": 600900,
+    "ultima_compra": "2026-02-06 00:00:00",
+    "gasto_24m": 104797.0,
+    "telefono_wa": "5493462466190"
+  },
+  {
+    "cuenta": 41057774,
+    "nombre": "PORRA, NORMA",
+    "cp": 261800,
+    "ultima_compra": "2026-02-05 00:00:00",
+    "gasto_24m": 103573.0,
+    "telefono_wa": "5493462548035"
+  },
+  {
+    "cuenta": 41057747,
+    "nombre": "ESPINDOLA, SANTIAGO",
+    "cp": 260000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 101570.0,
+    "telefono_wa": "5493462577261"
+  },
+  {
+    "cuenta": 41059867,
+    "nombre": "CIRILIANO, ALBERTO",
+    "cp": 260000,
+    "ultima_compra": "2026-01-15 00:00:00",
+    "gasto_24m": 100661.0,
+    "telefono_wa": "5493462630546"
+  },
+  {
+    "cuenta": 41059033,
+    "nombre": "QUINTEROS, GUILLERMINA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 99980.0,
+    "telefono_wa": "5493462636254"
+  },
+  {
+    "cuenta": 41059517,
+    "nombre": "CHAVERO, MALENA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-26 00:00:00",
+    "gasto_24m": 97684.0,
+    "telefono_wa": "5493462327089"
+  },
+  {
+    "cuenta": 41060431,
+    "nombre": "GASPERINI, AGUSTIN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-18 00:00:00",
+    "gasto_24m": 97267.0,
+    "telefono_wa": "5493462516173"
+  },
+  {
+    "cuenta": 41061153,
+    "nombre": "GABELIC, NOEMI",
+    "cp": 260000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 95859.0,
+    "telefono_wa": "5493462415996"
+  },
+  {
+    "cuenta": 41059971,
+    "nombre": "BARREIRO ANTONIO",
+    "cp": 260000,
+    "ultima_compra": "2026-03-03 00:00:00",
+    "gasto_24m": 94737.0,
+    "telefono_wa": "5493462694581"
+  },
+  {
+    "cuenta": 41059991,
+    "nombre": "CUFRè, MONICA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 91991.44,
+    "telefono_wa": "5493462508011"
+  },
+  {
+    "cuenta": 41059708,
+    "nombre": "TELLIERIA, FERNANDO",
+    "cp": 600000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 91574.0,
+    "telefono_wa": "5492364691952"
+  },
+  {
+    "cuenta": 41056978,
+    "nombre": "COLONEL, SANDRA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-10 00:00:00",
+    "gasto_24m": 89900.0,
+    "telefono_wa": "5493462632290"
+  },
+  {
+    "cuenta": 41057812,
+    "nombre": "PETTINARI, SOFIA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-16 00:00:00",
+    "gasto_24m": 89884.0,
+    "telefono_wa": "5493462510200"
+  },
+  {
+    "cuenta": 41059572,
+    "nombre": "LEZCANO, ALDANA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 88494.0,
+    "telefono_wa": "5493462383076"
+  },
+  {
+    "cuenta": 2336,
+    "nombre": "GARCIA NOELIA (emp)",
+    "cp": 260000,
+    "ultima_compra": "2026-01-22 00:00:00",
+    "gasto_24m": 87547.0,
+    "telefono_wa": "5493462318234"
+  },
+  {
+    "cuenta": 41059524,
+    "nombre": "LEDESMA , RODRIGO ",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 87124.0,
+    "telefono_wa": "5493462317675"
+  },
+  {
+    "cuenta": 41059223,
+    "nombre": "DORADO, DARIO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-27 00:00:00",
+    "gasto_24m": 85720.0,
+    "telefono_wa": "5493462239920"
+  },
+  {
+    "cuenta": 41060897,
+    "nombre": "GAZZANIGA, NATALINA NILDA",
+    "cp": 260100,
+    "ultima_compra": "2026-01-14 00:00:00",
+    "gasto_24m": 85604.0,
+    "telefono_wa": "5493462598301"
+  },
+  {
+    "cuenta": 41056906,
+    "nombre": "OVIEDO, ISABEL",
+    "cp": 261300,
+    "ultima_compra": "2026-04-01 00:00:00",
+    "gasto_24m": 84885.0,
+    "telefono_wa": "5493462573122"
+  },
+  {
+    "cuenta": 41058972,
+    "nombre": "SALAZAR, SILVINA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-23 00:00:00",
+    "gasto_24m": 80739.0,
+    "telefono_wa": "5493462321875"
+  },
+  {
+    "cuenta": 41057931,
+    "nombre": "MASSA, MARIA AGUSTINA",
+    "cp": 600000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 77235.0,
+    "telefono_wa": "5492364532451"
+  },
+  {
+    "cuenta": 41057236,
+    "nombre": "SUAREZ, BRAIAN",
+    "cp": 260000,
+    "ultima_compra": "2026-01-24 00:00:00",
+    "gasto_24m": 76637.0,
+    "telefono_wa": "5493462584947"
+  },
+  {
+    "cuenta": 41060373,
+    "nombre": "TRONCOSO, MARIANO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 76139.0,
+    "telefono_wa": "5493462646914"
+  },
+  {
+    "cuenta": 41056819,
+    "nombre": "MARTINEZ, ISABEL",
+    "cp": 260000,
+    "ultima_compra": "2026-02-02 00:00:00",
+    "gasto_24m": 75017.0,
+    "telefono_wa": "5493462659581"
+  },
+  {
+    "cuenta": 41059866,
+    "nombre": "GONZALEZ, FERNANDO",
+    "cp": 260000,
+    "ultima_compra": "2026-01-13 00:00:00",
+    "gasto_24m": 73684.0,
+    "telefono_wa": "5493462572455"
+  },
+  {
+    "cuenta": 18044030,
+    "nombre": "Hernandez Marisa",
+    "cp": 260000,
+    "ultima_compra": "2026-03-18 00:00:00",
+    "gasto_24m": 73474.0,
+    "telefono_wa": "5493462547286"
+  },
+  {
+    "cuenta": 41057432,
+    "nombre": "VAZQUES, ALVARO",
+    "cp": 600000,
+    "ultima_compra": "2026-03-11 00:00:00",
+    "gasto_24m": 72952.0,
+    "telefono_wa": "5492364574305"
+  },
+  {
+    "cuenta": 41062352,
+    "nombre": "ALE, MARIELA",
+    "cp": 600000,
+    "ultima_compra": "2026-01-28 00:00:00",
+    "gasto_24m": 71940.0,
+    "telefono_wa": "5492364226073"
+  },
+  {
+    "cuenta": 41060211,
+    "nombre": "SOSA, SOFIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 70205.0,
+    "telefono_wa": "5493462381997"
+  },
+  {
+    "cuenta": 41058624,
+    "nombre": "MANFROI, FEDERICO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-05 00:00:00",
+    "gasto_24m": 69300.0,
+    "telefono_wa": "5493462604487"
+  },
+  {
+    "cuenta": 41057054,
+    "nombre": "MADERNA, GISELA ",
+    "cp": 260000,
+    "ultima_compra": "2026-01-30 00:00:00",
+    "gasto_24m": 69101.0,
+    "telefono_wa": "5493462648893"
+  },
+  {
+    "cuenta": 41057370,
+    "nombre": "MARTINEZ, ELIAS",
+    "cp": 260000,
+    "ultima_compra": "2026-03-30 00:00:00",
+    "gasto_24m": 68211.0,
+    "telefono_wa": "5493462509957"
+  },
+  {
+    "cuenta": 41057251,
+    "nombre": "RIVELLI, RITA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-16 00:00:00",
+    "gasto_24m": 66733.0,
+    "telefono_wa": "5493462518837"
+  },
+  {
+    "cuenta": 41061162,
+    "nombre": "RUIZ, ANDREA MELINA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-14 00:00:00",
+    "gasto_24m": 66488.0,
+    "telefono_wa": "5492364335598"
+  },
+  {
+    "cuenta": 41060737,
+    "nombre": "CASADEI, MARIA CECILIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-05 00:00:00",
+    "gasto_24m": 63846.0,
+    "telefono_wa": "5493462579042"
+  },
+  {
+    "cuenta": 41060931,
+    "nombre": "LEON, GISELLA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-02 00:00:00",
+    "gasto_24m": 63795.0,
+    "telefono_wa": "5493462343688"
+  },
+  {
+    "cuenta": 41056837,
+    "nombre": "BALVO, ANA MICAELA ",
+    "cp": 262500,
+    "ultima_compra": "2026-03-18 00:00:00",
+    "gasto_24m": 63289.0,
+    "telefono_wa": "5493462552111"
+  },
+  {
+    "cuenta": 41058838,
+    "nombre": "CARAGLIO, CARLOS",
+    "cp": 260000,
+    "ultima_compra": "2026-03-13 00:00:00",
+    "gasto_24m": 58526.0,
+    "telefono_wa": "5493462232106"
+  },
+  {
+    "cuenta": 41056904,
+    "nombre": "SONSINI, GLORIA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-04 00:00:00",
+    "gasto_24m": 56999.0,
+    "telefono_wa": "5493462540780"
+  },
+  {
+    "cuenta": 41057515,
+    "nombre": "CASTILLO, AGUSTIN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 55800.0,
+    "telefono_wa": "5493462627998"
+  },
+  {
+    "cuenta": 41061728,
+    "nombre": "BEUTEC, LUCIANA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-03 00:00:00",
+    "gasto_24m": 55005.0,
+    "telefono_wa": "5492364221100"
+  },
+  {
+    "cuenta": 41061947,
+    "nombre": "LUCERO, SOLEDAD",
+    "cp": 600000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 54665.0,
+    "telefono_wa": "5492364582748"
+  },
+  {
+    "cuenta": 41060062,
+    "nombre": "SANCHEZ, CARLOS FABIAN",
+    "cp": 260000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 52316.0,
+    "telefono_wa": "5493462672532"
+  },
+  {
+    "cuenta": 41058656,
+    "nombre": "ZANE, HERNAN",
+    "cp": 260000,
+    "ultima_compra": "2026-03-28 00:00:00",
+    "gasto_24m": 49727.0,
+    "telefono_wa": "5493462505008"
+  },
+  {
+    "cuenta": 41056890,
+    "nombre": "VALDEBENITA, GLORIA ",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 48067.0,
+    "telefono_wa": "5493462647223"
+  },
+  {
+    "cuenta": 41058967,
+    "nombre": "PERALTA, MARIA MARTA ",
+    "cp": 600000,
+    "ultima_compra": "2026-03-05 00:00:00",
+    "gasto_24m": 47112.0,
+    "telefono_wa": "5492364568082"
+  },
+  {
+    "cuenta": 24584319,
+    "nombre": "FANTINI KAREN (emp)",
+    "cp": 260000,
+    "ultima_compra": "2026-03-25 00:00:00",
+    "gasto_24m": 46632.0,
+    "telefono_wa": "5493462412609"
+  },
+  {
+    "cuenta": 41059047,
+    "nombre": "GALLO, MIGUEL",
+    "cp": 260000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 46618.0,
+    "telefono_wa": "5493462680528"
+  },
+  {
+    "cuenta": 41057081,
+    "nombre": "MEINERO, CARLA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-13 00:00:00",
+    "gasto_24m": 44513.0,
+    "telefono_wa": "5493462539992"
+  },
+  {
+    "cuenta": 41056753,
+    "nombre": "CARROZZO, PATRICIA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 44236.0,
+    "telefono_wa": "5492364223409"
+  },
+  {
+    "cuenta": 41057082,
+    "nombre": "MANZONE, EMILIO",
+    "cp": 600000,
+    "ultima_compra": "2026-01-26 00:00:00",
+    "gasto_24m": 44218.0,
+    "telefono_wa": "5492364681825"
+  },
+  {
+    "cuenta": 41058554,
+    "nombre": "TORDINI , FRANCISCO ",
+    "cp": 260000,
+    "ultima_compra": "2026-03-13 00:00:00",
+    "gasto_24m": 43627.0,
+    "telefono_wa": "5493462618001"
+  },
+  {
+    "cuenta": 41059257,
+    "nombre": "LEUCI, SOL",
+    "cp": 260000,
+    "ultima_compra": "2026-03-11 00:00:00",
+    "gasto_24m": 42315.0,
+    "telefono_wa": "5493462477168"
+  },
+  {
+    "cuenta": 41057100,
+    "nombre": "CASTILLO, HECTOR MAXIMILIANO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 41895.0,
+    "telefono_wa": "5493462380398"
+  },
+  {
+    "cuenta": 41060624,
+    "nombre": "ALEGRE, DALMA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-28 00:00:00",
+    "gasto_24m": 40780.0,
+    "telefono_wa": "5493462673676"
+  },
+  {
+    "cuenta": 41060699,
+    "nombre": "DELFINO, OSCAR",
+    "cp": 260000,
+    "ultima_compra": "2026-03-31 00:00:00",
+    "gasto_24m": 38097.0,
+    "telefono_wa": "5493462643082"
+  },
+  {
+    "cuenta": 41059630,
+    "nombre": "GIULANI, MARIANELA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-05 00:00:00",
+    "gasto_24m": 36739.0,
+    "telefono_wa": "5493462388332"
+  },
+  {
+    "cuenta": 41057366,
+    "nombre": "LOPEZ CASANA, MARICEL",
+    "cp": 600000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 36632.0,
+    "telefono_wa": "5492364457392"
+  },
+  {
+    "cuenta": 41059413,
+    "nombre": "GONZALEZ, BERENISE",
+    "cp": 260000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 36051.0,
+    "telefono_wa": "5493468646878"
+  },
+  {
+    "cuenta": 41060531,
+    "nombre": "INOCENTI, MIRTA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-24 00:00:00",
+    "gasto_24m": 35200.0,
+    "telefono_wa": "5493462691406"
+  },
+  {
+    "cuenta": 41062315,
+    "nombre": "QUIROGA, ROSALIA",
+    "cp": 600000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 35084.0,
+    "telefono_wa": "5492364367353"
+  },
+  {
+    "cuenta": 41058254,
+    "nombre": "GONZALEZ, JEREMIAS",
+    "cp": 260000,
+    "ultima_compra": "2026-03-07 00:00:00",
+    "gasto_24m": 32763.0,
+    "telefono_wa": "5493462379110"
+  },
+  {
+    "cuenta": 41057238,
+    "nombre": "BERIGOZZI, RAUL ",
+    "cp": 262400,
+    "ultima_compra": "2026-02-12 00:00:00",
+    "gasto_24m": 32325.0,
+    "telefono_wa": "5493468513751"
+  },
+  {
+    "cuenta": 41058832,
+    "nombre": "SIEZZA, LUCIA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-05 00:00:00",
+    "gasto_24m": 31502.0,
+    "telefono_wa": "5492364564854"
+  },
+  {
+    "cuenta": 41059107,
+    "nombre": "CASTRO, FACUNDO",
+    "cp": 260000,
+    "ultima_compra": "2026-01-22 00:00:00",
+    "gasto_24m": 31158.0,
+    "telefono_wa": "5493462565129"
+  },
+  {
+    "cuenta": 41058645,
+    "nombre": "MORENO, MARIA LAURA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-03 00:00:00",
+    "gasto_24m": 27158.0,
+    "telefono_wa": "5493462644126"
+  },
+  {
+    "cuenta": 41059249,
+    "nombre": "ROLDAN, MARTIN",
+    "cp": 260000,
+    "ultima_compra": "2026-02-26 00:00:00",
+    "gasto_24m": 26772.0,
+    "telefono_wa": "5493462650370"
+  },
+  {
+    "cuenta": 41060302,
+    "nombre": "COLROS, JULIANA",
+    "cp": 260000,
+    "ultima_compra": "2026-04-04 00:00:00",
+    "gasto_24m": 26546.0,
+    "telefono_wa": "5493462414816"
+  },
+  {
+    "cuenta": 41060316,
+    "nombre": "BAMODE, MARIA JOSE",
+    "cp": 260000,
+    "ultima_compra": "2026-01-22 00:00:00",
+    "gasto_24m": 25500.0,
+    "telefono_wa": "5493462699778"
+  },
+  {
+    "cuenta": 41058376,
+    "nombre": "CASTRO, RAQUEL",
+    "cp": 600000,
+    "ultima_compra": "2026-04-07 00:00:00",
+    "gasto_24m": 24693.0,
+    "telefono_wa": "5492364459469"
+  },
+  {
+    "cuenta": 41061071,
+    "nombre": "GAGINO, LOURDES",
+    "cp": 261700,
+    "ultima_compra": "2026-01-15 00:00:00",
+    "gasto_24m": 23780.0,
+    "telefono_wa": "5493462310430"
+  },
+  {
+    "cuenta": 41058258,
+    "nombre": "BARZOLA, LUCAS",
+    "cp": 260000,
+    "ultima_compra": "2026-02-06 00:00:00",
+    "gasto_24m": 23292.0,
+    "telefono_wa": "5493462373417"
+  },
+  {
+    "cuenta": 41056921,
+    "nombre": "RAVAZANO, BEATRIZ",
+    "cp": 600000,
+    "ultima_compra": "2026-01-19 00:00:00",
+    "gasto_24m": 22947.0,
+    "telefono_wa": "5492364355269"
+  },
+  {
+    "cuenta": 41060577,
+    "nombre": "ARREVENGOA, ERICA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-14 00:00:00",
+    "gasto_24m": 22941.0,
+    "telefono_wa": "5493462410756"
+  },
+  {
+    "cuenta": 41057042,
+    "nombre": "MALPASSI, JORGELINA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-18 00:00:00",
+    "gasto_24m": 22571.0,
+    "telefono_wa": "5493462541771"
+  },
+  {
+    "cuenta": 41060575,
+    "nombre": "DIAZ, EVANGELINA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-06 00:00:00",
+    "gasto_24m": 20525.0,
+    "telefono_wa": "5493462308827"
+  },
+  {
+    "cuenta": 41057832,
+    "nombre": "TRIVIñO, NANCY",
+    "cp": 600000,
+    "ultima_compra": "2026-02-04 00:00:00",
+    "gasto_24m": 18513.0,
+    "telefono_wa": "5492364557319"
+  },
+  {
+    "cuenta": 41059436,
+    "nombre": "PRINCIPE, MAURO",
+    "cp": 260000,
+    "ultima_compra": "2026-01-26 00:00:00",
+    "gasto_24m": 17107.0,
+    "telefono_wa": "5493462695271"
+  },
+  {
+    "cuenta": 41056708,
+    "nombre": "GIAGNORIO, MARIA CHIARA",
+    "cp": 260000,
+    "ultima_compra": "2026-01-22 00:00:00",
+    "gasto_24m": 13165.0,
+    "telefono_wa": "5493462678405"
+  },
+  {
+    "cuenta": 41057061,
+    "nombre": "BOIANELLI, DANIELA",
+    "cp": 600000,
+    "ultima_compra": "2026-03-04 00:00:00",
+    "gasto_24m": 11880.0,
+    "telefono_wa": "5492364371640"
+  },
+  {
+    "cuenta": 41057482,
+    "nombre": "VILLALBA, BRISA ANABELLA",
+    "cp": 260000,
+    "ultima_compra": "2026-02-02 00:00:00",
+    "gasto_24m": 11746.0,
+    "telefono_wa": "5493462543546"
+  },
+  {
+    "cuenta": 41057866,
+    "nombre": "PANETTI , VIVIANA",
+    "cp": 260000,
+    "ultima_compra": "2026-03-10 00:00:00",
+    "gasto_24m": 10316.0,
+    "telefono_wa": "5493462606883"
+  },
+  {
+    "cuenta": 41057986,
+    "nombre": "WELER, JULIO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-19 00:00:00",
+    "gasto_24m": 9879.0,
+    "telefono_wa": "5493462694471"
+  },
+  {
+    "cuenta": 41059810,
+    "nombre": "RUIZ, ISMAEL SEBASTIAN",
+    "cp": 260000,
+    "ultima_compra": "2026-03-11 00:00:00",
+    "gasto_24m": 7579.0,
+    "telefono_wa": "5493462234089"
+  },
+  {
+    "cuenta": 41059401,
+    "nombre": "MENCONI, BRUNO",
+    "cp": 260000,
+    "ultima_compra": "2026-02-07 00:00:00",
+    "gasto_24m": 7413.0,
+    "telefono_wa": "5493462221350"
+  }
+]

@@ -1,0 +1,222 @@
+{
+  "HUGHES": {
+    "cp": 261700,
+    "clientes_total": 852,
+    "clientes_activos": 317,
+    "ya_contactados": 36,
+    "sin_contactar": 816,
+    "gastado_18m": 52115621.97,
+    "pares_18m": 1617,
+    "visitas_total": 678
+  },
+  "ALCORTA": {
+    "cp": 272500,
+    "clientes_total": 409,
+    "clientes_activos": 77,
+    "ya_contactados": 8,
+    "sin_contactar": 401,
+    "gastado_18m": 8826087.5,
+    "pares_18m": 287,
+    "visitas_total": 120
+  },
+  "SANTA ISABEL": {
+    "cp": 262400,
+    "clientes_total": 1171,
+    "clientes_activos": 305,
+    "ya_contactados": 47,
+    "sin_contactar": 1124,
+    "gastado_18m": 50360155.49999999,
+    "pares_18m": 1807,
+    "visitas_total": 932
+  },
+  "BOMBAL": {
+    "cp": 273200,
+    "clientes_total": 860,
+    "clientes_activos": 246,
+    "ya_contactados": 36,
+    "sin_contactar": 824,
+    "gastado_18m": 38562973.96,
+    "pares_18m": 1167,
+    "visitas_total": 500
+  },
+  "MARÍA TERESA": {
+    "cp": 261300,
+    "clientes_total": 657,
+    "clientes_activos": 140,
+    "ya_contactados": 18,
+    "sin_contactar": 639,
+    "gastado_18m": 18985165.39,
+    "pares_18m": 633,
+    "visitas_total": 260
+  },
+  "RUFINO": {
+    "cp": 610000,
+    "clientes_total": 1071,
+    "clientes_activos": 133,
+    "ya_contactados": 24,
+    "sin_contactar": 1047,
+    "gastado_18m": 23305158.389999997,
+    "pares_18m": 1200,
+    "visitas_total": 494
+  },
+  "JUNÍN zona": {
+    "cp": 600900,
+    "clientes_total": 749,
+    "clientes_activos": 227,
+    "ya_contactados": 47,
+    "sin_contactar": 702,
+    "gastado_18m": 88005405.16999999,
+    "pares_18m": 3453,
+    "visitas_total": 1514
+  },
+  "ELORTONDO": {
+    "cp": 262200,
+    "clientes_total": 598,
+    "clientes_activos": 198,
+    "ya_contactados": 38,
+    "sin_contactar": 560,
+    "gastado_18m": 30194527.68,
+    "pares_18m": 941,
+    "visitas_total": 442
+  },
+  "WHEELWRIGHT": {
+    "cp": 261800,
+    "clientes_total": 407,
+    "clientes_activos": 174,
+    "ya_contactados": 22,
+    "sin_contactar": 385,
+    "gastado_18m": 34047312.34,
+    "pares_18m": 1030,
+    "visitas_total": 467
+  },
+  "CHAPUY": {
+    "cp": 264300,
+    "clientes_total": 130,
+    "clientes_activos": 21,
+    "ya_contactados": 6,
+    "sin_contactar": 124,
+    "gastado_18m": 4077684.49,
+    "pares_18m": 169,
+    "visitas_total": 45
+  },
+  "FIRMAT": {
+    "cp": 263000,
+    "clientes_total": 750,
+    "clientes_activos": 59,
+    "ya_contactados": 20,
+    "sin_contactar": 730,
+    "gastado_18m": 9781327.13,
+    "pares_18m": 293,
+    "visitas_total": 135
+  },
+  "CHOVET": {
+    "cp": 263300,
+    "clientes_total": 292,
+    "clientes_activos": 76,
+    "ya_contactados": 10,
+    "sin_contactar": 282,
+    "gastado_18m": 10318944.81,
+    "pares_18m": 332,
+    "visitas_total": 136
+  },
+  "DIEGO DE ALVEAR": {
+    "cp": 261500,
+    "clientes_total": 326,
+    "clientes_activos": 142,
+    "ya_contactados": 18,
+    "sin_contactar": 308,
+    "gastado_18m": 26063387.14,
+    "pares_18m": 847,
+    "visitas_total": 349
+  },
+  "CAFFERATA": {
+    "cp": 262700,
+    "clientes_total": 234,
+    "clientes_activos": 51,
+    "ya_contactados": 6,
+    "sin_contactar": 228,
+    "gastado_18m": 38290718.13,
+    "pares_18m": 1037,
+    "visitas_total": 106
+  },
+  "ROJAS": {
+    "cp": 603600,
+    "clientes_total": 219,
+    "clientes_activos": 62,
+    "ya_contactados": 4,
+    "sin_contactar": 215,
+    "gastado_18m": 15243051.469999999,
+    "pares_18m": 759,
+    "visitas_total": 110
+  },
+  "VILLA CAÑÁS": {
+    "cp": 266200,
+    "clientes_total": 443,
+    "clientes_activos": 116,
+    "ya_contactados": 16,
+    "sin_contactar": 427,
+    "gastado_18m": 21037150.73,
+    "pares_18m": 602,
+    "visitas_total": 241
+  },
+  "JUAN B MOLINA": {
+    "cp": 272800,
+    "clientes_total": 185,
+    "clientes_activos": 21,
+    "ya_contactados": 8,
+    "sin_contactar": 177,
+    "gastado_18m": 3566187.55,
+    "pares_18m": 136,
+    "visitas_total": 46
+  },
+  "MURPHY": {
+    "cp": 264500,
+    "clientes_total": 102,
+    "clientes_activos": 12,
+    "ya_contactados": 5,
+    "sin_contactar": 97,
+    "gastado_18m": 2811764.02,
+    "pares_18m": 83,
+    "visitas_total": 29
+  },
+  "BIGAND": {
+    "cp": 272200,
+    "clientes_total": 248,
+    "clientes_activos": 29,
+    "ya_contactados": 5,
+    "sin_contactar": 243,
+    "gastado_18m": 3694975.76,
+    "pares_18m": 106,
+    "visitas_total": 48
+  },
+  "JUNÍN (BA)": {
+    "cp": 600000,
+    "clientes_total": 11246,
+    "clientes_activos": 4168,
+    "ya_contactados": 1077,
+    "sin_contactar": 10169,
+    "gastado_18m": 1024349541.2000002,
+    "pares_18m": 37546,
+    "visitas_total": 10884
+  },
+  "PERGAMINO (BA)": {
+    "cp": 148400,
+    "clientes_total": 271,
+    "clientes_activos": 33,
+    "ya_contactados": 2,
+    "sin_contactar": 269,
+    "gastado_18m": 4282437.0,
+    "pares_18m": 123,
+    "visitas_total": 58
+  },
+  "MELINCUÉ": {
+    "cp": 260200,
+    "clientes_total": 1,
+    "clientes_activos": 0,
+    "ya_contactados": 0,
+    "sin_contactar": 1,
+    "gastado_18m": 0,
+    "pares_18m": 0,
+    "visitas_total": 0
+  }
+}
