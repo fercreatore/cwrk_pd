@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calzalindo — Red de Locales · Venado Tuerto</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────── */
+    header {
+      background: #0a0a0a;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 22px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #c9a84c, #f0d080);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 900;
+      color: #0a0a0a;
+      letter-spacing: -1px;
+    }
+
+    .brand-text h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #f5f5f5;
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: #888;
+      font-weight: 400;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .header-badge {
+      background: linear-gradient(135deg, #c9a84c22, #f0d08011);
+      border: 1px solid #c9a84c44;
+      border-radius: 20px;
+      padding: 8px 18px;
+      font-size: 12px;
+      color: #c9a84c;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── MAIN LAYOUT ─────────────────────────────────────────── */
+    .main {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      height: calc(100vh - 89px);
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────── */
+    .sidebar {
+      background: #111;
+      border-right: 1px solid #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 28px 28px 16px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .sidebar-header h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-header .count {
+      font-size: 42px;
+      font-weight: 900;
+      color: #f5f5f5;
+      line-height: 1;
+      margin-top: 6px;
+    }
+
+    .sidebar-header .count span {
+      font-size: 16px;
+      font-weight: 400;
+      color: #666;
+      margin-left: 6px;
+    }
+
+    /* Stats strip */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: #1e1e1e;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    .stat {
+      background: #111;
+      padding: 16px 20px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #c9a84c;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    /* Store cards */
+    .stores-list {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .store-card {
+      background: #161616;
+      border: 1px solid #242424;
+      border-radius: 12px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .store-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent, #444);
+      border-radius: 3px 0 0 3px;
+    }
+
+    .store-card:hover {
+      border-color: #333;
+      background: #1a1a1a;
+      transform: translateY(-1px);
+    }
+
+    .store-card.active {
+      border-color: var(--accent, #c9a84c);
+      background: #1c1a10;
+    }
+
+    .store-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .store-number {
+      width: 28px;
+      height: 28px;
+      background: var(--accent, #333);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000;
+      flex-shrink: 0;
+    }
+
+    .store-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0f0f0;
+      flex: 1;
+    }
+
+    .store-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--accent-bg, #222);
+      color: var(--accent, #888);
+      border: 1px solid var(--accent-border, #333);
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .store-address {
+      font-size: 13px;
+      color: #888;
+      margin-top: 10px;
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .store-address svg {
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--accent, #666);
+    }
+
+    .store-phone {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Fila section */
+    .fila-section {
+      margin: 20px;
+      background: linear-gradient(135deg, #0d1a2e, #0a1220);
+      border: 1px solid #1a3a5e;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .fila-logo {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #fff;
+      font-style: italic;
+    }
+
+    .fila-logo span {
+      color: #1d6bc0;
+    }
+
+    .fila-text {
+      font-size: 12px;
+      color: #6a8db0;
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    .fila-metric {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .fila-metric-item {
+      background: #0a1828;
+      border: 1px solid #1a3a5e;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .fila-metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #4a9eff;
+    }
+
+    .fila-metric-label {
+      font-size: 10px;
+      color: #4a6a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* ── MAP ─────────────────────────────────────────────────── */
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Custom Leaflet popup */
+    .leaflet-popup-content-wrapper {
+      background: #161616 !important;
+      border: 1px solid #333 !important;
+      border-radius: 12px !important;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8) !important;
+      color: #f0f0f0 !important;
+    }
+
+    .leaflet-popup-tip {
+      background: #333 !important;
+    }
+
+    .popup-inner { padding: 4px; }
+    .popup-inner h3 { font-size: 15px; font-weight: 700; color: #f0f0f0; margin-bottom: 6px; }
+    .popup-inner p { font-size: 12px; color: #888; line-height: 1.6; }
+    .popup-inner .popup-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-top: 8px;
+      margin-right: 4px;
+    }
+
+    /* Map overlay info */
+    .map-overlay {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      z-index: 1000;
+      background: rgba(10,10,10,0.92);
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .map-overlay h3 {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .sidebar { height: auto; max-height: 40vh; }
+      header { padding: 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-logo">C</div>
+    <div class="brand-text">
+      <h1>Calzalindo</h1>
+      <p>Venado Tuerto, Santa Fe</p>
+    </div>
+  </div>
+  <div class="header-badge">📍 Red de Locales · Presentación Fila 2026</div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <h2>Puntos de venta</h2>
+      <div class="count">3 <span>locales propios</span></div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat">
+        <div class="stat-value">+25</div>
+        <div class="stat-label">Años en mercado</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">VT</div>
+        <div class="stat-label">Capital calzado</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Zonas cubiertas</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">100K+</div>
+        <div class="stat-label">Clientes activos</div>
+      </div>
+    </div>
+
+    <div class="stores-list">
+
+      <div class="store-card active" id="card-1"
+           style="--accent:#c9a84c; --accent-bg:#1c1a10; --accent-border:#3a3210;"
+           onclick="focusStore(0)">
+        <div class="store-card-header">
+          <div class="store-number" style="background:#c9a84c;">1</div>
+          <div class="store-name">Calzalindo Centro</div>
+          <div class="store-tag" style="--accent:#c9a84c; --accent-bg:#1c1a10; --accent-border:#3a3210; color:#c9a84c; border-color:#3a3210; background:#1c1a10;">Casa Central</div>
+        </div>
+        <div class="store-address">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Belgrano 263, Venado Tuerto
+        </div>
+        <div class="store-phone">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.23h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.04-.97a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          (03462) 42-5011
+        </div>
+      </div>
+
+      <div class="store-card" id="card-2"
+           style="--accent:#4a9eff; --accent-bg:#0d1a2e; --accent-border:#1a3a5e;"
+           onclick="focusStore(1)">
+        <div class="store-card-header">
+          <div class="store-number" style="background:#4a9eff;">2</div>
+          <div class="store-name">Calzalindo Norte</div>
+          <div class="store-tag" style="color:#4a9eff; border-color:#1a3a5e; background:#0d1a2e;">Sucursal Norte</div>
+        </div>
+        <div class="store-address">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Dr. Luis Chapuis 2404, Venado Tuerto
+        </div>
+        <div class="store-phone">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.23h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.04-.97a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          +54 9 3462 37-5066
+        </div>
+      </div>
+
+      <div class="store-card" id="card-3"
+           style="--accent:#c44dff; --accent-bg:#1a0d2e; --accent-border:#3a1a5e;"
+           onclick="focusStore(2)">
+        <div class="store-card-header">
+          <div class="store-number" style="background:#c44dff;">3</div>
+          <div class="store-name">Cuore</div>
+          <div class="store-tag" style="color:#c44dff; border-color:#3a1a5e; background:#1a0d2e;">Belgrano y Alvear</div>
+        </div>
+        <div class="store-address">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c44dff" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Belgrano y Alvear, Venado Tuerto
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Fila section -->
+    <div class="fila-section">
+      <div class="fila-logo">F<span>ILA</span></div>
+      <div class="fila-text">
+        Partner estratégico para la temporada Invierno 2026.<br>
+        Presencia en los 3 puntos de mayor tráfico de Venado Tuerto.
+      </div>
+      <div class="fila-metric">
+        <div class="fila-metric-item">
+          <div class="fila-metric-value">~90K</div>
+          <div class="fila-metric-label">Hab. mercado</div>
+        </div>
+        <div class="fila-metric-item">
+          <div class="fila-metric-value">3 zonas</div>
+          <div class="fila-metric-label">Cobertura ciudad</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAP CONTAINER -->
+  <div style="position:relative;">
+    <div id="map"></div>
+
+    <!-- Legend overlay -->
+    <div class="map-overlay">
+      <h3>Referencias</h3>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#c9a84c;"></div>
+        Casa Central — Belgrano
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#4a9eff;"></div>
+        Sucursal Norte — Chapuis
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#c44dff;"></div>
+        Sucursal Av. Eva Perón
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // Store data with approximate coords for Venado Tuerto
+  const stores = [
+    {
+      name: "Calzalindo Centro",
+      subtitle: "Casa Central",
+      address: "Belgrano 263, Venado Tuerto",
+      phone: "(03462) 42-5011",
+      color: "#c9a84c",
+      lat: -33.7488551,
+      lng: -61.9645954,
+      note: "Local principal, mayor superficie de exhibición"
+    },
+    {
+      name: "Calzalindo Norte",
+      subtitle: "Sucursal Norte",
+      address: "Dr. Luis Chapuis 2404, Venado Tuerto",
+      phone: "+54 9 3462 37-5066",
+      color: "#4a9eff",
+      lat: -33.7325113,
+      lng: -61.9789288,
+      note: "Zona norte residencial, tráfico familiar"
+    },
+    {
+      name: "Cuore",
+      subtitle: "Belgrano y Alvear",
+      address: "Belgrano y Alvear, Venado Tuerto",
+      phone: "—",
+      color: "#c44dff",
+      lat: -33.7472732,
+      lng: -61.9628507,
+      note: "Local Cuore — zona centro"
+    }
+  ];
+
+  // Dark tile layer
+  const map = L.map('map', {
+    center: [-33.7430, -61.9680],
+    zoom: 14,
+    zoomControl: false
+  });
+
+  // CartoDB Dark Matter tiles
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
+  }).addTo(map);
+
+  // Zoom control (bottom right)
+  L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+  // Custom markers
+  const markers = stores.map((store, i) => {
+    const icon = L.divIcon({
+      className: '',
+      html: `
+        <div style="
+          width: 42px; height: 42px;
+          background: ${store.color};
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 3px solid rgba(255,255,255,0.15);
+          box-shadow: 0 4px 20px ${store.color}66;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+        ">
+          <div style="transform:rotate(45deg); font-size:14px; font-weight:800; color:#000; font-family:Inter,sans-serif;">
+            ${i + 1}
+          </div>
+        </div>
+      `,
+      iconSize: [42, 42],
+      iconAnchor: [21, 42],
+      popupAnchor: [0, -48]
+    });
+
+    const marker = L.marker([store.lat, store.lng], { icon }).addTo(map);
+
+    marker.bindPopup(`
+      <div class="popup-inner">
+        <h3>${store.name}</h3>
+        <p><strong style="color:${store.color}">📍</strong> ${store.address}</p>
+        ${store.phone !== '—' ? `<p>📞 ${store.phone}</p>` : ''}
+        <p style="margin-top:8px; font-style:italic; color:#666;">${store.note}</p>
+        <span class="popup-tag" style="background:${store.color}22; color:${store.color}; border:1px solid ${store.color}44;">
+          ${store.subtitle}
+        </span>
+        <span class="popup-tag" style="background:#1d6bc022; color:#4a9eff; border:1px solid #1d6bc044;">
+          FILA Partner
+        </span>
+      </div>
+    `, { maxWidth: 260 });
+
+    return { marker, store };
+  });
+
+  // Draw coverage circles (subtle)
+  stores.forEach(store => {
+    L.circle([store.lat, store.lng], {
+      radius: 400,
+      color: store.color,
+      fillColor: store.color,
+      fillOpacity: 0.04,
+      weight: 1,
+      opacity: 0.2,
+      dashArray: '4 6'
+    }).addTo(map);
+  });
+
+  // Draw connecting line between stores
+  const polyline = L.polyline(
+    stores.map(s => [s.lat, s.lng]),
+    {
+      color: '#ffffff',
+      weight: 1,
+      opacity: 0.08,
+      dashArray: '6 10'
+    }
+  ).addTo(map);
+
+  // Click on card → focus map
+  function focusStore(index) {
+    // Update active card
+    document.querySelectorAll('.store-card').forEach((c, i) => {
+      c.classList.toggle('active', i === index);
+    });
+    // Fly to marker and open popup
+    const { marker, store } = markers[index];
+    map.flyTo([store.lat, store.lng], 16, { duration: 0.8 });
+    setTimeout(() => marker.openPopup(), 900);
+  }
+
+  // Click map marker → update sidebar card
+  markers.forEach(({ marker }, i) => {
+    marker.on('click', () => {
+      document.querySelectorAll('.store-card').forEach((c, j) => {
+        c.classList.toggle('active', j === i);
+      });
+      document.getElementById(`card-${i + 1}`).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+
+  // Open first popup on load
+  setTimeout(() => markers[0].marker.openPopup(), 800);
+</script>
+
+</body>
+</html>
