@@ -79,6 +79,24 @@ CODIGOS_REMITO    = (7, 36)        # excluir siempre
 CODIGO_FACTURA    = 1
 CODIGO_NC         = 3
 
+# ── AUTOREPO (autocompensación inter-depósito) ─────────
+# Depósitos que entran al solver del motor Fase 1
+DEPOS_AUTOREPO_F1 = (0, 2, 6, 7, 8, 11)
+# Dep 4 (Marroquinería/Claudia): excluido del solver, solo reporte de frenado
+DEPOS_AUTOREPO_MONITOREADOS = (4,)
+# Dep 1 (canal digital ML+TN): excluido en F1, se agrega en F2-F3
+DEPOS_AUTOREPO_EXCLUIDOS = (1, 4)
+
+# Mapeo depósito → empresa default (la base donde insertar el remito interno)
+DEPOSITO_EMPRESA = {
+    0: "H4",            # Central VT
+    2: "CALZALINDO",    # Norte
+    6: "CALZALINDO",    # Cuore / Chovet
+    7: "CALZALINDO",    # Eva Perón / Melincué
+    8: "CALZALINDO",    # Junín / Alcorta
+    11: "CALZALINDO",   # Alternativo / Zapatería VT
+}
+
 # ── PROVEEDORES ─────────────────────────────────────────
 # Cada proveedor define su estructura de pricing:
 #   precio_fabrica (base del proveedor)
@@ -236,6 +254,26 @@ PROVEEDORES = {
         "descuento_1":   0,
         "descuento_2":   0,
     },
+    # ── MASKOTA SRL ──
+    220: {
+        "nombre":        "MASKOTA SRL",
+        "cuit":          "",
+        "condicion_iva": "I",
+        "zona":          6,
+        "marca":         220,
+        "empresa":       "CALZALINDO",  # 100% base 01
+        "base":          "msgestion01",
+        "descuento":     0,
+        "utilidad_1":    140,
+        "utilidad_2":    124,
+        "utilidad_3":    60,
+        "utilidad_4":    45,
+        "formula":       1,
+        "descuento_1":   0,
+        "descuento_2":   0,
+        "lead_time_dias": 15,           # JIT real
+        "notas":         "Pantuflas personaje. Lead time 15 días permite JIT.",
+    },
     # ── Ejemplo para otro proveedor ──
     # 794: {
     #     "nombre":      "LUCIA",
@@ -253,6 +291,30 @@ PROVEEDORES = {
     #     "descuento_2": 0,
     # },
 }
+
+
+# Lead times por proveedor (días hábiles desde pedido hasta recepción en tienda)
+LEAD_TIMES = {
+    220: 15,   # MASKOTA SRL — pantuflas JIT
+    104: 21,   # GTN — folclore/danza
+    11:  30,   # TIMMIS NEW SHOES
+    457: 30,   # ZOTZ
+    594: 45,   # VICBOR (ATOMIK, WAKE, MASSIMO, BAGUNZA)
+    641: 21,   # FLOYD medias
+    860: 30,   # DISTRIGROUP / JOHN FOOS
+    118: 30,   # EL FARAÓN — ojotas
+    656: 45,   # DISTRINANDO DEPORTES / REEBOK
+    561: 30,   # SOUTER S.A. / RINGO (CARMEL)
+    614: 45,   # CALZADOS BLANCO / DIADORA
+    668: 45,   # ALPARGATAS / TOPPER
+    722: 60,   # GLOBAL BRANDS / OLK OLYMPIKUS
+}
+LEAD_TIME_DEFAULT = 45
+
+
+def get_lead_time(proveedor_id: int) -> int:
+    """Retorna el lead time en días para un proveedor."""
+    return LEAD_TIMES.get(proveedor_id, LEAD_TIME_DEFAULT)
 
 
 def calcular_precios(precio_fabrica: float, proveedor_id: int) -> dict:

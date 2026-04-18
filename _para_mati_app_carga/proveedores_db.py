@@ -171,59 +171,86 @@ def buscar_proveedor_por_nombre(nombre: str) -> dict | None:
 
 def obtener_pricing_proveedor(numero: int, marca: int = None) -> dict:
     """
-    Obtiene pricing del proveedor basándose en sus artículos más recientes.
-    Si se especifica marca, filtra por esa marca.
+    Obtiene pricing del proveedor.
+    Primero busca en tabla estática (proveedores_pricing_tabla.py) — rápido, sin DB.
+    Si no está, cae a DB usando el artículo más reciente como referencia.
 
     Retorna: {marca, descuento, utilidad_1..4, formula, rubro, subrubro, descuento_1, descuento_2}
-    """
-    filtro_marca = "AND a.marca = ?" if marca else ""
-    params = [numero, marca] if marca else [numero]
-
-    sql = f"""
-        SELECT TOP 1
-            a.marca, a.descuento, a.descuento_1, a.descuento_2,
-            a.utilidad_1, a.utilidad_2, a.utilidad_3, a.utilidad_4,
-            a.formula, a.rubro, a.subrubro
-        FROM msgestion01art.dbo.articulo a
-        WHERE a.proveedor = ? {filtro_marca}
-          AND a.estado = 'V'
-          AND a.precio_fabrica > 0
-        ORDER BY a.codigo DESC
     """
     defaults = {
         "marca": 0,
         "descuento": 0,
         "descuento_1": 0,
         "descuento_2": 0,
-        "utilidad_1": 80,
-        "utilidad_2": 100,
+        "utilidad_1": 100,
+        "utilidad_2": 124,
         "utilidad_3": 60,
         "utilidad_4": 45,
         "formula": 1,
         "rubro": 4,
         "subrubro": 52,
     }
+
+    # 1) Tabla estática (MODE pricing derivado de análisis histórico completo)
     try:
-        with _get_conn() as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, *[params])
-            row = cursor.fetchone()
-            if row:
-                return {
-                    "marca": row.marca or 0,
-                    "descuento": row.descuento or 0,
-                    "descuento_1": row.descuento_1 or 0,
-                    "descuento_2": row.descuento_2 or 0,
-                    "utilidad_1": row.utilidad_1 or 80,
-                    "utilidad_2": row.utilidad_2 or 100,
-                    "utilidad_3": row.utilidad_3 or 60,
-                    "utilidad_4": row.utilidad_4 or 45,
-                    "formula": row.formula or 1,
-                    "rubro": row.rubro or 4,
-                    "subrubro": row.subrubro or 52,
-                }
+        from proveedores_pricing_tabla import get_pricing as _get_pricing_tabla
+        p = _get_pricing_tabla(numero, marca)
+        # Si el proveedor estaba en la tabla, retorna con marca desde DB
+        defaults.update(p)
+        # Agrega marca si la tabla la tiene
+        try:
+            from proveedores_pricing_tabla import get_marca_principal
+            m = get_marca_principal(numero)
+            if m:
+                defaults["marca"] = m
+        except Exception:
+            pass
+        log.debug(f"Pricing proveedor {numero} desde tabla estática: ut1={p['utilidad_1']}%")
+    except ImportError:
+        pass
     except Exception as e:
-        log.error(f"Error obteniendo pricing proveedor {numero}: {e}")
+        log.warning(f"Error leyendo tabla estática para proveedor {numero}: {e}")
+
+    # 2) Fallback DB — TOP 1 artículo más reciente (para proveedores no en tabla)
+    # Solo consulta si la tabla no lo tenía (ut1 sigue en default 100)
+    if defaults["utilidad_1"] == 100 and defaults["descuento"] == 0:
+        filtro_marca = "AND a.marca = ?" if marca else ""
+        params = [numero, marca] if marca else [numero]
+        sql = f"""
+            SELECT TOP 1
+                a.marca, a.descuento, a.descuento_1, a.descuento_2,
+                a.utilidad_1, a.utilidad_2, a.utilidad_3, a.utilidad_4,
+                a.formula, a.rubro, a.subrubro
+            FROM msgestion01art.dbo.articulo a
+            WHERE a.proveedor = ? {filtro_marca}
+              AND a.estado = 'V'
+              AND a.precio_fabrica > 0
+              AND a.utilidad_1 > 0
+            ORDER BY a.codigo DESC
+        """
+        try:
+            with _get_conn() as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, *[params])
+                row = cursor.fetchone()
+                if row:
+                    defaults.update({
+                        "marca":      row.marca or 0,
+                        "descuento":  row.descuento or 0,
+                        "descuento_1": row.descuento_1 or 0,
+                        "descuento_2": row.descuento_2 or 0,
+                        "utilidad_1": row.utilidad_1 or 100,
+                        "utilidad_2": row.utilidad_2 or 124,
+                        "utilidad_3": row.utilidad_3 or 60,
+                        "utilidad_4": row.utilidad_4 or 45,
+                        "formula":    row.formula or 1,
+                        "rubro":      row.rubro or 4,
+                        "subrubro":   row.subrubro or 52,
+                    })
+                    log.debug(f"Pricing proveedor {numero} desde DB (TOP 1 artículo)")
+        except Exception as e:
+            log.error(f"Error obteniendo pricing proveedor {numero} desde DB: {e}")
+
     return defaults
 
 
