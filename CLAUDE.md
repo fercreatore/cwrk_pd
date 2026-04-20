@@ -279,6 +279,18 @@ cowork_pedidos/
 └── clz_wpu/                           ← web push notifications
 ```
 
+### Proyecto externo relacionado — mati-ocr
+
+**GitHub**: https://github.com/fercreatore/mati-ocr (privado)
+**Local**: `~/Desktop/PROYECTO_MATI/`
+**Qué es**: App Streamlit OCR para carga de facturas/artículos — desarrollo freelance Mati.
+**Contrato**: USD 150 en 3 entregables de USD 50 c/u (ver `Contrato_Locacion_Servicios_MATI_OCR.docx`)
+**Estado al 20-abr-2026**: Entregable 2 aprobado (USD 50 pendiente de cobro contra Factura C).
+**Archivos clave del proyecto**:
+- `codigo/app_carga.py` — versión corregida con 7 fixes (esta es la fuente de verdad)
+- `entregables/entregable_2/` — lo que entregó Mati + feedback + diff de fixes
+- `INSTRUCCIONES_MATI.md` — Anexo A del contrato (qué tiene que hacer)
+
 ### Archivos clave
 
 | Archivo | Función |
