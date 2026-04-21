@@ -1,0 +1,188 @@
+{{extend 'layout.html'}}
+
+<style>
+.kpi-card { background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; margin-bottom: 10px; }
+.kpi-card h3 { margin: 0 0 2px 0; font-size: 20px; }
+.kpi-card small { color: #666; font-size: 11px; }
+.corr-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-weight: bold; font-size: 13px; }
+.corr-fuerte-pos  { background: #d4efdf; color: #1d8348; }
+.corr-fuerte-neg  { background: #fadbd8; color: #922b21; }
+.corr-moderada    { background: #fef9e7; color: #7d6608; }
+.corr-debil       { background: #f2f3f4; color: #666; }
+.corr-sin         { background: #f2f3f4; color: #999; }
+.td-num { font-size: 11px; text-align: right; }
+table.table-corr thead th { position: sticky; top: 0; z-index: 10; font-size: 11px;
+    background: #2c3e50; color: #fff; text-align: center; }
+.nota-fuente { font-size: 11px; color: #888; margin-top: 6px; }
+</style>
+
+<a href="{{=URL('informes_productividad','ticket_historico')}}" class="btn btn-default btn-sm">&laquo; Volver a Ticket Historico</a>
+<a href="{{=URL('informes_productividad','dashboard')}}" class="btn btn-default btn-sm" style="margin-left:5px;">Dashboard</a>
+
+<h2>Salario Real vs Metricas de Venta <small>Correlacion FMyA / INDEC — base 2023=100</small></h2>
+
+<p class="nota-fuente">
+    Fuente salario: FMyA en base a INDEC, Salario Formal Privado (base 2023=100).
+    Metricas de venta deflactadas con CER para comparacion en terminos reales.
+    N = {{=n_meses_corr}} meses con datos completos.
+</p>
+
+<!-- Correlaciones -->
+<div class="row" style="margin-top:15px;">
+{{for c in correlaciones:}}
+<div class="col-md-4">
+    <div class="kpi-card" style="border-left:4px solid {{='#1d8348' if (c['pearson'] or 0) >= 0.4 else ('#922b21' if (c['pearson'] or 0) <= -0.4 else '#999')}};text-align:left;">
+        <div style="font-size:13px; font-weight:bold; margin-bottom:4px;">{{=c['metrica']}}</div>
+        {{if c['pearson'] is not None:}}
+        <span class="corr-badge {{='corr-fuerte-pos' if c['pearson'] >= 0.7 else ('corr-fuerte-neg' if c['pearson'] <= -0.7 else ('corr-moderada' if abs(c['pearson']) >= 0.4 else ('corr-debil' if abs(c['pearson']) >= 0.2 else 'corr-sin')))}}">
+            r = {{='%.3f' % c['pearson']}}
+        </span>
+        {{else:}}
+        <span class="corr-badge corr-sin">Sin datos</span>
+        {{pass}}
+        <div style="font-size:11px; color:#666; margin-top:4px;">{{=c['interpretacion']}}</div>
+    </div>
+</div>
+{{pass}}
+</div>
+
+<!-- Chart dual-axis -->
+<div class="panel panel-default" style="margin-top:20px;">
+    <div class="panel-heading"><strong>Evolucion mensual — indices base ene-2023=100</strong></div>
+    <div class="panel-body">
+        <canvas id="chartCorr" height="90"></canvas>
+    </div>
+</div>
+
+<!-- Tabla detalle -->
+<div class="panel panel-default" style="margin-top:20px;">
+    <div class="panel-heading"><strong>Datos mensuales</strong></div>
+    <div class="panel-body" style="overflow-x:auto;">
+        <table class="table table-condensed table-hover table-corr">
+            <thead>
+                <tr>
+                    <th>Periodo</th>
+                    <th>Salario real</th>
+                    <th>Idx fact. real</th>
+                    <th>Idx precio/par</th>
+                    <th>Idx pares</th>
+                    <th>Facturacion</th>
+                    <th>Pares</th>
+                    <th>Precio/par</th>
+                    <th>CER coef</th>
+                </tr>
+            </thead>
+            <tbody>
+            {{for f in filas:}}
+            <tr {{='class="info"' if f['salario_idx'] is None else ''}}>
+                <td style="font-size:11px; white-space:nowrap;">{{=f['label']}}</td>
+                <td class="td-num">{{='%.0f' % f['salario_idx'] if f['salario_idx'] else '—'}}</td>
+                <td class="td-num">{{='%.1f' % f['idx_facturacion_real'] if f['idx_facturacion_real'] else '—'}}</td>
+                <td class="td-num">{{='%.1f' % f['idx_precio_par_real']  if f['idx_precio_par_real']  else '—'}}</td>
+                <td class="td-num">{{='%.1f' % f['idx_pares']            if f['idx_pares']            else '—'}}</td>
+                <td class="td-num">${{='{:,.0f}'.format(f['facturacion'])}}</td>
+                <td class="td-num">{{='{:,.0f}'.format(f['pares'])}}</td>
+                <td class="td-num">${{='{:,.0f}'.format(f['precio_par'])}}</td>
+                <td class="td-num">{{='%.4f' % f['cer_coef']}}</td>
+            </tr>
+            {{pass}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{if timing:}}
+<p style="font-size:10px;color:#aaa;">Timing: {{=', '.join(timing)}}</p>
+{{pass}}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+(function() {
+    var data = {{=XML(charts_json)}};
+
+    var ctx = document.getElementById('chartCorr').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [
+                {
+                    label: 'Salario real formal privado (FMyA/INDEC)',
+                    data: data.salario,
+                    borderColor: '#2c3e50',
+                    backgroundColor: 'rgba(44,62,80,0.08)',
+                    borderWidth: 3,
+                    pointRadius: 2,
+                    yAxisID: 'y',
+                    spanGaps: true,
+                },
+                {
+                    label: 'Facturacion real (CER) idx',
+                    data: data.fact_real,
+                    borderColor: '#2980b9',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    borderDash: [4,3],
+                    yAxisID: 'y2',
+                    spanGaps: true,
+                },
+                {
+                    label: 'Precio promedio / par (real) idx',
+                    data: data.precio_par,
+                    borderColor: '#e67e22',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    borderDash: [2,3],
+                    yAxisID: 'y2',
+                    spanGaps: true,
+                },
+                {
+                    label: 'Cantidad de pares idx',
+                    data: data.pares,
+                    borderColor: '#27ae60',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    borderDash: [6,3],
+                    yAxisID: 'y2',
+                    spanGaps: true,
+                },
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ctx.dataset.label + ': ' + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) : '—');
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Salario real (base 2023=100)', font: { size: 11 } },
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    min: 70, max: 115,
+                },
+                y2: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: 'Metricas de venta (base ene-2023=100)', font: { size: 11 } },
+                    grid: { drawOnChartArea: false },
+                },
+                x: {
+                    ticks: { font: { size: 10 }, maxRotation: 45 }
+                }
+            }
+        }
+    });
+})();
+</script>

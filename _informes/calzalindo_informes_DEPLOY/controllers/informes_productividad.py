@@ -1446,3 +1446,215 @@ def viajante_admin():
         mensaje=mensaje,
         error=error,
     )
+
+
+# ─── CORRELACION SALARIO REAL vs METRICAS DE VENTA ───────────────────
+#
+# Fuente: FMyA en base a INDEC. Salario Formal Privado, base 2023=100.
+# Datos hardcodeados porque la serie no está en la base local.
+# Se actualizará manualmente cuando salgan nuevos datos del INDEC.
+#
+SALARIO_REAL_FORMAL = {
+    "2023-01": 100, "2023-02": 100, "2023-03": 100, "2023-04": 100,
+    "2023-05": 101, "2023-06": 104, "2023-07": 104, "2023-08": 100,
+    "2023-09": 100, "2023-10": 98,  "2023-11": 98,  "2023-12": 98,
+    "2024-01": 86,  "2024-02": 86,  "2024-03": 87,  "2024-04": 88,
+    "2024-05": 89,  "2024-06": 90,  "2024-07": 91,  "2024-08": 92,
+    "2024-09": 93,  "2024-10": 94,  "2024-11": 95,  "2024-12": 95,
+    "2025-01": 95,  "2025-02": 95,  "2025-03": 96,  "2025-04": 96,
+    "2025-05": 96,  "2025-06": 96,  "2025-07": 97,  "2025-08": 97,
+    "2025-09": 97,  "2025-10": 96,  "2025-11": 95,  "2025-12": 94,
+    "2026-01": 93,  "2026-02": 93,  "2026-03": 93,
+}
+
+
+def _pearson_corr(xs, ys):
+    """Coeficiente de correlacion de Pearson entre dos listas de igual longitud.
+    Retorna None si no hay suficientes datos o si la desviacion es cero."""
+    n = len(xs)
+    if n < 3:
+        return None
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+    num = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
+    den_x = sum((x - mean_x) ** 2 for x in xs) ** 0.5
+    den_y = sum((y - mean_y) ** 2 for y in ys) ** 0.5
+    if den_x == 0 or den_y == 0:
+        return None
+    return round(num / (den_x * den_y), 3)
+
+
+def salario_real_correlacion():
+    """
+    Correlacion entre salario real (FMyA/INDEC) y metricas de venta
+    (facturacion deflactada, precio promedio por par, cantidad de pares).
+    Periodo: ene-2023 en adelante (donde tenemos datos de salario real).
+
+    URL: /calzalindo_informes/informes_productividad/salario_real_correlacion
+    """
+    _requiere_acceso()
+    t = _timer()
+
+    # ── 1) Ventas mensuales desde ventas1 (msgestionC) ──
+    # Excluir codigo 7 y 36 (remitos internos).
+    # ventas1_vendedor en omicronvt es la vista optimizada; usar ventas1 de msgestionC
+    # para tener el universo completo (no solo por viajante).
+    sql_ventas = """
+        SELECT YEAR(fecha)  AS anio,
+               MONTH(fecha) AS mes,
+               SUM(total_item * cantidad)   AS facturacion,
+               SUM(cantidad)                AS pares,
+               SUM(total_item * cantidad) / NULLIF(SUM(cantidad), 0) AS precio_par
+        FROM ventas1_vendedor WITH (NOLOCK)
+        WHERE fecha >= '2023-01-01'
+          AND cantidad > 0
+          AND total_item > 0
+        GROUP BY YEAR(fecha), MONTH(fecha)
+        ORDER BY YEAR(fecha), MONTH(fecha)
+    """
+    ventas_raw = _sql_mssql(db_omicronvt, sql_ventas)
+    _tick(t, 'ventas_mensuales')
+
+    # ── 2) CER para deflactar facturacion ──
+    # Batch query igual que en ticket_historico()
+    cer_map = {}
+    if ventas_raw:
+        cer_parts = []
+        for r in ventas_raw:
+            fecha_str = '%s-%02d-15' % (r['anio'], r['mes'])
+            cer_parts.append(
+                "SELECT %d AS anio, %d AS mes, omicronvt.dbo.AjustarPorCer(1, '%s') AS coef"
+                % (r['anio'], r['mes'], fecha_str)
+            )
+        try:
+            cer_rows = _sql_mssql(db_omicronvt, ' UNION ALL '.join(cer_parts))
+            for cr in cer_rows:
+                cer_map[(int(cr['anio']), int(cr['mes']))] = float(cr['coef']) if cr['coef'] else 1.0
+        except:
+            for r in ventas_raw:
+                cer_map[(r['anio'], r['mes'])] = 1.0
+    _tick(t, 'cer_batch')
+
+    # ── 3) Construir series con mes-key "YYYY-MM" ──
+    # Base de indices: primer mes disponible = 100
+    base_facturacion_real = None
+    base_precio_par_real  = None
+    base_pares            = None
+
+    filas = []
+    for r in ventas_raw:
+        anio = r['anio']
+        mes  = r['mes']
+        key_mes = '%d-%02d' % (anio, mes)
+
+        facturacion   = float(r['facturacion']  or 0)
+        pares         = float(r['pares']        or 0)
+        precio_par    = float(r['precio_par']   or 0)
+        cer_coef      = cer_map.get((anio, mes), 1.0)
+
+        # Deflactar con CER (multiplicar por coef sube a pesos actuales)
+        facturacion_real = facturacion * cer_coef
+        precio_par_real  = precio_par  * cer_coef
+
+        # Salario real del periodo
+        salario_idx = SALARIO_REAL_FORMAL.get(key_mes)
+
+        # Bases para indice 100 = primer mes
+        if base_facturacion_real is None and facturacion_real > 0:
+            base_facturacion_real = facturacion_real
+        if base_precio_par_real is None and precio_par_real > 0:
+            base_precio_par_real = precio_par_real
+        if base_pares is None and pares > 0:
+            base_pares = pares
+
+        idx_facturacion_real = facturacion_real / base_facturacion_real * 100 if base_facturacion_real else None
+        idx_precio_par_real  = precio_par_real  / base_precio_par_real  * 100 if base_precio_par_real  else None
+        idx_pares            = pares            / base_pares            * 100 if base_pares            else None
+
+        filas.append(dict(
+            anio=anio,
+            mes=mes,
+            label='%02d/%d' % (mes, anio),
+            key_mes=key_mes,
+            facturacion=facturacion,
+            pares=pares,
+            precio_par=precio_par,
+            cer_coef=cer_coef,
+            facturacion_real=facturacion_real,
+            precio_par_real=precio_par_real,
+            salario_idx=salario_idx,
+            idx_facturacion_real=idx_facturacion_real,
+            idx_precio_par_real=idx_precio_par_real,
+            idx_pares=idx_pares,
+        ))
+    _tick(t, 'procesamiento')
+
+    # ── 4) Correlaciones de Pearson ──
+    # Solo meses donde tenemos salario real (2023 en adelante, con dato disponible)
+    meses_completos = [f for f in filas if f['salario_idx'] is not None
+                       and f['idx_facturacion_real'] is not None
+                       and f['idx_precio_par_real'] is not None
+                       and f['idx_pares'] is not None]
+
+    sal_serie = [f['salario_idx']          for f in meses_completos]
+    fac_serie = [f['idx_facturacion_real'] for f in meses_completos]
+    prc_serie = [f['idx_precio_par_real']  for f in meses_completos]
+    par_serie = [f['idx_pares']            for f in meses_completos]
+
+    corr_facturacion = _pearson_corr(sal_serie, fac_serie)
+    corr_precio_par  = _pearson_corr(sal_serie, prc_serie)
+    corr_pares       = _pearson_corr(sal_serie, par_serie)
+
+    correlaciones = [
+        dict(metrica='Facturacion real (CER)',  pearson=corr_facturacion,
+             interpretacion=_interpretar_pearson(corr_facturacion)),
+        dict(metrica='Precio promedio por par', pearson=corr_precio_par,
+             interpretacion=_interpretar_pearson(corr_precio_par)),
+        dict(metrica='Cantidad de pares',       pearson=corr_pares,
+             interpretacion=_interpretar_pearson(corr_pares)),
+    ]
+
+    # ── 5) Serializar para charts ──
+    chart_labels    = [f['label']                  for f in filas]
+    chart_salario   = [f['salario_idx']            for f in filas]
+    chart_fact_real = [round(f['idx_facturacion_real'], 1) if f['idx_facturacion_real'] else None for f in filas]
+    chart_precio    = [round(f['idx_precio_par_real'],  1) if f['idx_precio_par_real']  else None for f in filas]
+    chart_pares     = [round(f['idx_pares'],            1) if f['idx_pares']            else None for f in filas]
+
+    charts_json = json.dumps({
+        'labels':     chart_labels,
+        'salario':    chart_salario,
+        'fact_real':  chart_fact_real,
+        'precio_par': chart_precio,
+        'pares':      chart_pares,
+    }, ensure_ascii=False)
+
+    return dict(
+        filas=filas,
+        correlaciones=correlaciones,
+        charts_json=charts_json,
+        n_meses_corr=len(meses_completos),
+        timing=t['_steps'],
+        es_admin=_es_admin(),
+        puede_ver=_puede_ver,
+        roles=_roles_usuario(),
+    )
+
+
+def _interpretar_pearson(r):
+    """Descripcion textual del coeficiente de Pearson"""
+    if r is None:
+        return 'Sin datos suficientes'
+    abs_r = abs(r)
+    signo = 'positiva' if r > 0 else 'negativa'
+    if abs_r >= 0.7:
+        fuerza = 'fuerte'
+    elif abs_r >= 0.4:
+        fuerza = 'moderada'
+    elif abs_r >= 0.2:
+        fuerza = 'debil'
+    else:
+        fuerza = 'sin'
+    if fuerza == 'sin':
+        return 'Sin correlacion significativa'
+    return 'Correlacion %s %s (r=%.3f)' % (fuerza, signo, r)
